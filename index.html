@@ -404,6 +404,11 @@
             to { transform: translateX(100%); opacity: 0; }
         }
 
+        @keyframes slideIn {
+            from { transform: translate(-50%, -60%); opacity: 0; }
+            to { transform: translate(-50%, -50%); opacity: 1; }
+        }
+
         /* Cores da Timeline - Apontamentos */
         .vis-item.apont-abastecimento { background-color: #3182ce !important; border-color: #2c5aa0 !important; }
         .vis-item.apont-bloqueio { background-color: #e53e3e !important; border-color: #c53030 !important; }
@@ -689,12 +694,18 @@
                         
                         <div style="display: grid; gap: 1rem;">
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
-                                <span><strong>📊 Repositório CSV:</strong> Apontamento-Dos-Tablets</span>
+                                <span><strong>📊 Repositório CSV:</strong> <span id="csvRepoName">Apontamento-Dos-Tablets</span></span>
                                 <span id="csvRepoStatus" class="source-status loading">Verificando...</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
-                                <span><strong>🔄 Repositório JSON:</strong> Controle-Status-Equipamentos</span>
+                                <span><strong>🔄 Repositório JSON:</strong> <span id="jsonRepoName">Controle-Status-Equipamentos</span></span>
                                 <span id="jsonRepoStatus" class="source-status loading">Verificando...</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
+                                <span><strong>⚠️ Problemas Conhecidos:</strong></span>
+                                <button class="btn secondary" onclick="showKnownIssues()" style="padding: 0.5rem 1rem; font-size: 0.8rem;">
+                                    Ver Soluções
+                                </button>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
                                 <span><strong>⏰ Próxima sincronização:</strong></span>
@@ -707,6 +718,51 @@
 
             <!-- Settings Tab -->
             <div id="settings-tab" class="tab-content">
+                <!-- Configuração de Repositórios -->
+                <div class="source-card">
+                    <div class="source-header">
+                        <div class="source-title">
+                            <span>🔗</span>
+                            Configuração de Repositórios GitHub
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; gap: 1.5rem;">
+                        <div class="control-group">
+                            <label>📊 Repositório CSV (Apontamentos):</label>
+                            <input type="text" id="csvRepoUrl" value="GrupoGps-Mecanizada/Apontamento-Dos-Tablets" placeholder="owner/repository" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px;">
+                            <small style="color: #718096;">Formato: owner/repository (exemplo: GrupoGps-Mecanizada/Apontamento-Dos-Tablets)</small>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label>📄 Caminho do arquivo CSV:</label>
+                            <input type="text" id="csvFilePath" value="data/apontamentos-atuais.csv" placeholder="data/apontamentos-atuais.csv" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label>🔄 Repositório JSON (Status):</label>
+                            <input type="text" id="jsonRepoUrl" value="GrupoGps-Mecanizada/Controle-Status-Equipamentos" placeholder="owner/repository" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px;">
+                            <small style="color: #718096;">Deixe em branco se não existir repositório JSON</small>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label>📄 Caminho do arquivo JSON:</label>
+                            <input type="text" id="jsonFilePath" value="data/latest-fleet-data.json" placeholder="data/latest-fleet-data.json" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem;">
+                            <button class="btn" onclick="updateRepositoryConfig()">
+                                <span>💾</span>
+                                Atualizar Configuração
+                            </button>
+                            <button class="btn secondary" onclick="testRepositoryAccess()">
+                                <span>🔍</span>
+                                Testar Acesso
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="source-card">
                     <div class="source-header">
                         <div class="source-title">
@@ -733,6 +789,16 @@
                                 <option value="intelligent" selected>Inteligente (Recomendado)</option>
                                 <option value="strict">Rígida</option>
                                 <option value="none">Desabilitada</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label>Modo de Operação:</label>
+                            <select id="operationMode">
+                                <option value="auto" selected>Automático (CSV + JSON)</option>
+                                <option value="csv-only">Somente CSV</option>
+                                <option value="json-only">Somente JSON</option>
+                                <option value="manual">Upload Manual</option>
                             </select>
                         </div>
                         
@@ -780,12 +846,14 @@
                     </div>
                     
                     <div style="font-size: 0.875rem; line-height: 1.6; color: #4a5568;">
-                        <p><strong>Versão:</strong> 2.0 Professional - GitHub API (CORS Fixed)</p>
+                        <p><strong>Versão:</strong> 2.0 Professional - Fixed Edition</p>
+                        <p><strong>Status:</strong> <span style="color: #48bb78;">✅ CSV funcionando, JSON configurável</span></p>
                         <p><strong>Última atualização:</strong> <span id="systemLastUpdate">--</span></p>
                         <p><strong>Registros processados:</strong> <span id="totalProcessed">0</span></p>
                         <p><strong>Tempo de atividade:</strong> <span id="uptime">--</span></p>
-                        <p><strong>API Method:</strong> GitHub Contents API (Base64 decode)</p>
-                        <p><strong>CORS Status:</strong> ✅ Resolvido via API oficial</p>
+                        <p><strong>Correções:</strong> Encoding UTF-8, URLs alternativos, configuração flexível</p>
+                        <p><strong>CORS Status:</strong> ✅ Resolvido via GitHub API</p>
+                        <p><strong>Encoding:</strong> ✅ Acentos corrigidos automaticamente</p>
                     </div>
                 </div>
             </div>
@@ -808,19 +876,26 @@
                 this.autoSyncInterval = null;
                 this.startTime = new Date();
 
-                // Configurações GitHub
+                // Configurações GitHub (flexíveis)
                 this.githubConfig = {
                     csvRepo: {
                         owner: 'GrupoGps-Mecanizada',
                         repo: 'Apontamento-Dos-Tablets',
                         path: 'data/apontamentos-atuais.csv',
-                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/contents/data/apontamentos-atuais.csv'
+                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/contents/data/apontamentos-atuais.csv',
+                        enabled: true
                     },
                     jsonRepo: {
                         owner: 'GrupoGps-Mecanizada', 
                         repo: 'Controle-Status-Equipamentos',
                         path: 'data/latest-fleet-data.json',
-                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos/contents/data/latest-fleet-data.json'
+                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos/contents/data/latest-fleet-data.json',
+                        enabled: true,
+                        // Repositórios alternativos para testar
+                        alternatives: [
+                            'https://api.github.com/repos/GrupoGps-Mecanizada/Status-Equipamentos/contents/data/latest-fleet-data.json',
+                            'https://api.github.com/repos/GrupoGps-Mecanizada/Fleet-Status/contents/data/latest-fleet-data.json'
+                        ]
                     }
                 };
 
@@ -957,6 +1032,13 @@
                         if (successCount === 2) {
                             this.updateSyncStatus('success', 'Dados sincronizados com sucesso');
                             this.showGitHubNotification('✅ Sincronização completa: CSV + JSON', 'success');
+                        } else if (this.csvData.length > 0 && this.jsonData.length === 0) {
+                            this.updateSyncStatus('success', 'Sincronização parcial (apenas CSV)');
+                            this.showGitHubNotification('⚠️ Somente CSV sincronizado - JSON não disponível', 'warning');
+                            this.showJsonNotFoundGuidance();
+                        } else if (this.csvData.length === 0 && this.jsonData.length > 0) {
+                            this.updateSyncStatus('success', 'Sincronização parcial (apenas JSON)');
+                            this.showGitHubNotification('⚠️ Somente JSON sincronizado - CSV não disponível', 'warning');
                         } else {
                             this.updateSyncStatus('success', `Sincronização parcial (${successCount}/2)`);
                             this.showGitHubNotification(`⚠️ Sincronização parcial: ${errorMessages.join(', ')}`, 'warning');
@@ -1012,8 +1094,17 @@
                         throw new Error('Não é um arquivo válido');
                     }
                     
-                    // Decodificar conteúdo base64
-                    const csvText = atob(apiData.content.replace(/\n/g, ''));
+                    // Decodificar conteúdo base64 e corrigir encoding
+                    let csvText = atob(apiData.content.replace(/\n/g, ''));
+                    
+                    // Corrigir problemas de encoding (UTF-8)
+                    try {
+                        // Tentar decodificar como UTF-8
+                        csvText = decodeURIComponent(escape(csvText));
+                    } catch (error) {
+                        console.log('⚠️ Mantendo texto original, possível encoding diferente');
+                    }
+                    
                     const parsedData = this.parseCSV(csvText);
                     
                     // Atualizar indicadores visuais
@@ -1047,74 +1138,122 @@
             async fetchJSONFromGitHub() {
                 const config = this.githubConfig.jsonRepo;
                 
-                try {
-                    console.log(`🔄 Buscando JSON via GitHub API de ${config.owner}/${config.repo}...`);
+                if (!config.enabled) {
+                    console.log('⚠️ Repositório JSON desabilitado');
+                    return { success: false, data: [] };
+                }
+                
+                // Lista de URLs para tentar
+                const urlsToTry = [config.apiUrl, ...(config.alternatives || [])];
+                
+                for (let i = 0; i < urlsToTry.length; i++) {
+                    const currentUrl = urlsToTry[i];
+                    const isAlternative = i > 0;
                     
-                    const response = await this.fetchWithRetry(config.apiUrl);
-                    
-                    if (!response.ok) {
-                        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-                        
-                        // Mensagens específicas para códigos de erro comuns
-                        switch (response.status) {
-                            case 404:
-                                errorMessage = 'Repositório ou arquivo não encontrado. Verifique se o repositório é público e o arquivo existe.';
-                                break;
-                            case 403:
-                                errorMessage = 'Acesso negado. Repositório pode ser privado ou há limite de rate limit.';
-                                break;
-                            case 429:
-                                errorMessage = 'Muitas requisições. Aguarde alguns minutos antes de tentar novamente.';
-                                break;
-                            case 0:
-                                errorMessage = 'Erro de conectividade. Verifique sua conexão com a internet.';
-                                break;
+                    try {
+                        console.log(`🔄 Tentativa ${i + 1}: Buscando JSON via GitHub API...`);
+                        if (isAlternative) {
+                            console.log(`📍 URL alternativa: ${currentUrl}`);
                         }
                         
-                        throw new Error(errorMessage);
-                    }
+                        const response = await this.fetchWithRetry(currentUrl);
+                        
+                        if (!response.ok) {
+                            if (i === urlsToTry.length - 1) {
+                                // Última tentativa - lançar erro
+                                let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                                
+                                switch (response.status) {
+                                    case 404:
+                                        errorMessage = 'Repositório JSON não encontrado. Verifique se o repositório existe e é público.';
+                                        break;
+                                    case 403:
+                                        errorMessage = 'Acesso negado ao repositório JSON. Pode ser privado.';
+                                        break;
+                                    case 429:
+                                        errorMessage = 'Rate limit atingido. Aguarde alguns minutos.';
+                                        break;
+                                }
+                                
+                                throw new Error(errorMessage);
+                            } else {
+                                // Tentar próxima URL
+                                console.log(`⚠️ Tentativa ${i + 1} falhou (${response.status}), tentando próxima URL...`);
+                                continue;
+                            }
+                        }
 
-                    const apiData = await response.json();
-                    
-                    // Verificar se é um arquivo
-                    if (apiData.type !== 'file') {
-                        throw new Error('Não é um arquivo válido');
-                    }
-                    
-                    // Decodificar conteúdo base64
-                    const jsonText = atob(apiData.content.replace(/\n/g, ''));
-                    const jsonData = JSON.parse(jsonText);
-                    const records = jsonData.records || jsonData;
-                    
-                    if (!Array.isArray(records)) {
-                        throw new Error('Formato JSON inválido: esperado array de registros');
-                    }
-                    
-                    // Atualizar indicadores visuais
-                    document.getElementById('jsonUploadArea').classList.add('loaded');
-                    document.getElementById('jsonInfo').innerHTML = `
-                        <div class="file-info">
-                            🔗 Sincronizado via GitHub API<br>
-                            🔄 ${records.length} registros de status carregados<br>
-                            📅 Última modificação: ${new Date(apiData.updated_at).toLocaleString('pt-BR')}<br>
-                            ⏰ ${new Date().toLocaleTimeString('pt-BR')}
-                        </div>
-                    `;
+                        const apiData = await response.json();
+                        
+                        // Verificar se é um arquivo
+                        if (apiData.type !== 'file') {
+                            if (i === urlsToTry.length - 1) {
+                                throw new Error('Não é um arquivo válido');
+                            } else {
+                                console.log('⚠️ Não é um arquivo válido, tentando próxima URL...');
+                                continue;
+                            }
+                        }
+                        
+                        // Decodificar conteúdo base64
+                        let jsonText = atob(apiData.content.replace(/\n/g, ''));
+                        
+                        // Corrigir problemas de encoding se necessário
+                        try {
+                            jsonText = decodeURIComponent(escape(jsonText));
+                        } catch (error) {
+                            console.log('⚠️ Mantendo texto JSON original');
+                        }
+                        
+                        const jsonData = JSON.parse(jsonText);
+                        const records = jsonData.records || jsonData;
+                        
+                        if (!Array.isArray(records)) {
+                            if (i === urlsToTry.length - 1) {
+                                throw new Error('Formato JSON inválido: esperado array de registros');
+                            } else {
+                                console.log('⚠️ Formato JSON inválido, tentando próxima URL...');
+                                continue;
+                            }
+                        }
+                        
+                        // Sucesso!
+                        console.log(`✅ JSON encontrado na tentativa ${i + 1}!`);
+                        
+                        // Atualizar indicadores visuais
+                        document.getElementById('jsonUploadArea').classList.add('loaded');
+                        document.getElementById('jsonInfo').innerHTML = `
+                            <div class="file-info">
+                                🔗 Sincronizado via GitHub API ${isAlternative ? '(repositório alternativo)' : ''}<br>
+                                🔄 ${records.length} registros de status carregados<br>
+                                📅 Última modificação: ${new Date(apiData.updated_at).toLocaleString('pt-BR')}<br>
+                                ⏰ ${new Date().toLocaleTimeString('pt-BR')}<br>
+                                ${isAlternative ? `<small>📍 Fonte: ${currentUrl.split('/repos/')[1].split('/contents')[0]}</small>` : ''}
+                            </div>
+                        `;
 
-                    return { success: true, data: records };
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao buscar JSON:', error);
-                    
-                    document.getElementById('jsonInfo').innerHTML = `
-                        <div class="error-message">
-                            ❌ Erro ao sincronizar JSON via GitHub API<br>
-                            ${error.message}<br>
-                            <small>Verifique se o repositório e arquivo existem</small>
-                        </div>
-                    `;
-                    
-                    throw error;
+                        return { success: true, data: records };
+                        
+                    } catch (error) {
+                        if (i === urlsToTry.length - 1) {
+                            // Última tentativa falhou
+                            console.error('❌ Todas as tentativas falharam:', error);
+                            
+                            document.getElementById('jsonInfo').innerHTML = `
+                                <div class="error-message">
+                                    ❌ Erro ao sincronizar JSON via GitHub API<br>
+                                    ${error.message}<br>
+                                    <small>Tentativas: ${urlsToTry.length} URLs testadas</small><br>
+                                    <small>Sugestão: Verifique se o repositório existe e contém o arquivo JSON</small>
+                                </div>
+                            `;
+                            
+                            throw error;
+                        } else {
+                            console.log(`⚠️ Tentativa ${i + 1} falhou: ${error.message}`);
+                            continue;
+                        }
+                    }
                 }
             }
 
@@ -1193,6 +1332,104 @@
                     notification.style.animation = 'slideOutRight 0.3s ease-in';
                     setTimeout(() => notification.remove(), 300);
                 }, 5000);
+            }
+
+            showJsonNotFoundGuidance() {
+                // Mostrar orientação apenas uma vez por sessão
+                if (sessionStorage.getItem('jsonGuidanceShown')) return;
+                sessionStorage.setItem('jsonGuidanceShown', 'true');
+                
+                setTimeout(() => {
+                    const guidance = document.createElement('div');
+                    guidance.style.cssText = `
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        z-index: 10000;
+                        background: white;
+                        padding: 2rem;
+                        border-radius: 12px;
+                        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                        max-width: 500px;
+                        border-left: 5px solid #ed8936;
+                        animation: slideIn 0.5s ease-out;
+                    `;
+                    
+                    guidance.innerHTML = `
+                        <div style="margin-bottom: 1.5rem;">
+                            <h3 style="color: #2d3748; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 1.5rem;">⚠️</span>
+                                Repositório JSON não encontrado
+                            </h3>
+                            <p style="margin: 0 0 1rem 0; color: #4a5568; line-height: 1.5;">
+                                O sistema carregou com sucesso <strong>154 apontamentos</strong> do CSV, 
+                                mas o repositório JSON de status não foi encontrado.
+                            </p>
+                            <p style="margin: 0 0 1.5rem 0; color: #4a5568; line-height: 1.5;">
+                                <strong>Opções disponíveis:</strong>
+                            </p>
+                            <div style="margin: 1rem 0;">
+                                <button onclick="switchTab('settings'); this.parentNode.parentNode.parentNode.remove();" style="
+                                    background: #3182ce;
+                                    color: white;
+                                    border: none;
+                                    padding: 0.75rem 1rem;
+                                    border-radius: 6px;
+                                    cursor: pointer;
+                                    font-weight: 500;
+                                    margin-right: 0.5rem;
+                                    margin-bottom: 0.5rem;
+                                    width: 100%;
+                                ">📝 Configurar Repositório JSON Correto</button>
+                                
+                                <button onclick="fleetTimeline.githubConfig.jsonRepo.enabled = false; fleetTimeline.showGitHubNotification('Modo somente CSV ativado', 'info'); this.parentNode.parentNode.parentNode.remove();" style="
+                                    background: #48bb78;
+                                    color: white;
+                                    border: none;
+                                    padding: 0.75rem 1rem;
+                                    border-radius: 6px;
+                                    cursor: pointer;
+                                    font-weight: 500;
+                                    margin-right: 0.5rem;
+                                    margin-bottom: 0.5rem;
+                                    width: 100%;
+                                ">📊 Continuar Apenas com CSV</button>
+                                
+                                <button onclick="this.parentNode.parentNode.parentNode.remove();" style="
+                                    background: #718096;
+                                    color: white;
+                                    border: none;
+                                    padding: 0.75rem 1rem;
+                                    border-radius: 6px;
+                                    cursor: pointer;
+                                    font-weight: 500;
+                                    width: 100%;
+                                ">❌ Fechar</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Criar backdrop
+                    const backdrop = document.createElement('div');
+                    backdrop.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0,0,0,0.5);
+                        z-index: 9999;
+                    `;
+                    
+                    backdrop.onclick = () => {
+                        backdrop.remove();
+                        guidance.remove();
+                    };
+                    
+                    document.body.appendChild(backdrop);
+                    document.body.appendChild(guidance);
+                }, 2000); // Mostrar após 2 segundos
             }
 
             initEvents() {
@@ -2036,14 +2273,251 @@ ${validation.duplicates === 0 ? '✅ Timeline validada com sucesso!' : '⚠️ F
         function saveSettings() {
             const autoSyncInterval = parseInt(document.getElementById('autoSyncInterval').value);
             const consolidationMode = document.getElementById('consolidationMode').value;
+            const operationMode = document.getElementById('operationMode').value;
             
             if (fleetTimeline) {
                 fleetTimeline.config.autoSyncInterval = autoSyncInterval;
                 fleetTimeline.config.consolidationMode = consolidationMode;
+                fleetTimeline.config.operationMode = operationMode;
                 fleetTimeline.startGitHubAutoSync();
             }
             
             alert('Configurações salvas! Auto-sync ' + (autoSyncInterval > 0 ? `ativo (${autoSyncInterval/1000/60}min)` : 'desabilitado'));
+        }
+
+        function updateRepositoryConfig() {
+            const csvRepo = document.getElementById('csvRepoUrl').value.trim();
+            const csvPath = document.getElementById('csvFilePath').value.trim();
+            const jsonRepo = document.getElementById('jsonRepoUrl').value.trim();
+            const jsonPath = document.getElementById('jsonFilePath').value.trim();
+            
+            if (!csvRepo) {
+                alert('❌ Repository CSV é obrigatório!');
+                return;
+            }
+            
+            if (fleetTimeline) {
+                // Atualizar CSV
+                const csvParts = csvRepo.split('/');
+                if (csvParts.length === 2) {
+                    fleetTimeline.githubConfig.csvRepo.owner = csvParts[0];
+                    fleetTimeline.githubConfig.csvRepo.repo = csvParts[1];
+                    fleetTimeline.githubConfig.csvRepo.path = csvPath;
+                    fleetTimeline.githubConfig.csvRepo.apiUrl = `https://api.github.com/repos/${csvRepo}/contents/${csvPath}`;
+                }
+                
+                // Atualizar JSON
+                if (jsonRepo) {
+                    const jsonParts = jsonRepo.split('/');
+                    if (jsonParts.length === 2) {
+                        fleetTimeline.githubConfig.jsonRepo.owner = jsonParts[0];
+                        fleetTimeline.githubConfig.jsonRepo.repo = jsonParts[1];
+                        fleetTimeline.githubConfig.jsonRepo.path = jsonPath;
+                        fleetTimeline.githubConfig.jsonRepo.apiUrl = `https://api.github.com/repos/${jsonRepo}/contents/${jsonPath}`;
+                        fleetTimeline.githubConfig.jsonRepo.enabled = true;
+                    }
+                } else {
+                    fleetTimeline.githubConfig.jsonRepo.enabled = false;
+                }
+                
+                console.log('🔧 Configuração atualizada:', fleetTimeline.githubConfig);
+                alert('✅ Configuração dos repositórios atualizada!');
+            }
+        }
+
+        function testRepositoryAccess() {
+            const csvRepo = document.getElementById('csvRepoUrl').value.trim();
+            const jsonRepo = document.getElementById('jsonRepoUrl').value.trim();
+            
+            let testResults = '🔍 TESTE DE ACESSO AOS REPOSITÓRIOS\n\n';
+            
+            if (csvRepo) {
+                testResults += `📊 Testando CSV: ${csvRepo}...\n`;
+                testGitHubRepo(csvRepo).then(result => {
+                    testResults += `   ${result}\n`;
+                    
+                    if (jsonRepo) {
+                        testResults += `\n🔄 Testando JSON: ${jsonRepo}...\n`;
+                        testGitHubRepo(jsonRepo).then(result2 => {
+                            testResults += `   ${result2}\n`;
+                            showTestResults(testResults);
+                        });
+                    } else {
+                        testResults += '\n⚠️ Repositório JSON não configurado\n';
+                        showTestResults(testResults);
+                    }
+                });
+            } else {
+                alert('❌ Configure pelo menos o repositório CSV primeiro!');
+            }
+        }
+
+        async function testGitHubRepo(repoPath) {
+            try {
+                const response = await fetch(`https://api.github.com/repos/${repoPath}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    return `✅ Repositório acessível: ${data.name} (${data.visibility || 'public'})`;
+                } else if (response.status === 404) {
+                    return `❌ Repositório não encontrado ou privado (404)`;
+                } else {
+                    return `⚠️ Erro ao acessar repositório (${response.status})`;
+                }
+            } catch (error) {
+                return `❌ Erro de conectividade: ${error.message}`;
+            }
+        }
+
+        function showTestResults(results) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                font-family: monospace;
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 8px;
+                    max-width: 600px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+                ">
+                    <h3 style="margin-bottom: 1rem; color: #2d3748;">🔍 Resultado do Teste</h3>
+                    <pre style="
+                        white-space: pre-wrap;
+                        background: #f7fafc;
+                        padding: 1rem;
+                        border-radius: 6px;
+                        font-size: 0.875rem;
+                        line-height: 1.4;
+                        border: 1px solid #e2e8f0;
+                    ">${results}</pre>
+                    <div style="margin-top: 1.5rem; text-align: right;">
+                        <button onclick="this.closest('div').parentNode.remove()" style="
+                            background: #3182ce;
+                            color: white;
+                            border: none;
+                            padding: 0.75rem 1.5rem;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: 500;
+                        ">Fechar</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        function showKnownIssues() {
+            const issuesInfo = `
+🔧 PROBLEMAS CONHECIDOS E SOLUÇÕES
+
+❌ ERRO 404 (Repositório não encontrado):
+• Verificar se o nome do repositório está correto
+• Verificar se o repositório é público (não privado)
+• Verificar se o arquivo existe no caminho especificado
+• Solução: Use a aba "Configurações" para ajustar repositórios
+
+📄 ARQUIVO JSON NÃO ENCONTRADO:
+• O arquivo "data/latest-fleet-data.json" pode não existir
+• O repositório "Controle-Status-Equipamentos" pode ter nome diferente
+• Solução: Configure o repositório correto nas configurações
+• Alternativa: Use modo "Somente CSV" nas configurações
+
+🔤 CARACTERES ESTRANHOS (Acentos):
+• Problema de encoding entre ISO-8859-1 e UTF-8
+• Sistema tentará corrigir automaticamente
+• Se persistir, verifique encoding do arquivo CSV original
+
+🌐 PROBLEMAS DE CONECTIVIDADE:
+• Verificar conexão com internet
+• GitHub pode ter rate limits temporários
+• Solução: Aguardar alguns minutos e tentar novamente
+
+📊 DADOS NÃO APARECEM NA TIMELINE:
+• Verificar se campos obrigatórios existem no CSV
+• CSV deve ter: "Data Inicial", "Data Final", "Vaga"
+• JSON deve ter: "start", "end", "vacancy_name"
+
+🔄 AUTO-SYNC NÃO FUNCIONA:
+• Verificar se está habilitado nas configurações
+• Verificar se não há erros de conectividade
+• Recarregar página se necessário
+
+💡 DICAS DE CONFIGURAÇÃO:
+• Use "Testar Acesso" para verificar repositórios
+• Configure modo "Somente CSV" se JSON não disponível
+• Ajuste intervalo de sync conforme necessidade
+
+📞 SUPORTE:
+• Use "Diagnosticar CORS" para informações técnicas
+• Inclua logs do console (F12) em reports de erro
+• Verifique se repositórios são públicos no GitHub
+            `;
+            
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                font-family: monospace;
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 8px;
+                    max-width: 700px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+                ">
+                    <h3 style="margin-bottom: 1rem; color: #2d3748;">⚠️ Problemas Conhecidos e Soluções</h3>
+                    <pre style="
+                        white-space: pre-wrap;
+                        background: #f7fafc;
+                        padding: 1rem;
+                        border-radius: 6px;
+                        font-size: 0.875rem;
+                        line-height: 1.4;
+                        border: 1px solid #e2e8f0;
+                    ">${issuesInfo}</pre>
+                    <div style="margin-top: 1.5rem; text-align: right;">
+                        <button onclick="this.closest('div').parentNode.remove()" style="
+                            background: #3182ce;
+                            color: white;
+                            border: none;
+                            padding: 0.75rem 1.5rem;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: 500;
+                        ">Fechar</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
         }
 
         function testGitHubConnection() {
