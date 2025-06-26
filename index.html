@@ -25,14 +25,15 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            backdrop-filter: blur(10px);
         }
 
-        /* Header Otimizado */
+        /* Header Sofisticado */
         .header {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 1rem 2rem;
+            padding: 1.5rem 2rem;
             position: sticky;
             top: 0;
             z-index: 1000;
@@ -50,7 +51,7 @@
         }
 
         .header-brand h1 {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 700;
             background: linear-gradient(135deg, #667eea, #764ba2);
             -webkit-background-clip: text;
@@ -64,16 +65,7 @@
         .header-controls {
             display: flex;
             align-items: center;
-            gap: 1rem;
-        }
-
-        .last-update {
-            font-size: 0.8rem;
-            color: #7f8c8d;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            gap: 1.5rem;
         }
 
         .sync-indicator {
@@ -90,8 +82,8 @@
         }
 
         .sync-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             animation: pulse 2s infinite;
         }
@@ -105,18 +97,12 @@
             50% { opacity: 0.7; transform: scale(1.1); }
         }
 
-        /* Navigation Tabs Otimizada */
+        /* Navigation Tabs */
         .nav-tabs {
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(20px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
             padding: 0 2rem;
-            overflow-x: auto;
-            scrollbar-width: none;
-        }
-
-        .nav-tabs::-webkit-scrollbar {
-            display: none;
         }
 
         .nav-tabs-container {
@@ -124,11 +110,10 @@
             margin: 0 auto;
             display: flex;
             gap: 0;
-            min-width: max-content;
         }
 
         .nav-tab {
-            padding: 1rem 1.5rem;
+            padding: 1.2rem 2rem;
             border-bottom: 3px solid transparent;
             cursor: pointer;
             font-weight: 600;
@@ -137,9 +122,6 @@
             user-select: none;
             position: relative;
             background: transparent;
-            white-space: nowrap;
-            min-width: 120px;
-            text-align: center;
         }
 
         .nav-tab::before {
@@ -174,16 +156,10 @@
             background: rgba(255, 255, 255, 0.6);
         }
 
-        .nav-tab.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            color: #bdc3c7;
-        }
-
         /* Main Content */
         .main-content {
             flex: 1;
-            padding: 1.5rem;
+            padding: 2rem;
             max-width: 1600px;
             margin: 0 auto;
             width: 100%;
@@ -197,47 +173,45 @@
             display: block;
         }
 
-        /* Glass Panel Otimizado */
+        /* Cards e Painéis */
         .glass-panel {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 16px;
+            border-radius: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
             overflow: hidden;
         }
 
-        /* Timeline Controls Otimizados */
         .timeline-controls {
-            padding: 1.5rem;
+            padding: 2rem;
         }
 
         .controls-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
             align-items: end;
-            max-width: 800px; /* Limitar largura para melhor distribuição */
         }
 
         .control-group {
             display: flex;
             flex-direction: column;
-            gap: 0.6rem;
+            gap: 0.8rem;
         }
 
         .control-group label {
             font-weight: 600;
             color: #2c3e50;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
         }
 
         select, input[type="datetime-local"] {
-            padding: 0.8rem;
+            padding: 1rem;
             border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            font-size: 0.9rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
             background: rgba(255, 255, 255, 0.8);
             transition: all 0.3s ease;
             color: #2c3e50;
@@ -246,7 +220,7 @@
         select:focus, input[type="datetime-local"]:focus {
             outline: none;
             border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
             background: rgba(255, 255, 255, 0.95);
         }
 
@@ -254,8 +228,8 @@
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 8px;
+            padding: 1rem 2rem;
+            border-radius: 12px;
             cursor: pointer;
             font-weight: 600;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -263,13 +237,21 @@
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
-        .btn:hover:not(:disabled) {
+        .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
         }
 
         .btn:disabled {
@@ -278,20 +260,18 @@
             transform: none;
         }
 
-        /* Timeline Container Otimizado */
+        /* Timeline Container */
         .timeline-container {
             overflow: hidden;
         }
 
         .timeline-header {
-            padding: 1.5rem;
+            padding: 2rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
             background: rgba(255, 255, 255, 0.5);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
         }
 
         .timeline-title {
@@ -300,20 +280,55 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 1.1rem;
-        }
-
-        .timeline-stats {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.85rem;
-            color: #7f8c8d;
+            font-size: 1.2rem;
         }
 
         #timeline {
             height: 600px;
             background: rgba(255, 255, 255, 0.8);
             position: relative;
+        }
+
+        /* Stats Panel */
+        .stats-panel {
+            padding: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: #5a6c7d;
+            margin-top: 0.5rem;
+            font-weight: 600;
         }
 
         /* Cores da Timeline - Status baseadas na imagem */
@@ -403,7 +418,7 @@
             background-color: rgba(255, 255, 255, 0.9) !important;
             color: #2c3e50 !important;
             font-weight: 600 !important;
-            font-size: 12px !important;
+            font-size: 13px !important;
         }
 
         .vis-time-axis .vis-text {
@@ -412,11 +427,11 @@
         }
 
         .vis-item {
-            border-radius: 4px !important;
+            border-radius: 6px !important;
             border-width: 2px !important;
             color: white !important;
             font-weight: 600 !important;
-            font-size: 11px !important;
+            font-size: 12px !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
         }
 
@@ -436,8 +451,8 @@
         }
 
         .loading-spinner {
-            width: 2.5rem;
-            height: 2.5rem;
+            width: 3rem;
+            height: 3rem;
             border: 3px solid rgba(255, 255, 255, 0.3);
             border-top: 3px solid #667eea;
             border-radius: 50%;
@@ -450,60 +465,55 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Configuration Panel */
-        .config-section {
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .config-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #2c3e50;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .stat-card {
+        /* Footer */
+        .footer {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 2rem;
             text-align: center;
-            padding: 1.5rem;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-3px);
-            background: rgba(255, 255, 255, 0.8);
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
             color: #5a6c7d;
-            margin-top: 0.5rem;
-            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .footer strong {
+            color: #2c3e50;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .header-brand h1 {
+                font-size: 1.5rem;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .nav-tabs-container {
+                flex-wrap: wrap;
+                gap: 0;
+            }
+
+            .nav-tab {
+                flex: 1;
+                text-align: center;
+                min-width: 120px;
+                padding: 1rem;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         /* Notificações */
@@ -513,12 +523,12 @@
             right: 20px;
             z-index: 10000;
             padding: 1rem 1.5rem;
-            border-radius: 8px;
+            border-radius: 12px;
             color: white;
             font-weight: 600;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             animation: slideInRight 0.3s ease-out;
-            max-width: 350px;
+            max-width: 400px;
             backdrop-filter: blur(20px);
         }
 
@@ -542,138 +552,18 @@
             background: rgba(0, 0, 0, 0.9);
             color: #00ff00;
             font-family: 'Courier New', monospace;
-            font-size: 11px;
+            font-size: 12px;
             padding: 1rem;
             max-height: 200px;
             overflow-y: auto;
             border-radius: 8px;
             margin-top: 1rem;
         }
-
-        /* Responsive Melhorado */
-        @media (max-width: 768px) {
-            .header {
-                padding: 1rem;
-            }
-
-            .header-content {
-                flex-direction: column;
-                text-align: center;
-                gap: 0.8rem;
-            }
-
-            .header-brand h1 {
-                font-size: 1.4rem;
-            }
-
-            .main-content {
-                padding: 1rem;
-            }
-
-            .nav-tabs {
-                padding: 0 1rem;
-            }
-
-            .nav-tab {
-                padding: 0.8rem 1rem;
-                min-width: 100px;
-                font-size: 0.85rem;
-            }
-
-            .controls-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 1rem;
-            }
-
-            .timeline-header {
-                flex-direction: column;
-                gap: 0.5rem;
-                text-align: center;
-            }
-
-            .timeline-stats {
-                justify-content: center;
-                flex-wrap: wrap;
-            }
-
-            #timeline {
-                height: 500px;
-            }
-
-            .last-update, .sync-indicator {
-                font-size: 0.75rem;
-                padding: 0.5rem 0.8rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .header-brand h1 {
-                font-size: 1.2rem;
-            }
-
-            .nav-tab {
-                padding: 0.7rem 0.8rem;
-                font-size: 0.8rem;
-                min-width: 80px;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stat-value {
-                font-size: 1.5rem;
-            }
-
-            .timeline-header {
-                padding: 1rem;
-            }
-
-            #timeline {
-                height: 450px;
-            }
-        }
-
-        /* Tooltip Customizado */
-        .vis-tooltip {
-            background: rgba(0, 0, 0, 0.9) !important;
-            color: white !important;
-            border-radius: 8px !important;
-            padding: 1rem !important;
-            font-size: 12px !important;
-            line-height: 1.4 !important;
-            max-width: 300px !important;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
-            backdrop-filter: blur(10px) !important;
-        }
-
-        /* Performance Indicators */
-        .performance-indicator {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 0.5rem 1rem;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            display: none;
-            z-index: 9999;
-        }
-
-        .performance-indicator.show {
-            display: block;
-        }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <!-- Header Otimizado -->
+        <!-- Header -->
         <header class="header">
             <div class="header-content">
                 <div class="header-brand">
@@ -681,14 +571,15 @@
                 </div>
                 
                 <div class="header-controls">
-                    <div class="last-update">
-                        <span id="lastUpdateTime">--:--</span>
-                    </div>
-                    
                     <div class="sync-indicator">
                         <div class="sync-dot loading" id="syncDot"></div>
                         <span id="syncStatus">Aguardando dados...</span>
                     </div>
+                    
+                    <button class="btn" onclick="manualSync()" id="syncBtn">
+                        <span>🔄</span>
+                        Atualizar
+                    </button>
                 </div>
             </div>
         </header>
@@ -699,13 +590,13 @@
                 <div class="nav-tab active" onclick="switchTab('timeline')">
                     <span>📊 Timeline</span>
                 </div>
-                <div class="nav-tab disabled" onclick="switchTab('alerts')" data-url="sistema_alertas_html.html">
-                    <span>🚨 Alertas</span>
+                <div class="nav-tab" onclick="switchTab('data-sources')">
+                    <span>📁 Fontes de Dados</span>
                 </div>
-                <div class="nav-tab disabled" onclick="switchTab('reports')" data-url="relatorios.html">
-                    <span>📋 Relatórios</span>
+                <div class="nav-tab" onclick="switchTab('debug')">
+                    <span>🔧 Debug</span>
                 </div>
-                <div class="nav-tab" onclick="switchTab('config')">
+                <div class="nav-tab" onclick="switchTab('settings')">
                     <span>⚙️ Configurações</span>
                 </div>
             </div>
@@ -715,7 +606,7 @@
         <main class="main-content">
             <!-- Timeline Tab (Principal) -->
             <div id="timeline-tab" class="tab-content active">
-                <!-- Controles Otimizados -->
+                <!-- Controles -->
                 <div class="glass-panel timeline-controls">
                     <div class="controls-grid">
                         <div class="control-group">
@@ -747,7 +638,12 @@
                             <input type="datetime-local" id="endDate" />
                         </div>
                         
-
+                        <div class="control-group">
+                            <button class="btn" onclick="applyFilters()">
+                                <span>🔍</span>
+                                Filtrar
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -758,144 +654,95 @@
                             <span>📈</span>
                             Apontamentos e Status por Equipamento
                         </div>
-                        <div class="timeline-stats">
-                            <div id="visibleItems">0 itens</div>
-                            <div id="processTime">0ms</div>
+                        <div id="timelineStats">
+                            <span id="visibleItems">0 itens visíveis</span>
                         </div>
                     </div>
                     
                     <div id="timeline">
                         <div class="loading-state">
                             <div class="loading-spinner"></div>
-                            <div>Carregue os dados para visualizar a timeline</div>
+                            <div>Carregue os dados CSV e JSON para visualizar a timeline</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Panel -->
+                <div class="glass-panel stats-panel" id="statsPanel" style="display: none;">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="apontCount">0</div>
+                            <div class="stat-label">Apontamentos</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statusCount">0</div>
+                            <div class="stat-label">Status</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="equipmentCount">0</div>
+                            <div class="stat-label">Equipamentos</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="lastUpdate">--:--</div>
+                            <div class="stat-label">Última Atualização</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="conflictsResolved">0</div>
+                            <div class="stat-label">Conflitos Resolvidos</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="duplicatesRemoved">0</div>
+                            <div class="stat-label">Duplicatas Removidas</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Configurações Tab (Consolidada) -->
-            <div id="config-tab" class="tab-content">
-                <!-- Dashboard Stats -->
+            <!-- Data Sources Tab -->
+            <div id="data-sources-tab" class="tab-content">
                 <div class="glass-panel">
-                    <div class="config-section">
-                        <div class="config-title">📊 Estatísticas do Sistema</div>
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="stat-value" id="apontCount">0</div>
-                                <div class="stat-label">Apontamentos</div>
+                    <div style="padding: 2rem;">
+                        <h2 style="margin-bottom: 2rem; color: #2c3e50;">Fontes de Dados</h2>
+                        
+                        <div style="display: grid; gap: 2rem;">
+                            <div>
+                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">📊 CSV (Apontamentos)</h3>
+                                <p style="color: #7f8c8d;">GrupoGps-Mecanizada/Apontamento-Dos-Tablets</p>
+                                <p style="font-size: 0.9rem; color: #95a5a6;">data/apontamentos-atuais.csv</p>
                             </div>
-                            <div class="stat-card">
-                                <div class="stat-value" id="statusCount">0</div>
-                                <div class="stat-label">Status</div>
+                            
+                            <div>
+                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">🔄 JSON (Status)</h3>
+                                <p style="color: #7f8c8d;">GrupoGps-Mecanizada/Controle-Status-Equipamentos-</p>
+                                <p style="font-size: 0.9rem; color: #95a5a6;">data/latest-fleet-data.json</p>
                             </div>
-                            <div class="stat-card">
-                                <div class="stat-value" id="equipmentCount">0</div>
-                                <div class="stat-label">Equipamentos</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value" id="conflictsResolved">0</div>
-                                <div class="stat-label">Conflitos Resolvidos</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value" id="duplicatesRemoved">0</div>
-                                <div class="stat-label">Duplicatas Removidas</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value" id="performanceScore">100%</div>
-                                <div class="stat-label">Performance</div>
+                            
+                            <div>
+                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">⏰ Sincronização</h3>
+                                <p style="color: #7f8c8d;">Automática a cada 10 minutos via GitHub API</p>
+                                <p style="font-size: 0.9rem; color: #95a5a6;">Próxima atualização: <span id="nextUpdate">--:--</span></p>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Configurações do Sistema -->
+            <!-- Debug Tab -->
+            <div id="debug-tab" class="tab-content">
                 <div class="glass-panel">
-                    <div class="config-section">
-                        <div class="config-title">⚙️ Configurações do Sistema</div>
-                        <div class="controls-grid">
-                            <div class="control-group">
-                                <label>Intervalo de Auto-Sync:</label>
-                                <select id="autoSyncInterval">
-                                    <option value="300000">5 minutos</option>
-                                    <option value="600000" selected>10 minutos</option>
-                                    <option value="900000">15 minutos</option>
-                                    <option value="1800000">30 minutos</option>
-                                    <option value="0">Desabilitado</option>
-                                </select>
-                            </div>
-                            
-                            <div class="control-group">
-                                <label>Modo de Resolução de Conflitos:</label>
-                                <select id="conflictResolution">
-                                    <option value="priority" selected>Por Prioridade</option>
-                                    <option value="latest">Mais Recente</option>
-                                    <option value="longest">Maior Duração</option>
-                                </select>
-                            </div>
-                            
-                            <div class="control-group">
-                                <label>Tolerância de Gap (segundos):</label>
-                                <select id="gapTolerance">
-                                    <option value="30">30 segundos</option>
-                                    <option value="60" selected>60 segundos</option>
-                                    <option value="120">2 minutos</option>
-                                    <option value="300">5 minutos</option>
-                                </select>
-                            </div>
-                            
-                            <div class="control-group">
-                                <button class="btn" onclick="saveSettings()">
-                                    <span>💾</span>
-                                    Salvar Configurações
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Fontes de Dados -->
-                <div class="glass-panel">
-                    <div class="config-section">
-                        <div class="config-title">📁 Fontes de Dados</div>
-                        <div style="display: grid; gap: 1.5rem;">
+                    <div style="padding: 2rem;">
+                        <h2 style="margin-bottom: 2rem; color: #2c3e50;">🔧 Debug e Diagnóstico</h2>
+                        
+                        <div style="display: grid; gap: 2rem;">
                             <div>
-                                <h4 style="color: #5a6c7d; margin-bottom: 0.5rem;">📊 CSV (Apontamentos)</h4>
-                                <p style="color: #7f8c8d; font-size: 0.9rem;">GrupoGps-Mecanizada/Apontamento-Dos-Tablets/data/apontamentos-atuais.csv</p>
-                                <div style="margin-top: 0.5rem;">
-                                    <span id="csvStatus" style="font-size: 0.8rem; color: #95a5a6;">Status: Aguardando</span>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <h4 style="color: #5a6c7d; margin-bottom: 0.5rem;">🔄 JSON (Status)</h4>
-                                <p style="color: #7f8c8d; font-size: 0.9rem;">GrupoGps-Mecanizada/Controle-Status-Equipamentos-/data/latest-fleet-data.json</p>
-                                <div style="margin-top: 0.5rem;">
-                                    <span id="jsonStatus" style="font-size: 0.8rem; color: #95a5a6;">Status: Aguardando</span>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <h4 style="color: #5a6c7d; margin-bottom: 0.5rem;">⏰ Sincronização</h4>
-                                <p style="color: #7f8c8d; font-size: 0.9rem;">Próxima atualização: <span id="nextUpdate">--:--</span></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Debug e Diagnóstico -->
-                <div class="glass-panel">
-                    <div class="config-section">
-                        <div class="config-title">🔧 Debug e Diagnóstico</div>
-                        <div style="display: grid; gap: 1.5rem;">
-                            <div>
-                                <h4 style="color: #5a6c7d; margin-bottom: 1rem;">📊 Estatísticas de Processamento</h4>
-                                <div id="debugStats" style="font-family: monospace; background: #f8f9fa; padding: 1rem; border-radius: 8px; font-size: 0.85rem;">
+                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">📊 Estatísticas de Processamento</h3>
+                                <div id="debugStats" style="font-family: monospace; background: #f8f9fa; padding: 1rem; border-radius: 8px;">
                                     Aguardando dados...
                                 </div>
                             </div>
                             
                             <div>
-                                <h4 style="color: #5a6c7d; margin-bottom: 1rem;">🔍 Log de Sistema</h4>
+                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">🔍 Log de Resolução de Conflitos</h3>
                                 <div id="debugLog" class="debug-panel">
                                     Sistema inicializando...
                                 </div>
@@ -911,24 +758,67 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Settings Tab -->
+            <div id="settings-tab" class="tab-content">
+                <div class="glass-panel">
+                    <div style="padding: 2rem;">
+                        <h2 style="margin-bottom: 2rem; color: #2c3e50;">Configurações do Sistema</h2>
+                        
+                        <div style="display: grid; gap: 2rem; max-width: 600px;">
+                            <div class="control-group">
+                                <label>Intervalo de Auto-Sync:</label>
+                                <select id="autoSyncInterval">
+                                    <option value="300000">5 minutos</option>
+                                    <option value="600000" selected>10 minutos</option>
+                                    <option value="900000">15 minutos</option>
+                                    <option value="1800000">30 minutos</option>
+                                    <option value="0">Desabilitado</option>
+                                </select>
+                            </div>
+                            
+                            <div class="control-group">
+                                <label>Modo de Resolução de Conflitos:</label>
+                                <select id="conflictResolution">
+                                    <option value="priority" selected>Por Prioridade (Recomendado)</option>
+                                    <option value="latest">Mais Recente</option>
+                                    <option value="longest">Maior Duração</option>
+                                </select>
+                            </div>
+                            
+                            <div class="control-group">
+                                <label>Tolerância de Gap (segundos):</label>
+                                <select id="gapTolerance">
+                                    <option value="30">30 segundos</option>
+                                    <option value="60" selected>60 segundos</option>
+                                    <option value="120">2 minutos</option>
+                                    <option value="300">5 minutos</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <button class="btn" onclick="saveSettings()">
+                                    <span>💾</span>
+                                    Salvar Configurações
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
 
-        <!-- Performance Indicator -->
-        <div class="performance-indicator" id="performanceIndicator">
-            Processando...
-        </div>
-
         <!-- Footer -->
-        <footer style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255, 255, 255, 0.2); padding: 1.5rem; text-align: center; color: #5a6c7d; font-size: 0.9rem;">
-            <p>Desenvolvido por <strong style="color: #2c3e50;">Warlison Abreu</strong> | © 2025 GrupoGPS - Todos os direitos reservados</p>
+        <footer class="footer">
+            <p>Desenvolvido por <strong>Warlison Abreu</strong> | © 2025 GrupoGPS - Todos os direitos reservados</p>
         </footer>
     </div>
 
     <script>
         // =============================================================================
-        // SISTEMA OTIMIZADO DE MONITORAMENTO - VERSÃO 2.0
+        // CLASSE PRINCIPAL - VERSÃO CORRIGIDA COM RESOLUÇÃO DE CONFLITOS
         // =============================================================================
-        class OptimizedProductivitySystem {
+        class ProductivityMonitoringSystem {
             constructor() {
                 this.timeline = null;
                 this.items = new vis.DataSet();
@@ -942,73 +832,64 @@
                 this.lastDataHash = '';
                 this.currentViewWindow = null;
                 this.debugLog = [];
-                this.filterCache = new Map();
                 this.processingStats = {
                     conflictsResolved: 0,
                     duplicatesRemoved: 0,
                     originalRecords: 0,
-                    finalRecords: 0,
-                    lastProcessTime: 0
+                    finalRecords: 0
                 };
 
-                // Debounce timers
-                this.filterDebounceTimer = null;
-                this.updateDebounceTimer = null;
-
-                // Performance monitoring
-                this.performanceMetrics = {
-                    renderTime: 0,
-                    filterTime: 0,
-                    dataProcessTime: 0
-                };
-
-                // Cache para otimização
-                this.equipmentCache = new Map();
-                this.dateCache = new Map();
-
-                // Hierarquia de prioridade de status (otimizada)
+                // Hierarquia de prioridade de status (maior número = maior prioridade)
                 this.statusPriority = {
-                    'maintenance': 10,
-                    'out_of_plant': 9,
-                    'secondary_motor_on': 8,
-                    'on': 7,
-                    'running': 7,
-                    'stopped': 6,
-                    'off': 5,
-                    'not_appropriated': 4,
-                    'no_data': 3
+                    'maintenance': 10,           // Manutenção tem prioridade máxima
+                    'out_of_plant': 9,          // Fora da planta
+                    'secondary_motor_on': 8,    // Motor secundário ligado
+                    'on': 7,                    // Motor ligado
+                    'running': 7,               // Motor rodando (alias para 'on')
+                    'stopped': 6,               // Parado ligado
+                    'off': 5,                   // Motor desligado
+                    'not_appropriated': 4,      // Não apropriado
+                    'no_data': 3               // Sem dados (menor prioridade)
                 };
 
-                // Configurações GitHub (otimizadas)
+                // Configurações GitHub
                 this.githubConfig = {
                     csvRepo: {
-                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/contents/data/apontamentos-atuais.csv'
+                        owner: 'GrupoGps-Mecanizada',
+                        repo: 'Apontamento-Dos-Tablets',
+                        path: 'data/apontamentos-atuais.csv',
+                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/contents/data/apontamentos-atuais.csv',
+                        enabled: true
                     },
                     jsonRepo: {
-                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos-/contents/data/latest-fleet-data.json'
+                        owner: 'GrupoGps-Mecanizada',
+                        repo: 'Controle-Status-Equipamentos-',
+                        path: 'data/latest-fleet-data.json',
+                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos-/contents/data/latest-fleet-data.json',
+                        enabled: true
                     }
                 };
 
-                // Configurações do sistema
+                // Configurações - padrão 10 minutos
                 this.config = {
                     autoSyncInterval: 600000, // 10 minutos
-                    conflictResolution: 'priority',
-                    gapTolerance: 60,
-                    maxItemsPerChunk: 1000,
-                    renderDelay: 100
+                    conflictResolution: 'priority', // priority, latest, longest
+                    gapTolerance: 60, // segundos
+                    retryAttempts: 3,
+                    retryDelay: 2000
                 };
 
-                // Mapeamento de cores (otimizado)
+                // Mapeamento de cores baseado na imagem fornecida
                 this.statusColors = {
-                    'running': 'status-running',
-                    'on': 'status-on',
-                    'stopped': 'status-stopped',
-                    'off': 'status-off',
-                    'maintenance': 'status-maintenance',
-                    'out_of_plant': 'status-out_of_plant',
-                    'not_appropriated': 'status-not_appropriated',
-                    'no_data': 'status-no_data',
-                    'secondary_motor_on': 'status-secondary_motor_on'
+                    'running': 'status-running',           
+                    'on': 'status-on',                     
+                    'stopped': 'status-stopped',           
+                    'off': 'status-off',                   
+                    'maintenance': 'status-maintenance',   
+                    'out_of_plant': 'status-out_of_plant', 
+                    'not_appropriated': 'status-not_appropriated', 
+                    'no_data': 'status-no_data',           
+                    'secondary_motor_on': 'status-secondary_motor_on' 
                 };
 
                 this.apontColors = {
@@ -1031,96 +912,79 @@
             }
 
             // =============================================================================
-            // INICIALIZAÇÃO OTIMIZADA
+            // INICIALIZAÇÃO DO SISTEMA
             // =============================================================================
             async initSystem() {
-                console.log('🚀 Iniciando Sistema Otimizado - GrupoGPS');
-                this.updateSyncStatus('loading', 'Inicializando...');
+                console.log('🚀 Iniciando Monitoramento De Produtividade - GrupoGPS');
+                this.updateSyncStatus('loading', 'Inicializando sistema...');
                 this.addDebugLog('Sistema inicializado');
                 
                 this.setupEventListeners();
-                this.loadSettings();
-                this.updateLastUpdateTime();
+                this.updateSystemInfo();
                 await this.initGitHubSync();
             }
 
             setupEventListeners() {
-                // Filtros com aplicação automática (sem debounce excessivo)
-                const equipmentFilter = document.getElementById('equipmentFilter');
-                const periodFilter = document.getElementById('periodFilter');
-                const startDate = document.getElementById('startDate');
-                const endDate = document.getElementById('endDate');
-
-                equipmentFilter?.addEventListener('change', () => this.applyFiltersOptimized());
-                periodFilter?.addEventListener('change', () => {
-                    this.handlePeriodChange();
-                    // Aplicar filtros automaticamente após mudança de período
-                    setTimeout(() => this.applyFiltersOptimized(), 100);
+                // Filtros
+                document.getElementById('equipmentFilter').addEventListener('change', () => {
+                    this.applyFilters();
                 });
-                startDate?.addEventListener('change', () => this.applyFiltersOptimized());
-                endDate?.addEventListener('change', () => this.applyFiltersOptimized());
 
-                // Performance monitoring
-                this.setupPerformanceMonitoring();
-            }
+                document.getElementById('periodFilter').addEventListener('change', () => {
+                    this.handlePeriodChange();
+                });
 
-            setupPerformanceMonitoring() {
-                // Monitor de performance discreta
-                setInterval(() => {
-                    const avgRender = this.performanceMetrics.renderTime;
-                    const avgFilter = this.performanceMetrics.filterTime;
-                    const score = avgRender < 100 && avgFilter < 50 ? 100 : Math.max(0, 100 - (avgRender + avgFilter) / 10);
-                    
-                    document.getElementById('performanceScore').textContent = `${Math.round(score)}%`;
-                }, 5000);
+                document.getElementById('startDate').addEventListener('change', () => {
+                    this.applyFilters();
+                });
+
+                document.getElementById('endDate').addEventListener('change', () => {
+                    this.applyFilters();
+                });
             }
 
             // =============================================================================
-            // SISTEMA DE DEBUG OTIMIZADO
+            // SISTEMA DE DEBUG E LOG
             // =============================================================================
             addDebugLog(message, type = 'info') {
                 const timestamp = new Date().toLocaleTimeString();
                 const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
                 this.debugLog.push(logEntry);
                 
-                if (this.debugLog.length > 50) {
+                // Manter apenas os últimos 100 logs
+                if (this.debugLog.length > 100) {
                     this.debugLog.shift();
                 }
                 
                 this.updateDebugPanel();
+                console.log(logEntry);
             }
 
             updateDebugPanel() {
                 const debugLogElement = document.getElementById('debugLog');
                 if (debugLogElement) {
-                    debugLogElement.innerHTML = this.debugLog.slice(-15).join('\n');
+                    debugLogElement.innerHTML = this.debugLog.slice(-20).join('\n');
                     debugLogElement.scrollTop = debugLogElement.scrollHeight;
                 }
 
                 const debugStatsElement = document.getElementById('debugStats');
                 if (debugStatsElement) {
                     debugStatsElement.innerHTML = `
-Registros Originais: ${this.processingStats.originalRecords}
-Registros Finais: ${this.processingStats.finalRecords}
-Conflitos Detectados: ${this.processingStats.conflictsResolved}
-Duplicatas Removidas: ${this.processingStats.duplicatesRemoved}
-Tempo de Processamento: ${this.processingStats.lastProcessTime}ms
-Equipamentos: ${this.equipmentMap.size}
-Cache Hit Rate: ${this.calculateCacheHitRate()}%
-                    `.trim();
+                        Registros Originais: ${this.processingStats.originalRecords}<br>
+                        Registros Finais: ${this.processingStats.finalRecords}<br>
+                        Conflitos Resolvidos: ${this.processingStats.conflictsResolved}<br>
+                        Duplicatas Removidas: ${this.processingStats.duplicatesRemoved}<br>
+                        Taxa de Limpeza: ${this.processingStats.originalRecords > 0 ? 
+                            ((this.processingStats.originalRecords - this.processingStats.finalRecords) / this.processingStats.originalRecords * 100).toFixed(1) : 0}%
+                    `;
                 }
             }
 
-            calculateCacheHitRate() {
-                const total = this.equipmentCache.size + this.dateCache.size;
-                return total > 0 ? Math.round((total / (total + 100)) * 100) : 0;
-            }
-
             // =============================================================================
-            // SINCRONIZAÇÃO GITHUB OTIMIZADA
+            // SINCRONIZAÇÃO COM GITHUB
             // =============================================================================
             async initGitHubSync() {
-                console.log('🔄 Iniciando sincronização GitHub...');
+                console.log('🔄 Iniciando sincronização automática GitHub...');
                 await this.syncFromGitHub();
                 this.startGitHubAutoSync();
             }
@@ -1128,12 +992,12 @@ Cache Hit Rate: ${this.calculateCacheHitRate()}%
             async syncFromGitHub() {
                 if (this.isUpdating) return;
 
-                const startTime = performance.now();
                 this.isUpdating = true;
-                this.updateSyncStatus('loading', 'Sincronizando...');
-                this.showPerformanceIndicator('Carregando dados...');
+                this.updateSyncStatus('loading', 'Sincronizando dados...');
+                this.addDebugLog('Iniciando sincronização com GitHub');
 
                 try {
+                    // Salvar janela de visualização atual se existir
                     if (this.timeline) {
                         this.currentViewWindow = this.timeline.getWindow();
                     }
@@ -1148,117 +1012,536 @@ Cache Hit Rate: ${this.calculateCacheHitRate()}%
 
                     if (csvResult.status === 'fulfilled' && csvResult.value.success) {
                         const newCsvData = csvResult.value.data;
-                        const csvHash = this.generateDataHash(newCsvData);
-                        
-                        if (csvHash !== this.csvDataHash) {
+                        if (JSON.stringify(newCsvData) !== JSON.stringify(this.csvData)) {
                             this.csvData = newCsvData;
-                            this.csvDataHash = csvHash;
                             newDataDetected = true;
                             this.addDebugLog(`CSV atualizado: ${this.csvData.length} registros`);
-                            document.getElementById('csvStatus').textContent = `Status: ✅ ${this.csvData.length} registros`;
                         }
                         successCount++;
+                        console.log(`✅ CSV: ${this.csvData.length} registros`);
                     } else {
-                        document.getElementById('csvStatus').textContent = 'Status: ❌ Erro';
-                        this.addDebugLog(`Erro no CSV: ${csvResult.reason}`, 'error');
+                        this.addDebugLog(`Erro no CSV: ${csvResult.reason || 'Falha na requisição'}`, 'error');
                     }
 
                     if (jsonResult.status === 'fulfilled' && jsonResult.value.success) {
                         const newJsonData = jsonResult.value.data;
-                        const jsonHash = this.generateDataHash(newJsonData);
+                        const newDataHash = this.generateDataHash(newJsonData);
                         
-                        if (jsonHash !== this.jsonDataHash) {
+                        if (newDataHash !== this.lastDataHash) {
                             this.jsonData = newJsonData;
-                            this.jsonDataHash = jsonHash;
+                            this.lastDataHash = newDataHash;
                             newDataDetected = true;
                             this.addDebugLog(`JSON atualizado: ${this.jsonData.length} registros`);
-                            document.getElementById('jsonStatus').textContent = `Status: ✅ ${this.jsonData.length} registros`;
                         }
                         successCount++;
+                        console.log(`✅ JSON: ${this.jsonData.length} registros`);
                     } else {
-                        document.getElementById('jsonStatus').textContent = 'Status: ❌ Erro';
-                        this.addDebugLog(`Erro no JSON: ${jsonResult.reason}`, 'error');
+                        this.addDebugLog(`Erro no JSON: ${jsonResult.reason || 'Falha na requisição'}`, 'error');
                     }
 
                     if (successCount > 0) {
                         if (newDataDetected) {
-                            this.addDebugLog(`Novos dados detectados - iniciando processamento conservador`);
-                            await this.processDataOptimized();
-                            this.showNotification('✅ Dados atualizados', 'success');
+                            await this.processDataWithConflictResolution();
+                            this.showNotification('✅ Dados atualizados com sucesso', 'success');
+                            this.addDebugLog('Processamento de dados concluído');
                         } else {
-                            this.addDebugLog('Nenhum dado novo - mantendo timeline atual');
+                            this.addDebugLog('Nenhum dado novo detectado');
                         }
-                        this.updateSyncStatus('success', 'Sincronizado');
+                        
+                        this.updateSyncStatus('success', 'Dados sincronizados');
                     } else {
-                        this.updateSyncStatus('error', 'Falha na sync');
+                        this.updateSyncStatus('error', 'Falha na sincronização');
                         this.showNotification('❌ Erro na sincronização', 'error');
+                        this.addDebugLog('Falha na sincronização', 'error');
                     }
 
                 } catch (error) {
                     console.error('❌ Erro na sincronização:', error);
-                    this.updateSyncStatus('error', 'Erro');
-                    this.showNotification('❌ Erro: ' + error.message, 'error');
-                    this.addDebugLog(`Erro: ${error.message}`, 'error');
+                    this.updateSyncStatus('error', 'Erro na sincronização');
+                    this.showNotification('❌ Erro na sincronização: ' + error.message, 'error');
+                    this.addDebugLog(`Erro na sincronização: ${error.message}`, 'error');
                 } finally {
                     this.isUpdating = false;
-                    this.hidePerformanceIndicator();
-                    this.performanceMetrics.dataProcessTime = performance.now() - startTime;
-                    this.updateLastUpdateTime();
                 }
             }
 
             // =============================================================================
-            // PROCESSAMENTO OTIMIZADO DE DADOS
+            // PROCESSAMENTO COM RESOLUÇÃO DE CONFLITOS
             // =============================================================================
-            async processDataOptimized() {
-                if (this.csvData.length === 0 && this.jsonData.length === 0) return;
+            async processDataWithConflictResolution() {
+                if (this.csvData.length === 0 && this.jsonData.length === 0) {
+                    return;
+                }
 
-                const startTime = performance.now();
-                this.addDebugLog('Iniciando processamento conservador - 100% fidelidade aos dados');
-
+                this.addDebugLog('Iniciando processamento com resolução de conflitos');
+                
                 // Reset stats
                 this.processingStats = {
                     conflictsResolved: 0,
                     duplicatesRemoved: 0,
-                    originalRecords: this.csvData.length + this.jsonData.length,
-                    finalRecords: 0,
-                    lastProcessTime: 0
+                    originalRecords: this.jsonData.length,
+                    finalRecords: 0
                 };
 
-                // Limpar dados
+                // Limpar dados anteriores
                 this.equipmentMap.clear();
-                this.filterCache.clear();
+                this.items.clear();
+                this.groups.clear();
 
-                // Processamento CONSERVADOR - preserva todos os dados
-                await this.processDataConservative();
+                // Processar dados
+                this.unifyEquipmentData();
+                this.createGroups();
+                this.createTimelineItemsWithConflictResolution();
 
-                // Criar grupos
-                this.createGroupsOptimized();
+                // Atualizar timeline sem perder visualização
+                if (this.timeline) {
+                    this.updateTimelineSmartly();
+                } else {
+                    this.initTimeline();
+                }
 
-                // Criar timeline items SEM modificação de dados
-                await this.createTimelineItemsConservative();
-
-                // Garantir que timeline seja visível com todos os dados
-                setTimeout(() => {
-                    if (this.timeline && this.items.length > 0) {
-                        // Mostrar todos os dados por padrão
-                        this.timeline.fit();
-                        // Aplicar período padrão
-                        this.handlePeriodChange();
-                    }
-                }, 200);
-
-                this.processingStats.lastProcessTime = Math.round(performance.now() - startTime);
                 this.updateInterface();
-                this.addDebugLog(`Processamento conservador concluído: ${this.processingStats.finalRecords} registros preservados`);
+                this.addDebugLog(`Processamento concluído: ${this.processingStats.finalRecords} registros finais`);
             }
 
-            async processDataConservative() {
-                // Processamento DIRETO sem chunks para manter fidelidade total
+            // FUNÇÃO PRINCIPAL DE RESOLUÇÃO DE CONFLITOS
+            resolveStatusConflicts(statusList, equipmentName) {
+                if (!statusList || statusList.length === 0) return [];
+
+                this.addDebugLog(`Resolvendo conflitos para ${equipmentName}: ${statusList.length} registros originais`);
+
+                // 1. Remover duplicatas exatas
+                const uniqueStatus = this.removeDuplicates(statusList);
+                const duplicatesRemoved = statusList.length - uniqueStatus.length;
+                this.processingStats.duplicatesRemoved += duplicatesRemoved;
                 
-                // Processar CSV - TODOS os dados preservados
+                if (duplicatesRemoved > 0) {
+                    this.addDebugLog(`Removidas ${duplicatesRemoved} duplicatas de ${equipmentName}`);
+                }
+
+                // 2. Ordenar por tempo de início
+                const sortedStatus = uniqueStatus.sort((a, b) => 
+                    new Date(a.start) - new Date(b.start)
+                );
+
+                // 3. Detectar e resolver sobreposições
+                const resolvedStatus = this.resolveOverlaps(sortedStatus, equipmentName);
+
+                // 4. Consolidar períodos consecutivos do mesmo status
+                const consolidatedStatus = this.consolidateConsecutive(resolvedStatus, equipmentName);
+
+                // 5. Preencher gaps pequenos
+                const finalStatus = this.fillSmallGaps(consolidatedStatus, equipmentName);
+
+                this.processingStats.finalRecords += finalStatus.length;
+                
+                this.addDebugLog(`${equipmentName}: ${statusList.length} → ${finalStatus.length} registros`);
+                
+                return finalStatus;
+            }
+
+            // Remover duplicatas exatas
+            removeDuplicates(statusList) {
+                const seen = new Set();
+                return statusList.filter(status => {
+                    const key = `${status.start}-${status.end}-${status.status}-${status.vacancy_code}`;
+                    if (seen.has(key)) {
+                        return false;
+                    }
+                    seen.add(key);
+                    return true;
+                });
+            }
+
+            // Resolver sobreposições baseado em prioridade
+            resolveOverlaps(statusList, equipmentName) {
+                if (statusList.length <= 1) return statusList;
+
+                const resolved = [];
+                let current = null;
+
+                for (const status of statusList) {
+                    if (!current) {
+                        current = { ...status };
+                        continue;
+                    }
+
+                    const currentEnd = new Date(current.end);
+                    const statusStart = new Date(status.start);
+                    const statusEnd = new Date(status.end);
+
+                    // Verificar se há sobreposição
+                    if (statusStart < currentEnd) {
+                        this.processingStats.conflictsResolved++;
+                        this.addDebugLog(`Conflito detectado em ${equipmentName}: ${current.status} vs ${status.status}`);
+
+                        // Resolver conflito baseado na configuração
+                        const resolution = this.resolveConflict(current, status);
+                        
+                        if (resolution.action === 'replace') {
+                            // Substituir completamente
+                            current = { ...status };
+                            this.addDebugLog(`Resolvido: ${status.status} substituiu ${current.status}`);
+                        } else if (resolution.action === 'split') {
+                            // Dividir o período
+                            if (resolution.beforeWinner) {
+                                // Manter o primeiro até o início do segundo
+                                current.end = status.start;
+                                resolved.push(current);
+                                current = { ...status };
+                            } else {
+                                // Ajustar o primeiro e manter o segundo
+                                current.end = status.start;
+                                if (new Date(current.start) < new Date(current.end)) {
+                                    resolved.push(current);
+                                }
+                                current = { ...status };
+                            }
+                            this.addDebugLog(`Resolvido: Período dividido entre ${current.status} e ${status.status}`);
+                        } else if (resolution.action === 'merge') {
+                            // Estender o período do vencedor
+                            if (resolution.winner === 'current') {
+                                current.end = statusEnd > currentEnd ? status.end : current.end;
+                            } else {
+                                current = { ...status };
+                                current.start = current.start < status.start ? current.start : status.start;
+                            }
+                            this.addDebugLog(`Resolvido: Períodos mesclados em ${current.status}`);
+                        }
+                    } else {
+                        // Sem sobreposição, adicionar o atual e continuar com o próximo
+                        resolved.push(current);
+                        current = { ...status };
+                    }
+                }
+
+                if (current) {
+                    resolved.push(current);
+                }
+
+                return resolved;
+            }
+
+            // Lógica de resolução de conflitos
+            resolveConflict(status1, status2) {
+                const priority1 = this.statusPriority[status1.status] || 0;
+                const priority2 = this.statusPriority[status2.status] || 0;
+
+                switch (this.config.conflictResolution) {
+                    case 'priority':
+                        if (priority1 > priority2) {
+                            return { action: 'merge', winner: 'current' };
+                        } else if (priority2 > priority1) {
+                            return { action: 'replace', winner: 'new' };
+                        } else {
+                            // Mesma prioridade, usar o mais recente
+                            return { action: 'replace', winner: 'new' };
+                        }
+                    
+                    case 'latest':
+                        // Sempre usar o mais recente
+                        return { action: 'replace', winner: 'new' };
+                    
+                    case 'longest':
+                        // Usar o de maior duração
+                        const duration1 = new Date(status1.end) - new Date(status1.start);
+                        const duration2 = new Date(status2.end) - new Date(status2.start);
+                        
+                        if (duration1 > duration2) {
+                            return { action: 'merge', winner: 'current' };
+                        } else {
+                            return { action: 'replace', winner: 'new' };
+                        }
+                    
+                    default:
+                        return { action: 'split', beforeWinner: false };
+                }
+            }
+
+            // Consolidar períodos consecutivos do mesmo status
+            consolidateConsecutive(statusList, equipmentName) {
+                if (statusList.length <= 1) return statusList;
+
+                const consolidated = [];
+                let current = null;
+
+                for (const status of statusList) {
+                    if (!current) {
+                        current = { ...status };
+                        continue;
+                    }
+
+                    const currentEnd = new Date(current.end);
+                    const statusStart = new Date(status.start);
+                    const gapSeconds = (statusStart - currentEnd) / 1000;
+
+                    // Se mesmo status e gap pequeno, consolidar
+                    if (current.status === status.status && 
+                        current.status_title === status.status_title && 
+                        Math.abs(gapSeconds) <= this.config.gapTolerance) {
+                        
+                        // Estender período
+                        current.end = status.end;
+                        current.total_time = (parseFloat(current.total_time) || 0) + (parseFloat(status.total_time) || 0);
+                        current.consolidated_count = (current.consolidated_count || 1) + 1;
+                    } else {
+                        // Status diferente ou gap muito grande
+                        consolidated.push(current);
+                        current = { ...status };
+                    }
+                }
+
+                if (current) {
+                    consolidated.push(current);
+                }
+
+                return consolidated;
+            }
+
+            // Preencher gaps pequenos entre status
+            fillSmallGaps(statusList, equipmentName) {
+                if (statusList.length <= 1) return statusList;
+
+                const filled = [];
+                
+                for (let i = 0; i < statusList.length; i++) {
+                    filled.push(statusList[i]);
+                    
+                    // Verificar gap para o próximo status
+                    if (i < statusList.length - 1) {
+                        const currentEnd = new Date(statusList[i].end);
+                        const nextStart = new Date(statusList[i + 1].start);
+                        const gapSeconds = (nextStart - currentEnd) / 1000;
+                        
+                        // Se gap pequeno (menor que tolerância), preencher com status 'off'
+                        if (gapSeconds > 0 && gapSeconds <= this.config.gapTolerance) {
+                            filled.push({
+                                ...statusList[i],
+                                status: 'off',
+                                status_title: 'Motor Desligado',
+                                start: statusList[i].end,
+                                end: statusList[i + 1].start,
+                                total_time: gapSeconds / 3600,
+                                gap_filled: true
+                            });
+                            this.addDebugLog(`Gap preenchido em ${equipmentName}: ${gapSeconds}s`);
+                        }
+                    }
+                }
+
+                return filled;
+            }
+
+            createTimelineItemsWithConflictResolution() {
+                let itemId = 0;
+
+                for (const [equipName, data] of this.equipmentMap) {
+                    // Processar apontamentos (sem mudanças, pois são eventos únicos)
+                    data.apontamentos.forEach(apont => {
+                        const start = this.parseDate(apont['Data Inicial']);
+                        const end = this.parseDate(apont['Data Final']);
+                        
+                        if (start && end && start < end) {
+                            const category = apont['Categoria Demora'] || 'Outros';
+                            const className = this.apontColors[category] || 'apont-aguardando';
+                            
+                            this.items.add({
+                                id: `apont_${itemId++}`,
+                                group: `${equipName}_apont`,
+                                content: this.truncateText(category, 20),
+                                start: start,
+                                end: end,
+                                className: className,
+                                title: this.createApontTooltip(apont, equipName),
+                                type: 'range'
+                            });
+                        }
+                    });
+
+                    // Processar status COM resolução de conflitos
+                    if (data.status.length > 0) {
+                        const resolvedStatus = this.resolveStatusConflicts(data.status, equipName);
+                        
+                        resolvedStatus.forEach((status) => {
+                            const start = this.parseDate(status.start);
+                            const end = this.parseDate(status.end);
+                            
+                            if (start && end && start < end) {
+                                const statusCode = status.status || 'unknown';
+                                const className = this.statusColors[statusCode] || 'status-not_appropriated';
+                                
+                                this.items.add({
+                                    id: `status_${itemId++}`,
+                                    group: `${equipName}_status`,
+                                    content: this.truncateText(status.status_title || statusCode, 25),
+                                    start: start,
+                                    end: end,
+                                    className: className,
+                                    title: this.createStatusTooltipEnhanced(status, equipName),
+                                    type: 'range'
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+
+            createStatusTooltipEnhanced(status, equipName) {
+                const totalHours = parseFloat(status.total_time || 0);
+                const count = status.consolidated_count || 1;
+                const isGapFilled = status.gap_filled || false;
+                
+                const formatHours = (hours) => {
+                    const h = Math.floor(hours);
+                    const m = Math.round((hours - h) * 60);
+                    if (h === 0) return `${m}min`;
+                    if (m === 0) return `${h}h`;
+                    return `${h}h ${m}min`;
+                };
+                
+                let tooltipContent = `
+                    <div style="font-size: 13px; line-height: 1.4; max-width: 300px;">
+                        <div style="font-weight: 700; margin-bottom: 8px; color: #2c3e50;">
+                            🔄 Status ${isGapFilled ? '(Gap Preenchido)' : 'Automático'}
+                        </div>
+                        <div style="margin-bottom: 4px;"><strong>Equipamento:</strong> ${equipName}</div>
+                        <div style="margin-bottom: 4px;"><strong>Status:</strong> ${status.status_title || status.status}</div>
+                        <div style="margin-bottom: 4px;"><strong>Período:</strong> ${status.start} até ${status.end}</div>
+                        <div style="margin-bottom: 4px;"><strong>Duração:</strong> ${formatHours(totalHours)}</div>`;
+                
+                if (count > 1) {
+                    tooltipContent += `
+                        <div style="margin-bottom: 4px; color: #27ae60;"><strong>✅ Consolidado:</strong> ${count} registros</div>`;
+                }
+
+                if (isGapFilled) {
+                    tooltipContent += `
+                        <div style="margin-bottom: 4px; color: #f39c12;"><strong>⚠️ Gap Preenchido</strong></div>`;
+                }
+                
+                tooltipContent += `
+                        <div><strong>Código da Vaga:</strong> ${status.vacancy_code || 'N/A'}</div>
+                    </div>
+                `;
+                
+                return tooltipContent;
+            }
+
+            // =============================================================================
+            // FUNÇÕES AUXILIARES (sem mudanças significativas)
+            // =============================================================================
+            generateDataHash(data) {
+                return btoa(JSON.stringify(data)).slice(0, 32);
+            }
+
+            async fetchCSVFromGitHub() {
+                const config = this.githubConfig.csvRepo;
+                
+                try {
+                    console.log(`📊 Buscando CSV de ${config.owner}/${config.repo}...`);
+                    const response = await fetch(config.apiUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const apiData = await response.json();
+                    
+                    if (apiData.type !== 'file') {
+                        throw new Error('Não é um arquivo válido');
+                    }
+                    
+                    let csvText = atob(apiData.content.replace(/\n/g, ''));
+                    
+                    try {
+                        csvText = decodeURIComponent(escape(csvText));
+                    } catch (error) {
+                        console.log('⚠️ Mantendo texto original');
+                    }
+                    
+                    const parsedData = this.parseCSV(csvText);
+                    console.log(`✅ CSV carregado: ${parsedData.length} registros`);
+                    return { success: true, data: parsedData };
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao buscar CSV:', error);
+                    return { success: false, data: [], error: error.message };
+                }
+            }
+
+            async fetchJSONFromGitHub() {
+                const config = this.githubConfig.jsonRepo;
+                
+                try {
+                    console.log(`🔄 Buscando JSON de ${config.owner}/${config.repo}...`);
+                    const response = await fetch(config.apiUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const apiData = await response.json();
+                    
+                    if (apiData.type !== 'file') {
+                        throw new Error('Não é um arquivo válido');
+                    }
+                    
+                    let jsonText = atob(apiData.content.replace(/\n/g, ''));
+                    
+                    try {
+                        jsonText = decodeURIComponent(escape(jsonText));
+                    } catch (error) {
+                        console.log('⚠️ Mantendo texto JSON original');
+                    }
+                    
+                    const jsonData = JSON.parse(jsonText);
+                    const records = jsonData.records || jsonData;
+                    
+                    if (!Array.isArray(records)) {
+                        throw new Error('Formato JSON inválido');
+                    }
+                    
+                    console.log(`✅ JSON carregado: ${records.length} registros`);
+                    return { success: true, data: records };
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao buscar JSON:', error);
+                    return { success: false, data: [], error: error.message };
+                }
+            }
+
+            startGitHubAutoSync() {
+                if (this.autoSyncInterval) {
+                    clearInterval(this.autoSyncInterval);
+                }
+
+                if (this.config.autoSyncInterval > 0) {
+                    console.log(`⏰ Auto-sync configurado para ${this.config.autoSyncInterval / 60000} minutos`);
+                    
+                    this.autoSyncInterval = setInterval(async () => {
+                        if (!this.isUpdating) {
+                            console.log('🔄 Executando auto-sync...');
+                            await this.syncFromGitHub();
+                        }
+                    }, this.config.autoSyncInterval);
+
+                    this.updateNextSyncTime();
+                }
+            }
+
+            updateNextSyncTime() {
+                if (this.config.autoSyncInterval > 0) {
+                    const nextUpdate = new Date(Date.now() + this.config.autoSyncInterval);
+                    const nextUpdateElement = document.getElementById('nextUpdate');
+                    if (nextUpdateElement) {
+                        nextUpdateElement.textContent = nextUpdate.toLocaleTimeString('pt-BR');
+                    }
+                }
+            }
+
+            unifyEquipmentData() {
                 this.csvData.forEach((item) => {
-                    const equipName = this.normalizeEquipmentNameCached(item.Vaga || item.Placa);
+                    const equipName = this.normalizeEquipmentName(item.Vaga || item.Placa);
                     if (!this.equipmentMap.has(equipName)) {
                         this.equipmentMap.set(equipName, {
                             name: equipName,
@@ -1270,9 +1553,8 @@ Cache Hit Rate: ${this.calculateCacheHitRate()}%
                     this.equipmentMap.get(equipName).apontamentos.push(item);
                 });
 
-                // Processar JSON - TODOS os dados preservados
                 this.jsonData.forEach((item) => {
-                    const equipName = this.normalizeEquipmentNameCached(item.vacancy_name);
+                    const equipName = this.normalizeEquipmentName(item.vacancy_name);
                     if (!this.equipmentMap.has(equipName)) {
                         this.equipmentMap.set(equipName, {
                             name: equipName,
@@ -1284,85 +1566,67 @@ Cache Hit Rate: ${this.calculateCacheHitRate()}%
                     this.equipmentMap.get(equipName).status.push(item);
                 });
 
-                // Ordenação simples por data - SEM remoção de dados
                 for (const [equipName, data] of this.equipmentMap) {
-                    // Ordenar apontamentos por data inicial
                     data.apontamentos.sort((a, b) => {
-                        const dateA = this.parseDateCached(a['Data Inicial']);
-                        const dateB = this.parseDateCached(b['Data Inicial']);
+                        const dateA = this.parseDate(a['Data Inicial']);
+                        const dateB = this.parseDate(b['Data Inicial']);
                         return (dateA || 0) - (dateB || 0);
                     });
                     
-                    // Ordenar status por data inicial
                     data.status.sort((a, b) => {
-                        const dateA = this.parseDateCached(a.start);
-                        const dateB = this.parseDateCached(b.start);
+                        const dateA = this.parseDate(a.start);
+                        const dateB = this.parseDate(b.start);
                         return (dateA || 0) - (dateB || 0);
                     });
                 }
-
-                this.addDebugLog(`Dados conservados: ${this.equipmentMap.size} equipamentos processados`);
             }
 
-            async yieldToMainThread() {
-                return new Promise(resolve => setTimeout(resolve, 0));
-            }
-
-            normalizeEquipmentNameCached(name) {
+            normalizeEquipmentName(name) {
                 if (!name) return 'Equipamento Desconhecido';
                 
-                if (this.equipmentCache.has(name)) {
-                    return this.equipmentCache.get(name);
-                }
-
-                let normalized = name.toUpperCase().trim()
-                    .replace(/\s+/g, ' ')
+                let normalizedName = name.toUpperCase().trim();
+                normalizedName = normalizedName.replace(/\s+/g, ' ');
+                
+                normalizedName = normalizedName
                     .replace(/\s*-\s*GPS\s*-\s*/g, ' - GPS - ')
+                    .replace(/\s*-\s*(\d+)\s*HS\s*$/i, ' - $1HS')
+                    .replace(/\s*-\s*(\d+)\s*H\s*$/i, ' - $1HS')
                     .replace(/CAMINHÃO/g, 'CAMINHAO')
                     .replace(/VÁCUO/g, 'VACUO')
-                    .replace(/PRESSÃO/g, 'PRESSAO');
-
-                this.equipmentCache.set(name, normalized);
-                return normalized;
+                    .replace(/PRESSÃO/g, 'PRESSAO')
+                    .trim();
+                
+                return normalizedName;
             }
 
-            createGroupsOptimized() {
-                this.groups.clear();
+            createGroups() {
                 let groupId = 0;
                 
                 const sortedEquipments = Array.from(this.equipmentMap.entries())
                     .sort(([nameA], [nameB]) => nameA.localeCompare(nameB));
                 
-                const groupsArray = [];
-                
                 for (const [equipName, data] of sortedEquipments) {
                     if (data.apontamentos.length > 0 || data.status.length > 0) {
-                        const displayName = this.getDisplayNameOptimized(equipName);
+                        const displayName = this.getDisplayName(equipName);
                         
-                        groupsArray.push({
+                        this.groups.add({
                             id: `${equipName}_apont`,
-                            content: this.createGroupContent(displayName, '📊 Apontamentos'),
+                            content: `<div style="font-weight: 600; color: #2c3e50; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #7f8c8d;">📊 Apontamentos</div>`,
                             order: groupId * 2
                         });
                         
-                        groupsArray.push({
+                        this.groups.add({
                             id: `${equipName}_status`,
-                            content: this.createGroupContent(displayName, '🔄 Status'),
+                            content: `<div style="font-weight: 600; color: #2c3e50; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #7f8c8d;">🔄 Status</div>`,
                             order: groupId * 2 + 1
                         });
                         
                         groupId++;
                     }
                 }
-                
-                this.groups.add(groupsArray);
             }
 
-            createGroupContent(displayName, subtitle) {
-                return `<div style="font-weight: 600; color: #2c3e50; font-size: 12px; line-height: 1.2;">${displayName}</div><div style="font-size: 10px; color: #7f8c8d;">${subtitle}</div>`;
-            }
-
-            getDisplayNameOptimized(equipName) {
+            getDisplayName(equipName) {
                 return equipName
                     .replace(/CAMINHAO/g, 'CAMINHÃO')
                     .replace(/VACUO/g, 'VÁCUO') 
@@ -1371,200 +1635,139 @@ Cache Hit Rate: ${this.calculateCacheHitRate()}%
                     .trim();
             }
 
-            async createTimelineItemsConservative() {
-                this.items.clear();
-                let itemId = 0;
-                const itemsArray = [];
+            parseCSV(csvText) {
+                const lines = csvText.trim().split('\n').filter(line => line.trim());
+                if (lines.length < 2) return [];
 
-                for (const [equipName, data] of this.equipmentMap) {
-                    // Processar TODOS os apontamentos - SEM filtros
-                    data.apontamentos.forEach(apont => {
-                        const start = this.parseDateCached(apont['Data Inicial']);
-                        const end = this.parseDateCached(apont['Data Final']);
-                        
-                        // Incluir TODOS os registros com datas válidas
-                        if (start && end) {
-                            const category = apont['Categoria Demora'] || 'Outros';
-                            const className = this.apontColors[category] || 'apont-aguardando';
-                            
-                            itemsArray.push({
-                                id: `apont_${itemId++}`,
-                                group: `${equipName}_apont`,
-                                content: this.truncateText(category, 15),
-                                start: start,
-                                end: end,
-                                className: className,
-                                title: this.createApontTooltipOptimized(apont, equipName),
-                                type: 'range'
-                            });
-                        }
-                    });
-
-                    // Processar TODOS os status - SEM resolução de conflitos
-                    data.status.forEach((status) => {
-                        const start = this.parseDateCached(status.start);
-                        const end = this.parseDateCached(status.end);
-                        
-                        // Incluir TODOS os registros com datas válidas
-                        if (start && end) {
-                            const statusCode = status.status || 'unknown';
-                            const className = this.statusColors[statusCode] || 'status-not_appropriated';
-                            
-                            itemsArray.push({
-                                id: `status_${itemId++}`,
-                                group: `${equipName}_status`,
-                                content: this.truncateText(status.status_title || statusCode, 20),
-                                start: start,
-                                end: end,
-                                className: className,
-                                title: this.createStatusTooltipOptimized(status, equipName),
-                                type: 'range'
-                            });
-                        }
-                    });
-                }
-
-                this.items.add(itemsArray);
-                this.processingStats.finalRecords = itemsArray.length;
+                const delimiter = lines[0].includes(';') ? ';' : ',';
+                const headers = lines[0].split(delimiter).map(h => h.replace(/"/g, '').trim());
                 
-                this.addDebugLog(`Timeline criada: ${itemsArray.length} itens preservados (100% dos dados originais)`);
-                
-                // Atualizar timeline
-                if (this.timeline) {
-                    this.updateTimelineOptimized();
-                } else {
-                    this.initTimelineOptimized();
+                const data = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    const values = this.parseCSVLine(line, delimiter);
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] ? values[index].replace(/"/g, '').trim() : '';
+                    });
+                    
+                    if (row['Data Inicial'] && row['Data Final']) {
+                        data.push(row);
+                    }
                 }
+                
+                return data;
             }
 
-            parseDateCached(dateStr) {
+            parseCSVLine(line, delimiter) {
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === delimiter && !inQuotes) {
+                        values.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                values.push(current.trim());
+                
+                return values;
+            }
+
+            parseDate(dateStr) {
                 if (!dateStr) return null;
                 
-                if (this.dateCache.has(dateStr)) {
-                    return this.dateCache.get(dateStr);
-                }
-
-                let parsed = null;
                 try {
                     if (dateStr.includes('/')) {
                         const [datePart, timePart = '00:00:00'] = dateStr.split(' ');
                         const [day, month, year] = datePart.split('/');
                         
-                        if (day && month && year) {
-                            parsed = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`);
-                        }
+                        if (!day || !month || !year) return null;
+                        
+                        return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`);
                     } else if (dateStr.includes('-')) {
-                        parsed = new Date(dateStr.replace(' ', 'T'));
+                        return new Date(dateStr.replace(' ', 'T'));
                     }
+                    
+                    return null;
                 } catch (error) {
-                    // Ignore parsing errors
+                    return null;
                 }
-
-                this.dateCache.set(dateStr, parsed);
-                return parsed;
             }
 
-            resolveStatusConflictsOptimized(statusList, equipmentName) {
-                if (!statusList || statusList.length <= 1) return statusList;
+            truncateText(text, maxLength) {
+                if (!text) return '';
+                return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
+            }
 
-                // VERSÃO CONSERVADORA - PRESERVA TODOS OS DADOS ORIGINAIS
-                // Apenas ordena por data de início, sem remover nenhum dado
-                const validStatus = statusList
-                    .filter(s => s.start && s.end)
-                    .sort((a, b) => new Date(a.start) - new Date(b.start));
+            createApontTooltip(apont, equipName) {
+                return `
+                    <div style="font-size: 13px; line-height: 1.4; max-width: 300px;">
+                        <div style="font-weight: 700; margin-bottom: 8px; color: #2c3e50;">📊 Apontamento Manual</div>
+                        <div style="margin-bottom: 4px;"><strong>Equipamento:</strong> ${equipName}</div>
+                        <div style="margin-bottom: 4px;"><strong>Categoria:</strong> ${apont['Categoria Demora'] || 'N/A'}</div>
+                        <div style="margin-bottom: 4px;"><strong>Período:</strong> ${apont['Data Inicial']} até ${apont['Data Final']}</div>
+                        <div style="margin-bottom: 4px;"><strong>Duração:</strong> ${apont['Tempo Indisponível (HH:MM)'] || 'N/A'}</div>
+                        <div><strong>Placa:</strong> ${apont.Placa || 'N/A'}</div>
+                    </div>
+                `;
+            }
 
-                // Se não há dados válidos, retorna lista original
-                if (validStatus.length === 0) return statusList;
+            updateTimelineSmartly() {
+                if (!this.timeline) return;
 
-                // Detecção de sobreposições sem remoção de dados
-                let hasOverlaps = false;
-                for (let i = 0; i < validStatus.length - 1; i++) {
-                    const currentEnd = new Date(validStatus[i].end);
-                    const nextStart = new Date(validStatus[i + 1].start);
+                try {
+                    // Salvar seleção atual
+                    const selection = this.timeline.getSelection();
                     
-                    if (nextStart < currentEnd) {
-                        hasOverlaps = true;
-                        this.processingStats.conflictsResolved++;
+                    // Atualizar dados
+                    this.timeline.setData({
+                        items: this.items,
+                        groups: this.groups
+                    });
+
+                    // Restaurar janela de visualização se existir
+                    if (this.currentViewWindow) {
+                        setTimeout(() => {
+                            this.timeline.setWindow(this.currentViewWindow.start, this.currentViewWindow.end);
+                        }, 100);
                     }
-                }
 
-                // Log para debug mas retorna dados originais preservados
-                if (hasOverlaps) {
-                    this.addDebugLog(`Sobreposições detectadas em ${equipmentName} - dados preservados`);
-                }
+                    // Restaurar seleção
+                    if (selection.length > 0) {
+                        setTimeout(() => {
+                            this.timeline.setSelection(selection);
+                        }, 150);
+                    }
 
-                // RETORNA DADOS ORIGINAIS ORDENADOS - SEM ALTERAÇÕES
-                return validStatus;
+                } catch (error) {
+                    console.error('❌ Erro ao atualizar timeline:', error);
+                    this.addDebugLog(`Erro ao atualizar timeline: ${error.message}`, 'error');
+                    // Em caso de erro, reinicializar completamente
+                    this.initTimeline();
+                }
             }
 
-            createStatusTooltipOptimized(status, equipName) {
-                const formatDuration = (start, end) => {
-                    const diff = new Date(end) - new Date(start);
-                    const hours = Math.floor(diff / (1000 * 60 * 60));
-                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                    
-                    if (hours === 0) return `${minutes}min`;
-                    if (minutes === 0) return `${hours}h`;
-                    return `${hours}h ${minutes}min`;
-                };
-
-                const formatDate = (dateStr) => {
-                    const date = new Date(dateStr);
-                    return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
-                };
-                
-                return `
-                    <div style="font-size: 12px; line-height: 1.4; max-width: 280px;">
-                        <div style="font-weight: 700; margin-bottom: 6px; color: #2c3e50;">
-                            🔄 Status Automático
-                        </div>
-                        <div style="margin-bottom: 3px;"><strong>Equipamento:</strong> ${equipName}</div>
-                        <div style="margin-bottom: 3px;"><strong>Status:</strong> ${status.status_title || status.status}</div>
-                        <div style="margin-bottom: 3px;"><strong>Início:</strong> ${formatDate(status.start)}</div>
-                        <div style="margin-bottom: 3px;"><strong>Fim:</strong> ${formatDate(status.end)}</div>
-                        <div><strong>Duração:</strong> ${formatDuration(status.start, status.end)}</div>
-                    </div>
-                `;
-            }
-
-            createApontTooltipOptimized(apont, equipName) {
-                const formatDate = (dateStr) => {
-                    const [datePart, timePart] = dateStr.split(' ');
-                    const [day, month, year] = datePart.split('/');
-                    return `${day}/${month}/${year} ${timePart || ''}`.trim();
-                };
-
-                return `
-                    <div style="font-size: 12px; line-height: 1.4; max-width: 280px;">
-                        <div style="font-weight: 700; margin-bottom: 6px; color: #2c3e50;">📊 Apontamento Manual</div>
-                        <div style="margin-bottom: 3px;"><strong>Equipamento:</strong> ${equipName}</div>
-                        <div style="margin-bottom: 3px;"><strong>Categoria:</strong> ${apont['Categoria Demora'] || 'N/A'}</div>
-                        <div style="margin-bottom: 3px;"><strong>Início:</strong> ${formatDate(apont['Data Inicial'])}</div>
-                        <div style="margin-bottom: 3px;"><strong>Fim:</strong> ${formatDate(apont['Data Final'])}</div>
-                        <div><strong>Duração:</strong> ${apont['Tempo Indisponível (HH:MM)'] || 'N/A'}</div>
-                    </div>
-                `;
-            }
-
-            // =============================================================================
-            // TIMELINE OTIMIZADA
-            // =============================================================================
-            initTimelineOptimized() {
-                if (this.items.length === 0) {
-                    this.addDebugLog('Timeline não inicializada: nenhum item disponível');
-                    return;
-                }
+            initTimeline() {
+                if (this.items.length === 0) return;
 
                 const container = document.getElementById('timeline');
                 container.innerHTML = '';
-
-                this.addDebugLog(`Inicializando timeline com ${this.items.length} itens`);
 
                 const options = {
                     orientation: 'top',
                     stack: true,
                     showCurrentTime: true,
-                    zoomMin: 1000 * 60 * 5, // 5 minutos
+                    zoomMin: 1000 * 60 * 10, // 10 minutos
                     zoomMax: 1000 * 60 * 60 * 24 * 30, // 30 dias
                     editable: false,
                     multiselect: false,
@@ -1591,7 +1794,7 @@ Cache Hit Rate: ${this.calculateCacheHitRate()}%
                     },
                     margin: {
                         item: {
-                            horizontal: 1,
+                            horizontal: 2,
                             vertical: 1
                         }
                     },
@@ -1603,277 +1806,49 @@ Cache Hit Rate: ${this.calculateCacheHitRate()}%
 
                 this.timeline = new vis.Timeline(container, this.items, this.groups, options);
 
-                // Event listeners otimizados
+                // Event listeners
                 this.timeline.on('rangechanged', (properties) => {
                     this.currentViewWindow = properties;
                 });
 
-                // Garantir visualização inicial
                 setTimeout(() => {
                     this.handlePeriodChange();
-                    this.addDebugLog('Timeline inicializada com sucesso');
-                }, 150);
+                }, 100);
             }
 
-            updateTimelineOptimized() {
-                if (!this.timeline) return;
+            updateInterface() {
+                document.getElementById('statsPanel').style.display = 'block';
 
-                const startTime = performance.now();
+                const totalApont = Array.from(this.equipmentMap.values())
+                    .reduce((sum, data) => sum + data.apontamentos.length, 0);
+                const totalStatus = Array.from(this.equipmentMap.values())
+                    .reduce((sum, data) => sum + data.status.length, 0);
 
-                try {
-                    const selection = this.timeline.getSelection();
-                    
-                    this.timeline.setData({
-                        items: this.items,
-                        groups: this.groups
-                    });
+                document.getElementById('apontCount').textContent = totalApont;
+                document.getElementById('statusCount').textContent = totalStatus;
+                document.getElementById('equipmentCount').textContent = this.equipmentMap.size;
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('pt-BR');
+                document.getElementById('visibleItems').textContent = `${this.items.length} itens visíveis`;
+                document.getElementById('conflictsResolved').textContent = this.processingStats.conflictsResolved;
+                document.getElementById('duplicatesRemoved').textContent = this.processingStats.duplicatesRemoved;
 
-                    if (this.currentViewWindow) {
-                        setTimeout(() => {
-                            this.timeline.setWindow(this.currentViewWindow.start, this.currentViewWindow.end);
-                        }, 50);
-                    }
-
-                    if (selection.length > 0) {
-                        setTimeout(() => {
-                            this.timeline.setSelection(selection);
-                        }, 100);
-                    }
-
-                } catch (error) {
-                    console.error('❌ Erro ao atualizar timeline:', error);
-                    this.initTimelineOptimized();
-                } finally {
-                    this.performanceMetrics.renderTime = performance.now() - startTime;
-                }
+                this.updateFilters();
+                this.updateNextSyncTime();
+                this.updateDebugPanel();
             }
 
-            // =============================================================================
-            // FILTROS OTIMIZADOS
-            // =============================================================================
-            applyFiltersOptimized() {
-                if (this.isUpdating || !this.timeline || this.items.length === 0) return;
+            updateFilters() {
+                const equipmentSelect = document.getElementById('equipmentFilter');
+                const currentValue = equipmentSelect.value;
+                equipmentSelect.innerHTML = '<option value="">Todos os equipamentos</option>';
 
-                const startTime = performance.now();
-                
-                try {
-                    const equipmentFilter = document.getElementById('equipmentFilter').value;
-                    const period = document.getElementById('periodFilter').value;
-                    
-                    let filteredItems = [];
-                    
-                    // Se não há filtros, mostrar todos os itens
-                    if (!equipmentFilter && period !== 'custom') {
-                        filteredItems = this.items.get();
-                    } else {
-                        // Aplicar filtros
-                        for (const item of this.items.get()) {
-                            let include = true;
-                            
-                            if (equipmentFilter) {
-                                const itemEquipment = item.group.replace(/_apont$|_status$/, '');
-                                if (itemEquipment !== equipmentFilter) {
-                                    include = false;
-                                }
-                            }
-                            
-                            if (period === 'custom') {
-                                const startDate = document.getElementById('startDate').value;
-                                const endDate = document.getElementById('endDate').value;
-                                
-                                if (startDate && item.start < new Date(startDate)) include = false;
-                                if (endDate && item.start > new Date(endDate)) include = false;
-                            }
-                            
-                            if (include) {
-                                filteredItems.push(item);
-                            }
-                        }
-                    }
-                    
-                    // Atualizar grupos visíveis
-                    const visibleEquipments = new Set();
-                    filteredItems.forEach(item => {
-                        const equipment = item.group.replace(/_apont$|_status$/, '');
-                        visibleEquipments.add(equipment);
-                    });
-                    
-                    const visibleGroups = [];
-                    for (const group of this.groups.get()) {
-                        const equipment = group.id.replace(/_apont$|_status$/, '');
-                        if (!equipmentFilter || visibleEquipments.has(equipment)) {
-                            visibleGroups.push(group);
-                        }
-                    }
-                    
-                    // Atualizar timeline
-                    this.timeline.setData({
-                        items: new vis.DataSet(filteredItems),
-                        groups: new vis.DataSet(visibleGroups)
-                    });
-                    
-                    // Atualizar estatísticas
-                    document.getElementById('visibleItems').textContent = `${filteredItems.length} itens`;
-                    
-                    // Log para debug
-                    this.addDebugLog(`Filtros aplicados: ${filteredItems.length} itens visíveis`);
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao aplicar filtros:', error);
-                    this.addDebugLog(`Erro nos filtros: ${error.message}`, 'error');
-                } finally {
-                    this.performanceMetrics.filterTime = performance.now() - startTime;
-                }
-            }
-
-            // =============================================================================
-            // UTILITÁRIOS AUXILIARES
-            // =============================================================================
-            truncateText(text, maxLength) {
-                if (!text) return '';
-                return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
-            }
-
-            generateDataHash(data) {
-                return btoa(JSON.stringify(data)).slice(0, 16);
-            }
-
-            debounce(func, wait) {
-                let timeout;
-                return function executedFunction(...args) {
-                    const later = () => {
-                        clearTimeout(timeout);
-                        func(...args);
-                    };
-                    clearTimeout(timeout);
-                    timeout = setTimeout(later, wait);
-                };
-            }
-
-            async fetchCSVFromGitHub() {
-                try {
-                    const response = await fetch(this.githubConfig.csvRepo.apiUrl);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                    const apiData = await response.json();
-                    let csvText = atob(apiData.content.replace(/\n/g, ''));
-                    
-                    try {
-                        csvText = decodeURIComponent(escape(csvText));
-                    } catch (e) {}
-                    
-                    const parsedData = this.parseCSVOptimized(csvText);
-                    return { success: true, data: parsedData };
-                    
-                } catch (error) {
-                    return { success: false, data: [], error: error.message };
-                }
-            }
-
-            async fetchJSONFromGitHub() {
-                try {
-                    const response = await fetch(this.githubConfig.jsonRepo.apiUrl);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                    const apiData = await response.json();
-                    let jsonText = atob(apiData.content.replace(/\n/g, ''));
-                    
-                    try {
-                        jsonText = decodeURIComponent(escape(jsonText));
-                    } catch (e) {}
-                    
-                    const jsonData = JSON.parse(jsonText);
-                    const records = jsonData.records || jsonData;
-                    
-                    return { success: true, data: records };
-                    
-                } catch (error) {
-                    return { success: false, data: [], error: error.message };
-                }
-            }
-
-            parseCSVOptimized(csvText) {
-                const lines = csvText.trim().split('\n').filter(line => line.trim());
-                if (lines.length < 2) return [];
-
-                const delimiter = lines[0].includes(';') ? ';' : ',';
-                const headers = lines[0].split(delimiter).map(h => h.replace(/"/g, '').trim());
-                
-                const data = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-                    
-                    const values = this.parseCSVLineOptimized(line, delimiter);
-                    const row = {};
-                    
-                    for (let j = 0; j < headers.length; j++) {
-                        row[headers[j]] = values[j] ? values[j].replace(/"/g, '').trim() : '';
-                    }
-                    
-                    if (row['Data Inicial'] && row['Data Final']) {
-                        data.push(row);
-                    }
-                }
-                
-                return data;
-            }
-
-            parseCSVLineOptimized(line, delimiter) {
-                const values = [];
-                let current = '';
-                let inQuotes = false;
-                
-                for (let i = 0; i < line.length; i++) {
-                    const char = line[i];
-                    
-                    if (char === '"') {
-                        inQuotes = !inQuotes;
-                    } else if (char === delimiter && !inQuotes) {
-                        values.push(current);
-                        current = '';
-                    } else {
-                        current += char;
-                    }
-                }
-                values.push(current);
-                
-                return values;
-            }
-
-            startGitHubAutoSync() {
-                if (this.autoSyncInterval) {
-                    clearInterval(this.autoSyncInterval);
-                }
-
-                if (this.config.autoSyncInterval > 0) {
-                    this.autoSyncInterval = setInterval(async () => {
-                        if (!this.isUpdating) {
-                            await this.syncFromGitHub();
-                        }
-                    }, this.config.autoSyncInterval);
-
-                    this.updateNextSyncTime();
-                }
-            }
-
-            updateNextSyncTime() {
-                if (this.config.autoSyncInterval > 0) {
-                    const nextUpdate = new Date(Date.now() + this.config.autoSyncInterval);
-                    const nextUpdateElement = document.getElementById('nextUpdate');
-                    if (nextUpdateElement) {
-                        nextUpdateElement.textContent = nextUpdate.toLocaleTimeString('pt-BR');
-                    }
-                }
-            }
-
-            updateLastUpdateTime() {
-                const now = new Date();
-                const timeStr = now.toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit'
+                Array.from(this.equipmentMap.keys()).sort().forEach(equipName => {
+                    const option = document.createElement('option');
+                    option.value = equipName;
+                    option.textContent = this.getDisplayName(equipName);
+                    if (equipName === currentValue) option.selected = true;
+                    equipmentSelect.appendChild(option);
                 });
-                document.getElementById('lastUpdateTime').textContent = timeStr;
             }
 
             handlePeriodChange() {
@@ -1920,60 +1895,74 @@ Cache Hit Rate: ${this.calculateCacheHitRate()}%
                 this.timeline.setWindow(start, end);
             }
 
-            updateInterface() {
-                const totalApont = Array.from(this.equipmentMap.values())
-                    .reduce((sum, data) => sum + data.apontamentos.length, 0);
-                const totalStatus = Array.from(this.equipmentMap.values())
-                    .reduce((sum, data) => sum + data.status.length, 0);
+            applyFilters() {
+                if (this.isUpdating || !this.timeline) return;
 
-                document.getElementById('apontCount').textContent = totalApont;
-                document.getElementById('statusCount').textContent = totalStatus;
-                document.getElementById('equipmentCount').textContent = this.equipmentMap.size;
-                document.getElementById('visibleItems').textContent = `${this.items.length} itens`;
-                document.getElementById('conflictsResolved').textContent = this.processingStats.conflictsResolved;
-                document.getElementById('duplicatesRemoved').textContent = this.processingStats.duplicatesRemoved;
-                document.getElementById('processTime').textContent = `${this.processingStats.lastProcessTime}ms`;
-
-                this.updateFiltersOptions();
-                this.updateNextSyncTime();
-                this.updateDebugPanel();
-            }
-
-            updateFiltersOptions() {
-                const equipmentSelect = document.getElementById('equipmentFilter');
-                const currentValue = equipmentSelect.value;
-                equipmentSelect.innerHTML = '<option value="">Todos os equipamentos</option>';
-
-                Array.from(this.equipmentMap.keys()).sort().forEach(equipName => {
-                    const option = document.createElement('option');
-                    option.value = equipName;
-                    option.textContent = this.getDisplayNameOptimized(equipName);
-                    if (equipName === currentValue) option.selected = true;
-                    equipmentSelect.appendChild(option);
+                const equipmentFilter = document.getElementById('equipmentFilter').value;
+                const period = document.getElementById('periodFilter').value;
+                
+                let filteredItems = [];
+                
+                for (const item of this.items.get()) {
+                    let include = true;
+                    
+                    if (equipmentFilter) {
+                        const itemEquipment = item.group.replace(/_apont$|_status$/, '');
+                        if (itemEquipment !== equipmentFilter) {
+                            include = false;
+                        }
+                    }
+                    
+                    if (period === 'custom') {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        
+                        if (startDate && item.start < new Date(startDate)) include = false;
+                        if (endDate && item.start > new Date(endDate)) include = false;
+                    }
+                    
+                    if (include) {
+                        filteredItems.push(item);
+                    }
+                }
+                
+                const visibleEquipments = new Set();
+                filteredItems.forEach(item => {
+                    const equipment = item.group.replace(/_apont$|_status$/, '');
+                    visibleEquipments.add(equipment);
                 });
+                
+                const visibleGroups = [];
+                for (const group of this.groups.get()) {
+                    const equipment = group.id.replace(/_apont$|_status$/, '');
+                    if (!equipmentFilter || visibleEquipments.has(equipment)) {
+                        visibleGroups.push(group);
+                    }
+                }
+                
+                this.timeline.setData({
+                    items: new vis.DataSet(filteredItems),
+                    groups: new vis.DataSet(visibleGroups)
+                });
+                
+                document.getElementById('visibleItems').textContent = `${filteredItems.length} itens visíveis`;
             }
 
             updateSyncStatus(status, message) {
                 const dot = document.getElementById('syncDot');
                 const statusText = document.getElementById('syncStatus');
                 
-                if (dot) dot.className = `sync-dot ${status}`;
-                if (statusText) statusText.textContent = message;
+                dot.className = `sync-dot ${status}`;
+                statusText.textContent = message;
             }
 
-            showPerformanceIndicator(message) {
-                const indicator = document.getElementById('performanceIndicator');
-                if (indicator) {
-                    indicator.textContent = message;
-                    indicator.classList.add('show');
-                }
-            }
-
-            hidePerformanceIndicator() {
-                const indicator = document.getElementById('performanceIndicator');
-                if (indicator) {
-                    indicator.classList.remove('show');
-                }
+            updateSystemInfo() {
+                setInterval(() => {
+                    const now = new Date();
+                    const uptime = Math.floor((now - this.startTime) / 1000 / 60);
+                    
+                    this.updateNextSyncTime();
+                }, 60000); // Atualizar a cada minuto
             }
 
             showNotification(message, type = 'info') {
@@ -1986,36 +1975,7 @@ Cache Hit Rate: ${this.calculateCacheHitRate()}%
                 setTimeout(() => {
                     notification.style.animation = 'slideOutRight 0.3s ease-in';
                     setTimeout(() => notification.remove(), 300);
-                }, 3000);
-            }
-
-            loadSettings() {
-                const saved = localStorage.getItem('productivitySystemConfig');
-                if (saved) {
-                    try {
-                        const config = JSON.parse(saved);
-                        this.config = { ...this.config, ...config };
-                        
-                        // Aplicar configurações na UI
-                        document.getElementById('autoSyncInterval').value = this.config.autoSyncInterval;
-                        document.getElementById('conflictResolution').value = this.config.conflictResolution;
-                        document.getElementById('gapTolerance').value = this.config.gapTolerance;
-                    } catch (e) {
-                        console.error('Erro ao carregar configurações:', e);
-                    }
-                }
-            }
-
-            saveSettings() {
-                this.config.autoSyncInterval = parseInt(document.getElementById('autoSyncInterval').value);
-                this.config.conflictResolution = document.getElementById('conflictResolution').value;
-                this.config.gapTolerance = parseInt(document.getElementById('gapTolerance').value);
-                
-                localStorage.setItem('productivitySystemConfig', JSON.stringify(this.config));
-                this.startGitHubAutoSync();
-                
-                this.addDebugLog(`Configurações salvas: ${this.config.conflictResolution} mode`);
-                this.showNotification('⚙️ Configurações salvas!', 'success');
+                }, 4000);
             }
         }
 
@@ -2025,24 +1985,6 @@ Cache Hit Rate: ${this.calculateCacheHitRate()}%
         let productivitySystem = null;
 
         function switchTab(tabName) {
-            // Se for aba externa (Alertas ou Relatórios)
-            if (tabName === 'alerts' || tabName === 'reports') {
-                const tab = event.target;
-                const url = tab.getAttribute('data-url');
-                
-                if (tab.classList.contains('disabled')) {
-                    productivitySystem?.showNotification('🚧 Módulo em desenvolvimento', 'warning');
-                    return;
-                }
-                
-                if (url) {
-                    // Preparar navegação para arquivo externo
-                    window.location.href = url;
-                    return;
-                }
-            }
-
-            // Navegação normal entre tabs
             document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
@@ -2050,17 +1992,32 @@ Cache Hit Rate: ${this.calculateCacheHitRate()}%
             document.getElementById(`${tabName}-tab`).classList.add('active');
         }
 
-        function applyFilters() {
-            // Esta função não é mais necessária pois os filtros são aplicados automaticamente
+        function manualSync() {
             if (productivitySystem) {
-                productivitySystem.applyFiltersOptimized();
+                productivitySystem.syncFromGitHub();
+            }
+        }
+
+        function applyFilters() {
+            if (productivitySystem) {
+                productivitySystem.applyFilters();
             }
         }
 
         function saveSettings() {
+            const autoSyncInterval = parseInt(document.getElementById('autoSyncInterval').value);
+            const conflictResolution = document.getElementById('conflictResolution').value;
+            const gapTolerance = parseInt(document.getElementById('gapTolerance').value);
+            
             if (productivitySystem) {
-                productivitySystem.saveSettings();
+                productivitySystem.config.autoSyncInterval = autoSyncInterval;
+                productivitySystem.config.conflictResolution = conflictResolution;
+                productivitySystem.config.gapTolerance = gapTolerance;
+                productivitySystem.startGitHubAutoSync();
+                productivitySystem.addDebugLog(`Configurações atualizadas: ${conflictResolution} mode, ${gapTolerance}s tolerance`);
             }
+            
+            productivitySystem.showNotification(`⚙️ Configurações salvas! Auto-sync: ${autoSyncInterval > 0 ? `${autoSyncInterval/60000}min` : 'desabilitado'}`, 'success');
         }
 
         function exportDebugData() {
@@ -2069,7 +2026,6 @@ Cache Hit Rate: ${this.calculateCacheHitRate()}%
                     debugLog: productivitySystem.debugLog,
                     processingStats: productivitySystem.processingStats,
                     config: productivitySystem.config,
-                    performanceMetrics: productivitySystem.performanceMetrics,
                     equipmentCount: productivitySystem.equipmentMap.size,
                     timestamp: new Date().toISOString()
                 };
@@ -2084,25 +2040,15 @@ Cache Hit Rate: ${this.calculateCacheHitRate()}%
                 a.click();
                 
                 URL.revokeObjectURL(url);
-                productivitySystem.showNotification('📁 Debug exportado', 'success');
+                productivitySystem.showNotification('📁 Dados de debug exportados', 'success');
             }
         }
 
         // =============================================================================
-        // INICIALIZAÇÃO DO SISTEMA
+        // INICIALIZAÇÃO
         // =============================================================================
         document.addEventListener('DOMContentLoaded', () => {
-            productivitySystem = new OptimizedProductivitySystem();
-            
-            // Preparar navegação para sistemas externos
-            const alertsTab = document.querySelector('[data-url="sistema_alertas_html.html"]');
-            const reportsTab = document.querySelector('[data-url="relatorios.html"]');
-            
-            // Habilitar tabs quando os arquivos estiverem disponíveis
-            setTimeout(() => {
-                if (alertsTab) alertsTab.classList.remove('disabled');
-                if (reportsTab) reportsTab.classList.remove('disabled');
-            }, 2000);
+            productivitySystem = new ProductivityMonitoringSystem();
         });
     </script>
 </body>
