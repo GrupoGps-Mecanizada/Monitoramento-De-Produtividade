@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Unificado GrupoGPS - Dual GitHub Sync</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e2e8f0;
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --text-muted: #718096;
+            --accent-primary: #3182ce;
+            --accent-secondary: #38a169;
+            --success: #48bb78;
+            --warning: #ed8936;
+            --danger: #e53e3e;
+            --info: #4299e1;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --radius: 8px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-brand h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .header-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .sync-status-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            padding: 0.75rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            min-width: 200px;
+        }
+
+        .sync-status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .sync-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .sync-dot.success { background: #48bb78; }
+        .sync-dot.error { background: #e53e3e; }
+        .sync-dot.loading { background: #ed8936; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn.loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .btn.loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .stat-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-change {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Data Sources Panel */
+        .data-sources {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .sources-header {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .source-card {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius);
+            padding: 1rem;
+            border-left: 4px solid var(--accent-primary);
+        }
+
+        .source-card.json {
+            border-left-color: var(--accent-secondary);
+        }
+
+        .source-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .source-title {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .source-status {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .source-status.success {
+            background: rgba(72, 187, 120, 0.1);
+            color: var(--success);
+        }
+
+        .source-status.error {
+            background: rgba(229, 62, 62, 0.1);
+            color: var(--danger);
+        }
+
+        .source-status.loading {
+            background: rgba(237, 137, 54, 0.1);
+            color: var(--warning);
+        }
+
+        .source-details {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .source-details strong {
+            color: var(--text-primary);
+        }
+
+        /* Timeline Container */
+        .timeline-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .timeline-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .timeline-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .timeline-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .equipment-timeline {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius);
+            padding: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .equipment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .equipment-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .equipment-code {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+
+        .unified-events {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .event-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            border-left: 3px solid var(--accent-primary);
+            transition: all 0.2s;
+        }
+
+        .event-item:hover {
+            transform: translateX(2px);
+            box-shadow: var(--shadow);
+        }
+
+        .event-item.appointment {
+            border-left-color: var(--accent-primary);
+        }
+
+        .event-item.status {
+            border-left-color: var(--accent-secondary);
+        }
+
+        .event-content {
+            flex: 1;
+        }
+
+        .event-type {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .event-description {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .event-time {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .event-duration {
+            text-align: right;
+            font-size: 0.875rem;
+        }
+
+        .duration-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .duration-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Loading States */
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .loading-spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease-out;
+            max-width: 400px;
+        }
+
+        .notification.success { background: var(--success); }
+        .notification.error { background: var(--danger); }
+        .notification.info { background: var(--info); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .sources-grid,
+            .timeline-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sync-status-panel {
+                min-width: auto;
+                width: 100%;
+            }
+        }
+
+        /* Scrollbar */
+        .unified-events::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .unified-events::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 3px;
+        }
+
+        .unified-events::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .unified-events::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="header-content">
+                <div class="header-brand">
+                    <h1>🚛 Dashboard Unificado GrupoGPS</h1>
+                    <div class="header-subtitle">Sincronização automática de dados CSV + JSON via GitHub</div>
+                </div>
+                
+                <div class="header-controls">
+                    <div class="sync-status-panel">
+                        <div class="sync-status-row">
+                            <span>📊 CSV (Apontamentos):</span>
+                            <div class="sync-indicator">
+                                <div class="sync-dot loading" id="csvSyncDot"></div>
+                                <span id="csvSyncStatus">Aguardando...</span>
+                            </div>
+                        </div>
+                        <div class="sync-status-row">
+                            <span>🔄 JSON (Status):</span>
+                            <div class="sync-indicator">
+                                <div class="sync-dot loading" id="jsonSyncDot"></div>
+                                <span id="jsonSyncStatus">Aguardando...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn" onclick="manualSync()" id="manualSyncBtn">
+                        <i class="fas fa-sync-alt"></i>
+                        Sincronizar Agora
+                    </button>
+                    
+                    <button class="btn" onclick="toggleAutoSync()" id="autoSyncBtn">
+                        <i class="fas fa-play"></i>
+                        <span id="autoSyncText">Auto-Sync: ON</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Total Equipamentos</div>
+                        <div class="stat-icon" style="background: rgba(49, 130, 206, 0.1); color: var(--accent-primary);">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="totalEquipments">0</div>
+                    <div class="stat-change">Frota completa monitorada</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Apontamentos Ativos</div>
+                        <div class="stat-icon" style="background: rgba(56, 161, 105, 0.1); color: var(--accent-secondary);">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="activeAppointments">0</div>
+                    <div class="stat-change">Dados CSV sincronizados</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Status Registrados</div>
+                        <div class="stat-icon" style="background: rgba(237, 137, 54, 0.1); color: var(--warning);">
+                            <i class="fas fa-signal"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="statusRecords">0</div>
+                    <div class="stat-change">Dados JSON sincronizados</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Última Sincronização</div>
+                        <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--info);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="lastSyncTime">--:--</div>
+                    <div class="stat-change" id="syncDelta">Nunca sincronizado</div>
+                </div>
+            </div>
+
+            <!-- Data Sources -->
+            <div class="data-sources">
+                <div class="sources-header">
+                    <i class="fas fa-database"></i>
+                    Fontes de Dados GitHub
+                </div>
+                <div class="sources-grid">
+                    <div class="source-card csv">
+                        <div class="source-header">
+                            <div class="source-title">
+                                <i class="fas fa-file-csv"></i>
+                                Apontamentos CSV
+                            </div>
+                            <div class="source-status loading" id="csvSourceStatus">Carregando...</div>
+                        </div>
+                        <div class="source-details" id="csvSourceDetails">
+                            <strong>Repositório:</strong> GrupoGps-Mecanizada/Apontamento-Dos-Tablets<br>
+                            <strong>Arquivo:</strong> data/apontamentos-atuais.csv<br>
+                            <strong>Registros:</strong> <span id="csvRecordCount">0</span><br>
+                            <strong>Última atualização:</strong> <span id="csvLastUpdate">--</span>
+                        </div>
+                    </div>
+
+                    <div class="source-card json">
+                        <div class="source-header">
+                            <div class="source-title">
+                                <i class="fas fa-file-code"></i>
+                                Status JSON
+                            </div>
+                            <div class="source-status loading" id="jsonSourceStatus">Carregando...</div>
+                        </div>
+                        <div class="source-details" id="jsonSourceDetails">
+                            <strong>Repositório:</strong> GrupoGps-Mecanizada/Controle-Status-Equipamentos<br>
+                            <strong>Arquivo:</strong> data/latest-fleet-data.json<br>
+                            <strong>Registros:</strong> <span id="jsonRecordCount">0</span><br>
+                            <strong>Última atualização:</strong> <span id="jsonLastUpdate">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unified Timeline -->
+            <div class="timeline-section">
+                <div class="timeline-header">
+                    <div class="timeline-title">
+                        <i class="fas fa-timeline"></i>
+                        Timeline Unificada por Equipamento
+                    </div>
+                    <div class="timeline-controls">
+                        <select id="equipmentFilter" onchange="filterTimeline()">
+                            <option value="">Todos os equipamentos</option>
+                        </select>
+                        <button class="btn" onclick="refreshTimeline()">
+                            <i class="fas fa-refresh"></i>
+                            Atualizar
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="timelineContainer">
+                    <div class="loading-state" id="timelineLoading">
+                        <div class="loading-spinner"></div>
+                        <div>Carregando timeline unificada...</div>
+                    </div>
+                    
+                    <div class="timeline-grid" id="timelineGrid" style="display: none;">
+                        <!-- Timeline será gerada aqui -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // =============================================================================
+        // CONFIGURAÇÃO GITHUB DUAL-REPO
+        // =============================================================================
+        const DUAL_GITHUB_CONFIG = {
+            CSV_SOURCE: {
+                OWNER: 'GrupoGps-Mecanizada',
+                REPO: 'Apontamento-Dos-Tablets',
+                FILE_PATH: 'data/apontamentos-atuais.csv',
+                TYPE: 'csv'
+            },
+            JSON_SOURCE: {
+                OWNER: 'GrupoGps-Mecanizada', 
+                REPO: 'Controle-Status-Equipamentos',
+                FILE_PATH: 'data/latest-fleet-data.json',
+                TYPE: 'json'
+            },
+            AUTO_SYNC_INTERVAL: 30000, // 30 segundos
+            RETRY_ATTEMPTS: 3,
+            RETRY_DELAY: 2000
+        };
+
+        // =============================================================================
+        // ESTADO GLOBAL DA APLICAÇÃO
+        // =============================================================================
+        let appState = {
+            csvData: [],
+            jsonData: [],
+            unifiedEquipmentData: new Map(),
+            autoSyncEnabled: true,
+            lastSyncTime: null,
+            syncInterval: null,
+            isLoading: false
+        };
+
+        // =============================================================================
+        // SISTEMA DE SINCRONIZAÇÃO DUAL
+        // =============================================================================
+        class DualGitHubSync {
+            constructor() {
+                this.csvStatus = { status: 'idle', message: 'Aguardando...', records: 0 };
+                this.jsonStatus = { status: 'idle', message: 'Aguardando...', records: 0 };
+            }
+
+            async syncBothSources() {
+                if (appState.isLoading) return;
+                
+                appState.isLoading = true;
+                this.updateSyncButton(true);
+                
+                try {
+                    console.log('🔄 Iniciando sincronização dual GitHub...');
+                    
+                    // Sincronização paralela das duas fontes
+                    const [csvResult, jsonResult] = await Promise.allSettled([
+                        this.syncCSVSource(),
+                        this.syncJSONSource()
+                    ]);
+                    
+                    // Processa resultados
+                    const csvSuccess = csvResult.status === 'fulfilled' && csvResult.value;
+                    const jsonSuccess = jsonResult.status === 'fulfilled' && jsonResult.value;
+                    
+                    if (csvSuccess || jsonSuccess) {
+                        this.unifyData();
+                        this.updateTimeline();
+                        this.updateStats();
+                        appState.lastSyncTime = new Date();
+                        this.updateLastSyncDisplay();
+                        
+                        const message = csvSuccess && jsonSuccess ? 
+                            '✅ Sincronização completa: CSV + JSON' :
+                            csvSuccess ? '⚠️ CSV sincronizado, JSON falhou' :
+                            '⚠️ JSON sincronizado, CSV falhou';
+                        
+                        this.showNotification(message, csvSuccess && jsonSuccess ? 'success' : 'info');
+                    } else {
+                        this.showNotification('❌ Falha na sincronização de ambas as fontes', 'error');
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Erro na sincronização dual:', error);
+                    this.showNotification('❌ Erro na sincronização: ' + error.message, 'error');
+                } finally {
+                    appState.isLoading = false;
+                    this.updateSyncButton(false);
+                }
+            }
+
+            async syncCSVSource() {
+                try {
+                    this.updateSourceStatus('csv', 'loading', 'Sincronizando...');
+                    
+                    const { OWNER, REPO, FILE_PATH } = DUAL_GITHUB_CONFIG.CSV_SOURCE;
+                    const url = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${FILE_PATH}?t=${Date.now()}`;
+                    
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    const csvContent = await response.text();
+                    appState.csvData = this.parseCSV(csvContent);
+                    
+                    this.updateSourceStatus('csv', 'success', `${appState.csvData.length} registros`);
+                    console.log(`✅ CSV sincronizado: ${appState.csvData.length} registros`);
+                    
+                    return true;
+                } catch (error) {
+                    console.error('❌ Erro CSV:', error);
+                    this.updateSourceStatus('csv', 'error', 'Erro: ' + error.message);
+                    return false;
+                }
+            }
+
+            async syncJSONSource() {
+                try {
+                    this.updateSourceStatus('json', 'loading', 'Sincronizando...');
+                    
+                    const { OWNER, REPO, FILE_PATH } = DUAL_GITHUB_CONFIG.JSON_SOURCE;
+                    const url = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${FILE_PATH}?t=${Date.now()}`;
+                    
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    const jsonData = await response.json();
+                    appState.jsonData = jsonData.records || jsonData;
+                    
+                    this.updateSourceStatus('json', 'success', `${appState.jsonData.length} registros`);
+                    console.log(`✅ JSON sincronizado: ${appState.jsonData.length} registros`);
+                    
+                    return true;
+                } catch (error) {
+                    console.error('❌ Erro JSON:', error);
+                    this.updateSourceStatus('json', 'error', 'Erro: ' + error.message);
+                    return false;
+                }
+            }
+
+            parseCSV(csvContent) {
+                try {
+                    const lines = csvContent.trim().split('\n');
+                    if (lines.length < 2) return [];
+                    
+                    const delimiter = lines[0].includes(';') ? ';' : ',';
+                    const headers = lines[0].split(delimiter).map(h => h.replace(/"/g, '').trim());
+                    
+                    const data = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = this.parseCSVLine(lines[i], delimiter);
+                        const row = {};
+                        headers.forEach((header, index) => {
+                            row[header] = values[index] ? values[index].replace(/"/g, '').trim() : '';
+                        });
+                        
+                        if (row['Data Inicial'] && row['Data Final']) {
+                            data.push({
+                                ...row,
+                                type: 'appointment',
+                                equipment: this.extractEquipmentCode(row.Vaga),
+                                start_time: this.parseDateTime(row['Data Inicial']),
+                                end_time: this.parseDateTime(row['Data Final']),
+                                duration: this.parseDuration(row['Tempo Indisponível (HH:MM)']),
+                                category: row['Categoria Demora'] || 'Outros'
+                            });
+                        }
+                    }
+                    
+                    return data;
+                } catch (error) {
+                    console.error('Erro ao parsear CSV:', error);
+                    return [];
+                }
+            }
+
+            parseCSVLine(line, delimiter) {
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === delimiter && !inQuotes) {
+                        values.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                values.push(current.trim());
+                return values;
+            }
+
+            extractEquipmentCode(vagaName) {
+                if (!vagaName) return 'UNKNOWN';
+                
+                const upperName = vagaName.toUpperCase();
+                const patterns = [
+                    { regex: /CAMINHÃO ALTA PRESSÃO.*GPS.*(\d+)/, prefix: 'AP' },
+                    { regex: /CAMINHÃO AUTO VÁCUO.*GPS.*(\d+)/, prefix: 'AV' },
+                    { regex: /CAMINHÃO HIPER VÁCUO.*GPS.*(\d+)/, prefix: 'HV' }
+                ];
+                
+                for (const pattern of patterns) {
+                    const match = upperName.match(pattern.regex);
+                    if (match) {
+                        return `${pattern.prefix}-${match[1].padStart(2, '0')}`;
+                    }
+                }
+                
+                return vagaName.substring(0, 10);
+            }
+
+            parseDateTime(dateTimeStr) {
+                if (!dateTimeStr) return null;
+                
+                try {
+                    if (dateTimeStr.includes('/')) {
+                        const [datePart, timePart = '00:00:00'] = dateTimeStr.split(' ');
+                        const [day, month, year] = datePart.split('/');
+                        return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`);
+                    } else {
+                        return new Date(dateTimeStr.replace(' ', 'T'));
+                    }
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            parseDuration(durationStr) {
+                if (!durationStr || !durationStr.includes(':')) return 0;
+                const parts = durationStr.split(':').map(Number);
+                return parts[0] * 60 + (parts[1] || 0); // minutos
+            }
+
+            unifyData() {
+                console.log('🔄 Unificando dados CSV + JSON por equipamento...');
+                
+                appState.unifiedEquipmentData.clear();
+                
+                // Processa dados CSV (apontamentos)
+                appState.csvData.forEach(item => {
+                    const equipCode = item.equipment;
+                    if (!appState.unifiedEquipmentData.has(equipCode)) {
+                        appState.unifiedEquipmentData.set(equipCode, {
+                            code: equipCode,
+                            name: item.Vaga || equipCode,
+                            appointments: [],
+                            statusEvents: [],
+                            lastUpdate: new Date()
+                        });
+                    }
+                    appState.unifiedEquipmentData.get(equipCode).appointments.push(item);
+                });
+                
+                // Processa dados JSON (status)
+                appState.jsonData.forEach(item => {
+                    const equipCode = this.extractEquipmentCode(item.vacancy_name);
+                    if (!appState.unifiedEquipmentData.has(equipCode)) {
+                        appState.unifiedEquipmentData.set(equipCode, {
+                            code: equipCode,
+                            name: item.vacancy_name || equipCode,
+                            appointments: [],
+                            statusEvents: [],
+                            lastUpdate: new Date()
+                        });
+                    }
+                    
+                    appState.unifiedEquipmentData.get(equipCode).statusEvents.push({
+                        ...item,
+                        type: 'status',
+                        equipment: equipCode,
+                        start_time: this.parseDateTime(item.start),
+                        end_time: this.parseDateTime(item.end),
+                        duration: parseFloat(item.total_time) * 60 || 0 // converte horas para minutos
+                    });
+                });
+                
+                // Ordena eventos por data para cada equipamento
+                appState.unifiedEquipmentData.forEach(equipment => {
+                    equipment.appointments.sort((a, b) => (a.start_time || 0) - (b.start_time || 0));
+                    equipment.statusEvents.sort((a, b) => (a.start_time || 0) - (b.start_time || 0));
+                });
+                
+                console.log(`✅ Dados unificados para ${appState.unifiedEquipmentData.size} equipamentos`);
+            }
+
+            updateSourceStatus(type, status, message) {
+                const statusElement = document.getElementById(`${type}SourceStatus`);
+                const dotElement = document.getElementById(`${type}SyncDot`);
+                const syncStatusElement = document.getElementById(`${type}SyncStatus`);
+                const recordCountElement = document.getElementById(`${type}RecordCount`);
+                const lastUpdateElement = document.getElementById(`${type}LastUpdate`);
+                
+                // Atualiza classes CSS
+                statusElement.className = `source-status ${status}`;
+                dotElement.className = `sync-dot ${status}`;
+                
+                // Atualiza textos
+                statusElement.textContent = message;
+                syncStatusElement.textContent = message;
+                
+                if (status === 'success') {
+                    const count = type === 'csv' ? appState.csvData.length : appState.jsonData.length;
+                    recordCountElement.textContent = count;
+                    lastUpdateElement.textContent = new Date().toLocaleTimeString('pt-BR');
+                }
+            }
+
+            updateSyncButton(loading) {
+                const btn = document.getElementById('manualSyncBtn');
+                if (loading) {
+                    btn.classList.add('loading');
+                    btn.innerHTML = '<i class="fas fa-spinner"></i> Sincronizando...';
+                } else {
+                    btn.classList.remove('loading');
+                    btn.innerHTML = '<i class="fas fa-sync-alt"></i> Sincronizar Agora';
+                }
+            }
+
+            updateStats() {
+                document.getElementById('totalEquipments').textContent = appState.unifiedEquipmentData.size;
+                document.getElementById('activeAppointments').textContent = appState.csvData.length;
+                document.getElementById('statusRecords').textContent = appState.jsonData.length;
+            }
+
+            updateTimeline() {
+                this.populateEquipmentFilter();
+                this.renderTimeline();
+            }
+
+            populateEquipmentFilter() {
+                const filter = document.getElementById('equipmentFilter');
+                filter.innerHTML = '<option value="">Todos os equipamentos</option>';
+                
+                Array.from(appState.unifiedEquipmentData.keys()).sort().forEach(equipCode => {
+                    const option = document.createElement('option');
+                    option.value = equipCode;
+                    option.textContent = equipCode;
+                    filter.appendChild(option);
+                });
+            }
+
+            renderTimeline() {
+                const container = document.getElementById('timelineGrid');
+                const loading = document.getElementById('timelineLoading');
+                
+                loading.style.display = 'none';
+                container.style.display = 'grid';
+                container.innerHTML = '';
+                
+                const filterValue = document.getElementById('equipmentFilter').value;
+                const equipmentsToShow = filterValue ? 
+                    [appState.unifiedEquipmentData.get(filterValue)].filter(Boolean) :
+                    Array.from(appState.unifiedEquipmentData.values()).slice(0, 8);
+                
+                equipmentsToShow.forEach(equipment => {
+                    if (equipment) {
+                        container.appendChild(this.createEquipmentTimeline(equipment));
+                    }
+                });
+                
+                if (equipmentsToShow.length === 0) {
+                    container.innerHTML = '<div class="loading-state">Nenhum equipamento encontrado</div>';
+                }
+            }
+
+            createEquipmentTimeline(equipment) {
+                const timelineDiv = document.createElement('div');
+                timelineDiv.className = 'equipment-timeline';
+                
+                // Combina e ordena todos os eventos
+                const allEvents = [
+                    ...equipment.appointments.map(apt => ({
+                        ...apt,
+                        type: 'appointment',
+                        description: apt.category,
+                        time_range: this.formatTimeRange(apt.start_time, apt.end_time),
+                        duration_text: this.formatDuration(apt.duration)
+                    })),
+                    ...equipment.statusEvents.map(status => ({
+                        ...status,
+                        type: 'status',
+                        description: status.status_title || status.status,
+                        time_range: this.formatTimeRange(status.start_time, status.end_time),
+                        duration_text: this.formatDuration(status.duration)
+                    }))
+                ].sort((a, b) => (b.start_time || 0) - (a.start_time || 0));
+                
+                timelineDiv.innerHTML = `
+                    <div class="equipment-header">
+                        <div>
+                            <div class="equipment-name">${equipment.code}</div>
+                            <div class="equipment-code">${equipment.name}</div>
+                        </div>
+                        <div style="font-size: 0.875rem; color: var(--text-muted);">
+                            ${allEvents.length} eventos
+                        </div>
+                    </div>
+                    
+                    <div class="unified-events">
+                        ${allEvents.slice(0, 20).map(event => `
+                            <div class="event-item ${event.type}">
+                                <div class="event-content">
+                                    <div class="event-type">${event.type === 'appointment' ? '📊 Apontamento' : '🔄 Status'}</div>
+                                    <div class="event-description">${event.description}</div>
+                                    <div class="event-time">${event.time_range}</div>
+                                </div>
+                                <div class="event-duration">
+                                    <div class="duration-value">${event.duration_text}</div>
+                                    <div class="duration-label">${event.type === 'appointment' ? 'demora' : 'duração'}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                        
+                        ${allEvents.length > 20 ? `
+                            <div style="text-align: center; padding: 1rem; color: var(--text-muted);">
+                                ... e mais ${allEvents.length - 20} eventos
+                            </div>
+                        ` : ''}
+                        
+                        ${allEvents.length === 0 ? `
+                            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                Nenhum evento registrado
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                return timelineDiv;
+            }
+
+            formatTimeRange(startTime, endTime) {
+                if (!startTime || !endTime) return '--:-- - --:--';
+                
+                const start = new Date(startTime);
+                const end = new Date(endTime);
+                
+                const formatTime = (date) => {
+                    return date.toLocaleTimeString('pt-BR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                };
+                
+                const isSameDay = start.toDateString() === end.toDateString();
+                
+                if (isSameDay) {
+                    return `${formatTime(start)} - ${formatTime(end)}`;
+                } else {
+                    return `${start.toLocaleDateString('pt-BR')} ${formatTime(start)} - ${end.toLocaleDateString('pt-BR')} ${formatTime(end)}`;
+                }
+            }
+
+            formatDuration(minutes) {
+                if (!minutes || minutes < 1) return '< 1min';
+                
+                if (minutes < 60) {
+                    return `${Math.round(minutes)}min`;
+                }
+                
+                const hours = Math.floor(minutes / 60);
+                const mins = Math.round(minutes % 60);
+                
+                if (mins === 0) {
+                    return `${hours}h`;
+                }
+                
+                return `${hours}h ${mins}min`;
+            }
+
+            updateLastSyncDisplay() {
+                if (appState.lastSyncTime) {
+                    const timeStr = appState.lastSyncTime.toLocaleTimeString('pt-BR');
+                    const now = new Date();
+                    const diffMinutes = Math.floor((now - appState.lastSyncTime) / (1000 * 60));
+                    
+                    document.getElementById('lastSyncTime').textContent = timeStr;
+                    document.getElementById('syncDelta').textContent = 
+                        diffMinutes === 0 ? 'Agora mesmo' :
+                        diffMinutes === 1 ? 'Há 1 minuto' :
+                        `Há ${diffMinutes} minutos`;
+                }
+            }
+
+            showNotification(message, type = 'info') {
+                // Remove notificações existentes
+                const existing = document.querySelectorAll('.notification');
+                existing.forEach(n => n.remove());
+                
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.animation = 'slideOut 0.3s ease-in';
+                    setTimeout(() => notification.remove(), 300);
+                }, 5000);
+            }
+        }
+
+        // =============================================================================
+        // INSTÂNCIA GLOBAL E FUNÇÕES DE INTERFACE
+        // =============================================================================
+        const dualSync = new DualGitHubSync();
+
+        function manualSync() {
+            dualSync.syncBothSources();
+        }
+
+        function toggleAutoSync() {
+            appState.autoSyncEnabled = !appState.autoSyncEnabled;
+            const btn = document.getElementById('autoSyncBtn');
+            const text = document.getElementById('autoSyncText');
+            
+            if (appState.autoSyncEnabled) {
+                text.textContent = 'Auto-Sync: ON';
+                btn.innerHTML = '<i class="fas fa-pause"></i><span id="autoSyncText">Auto-Sync: ON</span>';
+                startAutoSync();
+                dualSync.showNotification('✅ Auto-sync ativado (30s)', 'success');
+            } else {
+                text.textContent = 'Auto-Sync: OFF';
+                btn.innerHTML = '<i class="fas fa-play"></i><span id="autoSyncText">Auto-Sync: OFF</span>';
+                stopAutoSync();
+                dualSync.showNotification('⏸️ Auto-sync desativado', 'info');
+            }
+        }
+
+        function startAutoSync() {
+            if (appState.syncInterval) clearInterval(appState.syncInterval);
+            
+            appState.syncInterval = setInterval(() => {
+                if (appState.autoSyncEnabled && !appState.isLoading) {
+                    console.log('🔄 Auto-sync executando...');
+                    dualSync.syncBothSources();
+                }
+            }, DUAL_GITHUB_CONFIG.AUTO_SYNC_INTERVAL);
+        }
+
+        function stopAutoSync() {
+            if (appState.syncInterval) {
+                clearInterval(appState.syncInterval);
+                appState.syncInterval = null;
+            }
+        }
+
+        function filterTimeline() {
+            dualSync.renderTimeline();
+        }
+
+        function refreshTimeline() {
+            document.getElementById('timelineLoading').style.display = 'block';
+            document.getElementById('timelineGrid').style.display = 'none';
+            
+            setTimeout(() => {
+                dualSync.renderTimeline();
+            }, 500);
+        }
+
+        // =============================================================================
+        // INICIALIZAÇÃO DA APLICAÇÃO
+        // =============================================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Inicializando Dashboard Unificado com Dual GitHub Sync...');
+            
+            // Primeira sincronização
+            setTimeout(() => {
+                dualSync.syncBothSources();
+            }, 1000);
+            
+            // Inicia auto-sync
+            startAutoSync();
+            
+            // Atualiza display do tempo a cada minuto
+            setInterval(() => {
+                dualSync.updateLastSyncDisplay();
+            }, 60000);
+            
+            console.log('✅ Dashboard Unificado inicializado!');
+        });
+    </script>
+</body>
+</html>
