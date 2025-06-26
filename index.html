@@ -559,6 +559,70 @@
             border-radius: 8px;
             margin-top: 1rem;
         }
+
+        /* Tooltip personalizado */
+        .custom-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            max-width: 350px;
+            word-wrap: break-word;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            pointer-events: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            line-height: 1.4;
+        }
+
+        .custom-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
+        }
+
+        /* Seção de configurações expandida */
+        .config-section {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .config-section h3 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .config-grid {
+            display: grid;
+            gap: 2rem;
+            max-width: 800px;
+        }
+
+        .two-columns {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        @media (max-width: 768px) {
+            .two-columns {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -590,11 +654,11 @@
                 <div class="nav-tab active" onclick="switchTab('timeline')">
                     <span>📊 Timeline</span>
                 </div>
-                <div class="nav-tab" onclick="switchTab('data-sources')">
-                    <span>📁 Fontes de Dados</span>
+                <div class="nav-tab" onclick="switchTab('alerts')">
+                    <span>🚨 Alertas</span>
                 </div>
-                <div class="nav-tab" onclick="switchTab('debug')">
-                    <span>🔧 Debug</span>
+                <div class="nav-tab" onclick="switchTab('reports')">
+                    <span>📈 Relatórios</span>
                 </div>
                 <div class="nav-tab" onclick="switchTab('settings')">
                     <span>⚙️ Configurações</span>
@@ -606,7 +670,7 @@
         <main class="main-content">
             <!-- Timeline Tab (Principal) -->
             <div id="timeline-tab" class="tab-content active">
-                <!-- Controles -->
+                <!-- Controles simplificados -->
                 <div class="glass-panel timeline-controls">
                     <div class="controls-grid">
                         <div class="control-group">
@@ -637,13 +701,6 @@
                             <label>Data Final:</label>
                             <input type="datetime-local" id="endDate" />
                         </div>
-                        
-                        <div class="control-group">
-                            <button class="btn" onclick="applyFilters()">
-                                <span>🔍</span>
-                                Filtrar
-                            </button>
-                        </div>
                     </div>
                 </div>
 
@@ -666,9 +723,104 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Stats Panel -->
-                <div class="glass-panel stats-panel" id="statsPanel" style="display: none;">
+            <!-- Alertas Tab -->
+            <div id="alerts-tab" class="tab-content">
+                <div class="glass-panel">
+                    <div style="padding: 2rem;">
+                        <h2 style="margin-bottom: 2rem; color: #2c3e50; display: flex; align-items: center; gap: 0.5rem;">
+                            🚨 Sistema de Alertas
+                        </h2>
+                        
+                        <div style="text-align: center; color: #7f8c8d; padding: 4rem 2rem;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">🔔</div>
+                            <h3 style="margin-bottom: 1rem; color: #5a6c7d;">Sistema de Alertas em Desenvolvimento</h3>
+                            <p>Os alertas serão carregados dinamicamente do GitHub quando disponíveis.</p>
+                            
+                            <div style="margin-top: 2rem;">
+                                <button class="btn" onclick="loadAlertsPage()">
+                                    <span>🔄</span>
+                                    Verificar Alertas
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relatórios Tab -->
+            <div id="reports-tab" class="tab-content">
+                <div class="glass-panel">
+                    <div style="padding: 2rem;">
+                        <h2 style="margin-bottom: 2rem; color: #2c3e50; display: flex; align-items: center; gap: 0.5rem;">
+                            📈 Relatórios e Análises
+                        </h2>
+                        
+                        <div style="text-align: center; color: #7f8c8d; padding: 4rem 2rem;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                            <h3 style="margin-bottom: 1rem; color: #5a6c7d;">Relatórios em Desenvolvimento</h3>
+                            <p>Os relatórios serão carregados dinamicamente do GitHub quando disponíveis.</p>
+                            
+                            <div style="margin-top: 2rem;">
+                                <button class="btn" onclick="loadReportsPage()">
+                                    <span>🔄</span>
+                                    Verificar Relatórios
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configurações Tab (Expandida) -->
+            <div id="settings-tab" class="tab-content">
+                <!-- Configurações do Sistema -->
+                <div class="glass-panel config-section">
+                    <h3>⚙️ Configurações do Sistema</h3>
+                    <div class="config-grid two-columns">
+                        <div class="control-group">
+                            <label>Intervalo de Auto-Sync:</label>
+                            <select id="autoSyncInterval">
+                                <option value="300000">5 minutos</option>
+                                <option value="600000" selected>10 minutos</option>
+                                <option value="900000">15 minutos</option>
+                                <option value="1800000">30 minutos</option>
+                                <option value="0">Desabilitado</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label>Modo de Resolução de Conflitos:</label>
+                            <select id="conflictResolution">
+                                <option value="priority" selected>Por Prioridade (Recomendado)</option>
+                                <option value="latest">Mais Recente</option>
+                                <option value="longest">Maior Duração</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label>Tolerância de Gap (segundos):</label>
+                            <select id="gapTolerance">
+                                <option value="30">30 segundos</option>
+                                <option value="60" selected>60 segundos</option>
+                                <option value="120">2 minutos</option>
+                                <option value="300">5 minutos</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group">
+                            <button class="btn" onclick="saveSettings()">
+                                <span>💾</span>
+                                Salvar Configurações
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estatísticas do Sistema -->
+                <div class="glass-panel config-section">
+                    <h3>📊 Estatísticas do Sistema</h3>
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-value" id="apontCount">0</div>
@@ -696,112 +848,54 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Data Sources Tab -->
-            <div id="data-sources-tab" class="tab-content">
-                <div class="glass-panel">
-                    <div style="padding: 2rem;">
-                        <h2 style="margin-bottom: 2rem; color: #2c3e50;">Fontes de Dados</h2>
+                <!-- Fontes de Dados -->
+                <div class="glass-panel config-section">
+                    <h3>📁 Fontes de Dados</h3>
+                    <div class="config-grid">
+                        <div>
+                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">📊 CSV (Apontamentos)</h4>
+                            <p style="color: #7f8c8d;">GrupoGps-Mecanizada/Apontamento-Dos-Tablets</p>
+                            <p style="font-size: 0.9rem; color: #95a5a6;">data/apontamentos-atuais.csv</p>
+                        </div>
                         
-                        <div style="display: grid; gap: 2rem;">
-                            <div>
-                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">📊 CSV (Apontamentos)</h3>
-                                <p style="color: #7f8c8d;">GrupoGps-Mecanizada/Apontamento-Dos-Tablets</p>
-                                <p style="font-size: 0.9rem; color: #95a5a6;">data/apontamentos-atuais.csv</p>
-                            </div>
-                            
-                            <div>
-                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">🔄 JSON (Status)</h3>
-                                <p style="color: #7f8c8d;">GrupoGps-Mecanizada/Controle-Status-Equipamentos-</p>
-                                <p style="font-size: 0.9rem; color: #95a5a6;">data/latest-fleet-data.json</p>
-                            </div>
-                            
-                            <div>
-                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">⏰ Sincronização</h3>
-                                <p style="color: #7f8c8d;">Automática a cada 10 minutos via GitHub API</p>
-                                <p style="font-size: 0.9rem; color: #95a5a6;">Próxima atualização: <span id="nextUpdate">--:--</span></p>
-                            </div>
+                        <div>
+                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">🔄 JSON (Status)</h4>
+                            <p style="color: #7f8c8d;">GrupoGps-Mecanizada/Controle-Status-Equipamentos-</p>
+                            <p style="font-size: 0.9rem; color: #95a5a6;">data/latest-fleet-data.json</p>
+                        </div>
+                        
+                        <div>
+                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">⏰ Sincronização</h4>
+                            <p style="color: #7f8c8d;">Automática via GitHub API</p>
+                            <p style="font-size: 0.9rem; color: #95a5a6;">Próxima atualização: <span id="nextUpdate">--:--</span></p>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Debug Tab -->
-            <div id="debug-tab" class="tab-content">
-                <div class="glass-panel">
-                    <div style="padding: 2rem;">
-                        <h2 style="margin-bottom: 2rem; color: #2c3e50;">🔧 Debug e Diagnóstico</h2>
-                        
-                        <div style="display: grid; gap: 2rem;">
-                            <div>
-                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">📊 Estatísticas de Processamento</h3>
-                                <div id="debugStats" style="font-family: monospace; background: #f8f9fa; padding: 1rem; border-radius: 8px;">
-                                    Aguardando dados...
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">🔍 Log de Resolução de Conflitos</h3>
-                                <div id="debugLog" class="debug-panel">
-                                    Sistema inicializando...
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <button class="btn" onclick="exportDebugData()">
-                                    <span>📁</span>
-                                    Exportar Dados de Debug
-                                </button>
+                <!-- Debug e Diagnóstico -->
+                <div class="glass-panel config-section">
+                    <h3>🔧 Debug e Diagnóstico</h3>
+                    <div class="config-grid">
+                        <div>
+                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">📊 Estatísticas de Processamento</h4>
+                            <div id="debugStats" style="font-family: monospace; background: #f8f9fa; padding: 1rem; border-radius: 8px;">
+                                Aguardando dados...
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Settings Tab -->
-            <div id="settings-tab" class="tab-content">
-                <div class="glass-panel">
-                    <div style="padding: 2rem;">
-                        <h2 style="margin-bottom: 2rem; color: #2c3e50;">Configurações do Sistema</h2>
                         
-                        <div style="display: grid; gap: 2rem; max-width: 600px;">
-                            <div class="control-group">
-                                <label>Intervalo de Auto-Sync:</label>
-                                <select id="autoSyncInterval">
-                                    <option value="300000">5 minutos</option>
-                                    <option value="600000" selected>10 minutos</option>
-                                    <option value="900000">15 minutos</option>
-                                    <option value="1800000">30 minutos</option>
-                                    <option value="0">Desabilitado</option>
-                                </select>
+                        <div>
+                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">🔍 Log de Resolução de Conflitos</h4>
+                            <div id="debugLog" class="debug-panel">
+                                Sistema inicializando...
                             </div>
-                            
-                            <div class="control-group">
-                                <label>Modo de Resolução de Conflitos:</label>
-                                <select id="conflictResolution">
-                                    <option value="priority" selected>Por Prioridade (Recomendado)</option>
-                                    <option value="latest">Mais Recente</option>
-                                    <option value="longest">Maior Duração</option>
-                                </select>
-                            </div>
-                            
-                            <div class="control-group">
-                                <label>Tolerância de Gap (segundos):</label>
-                                <select id="gapTolerance">
-                                    <option value="30">30 segundos</option>
-                                    <option value="60" selected>60 segundos</option>
-                                    <option value="120">2 minutos</option>
-                                    <option value="300">5 minutos</option>
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <button class="btn" onclick="saveSettings()">
-                                    <span>💾</span>
-                                    Salvar Configurações
-                                </button>
-                            </div>
+                        </div>
+                        
+                        <div style="grid-column: 1 / -1;">
+                            <button class="btn" onclick="exportDebugData()">
+                                <span>📁</span>
+                                Exportar Dados de Debug
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -816,7 +910,7 @@
 
     <script>
         // =============================================================================
-        // CLASSE PRINCIPAL - VERSÃO CORRIGIDA COM RESOLUÇÃO DE CONFLITOS
+        // CLASSE PRINCIPAL - VERSÃO OTIMIZADA E CORRIGIDA
         // =============================================================================
         class ProductivityMonitoringSystem {
             constructor() {
@@ -838,6 +932,12 @@
                     originalRecords: 0,
                     finalRecords: 0
                 };
+
+                // Performance optimization
+                this.batchSize = 100;
+                this.renderQueue = [];
+                this.isRendering = false;
+                this.debounceTimers = new Map();
 
                 // Hierarquia de prioridade de status (maior número = maior prioridade)
                 this.statusPriority = {
@@ -867,6 +967,18 @@
                         path: 'data/latest-fleet-data.json',
                         apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos-/contents/data/latest-fleet-data.json',
                         enabled: true
+                    },
+                    alertsRepo: {
+                        owner: 'GrupoGps-Mecanizada',
+                        repo: 'Productivity-Alerts',
+                        path: 'alerts.html',
+                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Productivity-Alerts/contents/alerts.html'
+                    },
+                    reportsRepo: {
+                        owner: 'GrupoGps-Mecanizada', 
+                        repo: 'Productivity-Reports',
+                        path: 'reports.html',
+                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Productivity-Reports/contents/reports.html'
                     }
                 };
 
@@ -925,9 +1037,9 @@
             }
 
             setupEventListeners() {
-                // Filtros
+                // Filtros com debounce para otimização
                 document.getElementById('equipmentFilter').addEventListener('change', () => {
-                    this.applyFilters();
+                    this.debounceFilter('equipment', () => this.applyFilters(), 300);
                 });
 
                 document.getElementById('periodFilter').addEventListener('change', () => {
@@ -935,12 +1047,21 @@
                 });
 
                 document.getElementById('startDate').addEventListener('change', () => {
-                    this.applyFilters();
+                    this.debounceFilter('startDate', () => this.applyFilters(), 500);
                 });
 
                 document.getElementById('endDate').addEventListener('change', () => {
-                    this.applyFilters();
+                    this.debounceFilter('endDate', () => this.applyFilters(), 500);
                 });
+            }
+
+            // Debounce helper para otimização
+            debounceFilter(key, callback, delay) {
+                if (this.debounceTimers.has(key)) {
+                    clearTimeout(this.debounceTimers.get(key));
+                }
+                
+                this.debounceTimers.set(key, setTimeout(callback, delay));
             }
 
             // =============================================================================
@@ -1066,7 +1187,7 @@
             }
 
             // =============================================================================
-            // PROCESSAMENTO COM RESOLUÇÃO DE CONFLITOS
+            // PROCESSAMENTO COM RESOLUÇÃO DE CONFLITOS (SEM ALTERAÇÕES)
             // =============================================================================
             async processDataWithConflictResolution() {
                 if (this.csvData.length === 0 && this.jsonData.length === 0) {
@@ -1093,18 +1214,48 @@
                 this.createGroups();
                 this.createTimelineItemsWithConflictResolution();
 
-                // Atualizar timeline sem perder visualização
-                if (this.timeline) {
-                    this.updateTimelineSmartly();
-                } else {
-                    this.initTimeline();
-                }
+                // Inicializar ou atualizar timeline com garantia de rendering
+                await this.ensureTimelineInitialization();
 
                 this.updateInterface();
                 this.addDebugLog(`Processamento concluído: ${this.processingStats.finalRecords} registros finais`);
             }
 
-            // FUNÇÃO PRINCIPAL DE RESOLUÇÃO DE CONFLITOS
+            // Nova função para garantir inicialização da timeline
+            async ensureTimelineInitialization() {
+                return new Promise((resolve) => {
+                    if (this.items.length === 0) {
+                        this.addDebugLog('Nenhum item para exibir na timeline', 'warning');
+                        resolve();
+                        return;
+                    }
+
+                    if (this.timeline) {
+                        // Timeline já existe, atualizar
+                        this.updateTimelineSmartly();
+                        setTimeout(resolve, 100); // Dar tempo para atualização
+                    } else {
+                        // Timeline não existe, inicializar
+                        this.initTimeline();
+                        setTimeout(() => {
+                            // Verificar se timeline foi criada com sucesso
+                            if (this.timeline) {
+                                this.addDebugLog('Timeline inicializada com sucesso');
+                                // Aplicar período padrão
+                                setTimeout(() => {
+                                    this.handlePeriodChange();
+                                    resolve();
+                                }, 200);
+                            } else {
+                                this.addDebugLog('Falha ao inicializar timeline', 'error');
+                                resolve();
+                            }
+                        }, 300);
+                    }
+                });
+            }
+
+            // FUNÇÃO PRINCIPAL DE RESOLUÇÃO DE CONFLITOS (MANTIDA INTACTA)
             resolveStatusConflicts(statusList, equipmentName) {
                 if (!statusList || statusList.length === 0) return [];
 
@@ -1386,6 +1537,7 @@
                 }
             }
 
+            // Tooltip corrigido com formato de data DD-MM-AAAA
             createStatusTooltipEnhanced(status, equipName) {
                 const totalHours = parseFloat(status.total_time || 0);
                 const count = status.consolidated_count || 1;
@@ -1398,15 +1550,30 @@
                     if (m === 0) return `${h}h`;
                     return `${h}h ${m}min`;
                 };
+
+                const formatDateTime = (dateStr) => {
+                    try {
+                        const date = new Date(dateStr);
+                        const day = date.getDate().toString().padStart(2, '0');
+                        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                        const year = date.getFullYear();
+                        const hours = date.getHours().toString().padStart(2, '0');
+                        const minutes = date.getMinutes().toString().padStart(2, '0');
+                        return `${day}-${month}-${year} ${hours}:${minutes}`;
+                    } catch {
+                        return dateStr;
+                    }
+                };
                 
                 let tooltipContent = `
-                    <div style="font-size: 13px; line-height: 1.4; max-width: 300px;">
+                    <div style="font-size: 13px; line-height: 1.4; max-width: 320px; word-wrap: break-word;">
                         <div style="font-weight: 700; margin-bottom: 8px; color: #2c3e50;">
                             🔄 Status ${isGapFilled ? '(Gap Preenchido)' : 'Automático'}
                         </div>
                         <div style="margin-bottom: 4px;"><strong>Equipamento:</strong> ${equipName}</div>
                         <div style="margin-bottom: 4px;"><strong>Status:</strong> ${status.status_title || status.status}</div>
-                        <div style="margin-bottom: 4px;"><strong>Período:</strong> ${status.start} até ${status.end}</div>
+                        <div style="margin-bottom: 4px;"><strong>Início:</strong> ${formatDateTime(status.start)}</div>
+                        <div style="margin-bottom: 4px;"><strong>Fim:</strong> ${formatDateTime(status.end)}</div>
                         <div style="margin-bottom: 4px;"><strong>Duração:</strong> ${formatHours(totalHours)}</div>`;
                 
                 if (count > 1) {
@@ -1416,19 +1583,69 @@
 
                 if (isGapFilled) {
                     tooltipContent += `
-                        <div style="margin-bottom: 4px; color: #f39c12;"><strong>⚠️ Gap Preenchido</strong></div>`;
+                        <div style="color: #f39c12;"><strong>⚠️ Gap Preenchido</strong></div>`;
                 }
                 
-                tooltipContent += `
-                        <div><strong>Código da Vaga:</strong> ${status.vacancy_code || 'N/A'}</div>
-                    </div>
-                `;
+                tooltipContent += `</div>`;
                 
                 return tooltipContent;
             }
 
             // =============================================================================
-            // FUNÇÕES AUXILIARES (sem mudanças significativas)
+            // NAVEGAÇÃO ENTRE PÁGINAS (NOVA FUNCIONALIDADE)
+            // =============================================================================
+            async loadAlertsPage() {
+                try {
+                    this.showNotification('🔄 Verificando alertas...', 'info');
+                    
+                    const response = await fetch(this.githubConfig.alertsRepo.apiUrl);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const alertsContent = atob(data.content.replace(/\n/g, ''));
+                        
+                        // Abrir em nova janela ou tab
+                        const newWindow = window.open();
+                        newWindow.document.write(alertsContent);
+                        newWindow.document.close();
+                        
+                        this.showNotification('✅ Alertas carregados em nova aba', 'success');
+                    } else {
+                        throw new Error('Página de alertas não encontrada');
+                    }
+                } catch (error) {
+                    this.showNotification('⚠️ Página de alertas ainda não disponível', 'warning');
+                    this.addDebugLog(`Erro ao carregar alertas: ${error.message}`, 'warning');
+                }
+            }
+
+            async loadReportsPage() {
+                try {
+                    this.showNotification('🔄 Verificando relatórios...', 'info');
+                    
+                    const response = await fetch(this.githubConfig.reportsRepo.apiUrl);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const reportsContent = atob(data.content.replace(/\n/g, ''));
+                        
+                        // Abrir em nova janela ou tab
+                        const newWindow = window.open();
+                        newWindow.document.write(reportsContent);
+                        newWindow.document.close();
+                        
+                        this.showNotification('✅ Relatórios carregados em nova aba', 'success');
+                    } else {
+                        throw new Error('Página de relatórios não encontrada');
+                    }
+                } catch (error) {
+                    this.showNotification('⚠️ Página de relatórios ainda não disponível', 'warning');
+                    this.addDebugLog(`Erro ao carregar relatórios: ${error.message}`, 'warning');
+                }
+            }
+
+            // =============================================================================
+            // FUNÇÕES AUXILIARES (MANTIDAS INTACTAS COM OTIMIZAÇÕES)
             // =============================================================================
             generateDataHash(data) {
                 return btoa(JSON.stringify(data)).slice(0, 32);
@@ -1710,14 +1927,29 @@
             }
 
             createApontTooltip(apont, equipName) {
+                const formatDateTime = (dateStr) => {
+                    try {
+                        // Para dados do CSV que vêm no formato DD/MM/AAAA HH:MM:SS
+                        if (dateStr.includes('/')) {
+                            const [datePart, timePart = ''] = dateStr.split(' ');
+                            const [day, month, year] = datePart.split('/');
+                            const time = timePart || '';
+                            return `${day}-${month}-${year} ${time}`.trim();
+                        }
+                        return dateStr;
+                    } catch {
+                        return dateStr;
+                    }
+                };
+
                 return `
-                    <div style="font-size: 13px; line-height: 1.4; max-width: 300px;">
+                    <div style="font-size: 13px; line-height: 1.4; max-width: 320px; word-wrap: break-word;">
                         <div style="font-weight: 700; margin-bottom: 8px; color: #2c3e50;">📊 Apontamento Manual</div>
                         <div style="margin-bottom: 4px;"><strong>Equipamento:</strong> ${equipName}</div>
                         <div style="margin-bottom: 4px;"><strong>Categoria:</strong> ${apont['Categoria Demora'] || 'N/A'}</div>
-                        <div style="margin-bottom: 4px;"><strong>Período:</strong> ${apont['Data Inicial']} até ${apont['Data Final']}</div>
-                        <div style="margin-bottom: 4px;"><strong>Duração:</strong> ${apont['Tempo Indisponível (HH:MM)'] || 'N/A'}</div>
-                        <div><strong>Placa:</strong> ${apont.Placa || 'N/A'}</div>
+                        <div style="margin-bottom: 4px;"><strong>Início:</strong> ${formatDateTime(apont['Data Inicial'])}</div>
+                        <div style="margin-bottom: 4px;"><strong>Fim:</strong> ${formatDateTime(apont['Data Final'])}</div>
+                        <div><strong>Duração:</strong> ${apont['Tempo Indisponível (HH:MM)'] || 'N/A'}</div>
                     </div>
                 `;
             }
@@ -1758,7 +1990,10 @@
             }
 
             initTimeline() {
-                if (this.items.length === 0) return;
+                if (this.items.length === 0) {
+                    this.addDebugLog('Nenhum item para inicializar timeline', 'warning');
+                    return;
+                }
 
                 const container = document.getElementById('timeline');
                 container.innerHTML = '';
@@ -1804,21 +2039,22 @@
                     horizontalScroll: true
                 };
 
-                this.timeline = new vis.Timeline(container, this.items, this.groups, options);
+                try {
+                    this.timeline = new vis.Timeline(container, this.items, this.groups, options);
 
-                // Event listeners
-                this.timeline.on('rangechanged', (properties) => {
-                    this.currentViewWindow = properties;
-                });
+                    // Event listeners
+                    this.timeline.on('rangechanged', (properties) => {
+                        this.currentViewWindow = properties;
+                    });
 
-                setTimeout(() => {
-                    this.handlePeriodChange();
-                }, 100);
+                    this.addDebugLog('Timeline inicializada com sucesso');
+                } catch (error) {
+                    this.addDebugLog(`Erro ao inicializar timeline: ${error.message}`, 'error');
+                    console.error('❌ Erro ao inicializar timeline:', error);
+                }
             }
 
             updateInterface() {
-                document.getElementById('statsPanel').style.display = 'block';
-
                 const totalApont = Array.from(this.equipmentMap.values())
                     .reduce((sum, data) => sum + data.apontamentos.length, 0);
                 const totalStatus = Array.from(this.equipmentMap.values())
@@ -2041,6 +2277,18 @@
                 
                 URL.revokeObjectURL(url);
                 productivitySystem.showNotification('📁 Dados de debug exportados', 'success');
+            }
+        }
+
+        function loadAlertsPage() {
+            if (productivitySystem) {
+                productivitySystem.loadAlertsPage();
+            }
+        }
+
+        function loadReportsPage() {
+            if (productivitySystem) {
+                productivitySystem.loadReportsPage();
             }
         }
 
