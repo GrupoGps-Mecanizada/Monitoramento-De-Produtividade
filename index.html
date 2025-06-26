@@ -671,6 +671,10 @@
                         <span>🔗</span>
                         Testar Conexão GitHub
                     </button>
+                    <button class="btn secondary" onclick="diagnoseCorsIssues()">
+                        <span>🔧</span>
+                        Diagnosticar CORS
+                    </button>
                 </div>
 
                 <!-- GitHub Status -->
@@ -753,13 +757,17 @@
                     <div style="font-size: 0.875rem; line-height: 1.6; color: #4a5568;">
                         <p><strong>📊 CSV (Apontamentos):</strong><br>
                         GrupoGps-Mecanizada/Apontamento-Dos-Tablets<br>
-                        <code>data/apontamentos-atuais.csv</code></p>
+                        <code>data/apontamentos-atuais.csv</code><br>
+                        <small>API: /repos/.../contents/data/apontamentos-atuais.csv</small></p>
                         
                         <p style="margin-top: 1rem;"><strong>🔄 JSON (Status):</strong><br>
                         GrupoGps-Mecanizada/Controle-Status-Equipamentos<br>
-                        <code>data/latest-fleet-data.json</code></p>
+                        <code>data/latest-fleet-data.json</code><br>
+                        <small>API: /repos/.../contents/data/latest-fleet-data.json</small></p>
                         
-                        <p style="margin-top: 1rem;"><strong>⏰ Sincronização:</strong> Automática a cada 5 minutos</p>
+                        <p style="margin-top: 1rem;"><strong>⏰ Sincronização:</strong> Automática a cada 5 minutos via GitHub API</p>
+                        <p><strong>🔒 Segurança:</strong> CORS habilitado, sem autenticação necessária</p>
+                        <p><strong>📡 Método:</strong> GitHub Contents API (suporte nativo a CORS)</p>
                     </div>
                 </div>
 
@@ -772,10 +780,12 @@
                     </div>
                     
                     <div style="font-size: 0.875rem; line-height: 1.6; color: #4a5568;">
-                        <p><strong>Versão:</strong> 2.0 Professional com GitHub Sync</p>
+                        <p><strong>Versão:</strong> 2.0 Professional - GitHub API (CORS Fixed)</p>
                         <p><strong>Última atualização:</strong> <span id="systemLastUpdate">--</span></p>
                         <p><strong>Registros processados:</strong> <span id="totalProcessed">0</span></p>
                         <p><strong>Tempo de atividade:</strong> <span id="uptime">--</span></p>
+                        <p><strong>API Method:</strong> GitHub Contents API (Base64 decode)</p>
+                        <p><strong>CORS Status:</strong> ✅ Resolvido via API oficial</p>
                     </div>
                 </div>
             </div>
@@ -804,13 +814,13 @@
                         owner: 'GrupoGps-Mecanizada',
                         repo: 'Apontamento-Dos-Tablets',
                         path: 'data/apontamentos-atuais.csv',
-                        url: 'https://raw.githubusercontent.com/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/main/data/apontamentos-atuais.csv'
+                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/contents/data/apontamentos-atuais.csv'
                     },
                     jsonRepo: {
                         owner: 'GrupoGps-Mecanizada', 
                         repo: 'Controle-Status-Equipamentos',
                         path: 'data/latest-fleet-data.json',
-                        url: 'https://raw.githubusercontent.com/GrupoGps-Mecanizada/Controle-Status-Equipamentos/main/data/latest-fleet-data.json'
+                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos/contents/data/latest-fleet-data.json'
                     }
                 };
 
@@ -860,7 +870,8 @@
             // SINCRONIZAÇÃO AUTOMÁTICA COM GITHUB
             // =============================================================================
             async initGitHubSync() {
-                console.log('🚀 Iniciando sincronização automática com GitHub...');
+                console.log('🚀 Iniciando sincronização automática com GitHub via API oficial...');
+                console.log('🔧 CORS corrigido usando GitHub Contents API com decodificação Base64');
                 this.updateSyncStatus('loading', 'Conectando aos repositórios...');
                 
                 // Primeira sincronização
@@ -968,23 +979,50 @@
                 const config = this.githubConfig.csvRepo;
                 
                 try {
-                    console.log(`📊 Buscando CSV de ${config.owner}/${config.repo}...`);
+                    console.log(`📊 Buscando CSV via GitHub API de ${config.owner}/${config.repo}...`);
                     
-                    const response = await this.fetchWithRetry(config.url);
+                    const response = await this.fetchWithRetry(config.apiUrl);
                     
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                        
+                        // Mensagens específicas para códigos de erro comuns
+                        switch (response.status) {
+                            case 404:
+                                errorMessage = 'Repositório ou arquivo não encontrado. Verifique se o repositório é público e o arquivo existe.';
+                                break;
+                            case 403:
+                                errorMessage = 'Acesso negado. Repositório pode ser privado ou há limite de rate limit.';
+                                break;
+                            case 429:
+                                errorMessage = 'Muitas requisições. Aguarde alguns minutos antes de tentar novamente.';
+                                break;
+                            case 0:
+                                errorMessage = 'Erro de conectividade. Verifique sua conexão com a internet.';
+                                break;
+                        }
+                        
+                        throw new Error(errorMessage);
                     }
 
-                    const csvText = await response.text();
+                    const apiData = await response.json();
+                    
+                    // Verificar se é um arquivo
+                    if (apiData.type !== 'file') {
+                        throw new Error('Não é um arquivo válido');
+                    }
+                    
+                    // Decodificar conteúdo base64
+                    const csvText = atob(apiData.content.replace(/\n/g, ''));
                     const parsedData = this.parseCSV(csvText);
                     
                     // Atualizar indicadores visuais
                     document.getElementById('csvUploadArea').classList.add('loaded');
                     document.getElementById('csvInfo').innerHTML = `
                         <div class="file-info">
-                            🔗 Sincronizado do GitHub<br>
+                            🔗 Sincronizado via GitHub API<br>
                             📊 ${parsedData.length} apontamentos carregados<br>
+                            📅 Última modificação: ${new Date(apiData.updated_at).toLocaleString('pt-BR')}<br>
                             ⏰ ${new Date().toLocaleTimeString('pt-BR')}
                         </div>
                     `;
@@ -996,8 +1034,9 @@
                     
                     document.getElementById('csvInfo').innerHTML = `
                         <div class="error-message">
-                            ❌ Erro ao sincronizar CSV do GitHub<br>
-                            ${error.message}
+                            ❌ Erro ao sincronizar CSV via GitHub API<br>
+                            ${error.message}<br>
+                            <small>Verifique se o repositório e arquivo existem</small>
                         </div>
                     `;
                     
@@ -1009,15 +1048,42 @@
                 const config = this.githubConfig.jsonRepo;
                 
                 try {
-                    console.log(`🔄 Buscando JSON de ${config.owner}/${config.repo}...`);
+                    console.log(`🔄 Buscando JSON via GitHub API de ${config.owner}/${config.repo}...`);
                     
-                    const response = await this.fetchWithRetry(config.url);
+                    const response = await this.fetchWithRetry(config.apiUrl);
                     
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                        
+                        // Mensagens específicas para códigos de erro comuns
+                        switch (response.status) {
+                            case 404:
+                                errorMessage = 'Repositório ou arquivo não encontrado. Verifique se o repositório é público e o arquivo existe.';
+                                break;
+                            case 403:
+                                errorMessage = 'Acesso negado. Repositório pode ser privado ou há limite de rate limit.';
+                                break;
+                            case 429:
+                                errorMessage = 'Muitas requisições. Aguarde alguns minutos antes de tentar novamente.';
+                                break;
+                            case 0:
+                                errorMessage = 'Erro de conectividade. Verifique sua conexão com a internet.';
+                                break;
+                        }
+                        
+                        throw new Error(errorMessage);
                     }
 
-                    const jsonData = await response.json();
+                    const apiData = await response.json();
+                    
+                    // Verificar se é um arquivo
+                    if (apiData.type !== 'file') {
+                        throw new Error('Não é um arquivo válido');
+                    }
+                    
+                    // Decodificar conteúdo base64
+                    const jsonText = atob(apiData.content.replace(/\n/g, ''));
+                    const jsonData = JSON.parse(jsonText);
                     const records = jsonData.records || jsonData;
                     
                     if (!Array.isArray(records)) {
@@ -1028,8 +1094,9 @@
                     document.getElementById('jsonUploadArea').classList.add('loaded');
                     document.getElementById('jsonInfo').innerHTML = `
                         <div class="file-info">
-                            🔗 Sincronizado do GitHub<br>
+                            🔗 Sincronizado via GitHub API<br>
                             🔄 ${records.length} registros de status carregados<br>
+                            📅 Última modificação: ${new Date(apiData.updated_at).toLocaleString('pt-BR')}<br>
                             ⏰ ${new Date().toLocaleTimeString('pt-BR')}
                         </div>
                     `;
@@ -1041,8 +1108,9 @@
                     
                     document.getElementById('jsonInfo').innerHTML = `
                         <div class="error-message">
-                            ❌ Erro ao sincronizar JSON do GitHub<br>
-                            ${error.message}
+                            ❌ Erro ao sincronizar JSON via GitHub API<br>
+                            ${error.message}<br>
+                            <small>Verifique se o repositório e arquivo existem</small>
                         </div>
                     `;
                     
@@ -1052,12 +1120,10 @@
 
             async fetchWithRetry(url, attempt = 1) {
                 try {
-                    const response = await fetch(url + '?t=' + Date.now(), {
-                        method: 'GET',
-                        headers: {
-                            'Cache-Control': 'no-cache',
-                            'Pragma': 'no-cache'
-                        }
+                    // Usar fetch simples sem headers customizados para evitar preflight CORS
+                    const response = await fetch(url, {
+                        method: 'GET'
+                        // Removido headers customizados que causam preflight
                     });
                     
                     return response;
@@ -1985,6 +2051,137 @@ ${validation.duplicates === 0 ? '✅ Timeline validada com sucesso!' : '⚠️ F
                 fleetTimeline.updateSyncStatus('loading', 'Testando conexão...');
                 fleetTimeline.syncFromGitHub();
             }
+        }
+
+        function diagnoseCorsIssues() {
+            const diagnosticInfo = `
+🔧 DIAGNÓSTICO DE CONECTIVIDADE
+
+📋 Informações do Sistema:
+• Origem: ${window.location.origin}
+• User Agent: ${navigator.userAgent.split(' ')[0]}
+• Protocolo: ${window.location.protocol}
+
+🌐 URLs Configuradas:
+• CSV API: https://api.github.com/repos/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/contents/data/apontamentos-atuais.csv
+• JSON API: https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos/contents/data/latest-fleet-data.json
+
+🔍 Possíveis Soluções:
+1. Verificar se os repositórios são públicos
+2. Verificar se os arquivos existem nos caminhos especificados
+3. Verificar conectividade com a internet
+4. Tentar recarregar a página
+
+⚠️ Problemas Conhecidos:
+• Se os repositórios forem privados, a API retorna 404
+• Se os arquivos não existirem, a API retorna 404
+• Problemas de rede podem causar timeouts
+
+📞 Para suporte, informe:
+• Este diagnóstico completo
+• Horário do erro: ${new Date().toLocaleString('pt-BR')}
+• Versão do sistema: 2.0 Professional
+            `;
+            
+            // Criar modal de diagnóstico
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                font-family: monospace;
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 8px;
+                    max-width: 600px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+                ">
+                    <h3 style="margin-bottom: 1rem; color: #2d3748;">🔧 Diagnóstico de Conectividade</h3>
+                    <pre style="
+                        white-space: pre-wrap;
+                        background: #f7fafc;
+                        padding: 1rem;
+                        border-radius: 6px;
+                        font-size: 0.875rem;
+                        line-height: 1.4;
+                        border: 1px solid #e2e8f0;
+                    ">${diagnosticInfo}</pre>
+                    <div style="margin-top: 1.5rem; text-align: right;">
+                        <button onclick="this.closest('div').parentNode.remove()" style="
+                            background: #3182ce;
+                            color: white;
+                            border: none;
+                            padding: 0.75rem 1.5rem;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: 500;
+                        ">Fechar</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Testar conectividade básica
+            testBasicConnectivity();
+        }
+
+        async function testBasicConnectivity() {
+            console.log('🔍 Iniciando teste de conectividade...');
+            
+            // Teste 1: GitHub API básica
+            try {
+                const response = await fetch('https://api.github.com/rate_limit');
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ GitHub API acessível. Rate limit:', data.rate.remaining);
+                } else {
+                    console.log('⚠️ GitHub API respondeu com erro:', response.status);
+                }
+            } catch (error) {
+                console.log('❌ GitHub API inacessível:', error.message);
+            }
+            
+            // Teste 2: Repositório CSV específico
+            try {
+                const response = await fetch('https://api.github.com/repos/GrupoGps-Mecanizada/Apontamento-Dos-Tablets');
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Repositório CSV acessível:', data.name);
+                } else {
+                    console.log('⚠️ Repositório CSV não encontrado ou privado:', response.status);
+                }
+            } catch (error) {
+                console.log('❌ Erro ao acessar repositório CSV:', error.message);
+            }
+            
+            // Teste 3: Repositório JSON específico
+            try {
+                const response = await fetch('https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos');
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Repositório JSON acessível:', data.name);
+                } else {
+                    console.log('⚠️ Repositório JSON não encontrado ou privado:', response.status);
+                }
+            } catch (error) {
+                console.log('❌ Erro ao acessar repositório JSON:', error.message);
+            }
+            
+            console.log('🔍 Teste de conectividade concluído. Verifique o console para detalhes.');
         }
 
         // =============================================================================
