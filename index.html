@@ -81,6 +81,17 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
+        .last-update-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
         .sync-dot {
             width: 10px;
             height: 10px;
@@ -640,10 +651,10 @@
                         <span id="syncStatus">Aguardando dados...</span>
                     </div>
                     
-                    <button class="btn" onclick="manualSync()" id="syncBtn">
-                        <span>🔄</span>
-                        Atualizar
-                    </button>
+                    <div class="last-update-info">
+                        <span style="font-size: 0.85rem; color: #5a6c7d;">Última atualização:</span>
+                        <span id="lastUpdateTime" style="font-weight: 600; color: #2c3e50;">--:--</span>
+                    </div>
                 </div>
             </div>
         </header>
@@ -1033,6 +1044,7 @@
                 
                 this.setupEventListeners();
                 this.updateSystemInfo();
+                this.updateLastUpdateTime(); // Mostrar horário inicial
                 await this.initGitHubSync();
             }
 
@@ -1165,11 +1177,26 @@
                             await this.processDataWithConflictResolution();
                             this.showNotification('✅ Dados atualizados com sucesso', 'success');
                             this.addDebugLog('Processamento de dados concluído');
+                            
+                            // Forçar inicialização da timeline após processamento
+                            setTimeout(() => {
+                                if (this.items.length > 0 && !this.timeline) {
+                                    this.addDebugLog('Forçando inicialização da timeline...', 'warning');
+                                    this.initTimeline();
+                                    setTimeout(() => {
+                                        if (this.timeline) {
+                                            this.handlePeriodChange();
+                                            this.applyFilters();
+                                        }
+                                    }, 500);
+                                }
+                            }, 300);
                         } else {
                             this.addDebugLog('Nenhum dado novo detectado');
                         }
                         
                         this.updateSyncStatus('success', 'Dados sincronizados');
+                        this.updateLastUpdateTime(); // Atualizar horário no header
                     } else {
                         this.updateSyncStatus('error', 'Falha na sincronização');
                         this.showNotification('❌ Erro na sincronização', 'error');
@@ -1221,7 +1248,7 @@
                 this.addDebugLog(`Processamento concluído: ${this.processingStats.finalRecords} registros finais`);
             }
 
-            // Nova função para garantir inicialização da timeline
+            // Nova função para garantir inicialização da timeline com retry
             async ensureTimelineInitialization() {
                 return new Promise((resolve) => {
                     if (this.items.length === 0) {
@@ -1230,29 +1257,65 @@
                         return;
                     }
 
-                    if (this.timeline) {
-                        // Timeline já existe, atualizar
-                        this.updateTimelineSmartly();
-                        setTimeout(resolve, 100); // Dar tempo para atualização
-                    } else {
-                        // Timeline não existe, inicializar
-                        this.initTimeline();
-                        setTimeout(() => {
-                            // Verificar se timeline foi criada com sucesso
-                            if (this.timeline) {
-                                this.addDebugLog('Timeline inicializada com sucesso');
-                                // Aplicar período padrão
-                                setTimeout(() => {
-                                    this.handlePeriodChange();
+                    const attemptInitialization = (attempt = 1) => {
+                        if (this.timeline) {
+                            // Timeline já existe, atualizar e forçar renderização
+                            this.updateTimelineSmartly();
+                            this.forceTimelineRender();
+                            setTimeout(resolve, 200);
+                        } else {
+                            // Timeline não existe, inicializar
+                            this.initTimeline();
+                            setTimeout(() => {
+                                if (this.timeline) {
+                                    this.addDebugLog(`Timeline inicializada com sucesso (tentativa ${attempt})`);
+                                    this.forceTimelineRender();
+                                    // Aplicar período padrão
+                                    setTimeout(() => {
+                                        this.handlePeriodChange();
+                                        resolve();
+                                    }, 300);
+                                } else if (attempt < 3) {
+                                    this.addDebugLog(`Tentativa ${attempt} falhou, tentando novamente...`, 'warning');
+                                    setTimeout(() => attemptInitialization(attempt + 1), 500);
+                                } else {
+                                    this.addDebugLog('Falha ao inicializar timeline após 3 tentativas', 'error');
                                     resolve();
-                                }, 200);
-                            } else {
-                                this.addDebugLog('Falha ao inicializar timeline', 'error');
-                                resolve();
-                            }
-                        }, 300);
-                    }
+                                }
+                            }, 400);
+                        }
+                    };
+
+                    attemptInitialization();
                 });
+            }
+
+            // Nova função para forçar renderização da timeline
+            forceTimelineRender() {
+                if (!this.timeline) return;
+
+                try {
+                    // Forçar redraw da timeline
+                    this.timeline.redraw();
+                    
+                    // Garantir que os dados estão carregados
+                    const itemsCount = this.items.length;
+                    const groupsCount = this.groups.length;
+                    
+                    this.addDebugLog(`Forçando render: ${itemsCount} itens, ${groupsCount} grupos`);
+                    
+                    // Se ainda não tem dados visíveis, forçar fit
+                    if (itemsCount > 0) {
+                        setTimeout(() => {
+                            if (this.timeline) {
+                                this.timeline.fit();
+                                this.addDebugLog('Timeline forçada a exibir dados');
+                            }
+                        }, 100);
+                    }
+                } catch (error) {
+                    this.addDebugLog(`Erro ao forçar render: ${error.message}`, 'error');
+                }
             }
 
             // FUNÇÃO PRINCIPAL DE RESOLUÇÃO DE CONFLITOS (MANTIDA INTACTA)
@@ -1537,7 +1600,7 @@
                 }
             }
 
-            // Tooltip corrigido com formato de data DD-MM-AAAA
+            // Tooltip corrigido com formato de data DD-MM-AAAA e melhor controle de largura
             createStatusTooltipEnhanced(status, equipName) {
                 const totalHours = parseFloat(status.total_time || 0);
                 const count = status.consolidated_count || 1;
@@ -1565,25 +1628,30 @@
                     }
                 };
                 
+                // Truncar nome do equipamento se muito longo
+                const shortEquipName = equipName.length > 25 ? equipName.substring(0, 25) + '...' : equipName;
+                const statusTitle = (status.status_title || status.status);
+                const shortStatusTitle = statusTitle.length > 30 ? statusTitle.substring(0, 30) + '...' : statusTitle;
+                
                 let tooltipContent = `
-                    <div style="font-size: 13px; line-height: 1.4; max-width: 320px; word-wrap: break-word;">
-                        <div style="font-weight: 700; margin-bottom: 8px; color: #2c3e50;">
-                            🔄 Status ${isGapFilled ? '(Gap Preenchido)' : 'Automático'}
+                    <div style="font-size: 12px; line-height: 1.3; max-width: 280px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;">
+                        <div style="font-weight: 700; margin-bottom: 6px; color: #fff; font-size: 11px;">
+                            🔄 Status ${isGapFilled ? '(Gap)' : 'Auto'}
                         </div>
-                        <div style="margin-bottom: 4px;"><strong>Equipamento:</strong> ${equipName}</div>
-                        <div style="margin-bottom: 4px;"><strong>Status:</strong> ${status.status_title || status.status}</div>
-                        <div style="margin-bottom: 4px;"><strong>Início:</strong> ${formatDateTime(status.start)}</div>
-                        <div style="margin-bottom: 4px;"><strong>Fim:</strong> ${formatDateTime(status.end)}</div>
-                        <div style="margin-bottom: 4px;"><strong>Duração:</strong> ${formatHours(totalHours)}</div>`;
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Equipamento:</strong><br>${shortEquipName}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Status:</strong> ${shortStatusTitle}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Início:</strong><br>${formatDateTime(status.start)}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Fim:</strong><br>${formatDateTime(status.end)}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Duração:</strong> ${formatHours(totalHours)}</div>`;
                 
                 if (count > 1) {
                     tooltipContent += `
-                        <div style="margin-bottom: 4px; color: #27ae60;"><strong>✅ Consolidado:</strong> ${count} registros</div>`;
+                        <div style="margin-bottom: 3px; color: #90EE90; font-size: 10px;"><strong>✅ Consolidado:</strong> ${count}x</div>`;
                 }
 
                 if (isGapFilled) {
                     tooltipContent += `
-                        <div style="color: #f39c12;"><strong>⚠️ Gap Preenchido</strong></div>`;
+                        <div style="color: #FFB347; font-size: 10px;"><strong>⚠️ Gap Preenchido</strong></div>`;
                 }
                 
                 tooltipContent += `</div>`;
@@ -1592,55 +1660,39 @@
             }
 
             // =============================================================================
-            // NAVEGAÇÃO ENTRE PÁGINAS (NOVA FUNCIONALIDADE)
+            // NAVEGAÇÃO ENTRE PÁGINAS (CORRIGIDA PARA ABRIR URLs DIRETAS)
             // =============================================================================
             async loadAlertsPage() {
                 try {
-                    this.showNotification('🔄 Verificando alertas...', 'info');
+                    this.showNotification('🔄 Abrindo página de alertas...', 'info');
                     
-                    const response = await fetch(this.githubConfig.alertsRepo.apiUrl);
+                    // URL direta do GitHub Pages
+                    const alertsUrl = 'https://grupogps-mecanizada.github.io/Productivity-Alerts/alerts.html';
                     
-                    if (response.ok) {
-                        const data = await response.json();
-                        const alertsContent = atob(data.content.replace(/\n/g, ''));
-                        
-                        // Abrir em nova janela ou tab
-                        const newWindow = window.open();
-                        newWindow.document.write(alertsContent);
-                        newWindow.document.close();
-                        
-                        this.showNotification('✅ Alertas carregados em nova aba', 'success');
-                    } else {
-                        throw new Error('Página de alertas não encontrada');
-                    }
+                    // Abrir em nova aba
+                    window.open(alertsUrl, '_blank');
+                    
+                    this.showNotification('✅ Página de alertas aberta em nova aba', 'success');
                 } catch (error) {
-                    this.showNotification('⚠️ Página de alertas ainda não disponível', 'warning');
-                    this.addDebugLog(`Erro ao carregar alertas: ${error.message}`, 'warning');
+                    this.showNotification('⚠️ Erro ao abrir página de alertas', 'error');
+                    this.addDebugLog(`Erro ao abrir alertas: ${error.message}`, 'error');
                 }
             }
 
             async loadReportsPage() {
                 try {
-                    this.showNotification('🔄 Verificando relatórios...', 'info');
+                    this.showNotification('🔄 Abrindo página de relatórios...', 'info');
                     
-                    const response = await fetch(this.githubConfig.reportsRepo.apiUrl);
+                    // URL direta do GitHub Pages
+                    const reportsUrl = 'https://grupogps-mecanizada.github.io/Productivity-Reports/reports.html';
                     
-                    if (response.ok) {
-                        const data = await response.json();
-                        const reportsContent = atob(data.content.replace(/\n/g, ''));
-                        
-                        // Abrir em nova janela ou tab
-                        const newWindow = window.open();
-                        newWindow.document.write(reportsContent);
-                        newWindow.document.close();
-                        
-                        this.showNotification('✅ Relatórios carregados em nova aba', 'success');
-                    } else {
-                        throw new Error('Página de relatórios não encontrada');
-                    }
+                    // Abrir em nova aba
+                    window.open(reportsUrl, '_blank');
+                    
+                    this.showNotification('✅ Página de relatórios aberta em nova aba', 'success');
                 } catch (error) {
-                    this.showNotification('⚠️ Página de relatórios ainda não disponível', 'warning');
-                    this.addDebugLog(`Erro ao carregar relatórios: ${error.message}`, 'warning');
+                    this.showNotification('⚠️ Erro ao abrir página de relatórios', 'error');
+                    this.addDebugLog(`Erro ao abrir relatórios: ${error.message}`, 'error');
                 }
             }
 
@@ -1942,14 +1994,19 @@
                     }
                 };
 
+                // Truncar nome do equipamento e categoria se muito longos
+                const shortEquipName = equipName.length > 25 ? equipName.substring(0, 25) + '...' : equipName;
+                const category = apont['Categoria Demora'] || 'N/A';
+                const shortCategory = category.length > 30 ? category.substring(0, 30) + '...' : category;
+
                 return `
-                    <div style="font-size: 13px; line-height: 1.4; max-width: 320px; word-wrap: break-word;">
-                        <div style="font-weight: 700; margin-bottom: 8px; color: #2c3e50;">📊 Apontamento Manual</div>
-                        <div style="margin-bottom: 4px;"><strong>Equipamento:</strong> ${equipName}</div>
-                        <div style="margin-bottom: 4px;"><strong>Categoria:</strong> ${apont['Categoria Demora'] || 'N/A'}</div>
-                        <div style="margin-bottom: 4px;"><strong>Início:</strong> ${formatDateTime(apont['Data Inicial'])}</div>
-                        <div style="margin-bottom: 4px;"><strong>Fim:</strong> ${formatDateTime(apont['Data Final'])}</div>
-                        <div><strong>Duração:</strong> ${apont['Tempo Indisponível (HH:MM)'] || 'N/A'}</div>
+                    <div style="font-size: 12px; line-height: 1.3; max-width: 280px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;">
+                        <div style="font-weight: 700; margin-bottom: 6px; color: #fff; font-size: 11px;">📊 Apontamento Manual</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Equipamento:</strong><br>${shortEquipName}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Categoria:</strong> ${shortCategory}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Início:</strong><br>${formatDateTime(apont['Data Inicial'])}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Fim:</strong><br>${formatDateTime(apont['Data Final'])}</div>
+                        <div style="font-size: 11px;"><strong>Duração:</strong> ${apont['Tempo Indisponível (HH:MM)'] || 'N/A'}</div>
                     </div>
                 `;
             }
@@ -1992,11 +2049,22 @@
             initTimeline() {
                 if (this.items.length === 0) {
                     this.addDebugLog('Nenhum item para inicializar timeline', 'warning');
+                    // Mesmo sem dados, mostrar container vazio
+                    const container = document.getElementById('timeline');
+                    container.innerHTML = '<div class="loading-state"><div>Aguardando dados...</div></div>';
                     return;
                 }
 
                 const container = document.getElementById('timeline');
+                if (!container) {
+                    this.addDebugLog('Container da timeline não encontrado', 'error');
+                    return;
+                }
+
+                // Limpar container completamente
                 container.innerHTML = '';
+                
+                this.addDebugLog(`Inicializando timeline com ${this.items.length} itens e ${this.groups.length} grupos`);
 
                 const options = {
                     orientation: 'top',
@@ -2040,6 +2108,13 @@
                 };
 
                 try {
+                    // Verificar se vis está disponível
+                    if (typeof vis === 'undefined') {
+                        this.addDebugLog('Biblioteca vis.js não carregada', 'error');
+                        return;
+                    }
+
+                    // Criar timeline
                     this.timeline = new vis.Timeline(container, this.items, this.groups, options);
 
                     // Event listeners
@@ -2047,10 +2122,27 @@
                         this.currentViewWindow = properties;
                     });
 
+                    // Aguardar renderização inicial
+                    setTimeout(() => {
+                        if (this.timeline) {
+                            this.timeline.fit();
+                            this.addDebugLog('Timeline renderizada e ajustada');
+                        }
+                    }, 200);
+
                     this.addDebugLog('Timeline inicializada com sucesso');
+
                 } catch (error) {
                     this.addDebugLog(`Erro ao inicializar timeline: ${error.message}`, 'error');
                     console.error('❌ Erro ao inicializar timeline:', error);
+                    
+                    // Fallback: mostrar erro no container
+                    container.innerHTML = `
+                        <div class="loading-state">
+                            <div style="color: #e74c3c;">❌ Erro ao carregar timeline</div>
+                            <div style="font-size: 0.9rem; margin-top: 0.5rem;">${error.message}</div>
+                        </div>
+                    `;
                 }
             }
 
@@ -2067,6 +2159,15 @@
                 document.getElementById('visibleItems').textContent = `${this.items.length} itens visíveis`;
                 document.getElementById('conflictsResolved').textContent = this.processingStats.conflictsResolved;
                 document.getElementById('duplicatesRemoved').textContent = this.processingStats.duplicatesRemoved;
+
+                // Atualizar horário no header
+                const lastUpdateTimeElement = document.getElementById('lastUpdateTime');
+                if (lastUpdateTimeElement) {
+                    lastUpdateTimeElement.textContent = new Date().toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
 
                 this.updateFilters();
                 this.updateNextSyncTime();
@@ -2193,12 +2294,25 @@
             }
 
             updateSystemInfo() {
+                // Atualizar imediatamente
+                this.updateLastUpdateTime();
+                
                 setInterval(() => {
                     const now = new Date();
                     const uptime = Math.floor((now - this.startTime) / 1000 / 60);
                     
                     this.updateNextSyncTime();
                 }, 60000); // Atualizar a cada minuto
+            }
+
+            updateLastUpdateTime() {
+                const lastUpdateTimeElement = document.getElementById('lastUpdateTime');
+                if (lastUpdateTimeElement) {
+                    lastUpdateTimeElement.textContent = new Date().toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
             }
 
             showNotification(message, type = 'info') {
@@ -2226,12 +2340,6 @@
             
             event.target.classList.add('active');
             document.getElementById(`${tabName}-tab`).classList.add('active');
-        }
-
-        function manualSync() {
-            if (productivitySystem) {
-                productivitySystem.syncFromGitHub();
-            }
         }
 
         function applyFilters() {
