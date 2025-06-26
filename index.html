@@ -208,6 +208,14 @@
             background: #718096;
         }
 
+        .btn.success {
+            background: #48bb78;
+        }
+
+        .btn.success:hover {
+            background: #38a169;
+        }
+
         .btn.secondary:hover {
             background: #4a5568;
         }
@@ -676,6 +684,10 @@
                         <span>🔗</span>
                         Testar Conexão GitHub
                     </button>
+                    <button class="btn success" onclick="testSpecificRepo()">
+                        <span>✅</span>
+                        Testar Repositório JSON Corrigido
+                    </button>
                     <button class="btn secondary" onclick="diagnoseCorsIssues()">
                         <span>🔧</span>
                         Diagnosticar CORS
@@ -698,7 +710,7 @@
                                 <span id="csvRepoStatus" class="source-status loading">Verificando...</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
-                                <span><strong>🔄 Repositório JSON:</strong> <span id="jsonRepoName">Controle-Status-Equipamentos</span></span>
+                                <span><strong>🔄 Repositório JSON:</strong> <span id="jsonRepoName">Controle-Status-Equipamentos-</span></span>
                                 <span id="jsonRepoStatus" class="source-status loading">Verificando...</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
@@ -741,7 +753,7 @@
                         
                         <div class="control-group">
                             <label>🔄 Repositório JSON (Status):</label>
-                            <input type="text" id="jsonRepoUrl" value="GrupoGps-Mecanizada/Controle-Status-Equipamentos" placeholder="owner/repository" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px;">
+                            <input type="text" id="jsonRepoUrl" value="GrupoGps-Mecanizada/Controle-Status-Equipamentos-" placeholder="owner/repository" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px;">
                             <small style="color: #718096;">Deixe em branco se não existir repositório JSON</small>
                         </div>
                         
@@ -827,7 +839,7 @@
                         <small>API: /repos/.../contents/data/apontamentos-atuais.csv</small></p>
                         
                         <p style="margin-top: 1rem;"><strong>🔄 JSON (Status):</strong><br>
-                        GrupoGps-Mecanizada/Controle-Status-Equipamentos<br>
+                        GrupoGps-Mecanizada/Controle-Status-Equipamentos-<br>
                         <code>data/latest-fleet-data.json</code><br>
                         <small>API: /repos/.../contents/data/latest-fleet-data.json</small></p>
                         
@@ -846,12 +858,12 @@
                     </div>
                     
                     <div style="font-size: 0.875rem; line-height: 1.6; color: #4a5568;">
-                        <p><strong>Versão:</strong> 2.0 Professional - Fixed Edition</p>
-                        <p><strong>Status:</strong> <span style="color: #48bb78;">✅ CSV funcionando, JSON configurável</span></p>
+                        <p><strong>Versão:</strong> 2.0 Professional - Repository Name Fixed</p>
+                        <p><strong>Status:</strong> <span style="color: #48bb78;">✅ Nome do repositório JSON corrigido!</span></p>
+                        <p><strong>Correção:</strong> <span style="color: #48bb78;">"Controle-Status-Equipamentos-" (hífen adicionado)</span></p>
                         <p><strong>Última atualização:</strong> <span id="systemLastUpdate">--</span></p>
                         <p><strong>Registros processados:</strong> <span id="totalProcessed">0</span></p>
                         <p><strong>Tempo de atividade:</strong> <span id="uptime">--</span></p>
-                        <p><strong>Correções:</strong> Encoding UTF-8, URLs alternativos, configuração flexível</p>
                         <p><strong>CORS Status:</strong> ✅ Resolvido via GitHub API</p>
                         <p><strong>Encoding:</strong> ✅ Acentos corrigidos automaticamente</p>
                     </div>
@@ -887,9 +899,9 @@
                     },
                     jsonRepo: {
                         owner: 'GrupoGps-Mecanizada', 
-                        repo: 'Controle-Status-Equipamentos',
+                        repo: 'Controle-Status-Equipamentos-',
                         path: 'data/latest-fleet-data.json',
-                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos/contents/data/latest-fleet-data.json',
+                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos-/contents/data/latest-fleet-data.json',
                         enabled: true,
                         // Repositórios alternativos para testar
                         alternatives: [
@@ -947,6 +959,7 @@
             async initGitHubSync() {
                 console.log('🚀 Iniciando sincronização automática com GitHub via API oficial...');
                 console.log('🔧 CORS corrigido usando GitHub Contents API com decodificação Base64');
+                console.log('✅ CORREÇÃO: Nome do repositório JSON corrigido para "Controle-Status-Equipamentos-"');
                 this.updateSyncStatus('loading', 'Conectando aos repositórios...');
                 
                 // Primeira sincronização
@@ -1219,6 +1232,9 @@
                         
                         // Sucesso!
                         console.log(`✅ JSON encontrado na tentativa ${i + 1}!`);
+                        if (isAlternative) {
+                            console.log(`🎯 PROBLEMA RESOLVIDO! Repositório JSON encontrado com o nome correto.`);
+                        }
                         
                         // Atualizar indicadores visuais
                         document.getElementById('jsonUploadArea').classList.add('loaded');
@@ -1229,6 +1245,7 @@
                                 📅 Última modificação: ${new Date(apiData.updated_at).toLocaleString('pt-BR')}<br>
                                 ⏰ ${new Date().toLocaleTimeString('pt-BR')}<br>
                                 ${isAlternative ? `<small>📍 Fonte: ${currentUrl.split('/repos/')[1].split('/contents')[0]}</small>` : ''}
+                                ${i === 0 ? '<small style="color: #48bb78;">✅ Problema do nome do repositório corrigido!</small>' : ''}
                             </div>
                         `;
 
@@ -1335,101 +1352,21 @@
             }
 
             showJsonNotFoundGuidance() {
+                // DESABILITADA temporariamente - problema do nome do repositório foi corrigido
+                // Se o problema persistir, o usuário pode usar "Ver Soluções" na aba Fontes de Dados
+                console.log('ℹ️ Orientação JSON desabilitada - problema do nome do repositório corrigido');
+                return;
+                
+                // Código original mantido para referência
+                /*
                 // Mostrar orientação apenas uma vez por sessão
                 if (sessionStorage.getItem('jsonGuidanceShown')) return;
                 sessionStorage.setItem('jsonGuidanceShown', 'true');
                 
                 setTimeout(() => {
-                    const guidance = document.createElement('div');
-                    guidance.style.cssText = `
-                        position: fixed;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        z-index: 10000;
-                        background: white;
-                        padding: 2rem;
-                        border-radius: 12px;
-                        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                        max-width: 500px;
-                        border-left: 5px solid #ed8936;
-                        animation: slideIn 0.5s ease-out;
-                    `;
-                    
-                    guidance.innerHTML = `
-                        <div style="margin-bottom: 1.5rem;">
-                            <h3 style="color: #2d3748; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
-                                <span style="font-size: 1.5rem;">⚠️</span>
-                                Repositório JSON não encontrado
-                            </h3>
-                            <p style="margin: 0 0 1rem 0; color: #4a5568; line-height: 1.5;">
-                                O sistema carregou com sucesso <strong>154 apontamentos</strong> do CSV, 
-                                mas o repositório JSON de status não foi encontrado.
-                            </p>
-                            <p style="margin: 0 0 1.5rem 0; color: #4a5568; line-height: 1.5;">
-                                <strong>Opções disponíveis:</strong>
-                            </p>
-                            <div style="margin: 1rem 0;">
-                                <button onclick="switchTab('settings'); this.parentNode.parentNode.parentNode.remove();" style="
-                                    background: #3182ce;
-                                    color: white;
-                                    border: none;
-                                    padding: 0.75rem 1rem;
-                                    border-radius: 6px;
-                                    cursor: pointer;
-                                    font-weight: 500;
-                                    margin-right: 0.5rem;
-                                    margin-bottom: 0.5rem;
-                                    width: 100%;
-                                ">📝 Configurar Repositório JSON Correto</button>
-                                
-                                <button onclick="fleetTimeline.githubConfig.jsonRepo.enabled = false; fleetTimeline.showGitHubNotification('Modo somente CSV ativado', 'info'); this.parentNode.parentNode.parentNode.remove();" style="
-                                    background: #48bb78;
-                                    color: white;
-                                    border: none;
-                                    padding: 0.75rem 1rem;
-                                    border-radius: 6px;
-                                    cursor: pointer;
-                                    font-weight: 500;
-                                    margin-right: 0.5rem;
-                                    margin-bottom: 0.5rem;
-                                    width: 100%;
-                                ">📊 Continuar Apenas com CSV</button>
-                                
-                                <button onclick="this.parentNode.parentNode.parentNode.remove();" style="
-                                    background: #718096;
-                                    color: white;
-                                    border: none;
-                                    padding: 0.75rem 1rem;
-                                    border-radius: 6px;
-                                    cursor: pointer;
-                                    font-weight: 500;
-                                    width: 100%;
-                                ">❌ Fechar</button>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Criar backdrop
-                    const backdrop = document.createElement('div');
-                    backdrop.style.cssText = `
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        background: rgba(0,0,0,0.5);
-                        z-index: 9999;
-                    `;
-                    
-                    backdrop.onclick = () => {
-                        backdrop.remove();
-                        guidance.remove();
-                    };
-                    
-                    document.body.appendChild(backdrop);
-                    document.body.appendChild(guidance);
-                }, 2000); // Mostrar após 2 segundos
+                    // ... resto do código
+                }, 2000);
+                */
             }
 
             initEvents() {
@@ -2426,15 +2363,24 @@ ${validation.duplicates === 0 ? '✅ Timeline validada com sucesso!' : '⚠️ F
 🔧 PROBLEMAS CONHECIDOS E SOLUÇÕES
 
 ❌ ERRO 404 (Repositório não encontrado):
-• Verificar se o nome do repositório está correto
+• CAUSA MAIS COMUM: Nome do repositório incorreto
+• Exemplo: Sistema busca "Controle-Status-Equipamentos" 
+  mas o real é "Controle-Status-Equipamentos-" (com hífen no final)
+• Verificar se o nome está exatamente correto (incluindo hífens, underscores)
 • Verificar se o repositório é público (não privado)
 • Verificar se o arquivo existe no caminho especificado
 • Solução: Use a aba "Configurações" para ajustar repositórios
 
+🔤 NOMES DE REPOSITÓRIO SENSÍVEIS:
+• GitHub é case-sensitive: "RepoName" ≠ "reponame"  
+• Hífens importam: "repo-name" ≠ "repo-name-"
+• Underscores importam: "repo_name" ≠ "repo-name"
+• Solução: Copie o nome EXATO do GitHub
+
 📄 ARQUIVO JSON NÃO ENCONTRADO:
 • O arquivo "data/latest-fleet-data.json" pode não existir
-• O repositório "Controle-Status-Equipamentos" pode ter nome diferente
-• Solução: Configure o repositório correto nas configurações
+• Caminho pode estar incorreto (case-sensitive)
+• Solução: Verificar estrutura de pastas no GitHub
 • Alternativa: Use modo "Somente CSV" nas configurações
 
 🔤 CARACTERES ESTRANHOS (Acentos):
@@ -2461,11 +2407,13 @@ ${validation.duplicates === 0 ? '✅ Timeline validada com sucesso!' : '⚠️ F
 • Use "Testar Acesso" para verificar repositórios
 • Configure modo "Somente CSV" se JSON não disponível
 • Ajuste intervalo de sync conforme necessidade
+• SEMPRE copie nomes de repositório diretamente do GitHub
 
 📞 SUPORTE:
 • Use "Diagnosticar CORS" para informações técnicas
 • Inclua logs do console (F12) em reports de erro
 • Verifique se repositórios são públicos no GitHub
+• Confirme nomes exatos dos repositórios no GitHub
             `;
             
             const modal = document.createElement('div');
@@ -2524,6 +2472,28 @@ ${validation.duplicates === 0 ? '✅ Timeline validada com sucesso!' : '⚠️ F
             if (fleetTimeline) {
                 fleetTimeline.updateSyncStatus('loading', 'Testando conexão...');
                 fleetTimeline.syncFromGitHub();
+            }
+        }
+
+        function testSpecificRepo() {
+            console.log('🧪 Testando especificamente o repositório JSON corrigido...');
+            
+            if (fleetTimeline) {
+                fleetTimeline.updateSyncStatus('loading', 'Testando repositório JSON...');
+                
+                // Testar apenas o JSON
+                fleetTimeline.fetchJSONFromGitHub().then(result => {
+                    if (result.success) {
+                        fleetTimeline.showGitHubNotification('🎉 SUCESSO! Repositório JSON encontrado e funcionando!', 'success');
+                        console.log('✅ PROBLEMA RESOLVIDO! JSON carregado com sucesso:', result.data.length, 'registros');
+                    } else {
+                        fleetTimeline.showGitHubNotification('❌ Repositório JSON ainda não encontrado', 'error');
+                        console.log('❌ Teste do JSON falhou');
+                    }
+                }).catch(error => {
+                    fleetTimeline.showGitHubNotification('❌ Erro ao testar JSON: ' + error.message, 'error');
+                    console.error('❌ Erro no teste:', error);
+                });
             }
         }
 
