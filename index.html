@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Unificado GrupoGPS - Dual GitHub Sync</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <title>Timeline Unificado - Gestão de Frota</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css" />
     <style>
         * {
             margin: 0;
@@ -13,28 +13,10 @@
             box-sizing: border-box;
         }
 
-        :root {
-            --bg-primary: #f8fafc;
-            --bg-secondary: #ffffff;
-            --bg-tertiary: #e2e8f0;
-            --text-primary: #1a202c;
-            --text-secondary: #4a5568;
-            --text-muted: #718096;
-            --accent-primary: #3182ce;
-            --accent-secondary: #38a169;
-            --success: #48bb78;
-            --warning: #ed8936;
-            --danger: #e53e3e;
-            --info: #4299e1;
-            --border: #e2e8f0;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --radius: 8px;
-        }
-
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
+            background: #f8fafc;
+            color: #1a202c;
             line-height: 1.6;
         }
 
@@ -44,19 +26,19 @@
             flex-direction: column;
         }
 
-        /* Header */
+        /* Header Minimalista */
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1.5rem 2rem;
-            box-shadow: var(--shadow);
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 2rem;
             position: sticky;
             top: 0;
             z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .header-content {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
@@ -66,44 +48,29 @@
         }
 
         .header-brand h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-
-        .header-subtitle {
-            font-size: 0.9rem;
-            opacity: 0.9;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .header-controls {
             display: flex;
             align-items: center;
             gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .sync-status-panel {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: var(--radius);
-            padding: 0.75rem 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-            min-width: 200px;
-        }
-
-        .sync-status-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.8rem;
         }
 
         .sync-indicator {
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #f7fafc;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: #4a5568;
         }
 
         .sync-dot {
@@ -122,148 +89,223 @@
             50% { opacity: 0.5; }
         }
 
-        .btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius);
-            cursor: pointer;
-            transition: all 0.2s;
+        /* Navigation Tabs */
+        .nav-tabs {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 2rem;
+        }
+
+        .nav-tabs-container {
+            max-width: 1600px;
+            margin: 0 auto;
             display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
+            gap: 2rem;
+        }
+
+        .nav-tab {
+            padding: 1rem 1.5rem;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
             font-weight: 500;
+            color: #718096;
+            transition: all 0.2s;
+            user-select: none;
         }
 
-        .btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+        .nav-tab.active {
+            color: #3182ce;
+            border-bottom-color: #3182ce;
         }
 
-        .btn.loading {
-            opacity: 0.7;
-            pointer-events: none;
-        }
-
-        .btn.loading i {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        .nav-tab:hover:not(.active) {
+            color: #4a5568;
+            background: #f7fafc;
         }
 
         /* Main Content */
         .main-content {
             flex: 1;
             padding: 2rem;
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             width: 100%;
         }
 
-        /* Stats Grid */
-        .stats-grid {
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Timeline Tab - Principal */
+        .timeline-controls {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .controls-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
-            margin-bottom: 2rem;
+            align-items: end;
         }
 
-        .stat-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-group label {
+            font-weight: 500;
+            color: #4a5568;
+            font-size: 0.875rem;
+        }
+
+        select, input[type="datetime-local"] {
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            background: white;
+            transition: border-color 0.2s;
+        }
+
+        select:focus, input[type="datetime-local"]:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+        }
+
+        .btn {
+            background: #3182ce;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
         }
 
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        .btn:hover {
+            background: #2c5aa0;
+            transform: translateY(-1px);
         }
 
-        .stat-header {
+        .btn.secondary {
+            background: #718096;
+        }
+
+        .btn.secondary:hover {
+            background: #4a5568;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Timeline Container */
+        .timeline-container {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .timeline-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f7fafc;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
         }
 
-        .stat-title {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+        .timeline-title {
             font-weight: 600;
-        }
-
-        .stat-icon {
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: var(--radius);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .stat-change {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            margin-top: 0.25rem;
-        }
-
-        /* Data Sources Panel */
-        .data-sources {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow);
-        }
-
-        .sources-header {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
+            color: #2d3748;
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
 
-        .sources-grid {
+        #timeline {
+            height: 600px;
+            background: white;
+            position: relative;
+        }
+
+        /* Stats Panel */
+        .stats-panel {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1rem;
+            background: #f7fafc;
+            border-radius: 6px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #718096;
+            margin-top: 0.25rem;
+        }
+
+        /* Data Sources Tab */
+        .data-sources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
             gap: 1.5rem;
         }
 
         .source-card {
-            background: var(--bg-tertiary);
-            border-radius: var(--radius);
-            padding: 1rem;
-            border-left: 4px solid var(--accent-primary);
-        }
-
-        .source-card.json {
-            border-left-color: var(--accent-secondary);
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .source-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.75rem;
+            margin-bottom: 1rem;
         }
 
         .source-title {
@@ -273,168 +315,57 @@
             gap: 0.5rem;
         }
 
-        .source-status {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            font-weight: 600;
-        }
-
-        .source-status.success {
-            background: rgba(72, 187, 120, 0.1);
-            color: var(--success);
-        }
-
-        .source-status.error {
-            background: rgba(229, 62, 62, 0.1);
-            color: var(--danger);
-        }
-
-        .source-status.loading {
-            background: rgba(237, 137, 54, 0.1);
-            color: var(--warning);
-        }
-
-        .source-details {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            line-height: 1.4;
-        }
-
-        .source-details strong {
-            color: var(--text-primary);
-        }
-
-        /* Timeline Container */
-        .timeline-section {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow);
-        }
-
-        .timeline-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .timeline-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .timeline-controls {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .timeline-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .equipment-timeline {
-            background: var(--bg-tertiary);
-            border-radius: var(--radius);
-            padding: 1rem;
-            border: 1px solid var(--border);
-        }
-
-        .equipment-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
             margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .equipment-name {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .equipment-code {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            font-family: monospace;
-        }
-
-        .unified-events {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .event-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            background: var(--bg-secondary);
-            border-radius: var(--radius);
-            border-left: 3px solid var(--accent-primary);
             transition: all 0.2s;
+            cursor: pointer;
         }
 
-        .event-item:hover {
-            transform: translateX(2px);
-            box-shadow: var(--shadow);
+        .upload-area:hover {
+            border-color: #3182ce;
+            background: #f7fafc;
         }
 
-        .event-item.appointment {
-            border-left-color: var(--accent-primary);
+        .upload-area.dragover {
+            border-color: #3182ce;
+            background: #ebf8ff;
         }
 
-        .event-item.status {
-            border-left-color: var(--accent-secondary);
+        .upload-area.loaded {
+            border-color: #48bb78;
+            background: #f0fff4;
         }
 
-        .event-content {
-            flex: 1;
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.7;
         }
 
-        .event-type {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
+        .file-input {
+            display: none;
         }
 
-        .event-description {
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
-        }
-
-        .event-time {
+        .file-info {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f0fff4;
+            border-radius: 6px;
             font-size: 0.875rem;
-            color: var(--text-secondary);
+            color: #2f855a;
         }
 
-        .event-duration {
-            text-align: right;
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
             font-size: 0.875rem;
-        }
-
-        .duration-value {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .duration-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
         }
 
         /* Loading States */
@@ -443,42 +374,78 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 3rem;
-            color: var(--text-muted);
+            height: 400px;
+            color: #718096;
         }
 
         .loading-spinner {
             width: 3rem;
             height: 3rem;
-            border: 3px solid var(--border);
-            border-top: 3px solid var(--accent-primary);
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #3182ce;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 1rem;
         }
 
-        /* Notifications */
-        .notification {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1000;
-            padding: 1rem 1.5rem;
-            border-radius: var(--radius);
-            color: white;
-            font-weight: 600;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            animation: slideIn 0.3s ease-out;
-            max-width: 400px;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        .notification.success { background: var(--success); }
-        .notification.error { background: var(--danger); }
-        .notification.info { background: var(--info); }
+        /* Cores da Timeline - Apontamentos */
+        .vis-item.apont-abastecimento { background-color: #3182ce !important; border-color: #2c5aa0 !important; }
+        .vis-item.apont-bloqueio { background-color: #e53e3e !important; border-color: #c53030 !important; }
+        .vis-item.apont-descarregamento { background-color: #d69e2e !important; border-color: #b7791f !important; }
+        .vis-item.apont-documentacao { background-color: #38a169 !important; border-color: #2f855a !important; }
+        .vis-item.apont-preparacao { background-color: #805ad5 !important; border-color: #6b46c1 !important; }
+        .vis-item.apont-manutencao { background-color: #ed8936 !important; border-color: #dd6b20 !important; }
+        .vis-item.apont-refeicao { background-color: #48bb78 !important; border-color: #38a169 !important; }
+        .vis-item.apont-aguardando { background-color: #4299e1 !important; border-color: #3182ce !important; }
 
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        /* Cores da Timeline - Status */
+        .vis-item.status-not_appropriated { background-color: #a0aec0 !important; border-color: #718096 !important; }
+        .vis-item.status-off { background-color: #2d3748 !important; border-color: #1a202c !important; }
+        .vis-item.status-stopped { background-color: #ed8936 !important; border-color: #dd6b20 !important; }
+        .vis-item.status-maintenance { background-color: #e53e3e !important; border-color: #c53030 !important; }
+        .vis-item.status-running { background-color: #38a169 !important; border-color: #2f855a !important; }
+        .vis-item.status-moving { background-color: #3182ce !important; border-color: #2c5aa0 !important; }
+
+        /* Timeline Visual Improvements */
+        .vis-timeline {
+            border: none !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        }
+
+        .vis-panel.vis-bottom {
+            border-top: 1px solid #e2e8f0 !important;
+        }
+
+        .vis-labelset .vis-label {
+            border-right: 1px solid #e2e8f0 !important;
+            background-color: #f7fafc !important;
+            color: #2d3748 !important;
+            font-weight: 500 !important;
+            font-size: 13px !important;
+        }
+
+        .vis-time-axis .vis-text {
+            color: #4a5568 !important;
+            font-weight: 500 !important;
+        }
+
+        .vis-item {
+            border-radius: 4px !important;
+            border-width: 1px !important;
+            color: white !important;
+            font-weight: 500 !important;
+            font-size: 12px !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+        }
+
+        .vis-item.vis-selected {
+            border-width: 2px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
         }
 
         /* Responsive */
@@ -492,192 +459,260 @@
                 padding: 1rem;
             }
 
-            .sources-grid,
-            .timeline-grid {
+            .nav-tabs-container {
+                flex-wrap: wrap;
+                gap: 0;
+            }
+
+            .nav-tab {
+                flex: 1;
+                text-align: center;
+                min-width: 120px;
+            }
+
+            .controls-grid {
                 grid-template-columns: 1fr;
             }
 
-            .sync-status-panel {
-                min-width: auto;
-                width: 100%;
+            .data-sources-grid {
+                grid-template-columns: 1fr;
             }
-        }
-
-        /* Scrollbar */
-        .unified-events::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .unified-events::-webkit-scrollbar-track {
-            background: var(--bg-primary);
-            border-radius: 3px;
-        }
-
-        .unified-events::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 3px;
-        }
-
-        .unified-events::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
         }
     </style>
 </head>
 <body>
     <div class="app-container">
+        <!-- Header Minimalista -->
         <header class="header">
             <div class="header-content">
                 <div class="header-brand">
-                    <h1>🚛 Dashboard Unificado GrupoGPS</h1>
-                    <div class="header-subtitle">Sincronização automática de dados CSV + JSON via GitHub</div>
+                    <h1>🚛 Timeline Unificado de Frota</h1>
                 </div>
                 
                 <div class="header-controls">
-                    <div class="sync-status-panel">
-                        <div class="sync-status-row">
-                            <span>📊 CSV (Apontamentos):</span>
-                            <div class="sync-indicator">
-                                <div class="sync-dot loading" id="csvSyncDot"></div>
-                                <span id="csvSyncStatus">Aguardando...</span>
-                            </div>
-                        </div>
-                        <div class="sync-status-row">
-                            <span>🔄 JSON (Status):</span>
-                            <div class="sync-indicator">
-                                <div class="sync-dot loading" id="jsonSyncDot"></div>
-                                <span id="jsonSyncStatus">Aguardando...</span>
-                            </div>
-                        </div>
+                    <div class="sync-indicator">
+                        <div class="sync-dot loading" id="syncDot"></div>
+                        <span id="syncStatus">Aguardando dados...</span>
                     </div>
                     
-                    <button class="btn" onclick="manualSync()" id="manualSyncBtn">
-                        <i class="fas fa-sync-alt"></i>
-                        Sincronizar Agora
-                    </button>
-                    
-                    <button class="btn" onclick="toggleAutoSync()" id="autoSyncBtn">
-                        <i class="fas fa-play"></i>
-                        <span id="autoSyncText">Auto-Sync: ON</span>
+                    <button class="btn" onclick="manualSync()" id="syncBtn">
+                        <span>🔄</span>
+                        Atualizar
                     </button>
                 </div>
             </div>
         </header>
 
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+            <div class="nav-tabs-container">
+                <div class="nav-tab active" onclick="switchTab('timeline')">
+                    📊 Timeline
+                </div>
+                <div class="nav-tab" onclick="switchTab('data-sources')">
+                    📁 Fontes de Dados
+                </div>
+                <div class="nav-tab" onclick="switchTab('settings')">
+                    ⚙️ Configurações
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
         <main class="main-content">
-            <!-- Stats Grid -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-title">Total Equipamentos</div>
-                        <div class="stat-icon" style="background: rgba(49, 130, 206, 0.1); color: var(--accent-primary);">
-                            <i class="fas fa-truck"></i>
+            <!-- Timeline Tab (Principal) -->
+            <div id="timeline-tab" class="tab-content active">
+                <!-- Controles -->
+                <div class="timeline-controls">
+                    <div class="controls-grid">
+                        <div class="control-group">
+                            <label>Equipamento:</label>
+                            <select id="equipmentFilter">
+                                <option value="">Todos os equipamentos</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label>Período:</label>
+                            <select id="periodFilter">
+                                <option value="all">Todos os dados</option>
+                                <option value="today">Hoje</option>
+                                <option value="yesterday">Ontem</option>
+                                <option value="week" selected>Última semana</option>
+                                <option value="month">Último mês</option>
+                                <option value="custom">Personalizado</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group" id="customDateGroup" style="display: none;">
+                            <label>Data Inicial:</label>
+                            <input type="datetime-local" id="startDate" />
+                        </div>
+                        
+                        <div class="control-group" id="customDateGroup2" style="display: none;">
+                            <label>Data Final:</label>
+                            <input type="datetime-local" id="endDate" />
+                        </div>
+                        
+                        <div class="control-group">
+                            <button class="btn" onclick="applyFilters()">
+                                <span>🔍</span>
+                                Filtrar
+                            </button>
                         </div>
                     </div>
-                    <div class="stat-value" id="totalEquipments">0</div>
-                    <div class="stat-change">Frota completa monitorada</div>
                 </div>
 
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-title">Apontamentos Ativos</div>
-                        <div class="stat-icon" style="background: rgba(56, 161, 105, 0.1); color: var(--accent-secondary);">
-                            <i class="fas fa-clipboard-list"></i>
+                <!-- Timeline Container -->
+                <div class="timeline-container">
+                    <div class="timeline-header">
+                        <div class="timeline-title">
+                            <span>📈</span>
+                            Apontamentos e Status por Equipamento
                         </div>
-                    </div>
-                    <div class="stat-value" id="activeAppointments">0</div>
-                    <div class="stat-change">Dados CSV sincronizados</div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-title">Status Registrados</div>
-                        <div class="stat-icon" style="background: rgba(237, 137, 54, 0.1); color: var(--warning);">
-                            <i class="fas fa-signal"></i>
+                        <div id="timelineStats">
+                            <span id="visibleItems">0 itens visíveis</span>
                         </div>
-                    </div>
-                    <div class="stat-value" id="statusRecords">0</div>
-                    <div class="stat-change">Dados JSON sincronizados</div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-title">Última Sincronização</div>
-                        <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--info);">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                    </div>
-                    <div class="stat-value" id="lastSyncTime">--:--</div>
-                    <div class="stat-change" id="syncDelta">Nunca sincronizado</div>
-                </div>
-            </div>
-
-            <!-- Data Sources -->
-            <div class="data-sources">
-                <div class="sources-header">
-                    <i class="fas fa-database"></i>
-                    Fontes de Dados GitHub
-                </div>
-                <div class="sources-grid">
-                    <div class="source-card csv">
-                        <div class="source-header">
-                            <div class="source-title">
-                                <i class="fas fa-file-csv"></i>
-                                Apontamentos CSV
-                            </div>
-                            <div class="source-status loading" id="csvSourceStatus">Carregando...</div>
-                        </div>
-                        <div class="source-details" id="csvSourceDetails">
-                            <strong>Repositório:</strong> GrupoGps-Mecanizada/Apontamento-Dos-Tablets<br>
-                            <strong>Arquivo:</strong> data/apontamentos-atuais.csv<br>
-                            <strong>Registros:</strong> <span id="csvRecordCount">0</span><br>
-                            <strong>Última atualização:</strong> <span id="csvLastUpdate">--</span>
-                        </div>
-                    </div>
-
-                    <div class="source-card json">
-                        <div class="source-header">
-                            <div class="source-title">
-                                <i class="fas fa-file-code"></i>
-                                Status JSON
-                            </div>
-                            <div class="source-status loading" id="jsonSourceStatus">Carregando...</div>
-                        </div>
-                        <div class="source-details" id="jsonSourceDetails">
-                            <strong>Repositório:</strong> GrupoGps-Mecanizada/Controle-Status-Equipamentos<br>
-                            <strong>Arquivo:</strong> data/latest-fleet-data.json<br>
-                            <strong>Registros:</strong> <span id="jsonRecordCount">0</span><br>
-                            <strong>Última atualização:</strong> <span id="jsonLastUpdate">--</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Unified Timeline -->
-            <div class="timeline-section">
-                <div class="timeline-header">
-                    <div class="timeline-title">
-                        <i class="fas fa-timeline"></i>
-                        Timeline Unificada por Equipamento
-                    </div>
-                    <div class="timeline-controls">
-                        <select id="equipmentFilter" onchange="filterTimeline()">
-                            <option value="">Todos os equipamentos</option>
-                        </select>
-                        <button class="btn" onclick="refreshTimeline()">
-                            <i class="fas fa-refresh"></i>
-                            Atualizar
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="timelineContainer">
-                    <div class="loading-state" id="timelineLoading">
-                        <div class="loading-spinner"></div>
-                        <div>Carregando timeline unificada...</div>
                     </div>
                     
-                    <div class="timeline-grid" id="timelineGrid" style="display: none;">
-                        <!-- Timeline será gerada aqui -->
+                    <div id="timeline">
+                        <div class="loading-state">
+                            <div class="loading-spinner"></div>
+                            <div>Carregue os dados CSV e JSON para visualizar a timeline</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Panel -->
+                <div class="stats-panel" id="statsPanel" style="display: none;">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="apontCount">0</div>
+                            <div class="stat-label">Apontamentos</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statusCount">0</div>
+                            <div class="stat-label">Status</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="equipmentCount">0</div>
+                            <div class="stat-label">Equipamentos</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="lastUpdate">--:--</div>
+                            <div class="stat-label">Última Atualização</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Sources Tab -->
+            <div id="data-sources-tab" class="tab-content">
+                <div class="data-sources-grid">
+                    <!-- CSV Upload -->
+                    <div class="source-card">
+                        <div class="source-header">
+                            <div class="source-title">
+                                <span>📊</span>
+                                Apontamentos CSV
+                            </div>
+                        </div>
+                        
+                        <div class="upload-area" id="csvUploadArea" onclick="document.getElementById('csvFile').click()">
+                            <div class="upload-icon">📁</div>
+                            <h3>Apontamentos Manuais</h3>
+                            <p>Clique ou arraste um arquivo CSV com apontamentos</p>
+                            <input type="file" id="csvFile" class="file-input" accept=".csv" />
+                        </div>
+                        <div id="csvInfo"></div>
+                    </div>
+
+                    <!-- JSON Upload -->
+                    <div class="source-card">
+                        <div class="source-header">
+                            <div class="source-title">
+                                <span>🔄</span>
+                                Status JSON
+                            </div>
+                        </div>
+                        
+                        <div class="upload-area" id="jsonUploadArea" onclick="document.getElementById('jsonFile').click()">
+                            <div class="upload-icon">📄</div>
+                            <h3>Status Automático</h3>
+                            <p>Clique ou arraste um arquivo JSON com status</p>
+                            <input type="file" id="jsonFile" class="file-input" accept=".json" />
+                        </div>
+                        <div id="jsonInfo"></div>
+                    </div>
+                </div>
+
+                <!-- Test Data Buttons -->
+                <div style="margin-top: 2rem; text-align: center; display: flex; gap: 1rem; justify-content: center;">
+                    <button class="btn secondary" onclick="loadSampleData()">
+                        <span>🧪</span>
+                        Carregar Dados de Teste
+                    </button>
+                    <button class="btn secondary" onclick="validateTimeline()">
+                        <span>✅</span>
+                        Validar Timeline
+                    </button>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings-tab" class="tab-content">
+                <div class="source-card">
+                    <div class="source-header">
+                        <div class="source-title">
+                            <span>⚙️</span>
+                            Configurações do Sistema
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; gap: 1.5rem;">
+                        <div class="control-group">
+                            <label>Intervalo de Auto-Sync:</label>
+                            <select id="autoSyncInterval">
+                                <option value="300000" selected>5 minutos</option>
+                                <option value="600000">10 minutos</option>
+                                <option value="900000">15 minutos</option>
+                                <option value="1800000">30 minutos</option>
+                                <option value="0">Desabilitado</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label>Consolidação de Status:</label>
+                            <select id="consolidationMode">
+                                <option value="intelligent" selected>Inteligente (Recomendado)</option>
+                                <option value="strict">Rígida</option>
+                                <option value="none">Desabilitada</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <button class="btn" onclick="saveSettings()">
+                                <span>💾</span>
+                                Salvar Configurações
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Info -->
+                <div class="source-card" style="margin-top: 1.5rem;">
+                    <div class="source-header">
+                        <div class="source-title">
+                            <span>ℹ️</span>
+                            Informações do Sistema
+                        </div>
+                    </div>
+                    
+                    <div style="font-size: 0.875rem; line-height: 1.6; color: #4a5568;">
+                        <p><strong>Versão:</strong> 2.0 Professional</p>
+                        <p><strong>Última atualização:</strong> <span id="systemLastUpdate">--</span></p>
+                        <p><strong>Registros processados:</strong> <span id="totalProcessed">0</span></p>
+                        <p><strong>Tempo de atividade:</strong> <span id="uptime">--</span></p>
                     </div>
                 </div>
             </div>
@@ -686,175 +721,192 @@
 
     <script>
         // =============================================================================
-        // CONFIGURAÇÃO GITHUB DUAL-REPO
+        // CLASSE PRINCIPAL - VERSÃO PROFISSIONAL MINIMALISTA
         // =============================================================================
-        const DUAL_GITHUB_CONFIG = {
-            CSV_SOURCE: {
-                OWNER: 'GrupoGps-Mecanizada',
-                REPO: 'Apontamento-Dos-Tablets',
-                FILE_PATH: 'data/apontamentos-atuais.csv',
-                TYPE: 'csv'
-            },
-            JSON_SOURCE: {
-                OWNER: 'GrupoGps-Mecanizada', 
-                REPO: 'Controle-Status-Equipamentos',
-                FILE_PATH: 'data/latest-fleet-data.json',
-                TYPE: 'json'
-            },
-            AUTO_SYNC_INTERVAL: 30000, // 30 segundos
-            RETRY_ATTEMPTS: 3,
-            RETRY_DELAY: 2000
-        };
-
-        // =============================================================================
-        // ESTADO GLOBAL DA APLICAÇÃO
-        // =============================================================================
-        let appState = {
-            csvData: [],
-            jsonData: [],
-            unifiedEquipmentData: new Map(),
-            autoSyncEnabled: true,
-            lastSyncTime: null,
-            syncInterval: null,
-            isLoading: false
-        };
-
-        // =============================================================================
-        // SISTEMA DE SINCRONIZAÇÃO DUAL
-        // =============================================================================
-        class DualGitHubSync {
+        class UnifiedFleetTimelinePro {
             constructor() {
-                this.csvStatus = { status: 'idle', message: 'Aguardando...', records: 0 };
-                this.jsonStatus = { status: 'idle', message: 'Aguardando...', records: 0 };
+                this.timeline = null;
+                this.items = new vis.DataSet();
+                this.groups = new vis.DataSet();
+                this.csvData = [];
+                this.jsonData = [];
+                this.equipmentMap = new Map();
+                this.isUpdating = false;
+                this.autoSyncInterval = null;
+                this.startTime = new Date();
+
+                // Configurações
+                this.config = {
+                    autoSyncInterval: 300000, // 5 minutos
+                    consolidationMode: 'intelligent'
+                };
+
+                // Mapeamento de cores
+                this.apontColors = {
+                    'Abastecimento': 'apont-abastecimento',
+                    'Bloqueio': 'apont-bloqueio',
+                    'Descarregamento': 'apont-descarregamento',
+                    'Documentação': 'apont-documentacao',
+                    'Preparação': 'apont-preparacao',
+                    'Pequenas manutenções': 'apont-manutencao',
+                    'Manutenção': 'apont-manutencao',
+                    'Refeição Motorista': 'apont-refeicao',
+                    'Aguardando': 'apont-aguardando',
+                    'Aguardando Área': 'apont-aguardando',
+                    'Aguardando semáforo/cancela': 'apont-aguardando',
+                    'Aguardando carreta bascular': 'apont-aguardando',
+                    'Troca de Equipamento': 'apont-manutencao'
+                };
+
+                this.statusColors = {
+                    'not_appropriated': 'status-not_appropriated',
+                    'off': 'status-off',
+                    'stopped': 'status-stopped',
+                    'maintenance': 'status-maintenance',
+                    'running': 'status-running',
+                    'moving': 'status-moving'
+                };
+
+                this.initEvents();
+                this.updateSystemInfo();
+                this.startAutoSync();
             }
 
-            async syncBothSources() {
-                if (appState.isLoading) return;
-                
-                appState.isLoading = true;
-                this.updateSyncButton(true);
-                
-                try {
-                    console.log('🔄 Iniciando sincronização dual GitHub...');
+            initEvents() {
+                // Upload de arquivos
+                document.getElementById('csvFile').addEventListener('change', (e) => {
+                    this.loadCsvFile(e.target.files[0]);
+                });
+
+                document.getElementById('jsonFile').addEventListener('change', (e) => {
+                    this.loadJsonFile(e.target.files[0]);
+                });
+
+                // Filtros
+                document.getElementById('equipmentFilter').addEventListener('change', () => {
+                    this.applyFilters();
+                });
+
+                document.getElementById('periodFilter').addEventListener('change', () => {
+                    this.handlePeriodChange();
+                });
+
+                document.getElementById('startDate').addEventListener('change', () => {
+                    this.applyFilters();
+                });
+
+                document.getElementById('endDate').addEventListener('change', () => {
+                    this.applyFilters();
+                });
+
+                // Drag and drop
+                this.setupDragAndDrop();
+            }
+
+            setupDragAndDrop() {
+                ['csvUploadArea', 'jsonUploadArea'].forEach(id => {
+                    const element = document.getElementById(id);
                     
-                    // Sincronização paralela das duas fontes
-                    const [csvResult, jsonResult] = await Promise.allSettled([
-                        this.syncCSVSource(),
-                        this.syncJSONSource()
-                    ]);
-                    
-                    // Processa resultados
-                    const csvSuccess = csvResult.status === 'fulfilled' && csvResult.value;
-                    const jsonSuccess = jsonResult.status === 'fulfilled' && jsonResult.value;
-                    
-                    if (csvSuccess || jsonSuccess) {
-                        this.unifyData();
-                        this.updateTimeline();
-                        this.updateStats();
-                        appState.lastSyncTime = new Date();
-                        this.updateLastSyncDisplay();
+                    element.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        element.classList.add('dragover');
+                    });
+
+                    element.addEventListener('dragleave', () => {
+                        element.classList.remove('dragover');
+                    });
+
+                    element.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        element.classList.remove('dragover');
                         
-                        const message = csvSuccess && jsonSuccess ? 
-                            '✅ Sincronização completa: CSV + JSON' :
-                            csvSuccess ? '⚠️ CSV sincronizado, JSON falhou' :
-                            '⚠️ JSON sincronizado, CSV falhou';
-                        
-                        this.showNotification(message, csvSuccess && jsonSuccess ? 'success' : 'info');
-                    } else {
-                        this.showNotification('❌ Falha na sincronização de ambas as fontes', 'error');
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Erro na sincronização dual:', error);
-                    this.showNotification('❌ Erro na sincronização: ' + error.message, 'error');
-                } finally {
-                    appState.isLoading = false;
-                    this.updateSyncButton(false);
-                }
-            }
-
-            async syncCSVSource() {
-                try {
-                    this.updateSourceStatus('csv', 'loading', 'Sincronizando...');
-                    
-                    const { OWNER, REPO, FILE_PATH } = DUAL_GITHUB_CONFIG.CSV_SOURCE;
-                    const url = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${FILE_PATH}?t=${Date.now()}`;
-                    
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    
-                    const csvContent = await response.text();
-                    appState.csvData = this.parseCSV(csvContent);
-                    
-                    this.updateSourceStatus('csv', 'success', `${appState.csvData.length} registros`);
-                    console.log(`✅ CSV sincronizado: ${appState.csvData.length} registros`);
-                    
-                    return true;
-                } catch (error) {
-                    console.error('❌ Erro CSV:', error);
-                    this.updateSourceStatus('csv', 'error', 'Erro: ' + error.message);
-                    return false;
-                }
-            }
-
-            async syncJSONSource() {
-                try {
-                    this.updateSourceStatus('json', 'loading', 'Sincronizando...');
-                    
-                    const { OWNER, REPO, FILE_PATH } = DUAL_GITHUB_CONFIG.JSON_SOURCE;
-                    const url = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${FILE_PATH}?t=${Date.now()}`;
-                    
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    
-                    const jsonData = await response.json();
-                    appState.jsonData = jsonData.records || jsonData;
-                    
-                    this.updateSourceStatus('json', 'success', `${appState.jsonData.length} registros`);
-                    console.log(`✅ JSON sincronizado: ${appState.jsonData.length} registros`);
-                    
-                    return true;
-                } catch (error) {
-                    console.error('❌ Erro JSON:', error);
-                    this.updateSourceStatus('json', 'error', 'Erro: ' + error.message);
-                    return false;
-                }
-            }
-
-            parseCSV(csvContent) {
-                try {
-                    const lines = csvContent.trim().split('\n');
-                    if (lines.length < 2) return [];
-                    
-                    const delimiter = lines[0].includes(';') ? ';' : ',';
-                    const headers = lines[0].split(delimiter).map(h => h.replace(/"/g, '').trim());
-                    
-                    const data = [];
-                    for (let i = 1; i < lines.length; i++) {
-                        const values = this.parseCSVLine(lines[i], delimiter);
-                        const row = {};
-                        headers.forEach((header, index) => {
-                            row[header] = values[index] ? values[index].replace(/"/g, '').trim() : '';
-                        });
-                        
-                        if (row['Data Inicial'] && row['Data Final']) {
-                            data.push({
-                                ...row,
-                                type: 'appointment',
-                                equipment: this.extractEquipmentCode(row.Vaga),
-                                start_time: this.parseDateTime(row['Data Inicial']),
-                                end_time: this.parseDateTime(row['Data Final']),
-                                duration: this.parseDuration(row['Tempo Indisponível (HH:MM)']),
-                                category: row['Categoria Demora'] || 'Outros'
-                            });
+                        const files = e.dataTransfer.files;
+                        if (files.length > 0) {
+                            if (id === 'csvUploadArea') {
+                                this.loadCsvFile(files[0]);
+                            } else {
+                                this.loadJsonFile(files[0]);
+                            }
                         }
+                    });
+                });
+            }
+
+            loadCsvFile(file) {
+                if (!file) return;
+                this.updateSyncStatus('loading', 'Carregando CSV...');
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        this.csvData = this.parseCSV(e.target.result);
+                        document.getElementById('csvUploadArea').classList.add('loaded');
+                        document.getElementById('csvInfo').innerHTML = `
+                            <div class="file-info">
+                                📁 ${file.name}<br>
+                                📊 ${this.csvData.length} apontamentos carregados
+                            </div>
+                        `;
+                        this.processData();
+                        this.updateSyncStatus('success', 'CSV carregado com sucesso');
+                    } catch (error) {
+                        this.showError('csvInfo', 'Erro ao processar arquivo CSV: ' + error.message);
+                        this.updateSyncStatus('error', 'Erro no CSV');
                     }
+                };
+                reader.readAsText(file, 'UTF-8');
+            }
+
+            loadJsonFile(file) {
+                if (!file) return;
+                this.updateSyncStatus('loading', 'Carregando JSON...');
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const jsonData = JSON.parse(e.target.result);
+                        this.jsonData = jsonData.records || jsonData;
+                        document.getElementById('jsonUploadArea').classList.add('loaded');
+                        document.getElementById('jsonInfo').innerHTML = `
+                            <div class="file-info">
+                                📄 ${file.name}<br>
+                                🔄 ${this.jsonData.length} registros de status carregados
+                            </div>
+                        `;
+                        this.processData();
+                        this.updateSyncStatus('success', 'JSON carregado com sucesso');
+                    } catch (error) {
+                        this.showError('jsonInfo', 'Erro ao processar arquivo JSON: ' + error.message);
+                        this.updateSyncStatus('error', 'Erro no JSON');
+                    }
+                };
+                reader.readAsText(file, 'UTF-8');
+            }
+
+            parseCSV(csvText) {
+                const lines = csvText.trim().split('\n').filter(line => line.trim());
+                if (lines.length < 2) return [];
+
+                const delimiter = lines[0].includes(';') ? ';' : ',';
+                const headers = lines[0].split(delimiter).map(h => h.replace(/"/g, '').trim());
+                
+                const data = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
                     
-                    return data;
-                } catch (error) {
-                    console.error('Erro ao parsear CSV:', error);
-                    return [];
+                    const values = this.parseCSVLine(line, delimiter);
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] ? values[index].replace(/"/g, '').trim() : '';
+                    });
+                    
+                    if (row['Data Inicial'] && row['Data Final']) {
+                        data.push(row);
+                    }
                 }
+                
+                return data;
             }
 
             parseCSVLine(line, delimiter) {
@@ -864,6 +916,7 @@
                 
                 for (let i = 0; i < line.length; i++) {
                     const char = line[i];
+                    
                     if (char === '"') {
                         inQuotes = !inQuotes;
                     } else if (char === delimiter && !inQuotes) {
@@ -874,397 +927,706 @@
                     }
                 }
                 values.push(current.trim());
+                
                 return values;
             }
 
-            extractEquipmentCode(vagaName) {
-                if (!vagaName) return 'UNKNOWN';
-                
-                const upperName = vagaName.toUpperCase();
-                const patterns = [
-                    { regex: /CAMINHÃO ALTA PRESSÃO.*GPS.*(\d+)/, prefix: 'AP' },
-                    { regex: /CAMINHÃO AUTO VÁCUO.*GPS.*(\d+)/, prefix: 'AV' },
-                    { regex: /CAMINHÃO HIPER VÁCUO.*GPS.*(\d+)/, prefix: 'HV' }
-                ];
-                
-                for (const pattern of patterns) {
-                    const match = upperName.match(pattern.regex);
-                    if (match) {
-                        return `${pattern.prefix}-${match[1].padStart(2, '0')}`;
-                    }
+            processData() {
+                if (this.csvData.length === 0 && this.jsonData.length === 0) {
+                    return;
                 }
+
+                this.equipmentMap.clear();
+                this.items.clear();
+                this.groups.clear();
+
+                // Unificar equipamentos
+                this.unifyEquipmentData();
                 
-                return vagaName.substring(0, 10);
+                // Criar grupos
+                this.createGroups();
+                
+                // Criar items da timeline
+                this.createTimelineItems();
+                
+                // Inicializar timeline
+                this.initTimeline();
+                
+                // Atualizar interface
+                this.updateInterface();
             }
 
-            parseDateTime(dateTimeStr) {
-                if (!dateTimeStr) return null;
+            unifyEquipmentData() {
+                // Processar dados CSV
+                this.csvData.forEach((item) => {
+                    const equipName = this.normalizeEquipmentName(item.Vaga || item.Placa);
+                    if (!this.equipmentMap.has(equipName)) {
+                        this.equipmentMap.set(equipName, {
+                            name: equipName,
+                            originalName: item.Vaga || item.Placa,
+                            apontamentos: [],
+                            status: []
+                        });
+                    }
+                    this.equipmentMap.get(equipName).apontamentos.push(item);
+                });
+
+                // Processar dados JSON
+                this.jsonData.forEach((item) => {
+                    const equipName = this.normalizeEquipmentName(item.vacancy_name);
+                    if (!this.equipmentMap.has(equipName)) {
+                        this.equipmentMap.set(equipName, {
+                            name: equipName,
+                            originalName: item.vacancy_name,
+                            apontamentos: [],
+                            status: []
+                        });
+                    }
+                    this.equipmentMap.get(equipName).status.push(item);
+                });
+                
+                // Ordenar dados por timestamp
+                for (const [equipName, data] of this.equipmentMap) {
+                    data.apontamentos.sort((a, b) => {
+                        const dateA = this.parseDate(a['Data Inicial']);
+                        const dateB = this.parseDate(b['Data Inicial']);
+                        return (dateA || 0) - (dateB || 0);
+                    });
+                    
+                    data.status.sort((a, b) => {
+                        const dateA = this.parseDate(a.start);
+                        const dateB = this.parseDate(b.start);
+                        return (dateA || 0) - (dateB || 0);
+                    });
+                }
+            }
+
+            normalizeEquipmentName(name) {
+                if (!name) return 'Equipamento Desconhecido';
+                
+                let normalizedName = name.toUpperCase().trim();
+                normalizedName = normalizedName.replace(/\s+/g, ' ');
+                
+                normalizedName = normalizedName
+                    .replace(/\s*-\s*GPS\s*-\s*/g, ' - GPS - ')
+                    .replace(/\s*-\s*(\d+)\s*HS\s*$/i, ' - $1HS')
+                    .replace(/\s*-\s*(\d+)\s*H\s*$/i, ' - $1HS')
+                    .replace(/CAMINHÃO/g, 'CAMINHAO')
+                    .replace(/VÁCUO/g, 'VACUO')
+                    .replace(/PRESSÃO/g, 'PRESSAO')
+                    .trim();
+                
+                return normalizedName;
+            }
+
+            createGroups() {
+                let groupId = 0;
+                
+                const sortedEquipments = Array.from(this.equipmentMap.entries())
+                    .sort(([nameA], [nameB]) => nameA.localeCompare(nameB));
+                
+                for (const [equipName, data] of sortedEquipments) {
+                    if (data.apontamentos.length > 0 || data.status.length > 0) {
+                        const displayName = this.getDisplayName(equipName);
+                        
+                        // Grupo para apontamentos
+                        this.groups.add({
+                            id: `${equipName}_apont`,
+                            content: `<div style="font-weight: 500; color: #2d3748; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #718096;">📊 Apontamentos</div>`,
+                            order: groupId * 2
+                        });
+                        
+                        // Grupo para status
+                        this.groups.add({
+                            id: `${equipName}_status`,
+                            content: `<div style="font-weight: 500; color: #2d3748; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #718096;">🔄 Status</div>`,
+                            order: groupId * 2 + 1
+                        });
+                        
+                        groupId++;
+                    }
+                }
+            }
+
+            getDisplayName(equipName) {
+                return equipName
+                    .replace(/CAMINHAO/g, 'CAMINHÃO')
+                    .replace(/VACUO/g, 'VÁCUO') 
+                    .replace(/PRESSAO/g, 'PRESSÃO')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            }
+
+            createTimelineItems() {
+                let itemId = 0;
+
+                for (const [equipName, data] of this.equipmentMap) {
+                    // Processar apontamentos
+                    data.apontamentos.forEach(apont => {
+                        const start = this.parseDate(apont['Data Inicial']);
+                        const end = this.parseDate(apont['Data Final']);
+                        
+                        if (start && end && start < end) {
+                            const category = apont['Categoria Demora'] || 'Outros';
+                            const className = this.apontColors[category] || 'apont-aguardando';
+                            
+                            this.items.add({
+                                id: `apont_${itemId++}`,
+                                group: `${equipName}_apont`,
+                                content: this.truncateText(category, 20),
+                                start: start,
+                                end: end,
+                                className: className,
+                                title: this.createApontTooltip(apont, equipName)
+                            });
+                        }
+                    });
+
+                    // Processar status com consolidação
+                    if (data.status.length > 0) {
+                        const consolidatedStatus = this.config.consolidationMode === 'intelligent' ? 
+                            this.consolidateConsecutiveStatus(data.status) : data.status;
+                        
+                        consolidatedStatus.forEach((status) => {
+                            const start = this.parseDate(status.start);
+                            const end = this.parseDate(status.end);
+                            
+                            if (start && end && start < end) {
+                                const statusCode = status.status || 'unknown';
+                                const className = this.statusColors[statusCode] || 'status-not_appropriated';
+                                
+                                this.items.add({
+                                    id: `status_${itemId++}`,
+                                    group: `${equipName}_status`,
+                                    content: this.truncateText(status.status_title || statusCode, 25),
+                                    start: start,
+                                    end: end,
+                                    className: className,
+                                    title: this.createStatusTooltip(status, equipName)
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+
+            consolidateConsecutiveStatus(statusList) {
+                if (!statusList || statusList.length === 0) return [];
+                
+                const sortedStatus = [...statusList].sort((a, b) => 
+                    new Date(a.start) - new Date(b.start)
+                );
+                
+                const consolidated = [];
+                let current = null;
+                
+                sortedStatus.forEach(status => {
+                    if (!current) {
+                        current = { ...status };
+                    } else {
+                        const currentEnd = new Date(current.end);
+                        const statusStart = new Date(status.start);
+                        const gapMinutes = (statusStart - currentEnd) / (1000 * 60);
+                        
+                        // Se mesmo status e gap menor que 60 minutos, consolida
+                        if (current.status === status.status && 
+                            current.status_title === status.status_title && 
+                            Math.abs(gapMinutes) <= 60) {
+                            current.end = status.end;
+                            current.total_time = (current.total_time || 0) + (status.total_time || 0);
+                            current.count = (current.count || 1) + 1;
+                        } else {
+                            consolidated.push(current);
+                            current = { ...status };
+                        }
+                    }
+                });
+                
+                if (current) {
+                    consolidated.push(current);
+                }
+                
+                return consolidated;
+            }
+
+            parseDate(dateStr) {
+                if (!dateStr) return null;
                 
                 try {
-                    if (dateTimeStr.includes('/')) {
-                        const [datePart, timePart = '00:00:00'] = dateTimeStr.split(' ');
+                    if (dateStr.includes('/')) {
+                        const [datePart, timePart = '00:00:00'] = dateStr.split(' ');
                         const [day, month, year] = datePart.split('/');
+                        
+                        if (!day || !month || !year) return null;
+                        
                         return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`);
-                    } else {
-                        return new Date(dateTimeStr.replace(' ', 'T'));
+                    } else if (dateStr.includes('-')) {
+                        return new Date(dateStr.replace(' ', 'T'));
                     }
+                    
+                    return null;
                 } catch (error) {
                     return null;
                 }
             }
 
-            parseDuration(durationStr) {
-                if (!durationStr || !durationStr.includes(':')) return 0;
-                const parts = durationStr.split(':').map(Number);
-                return parts[0] * 60 + (parts[1] || 0); // minutos
+            truncateText(text, maxLength) {
+                if (!text) return '';
+                return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
             }
 
-            unifyData() {
-                console.log('🔄 Unificando dados CSV + JSON por equipamento...');
-                
-                appState.unifiedEquipmentData.clear();
-                
-                // Processa dados CSV (apontamentos)
-                appState.csvData.forEach(item => {
-                    const equipCode = item.equipment;
-                    if (!appState.unifiedEquipmentData.has(equipCode)) {
-                        appState.unifiedEquipmentData.set(equipCode, {
-                            code: equipCode,
-                            name: item.Vaga || equipCode,
-                            appointments: [],
-                            statusEvents: [],
-                            lastUpdate: new Date()
-                        });
-                    }
-                    appState.unifiedEquipmentData.get(equipCode).appointments.push(item);
-                });
-                
-                // Processa dados JSON (status)
-                appState.jsonData.forEach(item => {
-                    const equipCode = this.extractEquipmentCode(item.vacancy_name);
-                    if (!appState.unifiedEquipmentData.has(equipCode)) {
-                        appState.unifiedEquipmentData.set(equipCode, {
-                            code: equipCode,
-                            name: item.vacancy_name || equipCode,
-                            appointments: [],
-                            statusEvents: [],
-                            lastUpdate: new Date()
-                        });
-                    }
-                    
-                    appState.unifiedEquipmentData.get(equipCode).statusEvents.push({
-                        ...item,
-                        type: 'status',
-                        equipment: equipCode,
-                        start_time: this.parseDateTime(item.start),
-                        end_time: this.parseDateTime(item.end),
-                        duration: parseFloat(item.total_time) * 60 || 0 // converte horas para minutos
-                    });
-                });
-                
-                // Ordena eventos por data para cada equipamento
-                appState.unifiedEquipmentData.forEach(equipment => {
-                    equipment.appointments.sort((a, b) => (a.start_time || 0) - (b.start_time || 0));
-                    equipment.statusEvents.sort((a, b) => (a.start_time || 0) - (b.start_time || 0));
-                });
-                
-                console.log(`✅ Dados unificados para ${appState.unifiedEquipmentData.size} equipamentos`);
-            }
-
-            updateSourceStatus(type, status, message) {
-                const statusElement = document.getElementById(`${type}SourceStatus`);
-                const dotElement = document.getElementById(`${type}SyncDot`);
-                const syncStatusElement = document.getElementById(`${type}SyncStatus`);
-                const recordCountElement = document.getElementById(`${type}RecordCount`);
-                const lastUpdateElement = document.getElementById(`${type}LastUpdate`);
-                
-                // Atualiza classes CSS
-                statusElement.className = `source-status ${status}`;
-                dotElement.className = `sync-dot ${status}`;
-                
-                // Atualiza textos
-                statusElement.textContent = message;
-                syncStatusElement.textContent = message;
-                
-                if (status === 'success') {
-                    const count = type === 'csv' ? appState.csvData.length : appState.jsonData.length;
-                    recordCountElement.textContent = count;
-                    lastUpdateElement.textContent = new Date().toLocaleTimeString('pt-BR');
-                }
-            }
-
-            updateSyncButton(loading) {
-                const btn = document.getElementById('manualSyncBtn');
-                if (loading) {
-                    btn.classList.add('loading');
-                    btn.innerHTML = '<i class="fas fa-spinner"></i> Sincronizando...';
-                } else {
-                    btn.classList.remove('loading');
-                    btn.innerHTML = '<i class="fas fa-sync-alt"></i> Sincronizar Agora';
-                }
-            }
-
-            updateStats() {
-                document.getElementById('totalEquipments').textContent = appState.unifiedEquipmentData.size;
-                document.getElementById('activeAppointments').textContent = appState.csvData.length;
-                document.getElementById('statusRecords').textContent = appState.jsonData.length;
-            }
-
-            updateTimeline() {
-                this.populateEquipmentFilter();
-                this.renderTimeline();
-            }
-
-            populateEquipmentFilter() {
-                const filter = document.getElementById('equipmentFilter');
-                filter.innerHTML = '<option value="">Todos os equipamentos</option>';
-                
-                Array.from(appState.unifiedEquipmentData.keys()).sort().forEach(equipCode => {
-                    const option = document.createElement('option');
-                    option.value = equipCode;
-                    option.textContent = equipCode;
-                    filter.appendChild(option);
-                });
-            }
-
-            renderTimeline() {
-                const container = document.getElementById('timelineGrid');
-                const loading = document.getElementById('timelineLoading');
-                
-                loading.style.display = 'none';
-                container.style.display = 'grid';
-                container.innerHTML = '';
-                
-                const filterValue = document.getElementById('equipmentFilter').value;
-                const equipmentsToShow = filterValue ? 
-                    [appState.unifiedEquipmentData.get(filterValue)].filter(Boolean) :
-                    Array.from(appState.unifiedEquipmentData.values()).slice(0, 8);
-                
-                equipmentsToShow.forEach(equipment => {
-                    if (equipment) {
-                        container.appendChild(this.createEquipmentTimeline(equipment));
-                    }
-                });
-                
-                if (equipmentsToShow.length === 0) {
-                    container.innerHTML = '<div class="loading-state">Nenhum equipamento encontrado</div>';
-                }
-            }
-
-            createEquipmentTimeline(equipment) {
-                const timelineDiv = document.createElement('div');
-                timelineDiv.className = 'equipment-timeline';
-                
-                // Combina e ordena todos os eventos
-                const allEvents = [
-                    ...equipment.appointments.map(apt => ({
-                        ...apt,
-                        type: 'appointment',
-                        description: apt.category,
-                        time_range: this.formatTimeRange(apt.start_time, apt.end_time),
-                        duration_text: this.formatDuration(apt.duration)
-                    })),
-                    ...equipment.statusEvents.map(status => ({
-                        ...status,
-                        type: 'status',
-                        description: status.status_title || status.status,
-                        time_range: this.formatTimeRange(status.start_time, status.end_time),
-                        duration_text: this.formatDuration(status.duration)
-                    }))
-                ].sort((a, b) => (b.start_time || 0) - (a.start_time || 0));
-                
-                timelineDiv.innerHTML = `
-                    <div class="equipment-header">
-                        <div>
-                            <div class="equipment-name">${equipment.code}</div>
-                            <div class="equipment-code">${equipment.name}</div>
-                        </div>
-                        <div style="font-size: 0.875rem; color: var(--text-muted);">
-                            ${allEvents.length} eventos
-                        </div>
+            createApontTooltip(apont, equipName) {
+                return `
+                    <div style="font-size: 13px; line-height: 1.4;">
+                        <div style="font-weight: 600; margin-bottom: 8px; color: #2d3748;">📊 Apontamento Manual</div>
+                        <div style="margin-bottom: 4px;"><strong>Equipamento:</strong> ${equipName}</div>
+                        <div style="margin-bottom: 4px;"><strong>Categoria:</strong> ${apont['Categoria Demora'] || 'N/A'}</div>
+                        <div style="margin-bottom: 4px;"><strong>Período:</strong> ${apont['Data Inicial']} até ${apont['Data Final']}</div>
+                        <div style="margin-bottom: 4px;"><strong>Duração:</strong> ${apont['Tempo Indisponível (HH:MM)'] || 'N/A'}</div>
+                        <div><strong>Placa:</strong> ${apont.Placa || 'N/A'}</div>
                     </div>
-                    
-                    <div class="unified-events">
-                        ${allEvents.slice(0, 20).map(event => `
-                            <div class="event-item ${event.type}">
-                                <div class="event-content">
-                                    <div class="event-type">${event.type === 'appointment' ? '📊 Apontamento' : '🔄 Status'}</div>
-                                    <div class="event-description">${event.description}</div>
-                                    <div class="event-time">${event.time_range}</div>
-                                </div>
-                                <div class="event-duration">
-                                    <div class="duration-value">${event.duration_text}</div>
-                                    <div class="duration-label">${event.type === 'appointment' ? 'demora' : 'duração'}</div>
-                                </div>
-                            </div>
-                        `).join('')}
-                        
-                        ${allEvents.length > 20 ? `
-                            <div style="text-align: center; padding: 1rem; color: var(--text-muted);">
-                                ... e mais ${allEvents.length - 20} eventos
-                            </div>
-                        ` : ''}
-                        
-                        ${allEvents.length === 0 ? `
-                            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                                Nenhum evento registrado
-                            </div>
-                        ` : ''}
+                `;
+            }
+
+            createStatusTooltip(status, equipName) {
+                const totalHours = parseFloat(status.total_time || 0);
+                const count = status.count || 1;
+                
+                const formatHours = (hours) => {
+                    const h = Math.floor(hours);
+                    const m = Math.round((hours - h) * 60);
+                    if (h === 0) return `${m}min`;
+                    if (m === 0) return `${h}h`;
+                    return `${h}h ${m}min`;
+                };
+                
+                let tooltipContent = `
+                    <div style="font-size: 13px; line-height: 1.4;">
+                        <div style="font-weight: 600; margin-bottom: 8px; color: #2d3748;">🔄 Status Automático</div>
+                        <div style="margin-bottom: 4px;"><strong>Equipamento:</strong> ${equipName}</div>
+                        <div style="margin-bottom: 4px;"><strong>Status:</strong> ${status.status_title || status.status}</div>
+                        <div style="margin-bottom: 4px;"><strong>Período:</strong> ${status.start} até ${status.end}</div>
+                        <div style="margin-bottom: 4px;"><strong>Duração:</strong> ${formatHours(totalHours)}</div>`;
+                
+                if (count > 1) {
+                    tooltipContent += `
+                        <div style="margin-bottom: 4px; color: #10b981;"><strong>✅ Consolidado:</strong> ${count} registros</div>`;
+                }
+                
+                tooltipContent += `
+                        <div><strong>Código da Vaga:</strong> ${status.vacancy_code || 'N/A'}</div>
                     </div>
                 `;
                 
-                return timelineDiv;
+                return tooltipContent;
             }
 
-            formatTimeRange(startTime, endTime) {
-                if (!startTime || !endTime) return '--:-- - --:--';
-                
-                const start = new Date(startTime);
-                const end = new Date(endTime);
-                
-                const formatTime = (date) => {
-                    return date.toLocaleTimeString('pt-BR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                    });
+            initTimeline() {
+                if (this.items.length === 0) return;
+
+                const container = document.getElementById('timeline');
+                container.innerHTML = '';
+
+                const options = {
+                    orientation: 'top',
+                    stack: true,
+                    showCurrentTime: true,
+                    zoomMin: 1000 * 60 * 10, // 10 minutos
+                    zoomMax: 1000 * 60 * 60 * 24 * 30, // 30 dias
+                    editable: false,
+                    multiselect: false,
+                    selectable: true,
+                    tooltip: {
+                        followMouse: true,
+                        overflowMethod: 'flip'
+                    },
+                    format: {
+                        minorLabels: {
+                            minute: 'HH:mm',
+                            hour: 'HH:mm',
+                            day: 'DD/MM',
+                            month: 'MMM',
+                            year: 'YYYY'
+                        },
+                        majorLabels: {
+                            minute: 'ddd DD/MM',
+                            hour: 'ddd DD/MM',
+                            day: 'MMMM YYYY',
+                            month: 'YYYY',
+                            year: ''
+                        }
+                    },
+                    margin: {
+                        item: {
+                            horizontal: 2,
+                            vertical: 1
+                        }
+                    },
+                    height: '100%'
                 };
-                
-                const isSameDay = start.toDateString() === end.toDateString();
-                
-                if (isSameDay) {
-                    return `${formatTime(start)} - ${formatTime(end)}`;
-                } else {
-                    return `${start.toLocaleDateString('pt-BR')} ${formatTime(start)} - ${end.toLocaleDateString('pt-BR')} ${formatTime(end)}`;
-                }
-            }
 
-            formatDuration(minutes) {
-                if (!minutes || minutes < 1) return '< 1min';
-                
-                if (minutes < 60) {
-                    return `${Math.round(minutes)}min`;
-                }
-                
-                const hours = Math.floor(minutes / 60);
-                const mins = Math.round(minutes % 60);
-                
-                if (mins === 0) {
-                    return `${hours}h`;
-                }
-                
-                return `${hours}h ${mins}min`;
-            }
+                this.timeline = new vis.Timeline(container, this.items, this.groups, options);
 
-            updateLastSyncDisplay() {
-                if (appState.lastSyncTime) {
-                    const timeStr = appState.lastSyncTime.toLocaleTimeString('pt-BR');
-                    const now = new Date();
-                    const diffMinutes = Math.floor((now - appState.lastSyncTime) / (1000 * 60));
-                    
-                    document.getElementById('lastSyncTime').textContent = timeStr;
-                    document.getElementById('syncDelta').textContent = 
-                        diffMinutes === 0 ? 'Agora mesmo' :
-                        diffMinutes === 1 ? 'Há 1 minuto' :
-                        `Há ${diffMinutes} minutos`;
-                }
-            }
-
-            showNotification(message, type = 'info') {
-                // Remove notificações existentes
-                const existing = document.querySelectorAll('.notification');
-                existing.forEach(n => n.remove());
-                
-                const notification = document.createElement('div');
-                notification.className = `notification ${type}`;
-                notification.textContent = message;
-                
-                document.body.appendChild(notification);
-                
                 setTimeout(() => {
-                    notification.style.animation = 'slideOut 0.3s ease-in';
-                    setTimeout(() => notification.remove(), 300);
-                }, 5000);
+                    this.handlePeriodChange();
+                }, 100);
+            }
+
+            updateInterface() {
+                // Mostrar stats
+                document.getElementById('statsPanel').style.display = 'block';
+
+                // Atualizar estatísticas
+                const totalApont = Array.from(this.equipmentMap.values())
+                    .reduce((sum, data) => sum + data.apontamentos.length, 0);
+                const totalStatus = Array.from(this.equipmentMap.values())
+                    .reduce((sum, data) => sum + data.status.length, 0);
+
+                document.getElementById('apontCount').textContent = totalApont;
+                document.getElementById('statusCount').textContent = totalStatus;
+                document.getElementById('equipmentCount').textContent = this.equipmentMap.size;
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('pt-BR');
+                document.getElementById('visibleItems').textContent = `${this.items.length} itens visíveis`;
+
+                // Atualizar filtros
+                this.updateFilters();
+            }
+
+            updateFilters() {
+                const equipmentSelect = document.getElementById('equipmentFilter');
+                const currentValue = equipmentSelect.value;
+                equipmentSelect.innerHTML = '<option value="">Todos os equipamentos</option>';
+
+                Array.from(this.equipmentMap.keys()).sort().forEach(equipName => {
+                    const option = document.createElement('option');
+                    option.value = equipName;
+                    option.textContent = this.getDisplayName(equipName);
+                    if (equipName === currentValue) option.selected = true;
+                    equipmentSelect.appendChild(option);
+                });
+            }
+
+            handlePeriodChange() {
+                const period = document.getElementById('periodFilter').value;
+                const customGroup = document.getElementById('customDateGroup');
+                const customGroup2 = document.getElementById('customDateGroup2');
+                
+                if (period === 'custom') {
+                    customGroup.style.display = 'block';
+                    customGroup2.style.display = 'block';
+                    return;
+                } else {
+                    customGroup.style.display = 'none';
+                    customGroup2.style.display = 'none';
+                }
+
+                if (!this.timeline) return;
+
+                const now = new Date();
+                let start, end;
+
+                switch (period) {
+                    case 'today':
+                        start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+                        break;
+                    case 'yesterday':
+                        end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+                        break;
+                    case 'week':
+                        end = now;
+                        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        break;
+                    case 'month':
+                        end = now;
+                        start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                        break;
+                    default:
+                        this.timeline.fit();
+                        return;
+                }
+
+                this.timeline.setWindow(start, end);
+            }
+
+            applyFilters() {
+                if (this.isUpdating || !this.timeline) return;
+                this.isUpdating = true;
+
+                try {
+                    const equipmentFilter = document.getElementById('equipmentFilter').value;
+                    const period = document.getElementById('periodFilter').value;
+                    
+                    let filteredItems = [];
+                    
+                    for (const item of this.items.get()) {
+                        let include = true;
+                        
+                        // Filtro por equipamento
+                        if (equipmentFilter) {
+                            const itemEquipment = item.group.replace(/_apont$|_status$/, '');
+                            if (itemEquipment !== equipmentFilter) {
+                                include = false;
+                            }
+                        }
+                        
+                        // Filtro por data personalizada
+                        if (period === 'custom') {
+                            const startDate = document.getElementById('startDate').value;
+                            const endDate = document.getElementById('endDate').value;
+                            
+                            if (startDate && item.start < new Date(startDate)) include = false;
+                            if (endDate && item.start > new Date(endDate)) include = false;
+                        }
+                        
+                        if (include) {
+                            filteredItems.push(item);
+                        }
+                    }
+                    
+                    // Atualizar grupos visíveis
+                    const visibleEquipments = new Set();
+                    filteredItems.forEach(item => {
+                        const equipment = item.group.replace(/_apont$|_status$/, '');
+                        visibleEquipments.add(equipment);
+                    });
+                    
+                    const visibleGroups = [];
+                    for (const group of this.groups.get()) {
+                        const equipment = group.id.replace(/_apont$|_status$/, '');
+                        if (!equipmentFilter || visibleEquipments.has(equipment)) {
+                            visibleGroups.push(group);
+                        }
+                    }
+                    
+                    // Atualizar timeline
+                    this.timeline.setData({
+                        items: new vis.DataSet(filteredItems),
+                        groups: new vis.DataSet(visibleGroups)
+                    });
+                    
+                    document.getElementById('visibleItems').textContent = `${filteredItems.length} itens visíveis`;
+                    
+                } catch (error) {
+                    console.error('Erro ao aplicar filtros:', error);
+                } finally {
+                    this.isUpdating = false;
+                }
+            }
+
+            updateSyncStatus(status, message) {
+                const dot = document.getElementById('syncDot');
+                const statusText = document.getElementById('syncStatus');
+                
+                dot.className = `sync-dot ${status}`;
+                statusText.textContent = message;
+            }
+
+            showError(elementId, message) {
+                document.getElementById(elementId).innerHTML = `
+                    <div class="error-message">${message}</div>
+                `;
+            }
+
+            loadSampleData() {
+                this.csvData = [
+                    {
+                        'Placa': 'ABC-1234',
+                        'Vaga': 'CAMINHÃO ALTA PRESSÃO - GPS - 01 - 24 HS',
+                        'Categoria Demora': 'Abastecimento',
+                        'Data Inicial': '25/06/2025 08:00:00',
+                        'Data Final': '25/06/2025 08:30:00',
+                        'Tempo Indisponível (HH:MM)': '0:30'
+                    },
+                    {
+                        'Placa': 'ABC-1234',
+                        'Vaga': 'CAMINHÃO ALTA PRESSÃO - GPS - 01 - 24 HS',
+                        'Categoria Demora': 'Refeição Motorista',
+                        'Data Inicial': '25/06/2025 12:00:00',
+                        'Data Final': '25/06/2025 13:00:00',
+                        'Tempo Indisponível (HH:MM)': '1:00'
+                    }
+                ];
+
+                this.jsonData = [
+                    {
+                        "vacancy_code": "530",
+                        "vacancy_name": "CAMINHÃO ALTA PRESSÃO - GPS - 01 - 24 HS",
+                        "status": "off",
+                        "status_title": "Motor Desligado",
+                        "start": "2025-06-25 07:00",
+                        "end": "2025-06-25 08:00",
+                        "total_time": "1.0"
+                    },
+                    {
+                        "vacancy_code": "530",
+                        "vacancy_name": "CAMINHÃO ALTA PRESSÃO - GPS - 01 - 24 HS",
+                        "status": "running",
+                        "status_title": "Em Operação",
+                        "start": "2025-06-25 08:30",
+                        "end": "2025-06-25 12:00",
+                        "total_time": "3.5"
+                    },
+                    {
+                        "vacancy_code": "530",
+                        "vacancy_name": "CAMINHÃO ALTA PRESSÃO - GPS - 01 - 24 HS",
+                        "status": "off",
+                        "status_title": "Motor Desligado",
+                        "start": "2025-06-25 13:00",
+                        "end": "2025-06-25 14:00",
+                        "total_time": "1.0"
+                    }
+                ];
+
+                // Marcar uploads como carregados
+                document.getElementById('csvUploadArea').classList.add('loaded');
+                document.getElementById('jsonUploadArea').classList.add('loaded');
+                
+                document.getElementById('csvInfo').innerHTML = `
+                    <div class="file-info">
+                        🧪 Dados de teste<br>
+                        📊 ${this.csvData.length} apontamentos carregados
+                    </div>
+                `;
+                
+                document.getElementById('jsonInfo').innerHTML = `
+                    <div class="file-info">
+                        🧪 Dados de teste<br>
+                        🔄 ${this.jsonData.length} registros de status carregados
+                    </div>
+                `;
+
+                this.processData();
+                this.updateSyncStatus('success', 'Dados de teste carregados');
+            }
+
+            validateTimeline() {
+                if (this.items.length === 0) {
+                    alert('Carregue dados primeiro para validar a timeline');
+                    return;
+                }
+
+                const statusItems = this.items.get().filter(item => item.id.startsWith('status_'));
+                const apontItems = this.items.get().filter(item => item.id.startsWith('apont_'));
+                
+                let validation = {
+                    statusItems: statusItems.length,
+                    apontItems: apontItems.length,
+                    equipments: this.equipmentMap.size,
+                    duplicates: 0
+                };
+
+                // Verificar duplicatas
+                const byEquipment = {};
+                statusItems.forEach(item => {
+                    const equipment = item.group.replace('_status', '');
+                    if (!byEquipment[equipment]) byEquipment[equipment] = [];
+                    byEquipment[equipment].push(item);
+                });
+
+                for (const [equipment, items] of Object.entries(byEquipment)) {
+                    const sorted = items.sort((a, b) => new Date(a.start) - new Date(b.start));
+                    for (let i = 0; i < sorted.length - 1; i++) {
+                        const current = sorted[i];
+                        const next = sorted[i + 1];
+                        if (current.content === next.content) {
+                            const gap = (new Date(next.start) - new Date(current.end)) / (1000 * 60);
+                            if (Math.abs(gap) <= 5) {
+                                validation.duplicates++;
+                            }
+                        }
+                    }
+                }
+
+                alert(`Validação da Timeline:
+• ${validation.statusItems} itens de status
+• ${validation.apontItems} itens de apontamentos  
+• ${validation.equipments} equipamentos
+• ${validation.duplicates} possíveis duplicatas encontradas
+
+${validation.duplicates === 0 ? '✅ Timeline validada com sucesso!' : '⚠️ Foram encontradas possíveis duplicatas'}`);
+            }
+
+            startAutoSync() {
+                if (this.autoSyncInterval) {
+                    clearInterval(this.autoSyncInterval);
+                }
+
+                if (this.config.autoSyncInterval > 0) {
+                    this.autoSyncInterval = setInterval(() => {
+                        this.updateSystemInfo();
+                    }, this.config.autoSyncInterval);
+                }
+            }
+
+            updateSystemInfo() {
+                const now = new Date();
+                const uptime = Math.floor((now - this.startTime) / 1000 / 60); // minutos
+                
+                document.getElementById('systemLastUpdate').textContent = now.toLocaleString('pt-BR');
+                document.getElementById('totalProcessed').textContent = this.csvData.length + this.jsonData.length;
+                document.getElementById('uptime').textContent = uptime < 60 ? `${uptime}min` : `${Math.floor(uptime/60)}h ${uptime%60}min`;
             }
         }
 
         // =============================================================================
-        // INSTÂNCIA GLOBAL E FUNÇÕES DE INTERFACE
+        // FUNÇÕES GLOBAIS DE INTERFACE
         // =============================================================================
-        const dualSync = new DualGitHubSync();
+        let fleetTimeline = null;
+
+        function switchTab(tabName) {
+            // Remover classe active de todas as tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Ativar tab selecionada
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
 
         function manualSync() {
-            dualSync.syncBothSources();
-        }
-
-        function toggleAutoSync() {
-            appState.autoSyncEnabled = !appState.autoSyncEnabled;
-            const btn = document.getElementById('autoSyncBtn');
-            const text = document.getElementById('autoSyncText');
-            
-            if (appState.autoSyncEnabled) {
-                text.textContent = 'Auto-Sync: ON';
-                btn.innerHTML = '<i class="fas fa-pause"></i><span id="autoSyncText">Auto-Sync: ON</span>';
-                startAutoSync();
-                dualSync.showNotification('✅ Auto-sync ativado (30s)', 'success');
-            } else {
-                text.textContent = 'Auto-Sync: OFF';
-                btn.innerHTML = '<i class="fas fa-play"></i><span id="autoSyncText">Auto-Sync: OFF</span>';
-                stopAutoSync();
-                dualSync.showNotification('⏸️ Auto-sync desativado', 'info');
+            if (fleetTimeline) {
+                fleetTimeline.processData();
             }
         }
 
-        function startAutoSync() {
-            if (appState.syncInterval) clearInterval(appState.syncInterval);
-            
-            appState.syncInterval = setInterval(() => {
-                if (appState.autoSyncEnabled && !appState.isLoading) {
-                    console.log('🔄 Auto-sync executando...');
-                    dualSync.syncBothSources();
-                }
-            }, DUAL_GITHUB_CONFIG.AUTO_SYNC_INTERVAL);
-        }
-
-        function stopAutoSync() {
-            if (appState.syncInterval) {
-                clearInterval(appState.syncInterval);
-                appState.syncInterval = null;
+        function applyFilters() {
+            if (fleetTimeline) {
+                fleetTimeline.applyFilters();
             }
         }
 
-        function filterTimeline() {
-            dualSync.renderTimeline();
+        function loadSampleData() {
+            if (fleetTimeline) {
+                fleetTimeline.loadSampleData();
+            }
         }
 
-        function refreshTimeline() {
-            document.getElementById('timelineLoading').style.display = 'block';
-            document.getElementById('timelineGrid').style.display = 'none';
+        function validateTimeline() {
+            if (fleetTimeline) {
+                fleetTimeline.validateTimeline();
+            }
+        }
+
+        function saveSettings() {
+            const autoSyncInterval = parseInt(document.getElementById('autoSyncInterval').value);
+            const consolidationMode = document.getElementById('consolidationMode').value;
             
-            setTimeout(() => {
-                dualSync.renderTimeline();
-            }, 500);
+            if (fleetTimeline) {
+                fleetTimeline.config.autoSyncInterval = autoSyncInterval;
+                fleetTimeline.config.consolidationMode = consolidationMode;
+                fleetTimeline.startAutoSync();
+            }
+            
+            alert('Configurações salvas com sucesso!');
         }
 
         // =============================================================================
-        // INICIALIZAÇÃO DA APLICAÇÃO
+        // INICIALIZAÇÃO
         // =============================================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Inicializando Dashboard Unificado com Dual GitHub Sync...');
-            
-            // Primeira sincronização
-            setTimeout(() => {
-                dualSync.syncBothSources();
-            }, 1000);
-            
-            // Inicia auto-sync
-            startAutoSync();
-            
-            // Atualiza display do tempo a cada minuto
-            setInterval(() => {
-                dualSync.updateLastSyncDisplay();
-            }, 60000);
-            
-            console.log('✅ Dashboard Unificado inicializado!');
+        document.addEventListener('DOMContentLoaded', () => {
+            fleetTimeline = new UnifiedFleetTimelinePro();
         });
     </script>
 </body>
