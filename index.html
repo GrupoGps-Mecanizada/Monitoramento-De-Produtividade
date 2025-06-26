@@ -833,8 +833,7 @@
                 
                 this.setupEventListeners();
                 this.updateSystemInfo();
-                this.startAutoSync();
-                this.initGitHubSync();
+                await this.initGitHubSync();
             }
 
             setupEventListeners() {
@@ -1199,6 +1198,7 @@
                 const config = this.githubConfig.csvRepo;
                 
                 try {
+                    console.log(`📊 Buscando CSV de ${config.owner}/${config.repo}...`);
                     const response = await fetch(config.apiUrl);
                     
                     if (!response.ok) {
@@ -1220,11 +1220,12 @@
                     }
                     
                     const parsedData = this.parseCSV(csvText);
+                    console.log(`✅ CSV carregado: ${parsedData.length} registros`);
                     return { success: true, data: parsedData };
                     
                 } catch (error) {
                     console.error('❌ Erro ao buscar CSV:', error);
-                    throw error;
+                    return { success: false, data: [], error: error.message };
                 }
             }
 
@@ -1232,6 +1233,7 @@
                 const config = this.githubConfig.jsonRepo;
                 
                 try {
+                    console.log(`🔄 Buscando JSON de ${config.owner}/${config.repo}...`);
                     const response = await fetch(config.apiUrl);
                     
                     if (!response.ok) {
@@ -1259,11 +1261,12 @@
                         throw new Error('Formato JSON inválido');
                     }
                     
+                    console.log(`✅ JSON carregado: ${records.length} registros`);
                     return { success: true, data: records };
                     
                 } catch (error) {
                     console.error('❌ Erro ao buscar JSON:', error);
-                    throw error;
+                    return { success: false, data: [], error: error.message };
                 }
             }
 
