@@ -218,6 +218,7 @@
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
             align-items: end;
+            max-width: 800px; /* Limitar largura para melhor distribuição */
         }
 
         .control-group {
@@ -746,12 +747,7 @@
                             <input type="datetime-local" id="endDate" />
                         </div>
                         
-                        <div class="control-group">
-                            <button class="btn" onclick="applyFilters()" id="filterBtn">
-                                <span>🔍</span>
-                                Filtrar
-                            </button>
-                        </div>
+
                     </div>
                 </div>
 
@@ -921,6 +917,11 @@
         <div class="performance-indicator" id="performanceIndicator">
             Processando...
         </div>
+
+        <!-- Footer -->
+        <footer style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255, 255, 255, 0.2); padding: 1.5rem; text-align: center; color: #5a6c7d; font-size: 0.9rem;">
+            <p>Desenvolvido por <strong style="color: #2c3e50;">Warlison Abreu</strong> | © 2025 GrupoGPS - Todos os direitos reservados</p>
+        </footer>
     </div>
 
     <script>
@@ -1044,16 +1045,20 @@
             }
 
             setupEventListeners() {
-                // Filtros com debounce otimizado
+                // Filtros com aplicação automática (sem debounce excessivo)
                 const equipmentFilter = document.getElementById('equipmentFilter');
                 const periodFilter = document.getElementById('periodFilter');
                 const startDate = document.getElementById('startDate');
                 const endDate = document.getElementById('endDate');
 
-                equipmentFilter?.addEventListener('change', () => this.debouncedApplyFilters());
-                periodFilter?.addEventListener('change', () => this.handlePeriodChange());
-                startDate?.addEventListener('change', () => this.debouncedApplyFilters());
-                endDate?.addEventListener('change', () => this.debouncedApplyFilters());
+                equipmentFilter?.addEventListener('change', () => this.applyFiltersOptimized());
+                periodFilter?.addEventListener('change', () => {
+                    this.handlePeriodChange();
+                    // Aplicar filtros automaticamente após mudança de período
+                    setTimeout(() => this.applyFiltersOptimized(), 100);
+                });
+                startDate?.addEventListener('change', () => this.applyFiltersOptimized());
+                endDate?.addEventListener('change', () => this.applyFiltersOptimized());
 
                 // Performance monitoring
                 this.setupPerformanceMonitoring();
@@ -1095,13 +1100,14 @@
                 const debugStatsElement = document.getElementById('debugStats');
                 if (debugStatsElement) {
                     debugStatsElement.innerHTML = `
-                        Registros Originais: ${this.processingStats.originalRecords}
-                        Registros Finais: ${this.processingStats.finalRecords}
-                        Conflitos Resolvidos: ${this.processingStats.conflictsResolved}
-                        Duplicatas Removidas: ${this.processingStats.duplicatesRemoved}
-                        Tempo de Processamento: ${this.processingStats.lastProcessTime}ms
-                        Cache Hit Rate: ${this.calculateCacheHitRate()}%
-                    `;
+Registros Originais: ${this.processingStats.originalRecords}
+Registros Finais: ${this.processingStats.finalRecords}
+Conflitos Detectados: ${this.processingStats.conflictsResolved}
+Duplicatas Removidas: ${this.processingStats.duplicatesRemoved}
+Tempo de Processamento: ${this.processingStats.lastProcessTime}ms
+Equipamentos: ${this.equipmentMap.size}
+Cache Hit Rate: ${this.calculateCacheHitRate()}%
+                    `.trim();
                 }
             }
 
@@ -1176,8 +1182,11 @@
 
                     if (successCount > 0) {
                         if (newDataDetected) {
+                            this.addDebugLog(`Novos dados detectados - iniciando processamento conservador`);
                             await this.processDataOptimized();
                             this.showNotification('✅ Dados atualizados', 'success');
+                        } else {
+                            this.addDebugLog('Nenhum dado novo - mantendo timeline atual');
                         }
                         this.updateSyncStatus('success', 'Sincronizado');
                     } else {
@@ -1205,13 +1214,13 @@
                 if (this.csvData.length === 0 && this.jsonData.length === 0) return;
 
                 const startTime = performance.now();
-                this.addDebugLog('Iniciando processamento otimizado');
+                this.addDebugLog('Iniciando processamento conservador - 100% fidelidade aos dados');
 
                 // Reset stats
                 this.processingStats = {
                     conflictsResolved: 0,
                     duplicatesRemoved: 0,
-                    originalRecords: this.jsonData.length,
+                    originalRecords: this.csvData.length + this.jsonData.length,
                     finalRecords: 0,
                     lastProcessTime: 0
                 };
@@ -1220,53 +1229,35 @@
                 this.equipmentMap.clear();
                 this.filterCache.clear();
 
-                // Processamento em chunks para melhor performance
-                await this.processInChunks();
+                // Processamento CONSERVADOR - preserva todos os dados
+                await this.processDataConservative();
 
-                // Criar grupos otimizado
+                // Criar grupos
                 this.createGroupsOptimized();
 
-                // Criar timeline items otimizado
-                await this.createTimelineItemsOptimized();
+                // Criar timeline items SEM modificação de dados
+                await this.createTimelineItemsConservative();
 
-                // Atualizar interface
-                if (this.timeline) {
-                    this.updateTimelineOptimized();
-                } else {
-                    this.initTimelineOptimized();
-                }
+                // Garantir que timeline seja visível com todos os dados
+                setTimeout(() => {
+                    if (this.timeline && this.items.length > 0) {
+                        // Mostrar todos os dados por padrão
+                        this.timeline.fit();
+                        // Aplicar período padrão
+                        this.handlePeriodChange();
+                    }
+                }, 200);
 
                 this.processingStats.lastProcessTime = Math.round(performance.now() - startTime);
                 this.updateInterface();
-                this.addDebugLog(`Processamento concluído em ${this.processingStats.lastProcessTime}ms`);
+                this.addDebugLog(`Processamento conservador concluído: ${this.processingStats.finalRecords} registros preservados`);
             }
 
-            async processInChunks() {
-                const chunkSize = 500;
+            async processDataConservative() {
+                // Processamento DIRETO sem chunks para manter fidelidade total
                 
-                // Processar CSV em chunks
-                for (let i = 0; i < this.csvData.length; i += chunkSize) {
-                    const chunk = this.csvData.slice(i, i + chunkSize);
-                    this.processCSVChunk(chunk);
-                    
-                    if (i % 1000 === 0) {
-                        await this.yieldToMainThread();
-                    }
-                }
-
-                // Processar JSON em chunks
-                for (let i = 0; i < this.jsonData.length; i += chunkSize) {
-                    const chunk = this.jsonData.slice(i, i + chunkSize);
-                    this.processJSONChunk(chunk);
-                    
-                    if (i % 1000 === 0) {
-                        await this.yieldToMainThread();
-                    }
-                }
-            }
-
-            processCSVChunk(chunk) {
-                chunk.forEach((item) => {
+                // Processar CSV - TODOS os dados preservados
+                this.csvData.forEach((item) => {
                     const equipName = this.normalizeEquipmentNameCached(item.Vaga || item.Placa);
                     if (!this.equipmentMap.has(equipName)) {
                         this.equipmentMap.set(equipName, {
@@ -1278,10 +1269,9 @@
                     }
                     this.equipmentMap.get(equipName).apontamentos.push(item);
                 });
-            }
 
-            processJSONChunk(chunk) {
-                chunk.forEach((item) => {
+                // Processar JSON - TODOS os dados preservados
+                this.jsonData.forEach((item) => {
                     const equipName = this.normalizeEquipmentNameCached(item.vacancy_name);
                     if (!this.equipmentMap.has(equipName)) {
                         this.equipmentMap.set(equipName, {
@@ -1293,6 +1283,25 @@
                     }
                     this.equipmentMap.get(equipName).status.push(item);
                 });
+
+                // Ordenação simples por data - SEM remoção de dados
+                for (const [equipName, data] of this.equipmentMap) {
+                    // Ordenar apontamentos por data inicial
+                    data.apontamentos.sort((a, b) => {
+                        const dateA = this.parseDateCached(a['Data Inicial']);
+                        const dateB = this.parseDateCached(b['Data Inicial']);
+                        return (dateA || 0) - (dateB || 0);
+                    });
+                    
+                    // Ordenar status por data inicial
+                    data.status.sort((a, b) => {
+                        const dateA = this.parseDateCached(a.start);
+                        const dateB = this.parseDateCached(b.start);
+                        return (dateA || 0) - (dateB || 0);
+                    });
+                }
+
+                this.addDebugLog(`Dados conservados: ${this.equipmentMap.size} equipamentos processados`);
             }
 
             async yieldToMainThread() {
@@ -1358,21 +1367,23 @@
                     .replace(/CAMINHAO/g, 'CAMINHÃO')
                     .replace(/VACUO/g, 'VÁCUO') 
                     .replace(/PRESSAO/g, 'PRESSÃO')
-                    .substring(0, 25);
+                    .replace(/\s+/g, ' ')
+                    .trim();
             }
 
-            async createTimelineItemsOptimized() {
+            async createTimelineItemsConservative() {
                 this.items.clear();
                 let itemId = 0;
                 const itemsArray = [];
 
                 for (const [equipName, data] of this.equipmentMap) {
-                    // Processar apontamentos
+                    // Processar TODOS os apontamentos - SEM filtros
                     data.apontamentos.forEach(apont => {
                         const start = this.parseDateCached(apont['Data Inicial']);
                         const end = this.parseDateCached(apont['Data Final']);
                         
-                        if (start && end && start < end) {
+                        // Incluir TODOS os registros com datas válidas
+                        if (start && end) {
                             const category = apont['Categoria Demora'] || 'Outros';
                             const className = this.apontColors[category] || 'apont-aguardando';
                             
@@ -1389,40 +1400,41 @@
                         }
                     });
 
-                    // Processar status com resolução de conflitos
-                    if (data.status.length > 0) {
-                        const resolvedStatus = this.resolveStatusConflictsOptimized(data.status, equipName);
+                    // Processar TODOS os status - SEM resolução de conflitos
+                    data.status.forEach((status) => {
+                        const start = this.parseDateCached(status.start);
+                        const end = this.parseDateCached(status.end);
                         
-                        resolvedStatus.forEach((status) => {
-                            const start = this.parseDateCached(status.start);
-                            const end = this.parseDateCached(status.end);
+                        // Incluir TODOS os registros com datas válidas
+                        if (start && end) {
+                            const statusCode = status.status || 'unknown';
+                            const className = this.statusColors[statusCode] || 'status-not_appropriated';
                             
-                            if (start && end && start < end) {
-                                const statusCode = status.status || 'unknown';
-                                const className = this.statusColors[statusCode] || 'status-not_appropriated';
-                                
-                                itemsArray.push({
-                                    id: `status_${itemId++}`,
-                                    group: `${equipName}_status`,
-                                    content: this.truncateText(status.status_title || statusCode, 20),
-                                    start: start,
-                                    end: end,
-                                    className: className,
-                                    title: this.createStatusTooltipOptimized(status, equipName),
-                                    type: 'range'
-                                });
-                            }
-                        });
-                    }
-
-                    // Yield para não travar a UI
-                    if (itemId % 100 === 0) {
-                        await this.yieldToMainThread();
-                    }
+                            itemsArray.push({
+                                id: `status_${itemId++}`,
+                                group: `${equipName}_status`,
+                                content: this.truncateText(status.status_title || statusCode, 20),
+                                start: start,
+                                end: end,
+                                className: className,
+                                title: this.createStatusTooltipOptimized(status, equipName),
+                                type: 'range'
+                            });
+                        }
+                    });
                 }
 
                 this.items.add(itemsArray);
                 this.processingStats.finalRecords = itemsArray.length;
+                
+                this.addDebugLog(`Timeline criada: ${itemsArray.length} itens preservados (100% dos dados originais)`);
+                
+                // Atualizar timeline
+                if (this.timeline) {
+                    this.updateTimelineOptimized();
+                } else {
+                    this.initTimelineOptimized();
+                }
             }
 
             parseDateCached(dateStr) {
@@ -1455,44 +1467,34 @@
             resolveStatusConflictsOptimized(statusList, equipmentName) {
                 if (!statusList || statusList.length <= 1) return statusList;
 
-                // Versão otimizada do algoritmo de resolução
-                const sorted = statusList
+                // VERSÃO CONSERVADORA - PRESERVA TODOS OS DADOS ORIGINAIS
+                // Apenas ordena por data de início, sem remover nenhum dado
+                const validStatus = statusList
                     .filter(s => s.start && s.end)
                     .sort((a, b) => new Date(a.start) - new Date(b.start));
 
-                const resolved = [];
-                let current = null;
+                // Se não há dados válidos, retorna lista original
+                if (validStatus.length === 0) return statusList;
 
-                for (const status of sorted) {
-                    if (!current) {
-                        current = { ...status };
-                        continue;
-                    }
-
-                    const currentEnd = new Date(current.end);
-                    const statusStart = new Date(status.start);
-
-                    if (statusStart < currentEnd) {
-                        // Conflito detectado - resolução simplificada
+                // Detecção de sobreposições sem remoção de dados
+                let hasOverlaps = false;
+                for (let i = 0; i < validStatus.length - 1; i++) {
+                    const currentEnd = new Date(validStatus[i].end);
+                    const nextStart = new Date(validStatus[i + 1].start);
+                    
+                    if (nextStart < currentEnd) {
+                        hasOverlaps = true;
                         this.processingStats.conflictsResolved++;
-                        
-                        const priority1 = this.statusPriority[current.status] || 0;
-                        const priority2 = this.statusPriority[status.status] || 0;
-                        
-                        if (priority2 > priority1) {
-                            current = { ...status };
-                        }
-                    } else {
-                        resolved.push(current);
-                        current = { ...status };
                     }
                 }
 
-                if (current) {
-                    resolved.push(current);
+                // Log para debug mas retorna dados originais preservados
+                if (hasOverlaps) {
+                    this.addDebugLog(`Sobreposições detectadas em ${equipmentName} - dados preservados`);
                 }
 
-                return resolved;
+                // RETORNA DADOS ORIGINAIS ORDENADOS - SEM ALTERAÇÕES
+                return validStatus;
             }
 
             createStatusTooltipOptimized(status, equipName) {
@@ -1548,10 +1550,15 @@
             // TIMELINE OTIMIZADA
             // =============================================================================
             initTimelineOptimized() {
-                if (this.items.length === 0) return;
+                if (this.items.length === 0) {
+                    this.addDebugLog('Timeline não inicializada: nenhum item disponível');
+                    return;
+                }
 
                 const container = document.getElementById('timeline');
                 container.innerHTML = '';
+
+                this.addDebugLog(`Inicializando timeline com ${this.items.length} itens`);
 
                 const options = {
                     orientation: 'top',
@@ -1591,20 +1598,21 @@
                     height: '100%',
                     maxHeight: 600,
                     verticalScroll: true,
-                    horizontalScroll: true,
-                    throttleRedraw: 16 // 60fps
+                    horizontalScroll: true
                 };
 
                 this.timeline = new vis.Timeline(container, this.items, this.groups, options);
 
                 // Event listeners otimizados
-                this.timeline.on('rangechanged', this.debounce((properties) => {
+                this.timeline.on('rangechanged', (properties) => {
                     this.currentViewWindow = properties;
-                }, 100));
+                });
 
+                // Garantir visualização inicial
                 setTimeout(() => {
                     this.handlePeriodChange();
-                }, 100);
+                    this.addDebugLog('Timeline inicializada com sucesso');
+                }, 150);
             }
 
             updateTimelineOptimized() {
@@ -1643,36 +1651,22 @@
             // =============================================================================
             // FILTROS OTIMIZADOS
             // =============================================================================
-            debouncedApplyFilters() {
-                clearTimeout(this.filterDebounceTimer);
-                this.filterDebounceTimer = setTimeout(() => {
-                    this.applyFiltersOptimized();
-                }, 300);
-            }
-
             applyFiltersOptimized() {
-                if (this.isUpdating || !this.timeline) return;
+                if (this.isUpdating || !this.timeline || this.items.length === 0) return;
 
                 const startTime = performance.now();
-                const filterBtn = document.getElementById('filterBtn');
                 
-                if (filterBtn) {
-                    filterBtn.disabled = true;
-                    filterBtn.innerHTML = '<span>⏳</span> Filtrando...';
-                }
-
                 try {
                     const equipmentFilter = document.getElementById('equipmentFilter').value;
                     const period = document.getElementById('periodFilter').value;
                     
-                    // Cache key para filtros
-                    const cacheKey = `${equipmentFilter}_${period}`;
-                    
                     let filteredItems = [];
                     
-                    if (this.filterCache.has(cacheKey)) {
-                        filteredItems = this.filterCache.get(cacheKey);
+                    // Se não há filtros, mostrar todos os itens
+                    if (!equipmentFilter && period !== 'custom') {
+                        filteredItems = this.items.get();
                     } else {
+                        // Aplicar filtros
                         for (const item of this.items.get()) {
                             let include = true;
                             
@@ -1695,11 +1689,9 @@
                                 filteredItems.push(item);
                             }
                         }
-                        
-                        // Cache do resultado
-                        this.filterCache.set(cacheKey, filteredItems);
                     }
                     
+                    // Atualizar grupos visíveis
                     const visibleEquipments = new Set();
                     filteredItems.forEach(item => {
                         const equipment = item.group.replace(/_apont$|_status$/, '');
@@ -1714,23 +1706,23 @@
                         }
                     }
                     
+                    // Atualizar timeline
                     this.timeline.setData({
                         items: new vis.DataSet(filteredItems),
                         groups: new vis.DataSet(visibleGroups)
                     });
                     
+                    // Atualizar estatísticas
                     document.getElementById('visibleItems').textContent = `${filteredItems.length} itens`;
+                    
+                    // Log para debug
+                    this.addDebugLog(`Filtros aplicados: ${filteredItems.length} itens visíveis`);
                     
                 } catch (error) {
                     console.error('❌ Erro ao aplicar filtros:', error);
                     this.addDebugLog(`Erro nos filtros: ${error.message}`, 'error');
                 } finally {
                     this.performanceMetrics.filterTime = performance.now() - startTime;
-                    
-                    if (filterBtn) {
-                        filterBtn.disabled = false;
-                        filterBtn.innerHTML = '<span>🔍</span> Filtrar';
-                    }
                 }
             }
 
@@ -2059,6 +2051,7 @@
         }
 
         function applyFilters() {
+            // Esta função não é mais necessária pois os filtros são aplicados automaticamente
             if (productivitySystem) {
                 productivitySystem.applyFiltersOptimized();
             }
