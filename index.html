@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timeline Unificado - Gestão de Frota</title>
+    <title>Monitoramento De Produtividade - GrupoGPS</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css" />
     <style>
@@ -14,27 +14,30 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f8fafc;
-            color: #1a202c;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #2c3e50;
             line-height: 1.6;
+            min-height: 100vh;
         }
 
         .app-container {
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            backdrop-filter: blur(10px);
         }
 
-        /* Header Minimalista */
+        /* Header Sofisticado */
         .header {
-            background: white;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 1rem 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem 2rem;
             position: sticky;
             top: 0;
-            z-index: 100;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
         .header-content {
@@ -48,9 +51,12 @@
         }
 
         .header-brand h1 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #2d3748;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -59,40 +65,43 @@
         .header-controls {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 1.5rem;
         }
 
         .sync-indicator {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: #f7fafc;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            color: #4a5568;
+            padding: 0.75rem 1.5rem;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50px;
+            font-size: 0.9rem;
+            color: #5a6c7d;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
         .sync-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             animation: pulse 2s infinite;
         }
 
-        .sync-dot.success { background: #48bb78; }
-        .sync-dot.error { background: #e53e3e; }
-        .sync-dot.loading { background: #ed8936; }
+        .sync-dot.success { background: #27ae60; }
+        .sync-dot.error { background: #e74c3c; }
+        .sync-dot.loading { background: #f39c12; }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
         }
 
         /* Navigation Tabs */
         .nav-tabs {
-            background: white;
-            border-bottom: 1px solid #e2e8f0;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
             padding: 0 2rem;
         }
 
@@ -100,27 +109,51 @@
             max-width: 1600px;
             margin: 0 auto;
             display: flex;
-            gap: 2rem;
+            gap: 0;
         }
 
         .nav-tab {
-            padding: 1rem 1.5rem;
+            padding: 1.2rem 2rem;
             border-bottom: 3px solid transparent;
             cursor: pointer;
-            font-weight: 500;
-            color: #718096;
-            transition: all 0.2s;
+            font-weight: 600;
+            color: #7f8c8d;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             user-select: none;
+            position: relative;
+            background: transparent;
+        }
+
+        .nav-tab::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: 8px 8px 0 0;
         }
 
         .nav-tab.active {
-            color: #3182ce;
-            border-bottom-color: #3182ce;
+            color: #fff;
+            border-bottom-color: transparent;
+        }
+
+        .nav-tab.active::before {
+            opacity: 1;
+        }
+
+        .nav-tab > span {
+            position: relative;
+            z-index: 1;
         }
 
         .nav-tab:hover:not(.active) {
-            color: #4a5568;
-            background: #f7fafc;
+            color: #2c3e50;
+            background: rgba(255, 255, 255, 0.6);
         }
 
         /* Main Content */
@@ -140,84 +173,85 @@
             display: block;
         }
 
-        /* Timeline Tab - Principal */
+        /* Cards e Painéis */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
         .timeline-controls {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 2rem;
         }
 
         .controls-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
             align-items: end;
         }
 
         .control-group {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.8rem;
         }
 
         .control-group label {
-            font-weight: 500;
-            color: #4a5568;
-            font-size: 0.875rem;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.95rem;
         }
 
         select, input[type="datetime-local"] {
-            padding: 0.75rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            background: white;
-            transition: border-color 0.2s;
+            padding: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            background: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+            color: #2c3e50;
         }
 
         select:focus, input[type="datetime-local"]:focus {
             outline: none;
-            border-color: #3182ce;
-            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            background: rgba(255, 255, 255, 0.95);
         }
 
         .btn {
-            background: #3182ce;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 6px;
+            padding: 1rem 2rem;
+            border-radius: 12px;
             cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
-            font-size: 0.875rem;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
         .btn:hover {
-            background: #2c5aa0;
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
 
         .btn.secondary {
-            background: #718096;
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
         }
 
         .btn.success {
-            background: #48bb78;
-        }
-
-        .btn.success:hover {
-            background: #38a169;
-        }
-
-        .btn.secondary:hover {
-            background: #4a5568;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
         }
 
         .btn:disabled {
@@ -228,152 +262,182 @@
 
         /* Timeline Container */
         .timeline-container {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             overflow: hidden;
-            margin-bottom: 1.5rem;
         }
 
         .timeline-header {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #e2e8f0;
-            background: #f7fafc;
+            padding: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.5);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .timeline-title {
-            font-weight: 600;
-            color: #2d3748;
+            font-weight: 700;
+            color: #2c3e50;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            font-size: 1.2rem;
         }
 
         #timeline {
             height: 600px;
-            background: white;
+            background: rgba(255, 255, 255, 0.8);
             position: relative;
         }
 
         /* Stats Panel */
         .stats-panel {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 1.5rem;
+            padding: 2rem;
         }
 
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
+            gap: 2rem;
         }
 
         .stat-card {
             text-align: center;
-            padding: 1rem;
-            background: #f7fafc;
-            border-radius: 6px;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.8);
         }
 
         .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #2d3748;
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .stat-label {
-            font-size: 0.875rem;
-            color: #718096;
-            margin-top: 0.25rem;
-        }
-
-        /* Data Sources Tab */
-        .data-sources-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .source-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .source-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .source-title {
+            font-size: 1rem;
+            color: #5a6c7d;
+            margin-top: 0.5rem;
             font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
 
-        .upload-area {
-            border: 2px dashed #cbd5e0;
-            border-radius: 8px;
-            padding: 2rem;
-            text-align: center;
-            margin-bottom: 1rem;
-            transition: all 0.2s;
-            cursor: pointer;
+        /* Cores da Timeline - Status baseadas na imagem */
+        .vis-item.status-running { 
+            background-color: #27ae60 !important; 
+            border-color: #219a52 !important; 
+        }
+        .vis-item.status-stopped { 
+            background-color: #f1c40f !important; 
+            border-color: #d4ac0d !important; 
+        }
+        .vis-item.status-off { 
+            background-color: #95a5a6 !important; 
+            border-color: #7f8c8d !important; 
+        }
+        .vis-item.status-maintenance { 
+            background-color: #e67e22 !important; 
+            border-color: #d35400 !important; 
+        }
+        .vis-item.status-out_of_plant { 
+            background-color: #8b4513 !important; 
+            border-color: #7a3c11 !important; 
+        }
+        .vis-item.status-not_appropriated { 
+            background-color: #95a5a6 !important; 
+            border-color: #7f8c8d !important; 
+        }
+        .vis-item.status-no_data { 
+            background-color: #2c3e50 !important; 
+            border-color: #1a252f !important; 
+        }
+        .vis-item.status-on { 
+            background-color: #3498db !important; 
+            border-color: #2980b9 !important; 
+        }
+        .vis-item.status-secondary_motor_on { 
+            background-color: #9b59b6 !important; 
+            border-color: #8e44ad !important; 
         }
 
-        .upload-area:hover {
-            border-color: #3182ce;
-            background: #f7fafc;
+        /* Cores da Timeline - Apontamentos */
+        .vis-item.apont-abastecimento { 
+            background-color: #3498db !important; 
+            border-color: #2980b9 !important; 
+        }
+        .vis-item.apont-bloqueio { 
+            background-color: #e74c3c !important; 
+            border-color: #c0392b !important; 
+        }
+        .vis-item.apont-descarregamento { 
+            background-color: #f39c12 !important; 
+            border-color: #e67e22 !important; 
+        }
+        .vis-item.apont-documentacao { 
+            background-color: #27ae60 !important; 
+            border-color: #219a52 !important; 
+        }
+        .vis-item.apont-preparacao { 
+            background-color: #9b59b6 !important; 
+            border-color: #8e44ad !important; 
+        }
+        .vis-item.apont-manutencao { 
+            background-color: #e67e22 !important; 
+            border-color: #d35400 !important; 
+        }
+        .vis-item.apont-refeicao { 
+            background-color: #27ae60 !important; 
+            border-color: #219a52 !important; 
+        }
+        .vis-item.apont-aguardando { 
+            background-color: #3498db !important; 
+            border-color: #2980b9 !important; 
         }
 
-        .upload-area.dragover {
-            border-color: #3182ce;
-            background: #ebf8ff;
+        /* Timeline Visual Improvements */
+        .vis-timeline {
+            border: none !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
         }
 
-        .upload-area.loaded {
-            border-color: #48bb78;
-            background: #f0fff4;
+        .vis-panel.vis-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
         }
 
-        .upload-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.7;
+        .vis-labelset .vis-label {
+            border-right: 1px solid rgba(255, 255, 255, 0.2) !important;
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            color: #2c3e50 !important;
+            font-weight: 600 !important;
+            font-size: 13px !important;
         }
 
-        .file-input {
-            display: none;
+        .vis-time-axis .vis-text {
+            color: #5a6c7d !important;
+            font-weight: 600 !important;
         }
 
-        .file-info {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: #f0fff4;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            color: #2f855a;
+        .vis-item {
+            border-radius: 6px !important;
+            border-width: 2px !important;
+            color: white !important;
+            font-weight: 600 !important;
+            font-size: 12px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
         }
 
-        .error-message {
-            background: #fed7d7;
-            color: #c53030;
-            padding: 1rem;
-            border-radius: 6px;
-            margin-top: 1rem;
-            font-size: 0.875rem;
+        .vis-item.vis-selected {
+            border-width: 3px !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25) !important;
         }
 
         /* Loading States */
@@ -383,14 +447,14 @@
             align-items: center;
             justify-content: center;
             height: 400px;
-            color: #718096;
+            color: #5a6c7d;
         }
 
         .loading-spinner {
             width: 3rem;
             height: 3rem;
-            border: 3px solid #e2e8f0;
-            border-top: 3px solid #3182ce;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #667eea;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 1rem;
@@ -401,75 +465,19 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Animações para notificações GitHub */
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        /* Footer */
+        .footer {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 2rem;
+            text-align: center;
+            color: #5a6c7d;
+            font-size: 0.9rem;
         }
 
-        @keyframes slideOutRight {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-
-        @keyframes slideIn {
-            from { transform: translate(-50%, -60%); opacity: 0; }
-            to { transform: translate(-50%, -50%); opacity: 1; }
-        }
-
-        /* Cores da Timeline - Apontamentos */
-        .vis-item.apont-abastecimento { background-color: #3182ce !important; border-color: #2c5aa0 !important; }
-        .vis-item.apont-bloqueio { background-color: #e53e3e !important; border-color: #c53030 !important; }
-        .vis-item.apont-descarregamento { background-color: #d69e2e !important; border-color: #b7791f !important; }
-        .vis-item.apont-documentacao { background-color: #38a169 !important; border-color: #2f855a !important; }
-        .vis-item.apont-preparacao { background-color: #805ad5 !important; border-color: #6b46c1 !important; }
-        .vis-item.apont-manutencao { background-color: #ed8936 !important; border-color: #dd6b20 !important; }
-        .vis-item.apont-refeicao { background-color: #48bb78 !important; border-color: #38a169 !important; }
-        .vis-item.apont-aguardando { background-color: #4299e1 !important; border-color: #3182ce !important; }
-
-        /* Cores da Timeline - Status */
-        .vis-item.status-not_appropriated { background-color: #a0aec0 !important; border-color: #718096 !important; }
-        .vis-item.status-off { background-color: #2d3748 !important; border-color: #1a202c !important; }
-        .vis-item.status-stopped { background-color: #ed8936 !important; border-color: #dd6b20 !important; }
-        .vis-item.status-maintenance { background-color: #e53e3e !important; border-color: #c53030 !important; }
-        .vis-item.status-running { background-color: #38a169 !important; border-color: #2f855a !important; }
-        .vis-item.status-moving { background-color: #3182ce !important; border-color: #2c5aa0 !important; }
-
-        /* Timeline Visual Improvements */
-        .vis-timeline {
-            border: none !important;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-        }
-
-        .vis-panel.vis-bottom {
-            border-top: 1px solid #e2e8f0 !important;
-        }
-
-        .vis-labelset .vis-label {
-            border-right: 1px solid #e2e8f0 !important;
-            background-color: #f7fafc !important;
-            color: #2d3748 !important;
-            font-weight: 500 !important;
-            font-size: 13px !important;
-        }
-
-        .vis-time-axis .vis-text {
-            color: #4a5568 !important;
-            font-weight: 500 !important;
-        }
-
-        .vis-item {
-            border-radius: 4px !important;
-            border-width: 1px !important;
-            color: white !important;
-            font-weight: 500 !important;
-            font-size: 12px !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-        }
-
-        .vis-item.vis-selected {
-            border-width: 2px !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+        .footer strong {
+            color: #2c3e50;
         }
 
         /* Responsive */
@@ -477,6 +485,10 @@
             .header-content {
                 flex-direction: column;
                 text-align: center;
+            }
+
+            .header-brand h1 {
+                font-size: 1.5rem;
             }
 
             .main-content {
@@ -492,25 +504,57 @@
                 flex: 1;
                 text-align: center;
                 min-width: 120px;
+                padding: 1rem;
             }
 
             .controls-grid {
                 grid-template-columns: 1fr;
             }
 
-            .data-sources-grid {
-                grid-template-columns: 1fr;
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
+        }
+
+        /* Notificações */
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            z-index: 10000;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            animation: slideInRight 0.3s ease-out;
+            max-width: 400px;
+            backdrop-filter: blur(20px);
+        }
+
+        .notification.success { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .notification.error { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .notification.warning { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .notification.info { background: linear-gradient(135deg, #3498db, #2980b9); }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
         }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <!-- Header Minimalista -->
+        <!-- Header -->
         <header class="header">
             <div class="header-content">
                 <div class="header-brand">
-                    <h1>🚛 Timeline Unificado de Frota</h1>
+                    <h1>🚛 Monitoramento De Produtividade - GrupoGPS</h1>
                 </div>
                 
                 <div class="header-controls">
@@ -531,13 +575,13 @@
         <nav class="nav-tabs">
             <div class="nav-tabs-container">
                 <div class="nav-tab active" onclick="switchTab('timeline')">
-                    📊 Timeline
+                    <span>📊 Timeline</span>
                 </div>
                 <div class="nav-tab" onclick="switchTab('data-sources')">
-                    📁 Fontes de Dados
+                    <span>📁 Fontes de Dados</span>
                 </div>
                 <div class="nav-tab" onclick="switchTab('settings')">
-                    ⚙️ Configurações
+                    <span>⚙️ Configurações</span>
                 </div>
             </div>
         </nav>
@@ -547,7 +591,7 @@
             <!-- Timeline Tab (Principal) -->
             <div id="timeline-tab" class="tab-content active">
                 <!-- Controles -->
-                <div class="timeline-controls">
+                <div class="glass-panel timeline-controls">
                     <div class="controls-grid">
                         <div class="control-group">
                             <label>Equipamento:</label>
@@ -588,7 +632,7 @@
                 </div>
 
                 <!-- Timeline Container -->
-                <div class="timeline-container">
+                <div class="glass-panel timeline-container">
                     <div class="timeline-header">
                         <div class="timeline-title">
                             <span>📈</span>
@@ -608,7 +652,7 @@
                 </div>
 
                 <!-- Stats Panel -->
-                <div class="stats-panel" id="statsPanel" style="display: none;">
+                <div class="glass-panel stats-panel" id="statsPanel" style="display: none;">
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-value" id="apontCount">0</div>
@@ -632,96 +676,27 @@
 
             <!-- Data Sources Tab -->
             <div id="data-sources-tab" class="tab-content">
-                <div class="data-sources-grid">
-                    <!-- CSV Upload -->
-                    <div class="source-card">
-                        <div class="source-header">
-                            <div class="source-title">
-                                <span>📊</span>
-                                Apontamentos CSV
-                            </div>
-                        </div>
+                <div class="glass-panel">
+                    <div style="padding: 2rem;">
+                        <h2 style="margin-bottom: 2rem; color: #2c3e50;">Fontes de Dados</h2>
                         
-                        <div class="upload-area" id="csvUploadArea" onclick="document.getElementById('csvFile').click()">
-                            <div class="upload-icon">📁</div>
-                            <h3>Apontamentos Manuais</h3>
-                            <p>Clique ou arraste um arquivo CSV com apontamentos</p>
-                            <input type="file" id="csvFile" class="file-input" accept=".csv" />
-                        </div>
-                        <div id="csvInfo"></div>
-                    </div>
-
-                    <!-- JSON Upload -->
-                    <div class="source-card">
-                        <div class="source-header">
-                            <div class="source-title">
-                                <span>🔄</span>
-                                Status JSON
+                        <div style="display: grid; gap: 2rem;">
+                            <div>
+                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">📊 CSV (Apontamentos)</h3>
+                                <p style="color: #7f8c8d;">GrupoGps-Mecanizada/Apontamento-Dos-Tablets</p>
+                                <p style="font-size: 0.9rem; color: #95a5a6;">data/apontamentos-atuais.csv</p>
                             </div>
-                        </div>
-                        
-                        <div class="upload-area" id="jsonUploadArea" onclick="document.getElementById('jsonFile').click()">
-                            <div class="upload-icon">📄</div>
-                            <h3>Status Automático</h3>
-                            <p>Clique ou arraste um arquivo JSON com status</p>
-                            <input type="file" id="jsonFile" class="file-input" accept=".json" />
-                        </div>
-                        <div id="jsonInfo"></div>
-                    </div>
-                </div>
-
-                <!-- Test Data Buttons -->
-                <div style="margin-top: 2rem; text-align: center; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                    <button class="btn secondary" onclick="loadSampleData()">
-                        <span>🧪</span>
-                        Carregar Dados de Teste
-                    </button>
-                    <button class="btn secondary" onclick="validateTimeline()">
-                        <span>✅</span>
-                        Validar Timeline
-                    </button>
-                    <button class="btn" onclick="testGitHubConnection()">
-                        <span>🔗</span>
-                        Testar Conexão GitHub
-                    </button>
-                    <button class="btn success" onclick="testSpecificRepo()">
-                        <span>✅</span>
-                        Testar Repositório JSON Corrigido
-                    </button>
-                    <button class="btn secondary" onclick="diagnoseCorsIssues()">
-                        <span>🔧</span>
-                        Diagnosticar CORS
-                    </button>
-                </div>
-
-                <!-- GitHub Status -->
-                <div style="margin-top: 2rem;">
-                    <div class="source-card">
-                        <div class="source-header">
-                            <div class="source-title">
-                                <span>📡</span>
-                                Status da Sincronização GitHub
+                            
+                            <div>
+                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">🔄 JSON (Status)</h3>
+                                <p style="color: #7f8c8d;">GrupoGps-Mecanizada/Controle-Status-Equipamentos-</p>
+                                <p style="font-size: 0.9rem; color: #95a5a6;">data/latest-fleet-data.json</p>
                             </div>
-                        </div>
-                        
-                        <div style="display: grid; gap: 1rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
-                                <span><strong>📊 Repositório CSV:</strong> <span id="csvRepoName">Apontamento-Dos-Tablets</span></span>
-                                <span id="csvRepoStatus" class="source-status loading">Verificando...</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
-                                <span><strong>🔄 Repositório JSON:</strong> <span id="jsonRepoName">Controle-Status-Equipamentos-</span></span>
-                                <span id="jsonRepoStatus" class="source-status loading">Verificando...</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
-                                <span><strong>⚠️ Problemas Conhecidos:</strong></span>
-                                <button class="btn secondary" onclick="showKnownIssues()" style="padding: 0.5rem 1rem; font-size: 0.8rem;">
-                                    Ver Soluções
-                                </button>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
-                                <span><strong>⏰ Próxima sincronização:</strong></span>
-                                <span id="nextSyncTime">--</span>
+                            
+                            <div>
+                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">⏰ Sincronização</h3>
+                                <p style="color: #7f8c8d;">Automática a cada 10 minutos via GitHub API</p>
+                                <p style="font-size: 0.9rem; color: #95a5a6;">Próxima atualização: <span id="nextUpdate">--:--</span></p>
                             </div>
                         </div>
                     </div>
@@ -730,153 +705,54 @@
 
             <!-- Settings Tab -->
             <div id="settings-tab" class="tab-content">
-                <!-- Configuração de Repositórios -->
-                <div class="source-card">
-                    <div class="source-header">
-                        <div class="source-title">
-                            <span>🔗</span>
-                            Configuração de Repositórios GitHub
-                        </div>
-                    </div>
-                    
-                    <div style="display: grid; gap: 1.5rem;">
-                        <div class="control-group">
-                            <label>📊 Repositório CSV (Apontamentos):</label>
-                            <input type="text" id="csvRepoUrl" value="GrupoGps-Mecanizada/Apontamento-Dos-Tablets" placeholder="owner/repository" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px;">
-                            <small style="color: #718096;">Formato: owner/repository (exemplo: GrupoGps-Mecanizada/Apontamento-Dos-Tablets)</small>
-                        </div>
+                <div class="glass-panel">
+                    <div style="padding: 2rem;">
+                        <h2 style="margin-bottom: 2rem; color: #2c3e50;">Configurações do Sistema</h2>
                         
-                        <div class="control-group">
-                            <label>📄 Caminho do arquivo CSV:</label>
-                            <input type="text" id="csvFilePath" value="data/apontamentos-atuais.csv" placeholder="data/apontamentos-atuais.csv" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <div style="display: grid; gap: 2rem; max-width: 600px;">
+                            <div class="control-group">
+                                <label>Intervalo de Auto-Sync:</label>
+                                <select id="autoSyncInterval">
+                                    <option value="300000">5 minutos</option>
+                                    <option value="600000" selected>10 minutos</option>
+                                    <option value="900000">15 minutos</option>
+                                    <option value="1800000">30 minutos</option>
+                                    <option value="0">Desabilitado</option>
+                                </select>
+                            </div>
+                            
+                            <div class="control-group">
+                                <label>Consolidação de Status:</label>
+                                <select id="consolidationMode">
+                                    <option value="intelligent" selected>Inteligente (Recomendado)</option>
+                                    <option value="strict">Rígida</option>
+                                    <option value="none">Desabilitada</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <button class="btn" onclick="saveSettings()">
+                                    <span>💾</span>
+                                    Salvar Configurações
+                                </button>
+                            </div>
                         </div>
-                        
-                        <div class="control-group">
-                            <label>🔄 Repositório JSON (Status):</label>
-                            <input type="text" id="jsonRepoUrl" value="GrupoGps-Mecanizada/Controle-Status-Equipamentos-" placeholder="owner/repository" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px;">
-                            <small style="color: #718096;">Deixe em branco se não existir repositório JSON</small>
-                        </div>
-                        
-                        <div class="control-group">
-                            <label>📄 Caminho do arquivo JSON:</label>
-                            <input type="text" id="jsonFilePath" value="data/latest-fleet-data.json" placeholder="data/latest-fleet-data.json" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px;">
-                        </div>
-                        
-                        <div style="display: flex; gap: 1rem;">
-                            <button class="btn" onclick="updateRepositoryConfig()">
-                                <span>💾</span>
-                                Atualizar Configuração
-                            </button>
-                            <button class="btn secondary" onclick="testRepositoryAccess()">
-                                <span>🔍</span>
-                                Testar Acesso
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="source-card">
-                    <div class="source-header">
-                        <div class="source-title">
-                            <span>⚙️</span>
-                            Configurações do Sistema
-                        </div>
-                    </div>
-                    
-                    <div style="display: grid; gap: 1.5rem;">
-                        <div class="control-group">
-                            <label>Intervalo de Auto-Sync:</label>
-                            <select id="autoSyncInterval">
-                                <option value="300000" selected>5 minutos</option>
-                                <option value="600000">10 minutos</option>
-                                <option value="900000">15 minutos</option>
-                                <option value="1800000">30 minutos</option>
-                                <option value="0">Desabilitado</option>
-                            </select>
-                        </div>
-                        
-                        <div class="control-group">
-                            <label>Consolidação de Status:</label>
-                            <select id="consolidationMode">
-                                <option value="intelligent" selected>Inteligente (Recomendado)</option>
-                                <option value="strict">Rígida</option>
-                                <option value="none">Desabilitada</option>
-                            </select>
-                        </div>
-                        
-                        <div class="control-group">
-                            <label>Modo de Operação:</label>
-                            <select id="operationMode">
-                                <option value="auto" selected>Automático (CSV + JSON)</option>
-                                <option value="csv-only">Somente CSV</option>
-                                <option value="json-only">Somente JSON</option>
-                                <option value="manual">Upload Manual</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <button class="btn" onclick="saveSettings()">
-                                <span>💾</span>
-                                Salvar Configurações
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- System Info -->
-                <div class="source-card" style="margin-top: 1.5rem;">
-                    <div class="source-header">
-                        <div class="source-title">
-                            <span>🔗</span>
-                            Repositórios GitHub
-                        </div>
-                    </div>
-                    
-                    <div style="font-size: 0.875rem; line-height: 1.6; color: #4a5568;">
-                        <p><strong>📊 CSV (Apontamentos):</strong><br>
-                        GrupoGps-Mecanizada/Apontamento-Dos-Tablets<br>
-                        <code>data/apontamentos-atuais.csv</code><br>
-                        <small>API: /repos/.../contents/data/apontamentos-atuais.csv</small></p>
-                        
-                        <p style="margin-top: 1rem;"><strong>🔄 JSON (Status):</strong><br>
-                        GrupoGps-Mecanizada/Controle-Status-Equipamentos-<br>
-                        <code>data/latest-fleet-data.json</code><br>
-                        <small>API: /repos/.../contents/data/latest-fleet-data.json</small></p>
-                        
-                        <p style="margin-top: 1rem;"><strong>⏰ Sincronização:</strong> Automática a cada 5 minutos via GitHub API</p>
-                        <p><strong>🔒 Segurança:</strong> CORS habilitado, sem autenticação necessária</p>
-                        <p><strong>📡 Método:</strong> GitHub Contents API (suporte nativo a CORS)</p>
-                    </div>
-                </div>
-
-                <div class="source-card" style="margin-top: 1.5rem;">
-                    <div class="source-header">
-                        <div class="source-title">
-                            <span>ℹ️</span>
-                            Informações do Sistema
-                        </div>
-                    </div>
-                    
-                    <div style="font-size: 0.875rem; line-height: 1.6; color: #4a5568;">
-                        <p><strong>Versão:</strong> 2.0 Professional - Repository Name Fixed</p>
-                        <p><strong>Status:</strong> <span style="color: #48bb78;">✅ Nome do repositório JSON corrigido!</span></p>
-                        <p><strong>Correção:</strong> <span style="color: #48bb78;">"Controle-Status-Equipamentos-" (hífen adicionado)</span></p>
-                        <p><strong>Última atualização:</strong> <span id="systemLastUpdate">--</span></p>
-                        <p><strong>Registros processados:</strong> <span id="totalProcessed">0</span></p>
-                        <p><strong>Tempo de atividade:</strong> <span id="uptime">--</span></p>
-                        <p><strong>CORS Status:</strong> ✅ Resolvido via GitHub API</p>
-                        <p><strong>Encoding:</strong> ✅ Acentos corrigidos automaticamente</p>
                     </div>
                 </div>
             </div>
         </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Desenvolvido por <strong>Warlison Abreu</strong> | © 2025 GrupoGPS - Todos os direitos reservados</p>
+        </footer>
     </div>
 
     <script>
         // =============================================================================
-        // CLASSE PRINCIPAL - VERSÃO PROFISSIONAL COM GITHUB SYNC
+        // CLASSE PRINCIPAL - VERSÃO APRIMORADA COM MELHOR CONSOLIDAÇÃO
         // =============================================================================
-        class UnifiedFleetTimelinePro {
+        class ProductivityMonitoringSystem {
             constructor() {
                 this.timeline = null;
                 this.items = new vis.DataSet();
@@ -887,8 +763,10 @@
                 this.isUpdating = false;
                 this.autoSyncInterval = null;
                 this.startTime = new Date();
+                this.lastDataHash = '';
+                this.currentViewWindow = null;
 
-                // Configurações GitHub (flexíveis)
+                // Configurações GitHub
                 this.githubConfig = {
                     csvRepo: {
                         owner: 'GrupoGps-Mecanizada',
@@ -898,28 +776,35 @@
                         enabled: true
                     },
                     jsonRepo: {
-                        owner: 'GrupoGps-Mecanizada', 
+                        owner: 'GrupoGps-Mecanizada',
                         repo: 'Controle-Status-Equipamentos-',
                         path: 'data/latest-fleet-data.json',
                         apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos-/contents/data/latest-fleet-data.json',
-                        enabled: true,
-                        // Repositórios alternativos para testar
-                        alternatives: [
-                            'https://api.github.com/repos/GrupoGps-Mecanizada/Status-Equipamentos/contents/data/latest-fleet-data.json',
-                            'https://api.github.com/repos/GrupoGps-Mecanizada/Fleet-Status/contents/data/latest-fleet-data.json'
-                        ]
+                        enabled: true
                     }
                 };
 
-                // Configurações
+                // Configurações - padrão 10 minutos
                 this.config = {
-                    autoSyncInterval: 300000, // 5 minutos
+                    autoSyncInterval: 600000, // 10 minutos
                     consolidationMode: 'intelligent',
                     retryAttempts: 3,
                     retryDelay: 2000
                 };
 
-                // Mapeamento de cores
+                // Mapeamento de cores baseado na imagem fornecida
+                this.statusColors = {
+                    'running': 'status-running',           // Verde - Motor Ligado
+                    'on': 'status-on',                     // Azul - Motor Ligado
+                    'stopped': 'status-stopped',           // Amarelo - Parado Ligado
+                    'off': 'status-off',                   // Cinza - Motor Desligado
+                    'maintenance': 'status-maintenance',   // Laranja - Em Manutenção
+                    'out_of_plant': 'status-out_of_plant', // Marrom - Fora da Planta
+                    'not_appropriated': 'status-not_appropriated', // Cinza - Indisponível
+                    'no_data': 'status-no_data',           // Preto - Sem Dados de Bordo
+                    'secondary_motor_on': 'status-secondary_motor_on' // Roxo - Motor Secundário
+                };
+
                 this.apontColors = {
                     'Abastecimento': 'apont-abastecimento',
                     'Bloqueio': 'apont-bloqueio',
@@ -936,449 +821,23 @@
                     'Troca de Equipamento': 'apont-manutencao'
                 };
 
-                this.statusColors = {
-                    'not_appropriated': 'status-not_appropriated',
-                    'off': 'status-off',
-                    'stopped': 'status-stopped',
-                    'maintenance': 'status-maintenance',
-                    'running': 'status-running',
-                    'moving': 'status-moving'
-                };
+                this.initSystem();
+            }
 
-                this.initEvents();
+            // =============================================================================
+            // INICIALIZAÇÃO DO SISTEMA
+            // =============================================================================
+            async initSystem() {
+                console.log('🚀 Iniciando Monitoramento De Produtividade - GrupoGPS');
+                this.updateSyncStatus('loading', 'Inicializando sistema...');
+                
+                this.setupEventListeners();
                 this.updateSystemInfo();
                 this.startAutoSync();
-                
-                // Iniciar sincronização automática com GitHub
                 this.initGitHubSync();
             }
 
-            // =============================================================================
-            // SINCRONIZAÇÃO AUTOMÁTICA COM GITHUB
-            // =============================================================================
-            async initGitHubSync() {
-                console.log('🚀 Iniciando sincronização automática com GitHub via API oficial...');
-                console.log('🔧 CORS corrigido usando GitHub Contents API com decodificação Base64');
-                console.log('✅ CORREÇÃO: Nome do repositório JSON corrigido para "Controle-Status-Equipamentos-"');
-                this.updateSyncStatus('loading', 'Conectando aos repositórios...');
-                
-                // Primeira sincronização
-                await this.syncFromGitHub();
-                
-                // Configurar interval para sync automático
-                this.startGitHubAutoSync();
-            }
-
-            async syncFromGitHub() {
-                if (this.isUpdating) {
-                    console.log('⏸️ Sync já em andamento, aguardando...');
-                    return;
-                }
-
-                this.isUpdating = true;
-                this.updateSyncStatus('loading', 'Sincronizando dados...');
-                
-                console.log('🔄 Iniciando sincronização dual GitHub...');
-
-                try {
-                    // Sincronização paralela
-                    const [csvResult, jsonResult] = await Promise.allSettled([
-                        this.fetchCSVFromGitHub(),
-                        this.fetchJSONFromGitHub()
-                    ]);
-
-                    let successCount = 0;
-                    let errorMessages = [];
-
-                    // Processar resultado CSV
-                    if (csvResult.status === 'fulfilled' && csvResult.value.success) {
-                        this.csvData = csvResult.value.data;
-                        successCount++;
-                        console.log(`✅ CSV: ${this.csvData.length} registros sincronizados`);
-                        
-                        // Atualizar status do repositório CSV
-                        const csvRepoStatus = document.getElementById('csvRepoStatus');
-                        if (csvRepoStatus) {
-                            csvRepoStatus.className = 'source-status success';
-                            csvRepoStatus.textContent = 'Conectado';
-                        }
-                    } else {
-                        errorMessages.push('CSV: ' + (csvResult.reason || 'Erro desconhecido'));
-                        console.error('❌ Erro CSV:', csvResult.reason);
-                        
-                        // Atualizar status do repositório CSV
-                        const csvRepoStatus = document.getElementById('csvRepoStatus');
-                        if (csvRepoStatus) {
-                            csvRepoStatus.className = 'source-status error';
-                            csvRepoStatus.textContent = 'Erro';
-                        }
-                    }
-
-                    // Processar resultado JSON  
-                    if (jsonResult.status === 'fulfilled' && jsonResult.value.success) {
-                        this.jsonData = jsonResult.value.data;
-                        successCount++;
-                        console.log(`✅ JSON: ${this.jsonData.length} registros sincronizados`);
-                        
-                        // Atualizar status do repositório JSON
-                        const jsonRepoStatus = document.getElementById('jsonRepoStatus');
-                        if (jsonRepoStatus) {
-                            jsonRepoStatus.className = 'source-status success';
-                            jsonRepoStatus.textContent = 'Conectado';
-                        }
-                    } else {
-                        errorMessages.push('JSON: ' + (jsonResult.reason || 'Erro desconhecido'));
-                        console.error('❌ Erro JSON:', jsonResult.reason);
-                        
-                        // Atualizar status do repositório JSON
-                        const jsonRepoStatus = document.getElementById('jsonRepoStatus');
-                        if (jsonRepoStatus) {
-                            jsonRepoStatus.className = 'source-status error';
-                            jsonRepoStatus.textContent = 'Erro';
-                        }
-                    }
-
-                    // Atualizar interface baseado nos resultados
-                    if (successCount > 0) {
-                        this.processData();
-                        
-                        if (successCount === 2) {
-                            this.updateSyncStatus('success', 'Dados sincronizados com sucesso');
-                            this.showGitHubNotification('✅ Sincronização completa: CSV + JSON', 'success');
-                        } else if (this.csvData.length > 0 && this.jsonData.length === 0) {
-                            this.updateSyncStatus('success', 'Sincronização parcial (apenas CSV)');
-                            this.showGitHubNotification('⚠️ Somente CSV sincronizado - JSON não disponível', 'warning');
-                            this.showJsonNotFoundGuidance();
-                        } else if (this.csvData.length === 0 && this.jsonData.length > 0) {
-                            this.updateSyncStatus('success', 'Sincronização parcial (apenas JSON)');
-                            this.showGitHubNotification('⚠️ Somente JSON sincronizado - CSV não disponível', 'warning');
-                        } else {
-                            this.updateSyncStatus('success', `Sincronização parcial (${successCount}/2)`);
-                            this.showGitHubNotification(`⚠️ Sincronização parcial: ${errorMessages.join(', ')}`, 'warning');
-                        }
-                    } else {
-                        this.updateSyncStatus('error', 'Falha na sincronização');
-                        this.showGitHubNotification('❌ Falha completa na sincronização: ' + errorMessages.join(', '), 'error');
-                    }
-
-                } catch (error) {
-                    console.error('❌ Erro geral na sincronização:', error);
-                    this.updateSyncStatus('error', 'Erro na sincronização');
-                    this.showGitHubNotification('❌ Erro na sincronização: ' + error.message, 'error');
-                } finally {
-                    this.isUpdating = false;
-                }
-            }
-
-            async fetchCSVFromGitHub() {
-                const config = this.githubConfig.csvRepo;
-                
-                try {
-                    console.log(`📊 Buscando CSV via GitHub API de ${config.owner}/${config.repo}...`);
-                    
-                    const response = await this.fetchWithRetry(config.apiUrl);
-                    
-                    if (!response.ok) {
-                        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-                        
-                        // Mensagens específicas para códigos de erro comuns
-                        switch (response.status) {
-                            case 404:
-                                errorMessage = 'Repositório ou arquivo não encontrado. Verifique se o repositório é público e o arquivo existe.';
-                                break;
-                            case 403:
-                                errorMessage = 'Acesso negado. Repositório pode ser privado ou há limite de rate limit.';
-                                break;
-                            case 429:
-                                errorMessage = 'Muitas requisições. Aguarde alguns minutos antes de tentar novamente.';
-                                break;
-                            case 0:
-                                errorMessage = 'Erro de conectividade. Verifique sua conexão com a internet.';
-                                break;
-                        }
-                        
-                        throw new Error(errorMessage);
-                    }
-
-                    const apiData = await response.json();
-                    
-                    // Verificar se é um arquivo
-                    if (apiData.type !== 'file') {
-                        throw new Error('Não é um arquivo válido');
-                    }
-                    
-                    // Decodificar conteúdo base64 e corrigir encoding
-                    let csvText = atob(apiData.content.replace(/\n/g, ''));
-                    
-                    // Corrigir problemas de encoding (UTF-8)
-                    try {
-                        // Tentar decodificar como UTF-8
-                        csvText = decodeURIComponent(escape(csvText));
-                    } catch (error) {
-                        console.log('⚠️ Mantendo texto original, possível encoding diferente');
-                    }
-                    
-                    const parsedData = this.parseCSV(csvText);
-                    
-                    // Atualizar indicadores visuais
-                    document.getElementById('csvUploadArea').classList.add('loaded');
-                    document.getElementById('csvInfo').innerHTML = `
-                        <div class="file-info">
-                            🔗 Sincronizado via GitHub API<br>
-                            📊 ${parsedData.length} apontamentos carregados<br>
-                            📅 Última modificação: ${new Date(apiData.updated_at).toLocaleString('pt-BR')}<br>
-                            ⏰ ${new Date().toLocaleTimeString('pt-BR')}
-                        </div>
-                    `;
-
-                    return { success: true, data: parsedData };
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao buscar CSV:', error);
-                    
-                    document.getElementById('csvInfo').innerHTML = `
-                        <div class="error-message">
-                            ❌ Erro ao sincronizar CSV via GitHub API<br>
-                            ${error.message}<br>
-                            <small>Verifique se o repositório e arquivo existem</small>
-                        </div>
-                    `;
-                    
-                    throw error;
-                }
-            }
-
-            async fetchJSONFromGitHub() {
-                const config = this.githubConfig.jsonRepo;
-                
-                if (!config.enabled) {
-                    console.log('⚠️ Repositório JSON desabilitado');
-                    return { success: false, data: [] };
-                }
-                
-                // Lista de URLs para tentar
-                const urlsToTry = [config.apiUrl, ...(config.alternatives || [])];
-                
-                for (let i = 0; i < urlsToTry.length; i++) {
-                    const currentUrl = urlsToTry[i];
-                    const isAlternative = i > 0;
-                    
-                    try {
-                        console.log(`🔄 Tentativa ${i + 1}: Buscando JSON via GitHub API...`);
-                        if (isAlternative) {
-                            console.log(`📍 URL alternativa: ${currentUrl}`);
-                        }
-                        
-                        const response = await this.fetchWithRetry(currentUrl);
-                        
-                        if (!response.ok) {
-                            if (i === urlsToTry.length - 1) {
-                                // Última tentativa - lançar erro
-                                let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-                                
-                                switch (response.status) {
-                                    case 404:
-                                        errorMessage = 'Repositório JSON não encontrado. Verifique se o repositório existe e é público.';
-                                        break;
-                                    case 403:
-                                        errorMessage = 'Acesso negado ao repositório JSON. Pode ser privado.';
-                                        break;
-                                    case 429:
-                                        errorMessage = 'Rate limit atingido. Aguarde alguns minutos.';
-                                        break;
-                                }
-                                
-                                throw new Error(errorMessage);
-                            } else {
-                                // Tentar próxima URL
-                                console.log(`⚠️ Tentativa ${i + 1} falhou (${response.status}), tentando próxima URL...`);
-                                continue;
-                            }
-                        }
-
-                        const apiData = await response.json();
-                        
-                        // Verificar se é um arquivo
-                        if (apiData.type !== 'file') {
-                            if (i === urlsToTry.length - 1) {
-                                throw new Error('Não é um arquivo válido');
-                            } else {
-                                console.log('⚠️ Não é um arquivo válido, tentando próxima URL...');
-                                continue;
-                            }
-                        }
-                        
-                        // Decodificar conteúdo base64
-                        let jsonText = atob(apiData.content.replace(/\n/g, ''));
-                        
-                        // Corrigir problemas de encoding se necessário
-                        try {
-                            jsonText = decodeURIComponent(escape(jsonText));
-                        } catch (error) {
-                            console.log('⚠️ Mantendo texto JSON original');
-                        }
-                        
-                        const jsonData = JSON.parse(jsonText);
-                        const records = jsonData.records || jsonData;
-                        
-                        if (!Array.isArray(records)) {
-                            if (i === urlsToTry.length - 1) {
-                                throw new Error('Formato JSON inválido: esperado array de registros');
-                            } else {
-                                console.log('⚠️ Formato JSON inválido, tentando próxima URL...');
-                                continue;
-                            }
-                        }
-                        
-                        // Sucesso!
-                        console.log(`✅ JSON encontrado na tentativa ${i + 1}!`);
-                        if (isAlternative) {
-                            console.log(`🎯 PROBLEMA RESOLVIDO! Repositório JSON encontrado com o nome correto.`);
-                        }
-                        
-                        // Atualizar indicadores visuais
-                        document.getElementById('jsonUploadArea').classList.add('loaded');
-                        document.getElementById('jsonInfo').innerHTML = `
-                            <div class="file-info">
-                                🔗 Sincronizado via GitHub API ${isAlternative ? '(repositório alternativo)' : ''}<br>
-                                🔄 ${records.length} registros de status carregados<br>
-                                📅 Última modificação: ${new Date(apiData.updated_at).toLocaleString('pt-BR')}<br>
-                                ⏰ ${new Date().toLocaleTimeString('pt-BR')}<br>
-                                ${isAlternative ? `<small>📍 Fonte: ${currentUrl.split('/repos/')[1].split('/contents')[0]}</small>` : ''}
-                                ${i === 0 ? '<small style="color: #48bb78;">✅ Problema do nome do repositório corrigido!</small>' : ''}
-                            </div>
-                        `;
-
-                        return { success: true, data: records };
-                        
-                    } catch (error) {
-                        if (i === urlsToTry.length - 1) {
-                            // Última tentativa falhou
-                            console.error('❌ Todas as tentativas falharam:', error);
-                            
-                            document.getElementById('jsonInfo').innerHTML = `
-                                <div class="error-message">
-                                    ❌ Erro ao sincronizar JSON via GitHub API<br>
-                                    ${error.message}<br>
-                                    <small>Tentativas: ${urlsToTry.length} URLs testadas</small><br>
-                                    <small>Sugestão: Verifique se o repositório existe e contém o arquivo JSON</small>
-                                </div>
-                            `;
-                            
-                            throw error;
-                        } else {
-                            console.log(`⚠️ Tentativa ${i + 1} falhou: ${error.message}`);
-                            continue;
-                        }
-                    }
-                }
-            }
-
-            async fetchWithRetry(url, attempt = 1) {
-                try {
-                    // Usar fetch simples sem headers customizados para evitar preflight CORS
-                    const response = await fetch(url, {
-                        method: 'GET'
-                        // Removido headers customizados que causam preflight
-                    });
-                    
-                    return response;
-                    
-                } catch (error) {
-                    if (attempt < this.config.retryAttempts) {
-                        console.log(`🔄 Tentativa ${attempt} falhou, tentando novamente em ${this.config.retryDelay}ms...`);
-                        await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
-                        return this.fetchWithRetry(url, attempt + 1);
-                    } else {
-                        throw new Error(`Falhou após ${this.config.retryAttempts} tentativas: ${error.message}`);
-                    }
-                }
-            }
-
-            startGitHubAutoSync() {
-                if (this.autoSyncInterval) {
-                    clearInterval(this.autoSyncInterval);
-                }
-
-                if (this.config.autoSyncInterval > 0) {
-                    console.log(`⏰ Auto-sync configurado para ${this.config.autoSyncInterval / 1000}s`);
-                    
-                    this.autoSyncInterval = setInterval(async () => {
-                        if (!this.isUpdating) {
-                            console.log('🔄 Executando auto-sync...');
-                            await this.syncFromGitHub();
-                        }
-                    }, this.config.autoSyncInterval);
-                }
-            }
-
-            showGitHubNotification(message, type = 'info') {
-                // Criar notificação temporária
-                const notification = document.createElement('div');
-                notification.className = `github-notification ${type}`;
-                notification.textContent = message;
-                notification.style.cssText = `
-                    position: fixed;
-                    top: 80px;
-                    right: 1rem;
-                    z-index: 1000;
-                    padding: 1rem 1.5rem;
-                    border-radius: 8px;
-                    color: white;
-                    font-weight: 500;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                    animation: slideInRight 0.3s ease-out;
-                    max-width: 400px;
-                    font-size: 0.875rem;
-                `;
-                
-                // Cores baseadas no tipo
-                const colors = {
-                    success: '#48bb78',
-                    error: '#e53e3e', 
-                    warning: '#ed8936',
-                    info: '#4299e1'
-                };
-                
-                notification.style.background = colors[type] || colors.info;
-                
-                document.body.appendChild(notification);
-                
-                // Auto-remover após 5 segundos
-                setTimeout(() => {
-                    notification.style.animation = 'slideOutRight 0.3s ease-in';
-                    setTimeout(() => notification.remove(), 300);
-                }, 5000);
-            }
-
-            showJsonNotFoundGuidance() {
-                // DESABILITADA temporariamente - problema do nome do repositório foi corrigido
-                // Se o problema persistir, o usuário pode usar "Ver Soluções" na aba Fontes de Dados
-                console.log('ℹ️ Orientação JSON desabilitada - problema do nome do repositório corrigido');
-                return;
-                
-                // Código original mantido para referência
-                /*
-                // Mostrar orientação apenas uma vez por sessão
-                if (sessionStorage.getItem('jsonGuidanceShown')) return;
-                sessionStorage.setItem('jsonGuidanceShown', 'true');
-                
-                setTimeout(() => {
-                    // ... resto do código
-                }, 2000);
-                */
-            }
-
-            initEvents() {
-                // Upload de arquivos
-                document.getElementById('csvFile').addEventListener('change', (e) => {
-                    this.loadCsvFile(e.target.files[0]);
-                });
-
-                document.getElementById('jsonFile').addEventListener('change', (e) => {
-                    this.loadJsonFile(e.target.files[0]);
-                });
-
+            setupEventListeners() {
                 // Filtros
                 document.getElementById('equipmentFilter').addEventListener('change', () => {
                     this.applyFilters();
@@ -1395,89 +854,543 @@
                 document.getElementById('endDate').addEventListener('change', () => {
                     this.applyFilters();
                 });
-
-                // Drag and drop
-                this.setupDragAndDrop();
             }
 
-            setupDragAndDrop() {
-                ['csvUploadArea', 'jsonUploadArea'].forEach(id => {
-                    const element = document.getElementById(id);
-                    
-                    element.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                        element.classList.add('dragover');
-                    });
+            // =============================================================================
+            // SINCRONIZAÇÃO APRIMORADA COM GITHUB
+            // =============================================================================
+            async initGitHubSync() {
+                console.log('🔄 Iniciando sincronização automática GitHub...');
+                await this.syncFromGitHub();
+                this.startGitHubAutoSync();
+            }
 
-                    element.addEventListener('dragleave', () => {
-                        element.classList.remove('dragover');
-                    });
+            async syncFromGitHub() {
+                if (this.isUpdating) return;
 
-                    element.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        element.classList.remove('dragover');
+                this.isUpdating = true;
+                this.updateSyncStatus('loading', 'Sincronizando dados...');
+
+                try {
+                    // Salvar janela de visualização atual se existir
+                    if (this.timeline) {
+                        this.currentViewWindow = this.timeline.getWindow();
+                    }
+
+                    const [csvResult, jsonResult] = await Promise.allSettled([
+                        this.fetchCSVFromGitHub(),
+                        this.fetchJSONFromGitHub()
+                    ]);
+
+                    let successCount = 0;
+                    let newDataDetected = false;
+
+                    if (csvResult.status === 'fulfilled' && csvResult.value.success) {
+                        const newCsvData = csvResult.value.data;
+                        if (JSON.stringify(newCsvData) !== JSON.stringify(this.csvData)) {
+                            this.csvData = newCsvData;
+                            newDataDetected = true;
+                        }
+                        successCount++;
+                        console.log(`✅ CSV: ${this.csvData.length} registros`);
+                    }
+
+                    if (jsonResult.status === 'fulfilled' && jsonResult.value.success) {
+                        const newJsonData = jsonResult.value.data;
+                        const newDataHash = this.generateDataHash(newJsonData);
                         
-                        const files = e.dataTransfer.files;
-                        if (files.length > 0) {
-                            if (id === 'csvUploadArea') {
-                                this.loadCsvFile(files[0]);
-                            } else {
-                                this.loadJsonFile(files[0]);
-                            }
+                        if (newDataHash !== this.lastDataHash) {
+                            this.jsonData = newJsonData;
+                            this.lastDataHash = newDataHash;
+                            newDataDetected = true;
+                        }
+                        successCount++;
+                        console.log(`✅ JSON: ${this.jsonData.length} registros`);
+                    }
+
+                    if (successCount > 0) {
+                        if (newDataDetected) {
+                            await this.processDataSmartly();
+                            this.showNotification('✅ Dados atualizados com sucesso', 'success');
+                        } else {
+                            console.log('ℹ️ Nenhum dado novo detectado');
+                        }
+                        
+                        this.updateSyncStatus('success', 'Dados sincronizados');
+                    } else {
+                        this.updateSyncStatus('error', 'Falha na sincronização');
+                        this.showNotification('❌ Erro na sincronização', 'error');
+                    }
+
+                } catch (error) {
+                    console.error('❌ Erro na sincronização:', error);
+                    this.updateSyncStatus('error', 'Erro na sincronização');
+                    this.showNotification('❌ Erro na sincronização: ' + error.message, 'error');
+                } finally {
+                    this.isUpdating = false;
+                }
+            }
+
+            // =============================================================================
+            // PROCESSAMENTO INTELIGENTE DOS DADOS
+            // =============================================================================
+            async processDataSmartly() {
+                if (this.csvData.length === 0 && this.jsonData.length === 0) {
+                    return;
+                }
+
+                // Limpar dados anteriores
+                this.equipmentMap.clear();
+                this.items.clear();
+                this.groups.clear();
+
+                // Processar dados
+                this.unifyEquipmentData();
+                this.createGroups();
+                this.createTimelineItemsImproved();
+
+                // Atualizar timeline sem perder visualização
+                if (this.timeline) {
+                    this.updateTimelineSmartly();
+                } else {
+                    this.initTimeline();
+                }
+
+                this.updateInterface();
+            }
+
+            // Consolidação aprimorada para resolver problema de múltiplas visualizações
+            consolidateConsecutiveStatusImproved(statusList) {
+                if (!statusList || statusList.length === 0) return [];
+
+                // Ordenar por tempo de início
+                const sortedStatus = [...statusList].sort((a, b) => 
+                    new Date(a.start) - new Date(b.start)
+                );
+
+                const consolidated = [];
+                let current = null;
+
+                for (const status of sortedStatus) {
+                    if (!current) {
+                        current = { ...status };
+                        continue;
+                    }
+
+                    const currentEnd = new Date(current.end);
+                    const statusStart = new Date(status.start);
+                    const gapSeconds = (statusStart - currentEnd) / 1000;
+
+                    // Se mesmo status e gap menor que 60 segundos, consolida
+                    if (current.status === status.status && 
+                        current.status_title === status.status_title && 
+                        Math.abs(gapSeconds) <= 60) {
+                        
+                        // Estender período
+                        current.end = status.end;
+                        current.total_time = (parseFloat(current.total_time) || 0) + (parseFloat(status.total_time) || 0);
+                        current.consolidated_count = (current.consolidated_count || 1) + 1;
+                    } else {
+                        // Status diferente ou gap muito grande, adicionar atual e começar novo
+                        consolidated.push(current);
+                        current = { ...status };
+                    }
+                }
+
+                if (current) {
+                    consolidated.push(current);
+                }
+
+                console.log(`🔧 Consolidação: ${statusList.length} → ${consolidated.length} registros`);
+                return consolidated;
+            }
+
+            createTimelineItemsImproved() {
+                let itemId = 0;
+
+                for (const [equipName, data] of this.equipmentMap) {
+                    // Processar apontamentos (sem consolidação, pois são eventos únicos)
+                    data.apontamentos.forEach(apont => {
+                        const start = this.parseDate(apont['Data Inicial']);
+                        const end = this.parseDate(apont['Data Final']);
+                        
+                        if (start && end && start < end) {
+                            const category = apont['Categoria Demora'] || 'Outros';
+                            const className = this.apontColors[category] || 'apont-aguardando';
+                            
+                            this.items.add({
+                                id: `apont_${itemId++}`,
+                                group: `${equipName}_apont`,
+                                content: this.truncateText(category, 20),
+                                start: start,
+                                end: end,
+                                className: className,
+                                title: this.createApontTooltip(apont, equipName),
+                                type: 'range'
+                            });
                         }
                     });
+
+                    // Processar status COM consolidação aprimorada
+                    if (data.status.length > 0) {
+                        const consolidatedStatus = this.config.consolidationMode === 'intelligent' ? 
+                            this.consolidateConsecutiveStatusImproved(data.status) : data.status;
+                        
+                        consolidatedStatus.forEach((status) => {
+                            const start = this.parseDate(status.start);
+                            const end = this.parseDate(status.end);
+                            
+                            if (start && end && start < end) {
+                                const statusCode = status.status || 'unknown';
+                                const className = this.statusColors[statusCode] || 'status-not_appropriated';
+                                
+                                this.items.add({
+                                    id: `status_${itemId++}`,
+                                    group: `${equipName}_status`,
+                                    content: this.truncateText(status.status_title || statusCode, 25),
+                                    start: start,
+                                    end: end,
+                                    className: className,
+                                    title: this.createStatusTooltipImproved(status, equipName),
+                                    type: 'range'
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+
+            createStatusTooltipImproved(status, equipName) {
+                const totalHours = parseFloat(status.total_time || 0);
+                const count = status.consolidated_count || 1;
+                
+                const formatHours = (hours) => {
+                    const h = Math.floor(hours);
+                    const m = Math.round((hours - h) * 60);
+                    if (h === 0) return `${m}min`;
+                    if (m === 0) return `${h}h`;
+                    return `${h}h ${m}min`;
+                };
+                
+                let tooltipContent = `
+                    <div style="font-size: 13px; line-height: 1.4; max-width: 300px;">
+                        <div style="font-weight: 700; margin-bottom: 8px; color: #2c3e50;">🔄 Status Automático</div>
+                        <div style="margin-bottom: 4px;"><strong>Equipamento:</strong> ${equipName}</div>
+                        <div style="margin-bottom: 4px;"><strong>Status:</strong> ${status.status_title || status.status}</div>
+                        <div style="margin-bottom: 4px;"><strong>Período:</strong> ${status.start} até ${status.end}</div>
+                        <div style="margin-bottom: 4px;"><strong>Duração:</strong> ${formatHours(totalHours)}</div>`;
+                
+                if (count > 1) {
+                    tooltipContent += `
+                        <div style="margin-bottom: 4px; color: #27ae60;"><strong>✅ Consolidado:</strong> ${count} registros</div>`;
+                }
+                
+                tooltipContent += `
+                        <div><strong>Código da Vaga:</strong> ${status.vacancy_code || 'N/A'}</div>
+                    </div>
+                `;
+                
+                return tooltipContent;
+            }
+
+            // Atualização inteligente da timeline sem reset
+            updateTimelineSmartly() {
+                if (!this.timeline) return;
+
+                try {
+                    // Salvar seleção atual
+                    const selection = this.timeline.getSelection();
+                    
+                    // Atualizar dados
+                    this.timeline.setData({
+                        items: this.items,
+                        groups: this.groups
+                    });
+
+                    // Restaurar janela de visualização se existir
+                    if (this.currentViewWindow) {
+                        setTimeout(() => {
+                            this.timeline.setWindow(this.currentViewWindow.start, this.currentViewWindow.end);
+                        }, 100);
+                    }
+
+                    // Restaurar seleção
+                    if (selection.length > 0) {
+                        setTimeout(() => {
+                            this.timeline.setSelection(selection);
+                        }, 150);
+                    }
+
+                } catch (error) {
+                    console.error('❌ Erro ao atualizar timeline:', error);
+                    // Em caso de erro, reinicializar completamente
+                    this.initTimeline();
+                }
+            }
+
+            initTimeline() {
+                if (this.items.length === 0) return;
+
+                const container = document.getElementById('timeline');
+                container.innerHTML = '';
+
+                const options = {
+                    orientation: 'top',
+                    stack: true,
+                    showCurrentTime: true,
+                    zoomMin: 1000 * 60 * 10, // 10 minutos
+                    zoomMax: 1000 * 60 * 60 * 24 * 30, // 30 dias
+                    editable: false,
+                    multiselect: false,
+                    selectable: true,
+                    tooltip: {
+                        followMouse: true,
+                        overflowMethod: 'flip'
+                    },
+                    format: {
+                        minorLabels: {
+                            minute: 'HH:mm',
+                            hour: 'HH:mm',
+                            day: 'DD/MM',
+                            month: 'MMM',
+                            year: 'YYYY'
+                        },
+                        majorLabels: {
+                            minute: 'ddd DD/MM',
+                            hour: 'ddd DD/MM',
+                            day: 'MMMM YYYY',
+                            month: 'YYYY',
+                            year: ''
+                        }
+                    },
+                    margin: {
+                        item: {
+                            horizontal: 2,
+                            vertical: 1
+                        }
+                    },
+                    height: '100%',
+                    // Configurações para evitar loop infinito
+                    maxHeight: 600,
+                    verticalScroll: true,
+                    horizontalScroll: true
+                };
+
+                this.timeline = new vis.Timeline(container, this.items, this.groups, options);
+
+                // Event listeners
+                this.timeline.on('rangechanged', (properties) => {
+                    this.currentViewWindow = properties;
                 });
+
+                setTimeout(() => {
+                    this.handlePeriodChange();
+                }, 100);
             }
 
-            loadCsvFile(file) {
-                if (!file) return;
-                this.updateSyncStatus('loading', 'Carregando CSV...');
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        this.csvData = this.parseCSV(e.target.result);
-                        document.getElementById('csvUploadArea').classList.add('loaded');
-                        document.getElementById('csvInfo').innerHTML = `
-                            <div class="file-info">
-                                📁 ${file.name}<br>
-                                📊 ${this.csvData.length} apontamentos carregados
-                            </div>
-                        `;
-                        this.processData();
-                        this.updateSyncStatus('success', 'CSV carregado com sucesso');
-                    } catch (error) {
-                        this.showError('csvInfo', 'Erro ao processar arquivo CSV: ' + error.message);
-                        this.updateSyncStatus('error', 'Erro no CSV');
-                    }
-                };
-                reader.readAsText(file, 'UTF-8');
+            // =============================================================================
+            // FUNÇÕES AUXILIARES APRIMORADAS
+            // =============================================================================
+            generateDataHash(data) {
+                return btoa(JSON.stringify(data)).slice(0, 32);
             }
 
-            loadJsonFile(file) {
-                if (!file) return;
-                this.updateSyncStatus('loading', 'Carregando JSON...');
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const jsonData = JSON.parse(e.target.result);
-                        this.jsonData = jsonData.records || jsonData;
-                        document.getElementById('jsonUploadArea').classList.add('loaded');
-                        document.getElementById('jsonInfo').innerHTML = `
-                            <div class="file-info">
-                                📄 ${file.name}<br>
-                                🔄 ${this.jsonData.length} registros de status carregados
-                            </div>
-                        `;
-                        this.processData();
-                        this.updateSyncStatus('success', 'JSON carregado com sucesso');
-                    } catch (error) {
-                        this.showError('jsonInfo', 'Erro ao processar arquivo JSON: ' + error.message);
-                        this.updateSyncStatus('error', 'Erro no JSON');
+            async fetchCSVFromGitHub() {
+                const config = this.githubConfig.csvRepo;
+                
+                try {
+                    const response = await fetch(config.apiUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
-                };
-                reader.readAsText(file, 'UTF-8');
+
+                    const apiData = await response.json();
+                    
+                    if (apiData.type !== 'file') {
+                        throw new Error('Não é um arquivo válido');
+                    }
+                    
+                    let csvText = atob(apiData.content.replace(/\n/g, ''));
+                    
+                    try {
+                        csvText = decodeURIComponent(escape(csvText));
+                    } catch (error) {
+                        console.log('⚠️ Mantendo texto original');
+                    }
+                    
+                    const parsedData = this.parseCSV(csvText);
+                    return { success: true, data: parsedData };
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao buscar CSV:', error);
+                    throw error;
+                }
+            }
+
+            async fetchJSONFromGitHub() {
+                const config = this.githubConfig.jsonRepo;
+                
+                try {
+                    const response = await fetch(config.apiUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const apiData = await response.json();
+                    
+                    if (apiData.type !== 'file') {
+                        throw new Error('Não é um arquivo válido');
+                    }
+                    
+                    let jsonText = atob(apiData.content.replace(/\n/g, ''));
+                    
+                    try {
+                        jsonText = decodeURIComponent(escape(jsonText));
+                    } catch (error) {
+                        console.log('⚠️ Mantendo texto JSON original');
+                    }
+                    
+                    const jsonData = JSON.parse(jsonText);
+                    const records = jsonData.records || jsonData;
+                    
+                    if (!Array.isArray(records)) {
+                        throw new Error('Formato JSON inválido');
+                    }
+                    
+                    return { success: true, data: records };
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao buscar JSON:', error);
+                    throw error;
+                }
+            }
+
+            startGitHubAutoSync() {
+                if (this.autoSyncInterval) {
+                    clearInterval(this.autoSyncInterval);
+                }
+
+                if (this.config.autoSyncInterval > 0) {
+                    console.log(`⏰ Auto-sync configurado para ${this.config.autoSyncInterval / 60000} minutos`);
+                    
+                    this.autoSyncInterval = setInterval(async () => {
+                        if (!this.isUpdating) {
+                            console.log('🔄 Executando auto-sync...');
+                            await this.syncFromGitHub();
+                        }
+                    }, this.config.autoSyncInterval);
+
+                    this.updateNextSyncTime();
+                }
+            }
+
+            updateNextSyncTime() {
+                if (this.config.autoSyncInterval > 0) {
+                    const nextUpdate = new Date(Date.now() + this.config.autoSyncInterval);
+                    const nextUpdateElement = document.getElementById('nextUpdate');
+                    if (nextUpdateElement) {
+                        nextUpdateElement.textContent = nextUpdate.toLocaleTimeString('pt-BR');
+                    }
+                }
+            }
+
+            // ... [Resto das funções auxiliares seguem o mesmo padrão das originais]
+            unifyEquipmentData() {
+                this.csvData.forEach((item) => {
+                    const equipName = this.normalizeEquipmentName(item.Vaga || item.Placa);
+                    if (!this.equipmentMap.has(equipName)) {
+                        this.equipmentMap.set(equipName, {
+                            name: equipName,
+                            originalName: item.Vaga || item.Placa,
+                            apontamentos: [],
+                            status: []
+                        });
+                    }
+                    this.equipmentMap.get(equipName).apontamentos.push(item);
+                });
+
+                this.jsonData.forEach((item) => {
+                    const equipName = this.normalizeEquipmentName(item.vacancy_name);
+                    if (!this.equipmentMap.has(equipName)) {
+                        this.equipmentMap.set(equipName, {
+                            name: equipName,
+                            originalName: item.vacancy_name,
+                            apontamentos: [],
+                            status: []
+                        });
+                    }
+                    this.equipmentMap.get(equipName).status.push(item);
+                });
+
+                for (const [equipName, data] of this.equipmentMap) {
+                    data.apontamentos.sort((a, b) => {
+                        const dateA = this.parseDate(a['Data Inicial']);
+                        const dateB = this.parseDate(b['Data Inicial']);
+                        return (dateA || 0) - (dateB || 0);
+                    });
+                    
+                    data.status.sort((a, b) => {
+                        const dateA = this.parseDate(a.start);
+                        const dateB = this.parseDate(b.start);
+                        return (dateA || 0) - (dateB || 0);
+                    });
+                }
+            }
+
+            normalizeEquipmentName(name) {
+                if (!name) return 'Equipamento Desconhecido';
+                
+                let normalizedName = name.toUpperCase().trim();
+                normalizedName = normalizedName.replace(/\s+/g, ' ');
+                
+                normalizedName = normalizedName
+                    .replace(/\s*-\s*GPS\s*-\s*/g, ' - GPS - ')
+                    .replace(/\s*-\s*(\d+)\s*HS\s*$/i, ' - $1HS')
+                    .replace(/\s*-\s*(\d+)\s*H\s*$/i, ' - $1HS')
+                    .replace(/CAMINHÃO/g, 'CAMINHAO')
+                    .replace(/VÁCUO/g, 'VACUO')
+                    .replace(/PRESSÃO/g, 'PRESSAO')
+                    .trim();
+                
+                return normalizedName;
+            }
+
+            createGroups() {
+                let groupId = 0;
+                
+                const sortedEquipments = Array.from(this.equipmentMap.entries())
+                    .sort(([nameA], [nameB]) => nameA.localeCompare(nameB));
+                
+                for (const [equipName, data] of sortedEquipments) {
+                    if (data.apontamentos.length > 0 || data.status.length > 0) {
+                        const displayName = this.getDisplayName(equipName);
+                        
+                        this.groups.add({
+                            id: `${equipName}_apont`,
+                            content: `<div style="font-weight: 600; color: #2c3e50; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #7f8c8d;">📊 Apontamentos</div>`,
+                            order: groupId * 2
+                        });
+                        
+                        this.groups.add({
+                            id: `${equipName}_status`,
+                            content: `<div style="font-weight: 600; color: #2c3e50; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #7f8c8d;">🔄 Status</div>`,
+                            order: groupId * 2 + 1
+                        });
+                        
+                        groupId++;
+                    }
+                }
+            }
+
+            getDisplayName(equipName) {
+                return equipName
+                    .replace(/CAMINHAO/g, 'CAMINHÃO')
+                    .replace(/VACUO/g, 'VÁCUO') 
+                    .replace(/PRESSAO/g, 'PRESSÃO')
+                    .replace(/\s+/g, ' ')
+                    .trim();
             }
 
             parseCSV(csvText) {
@@ -1528,224 +1441,6 @@
                 return values;
             }
 
-            processData() {
-                if (this.csvData.length === 0 && this.jsonData.length === 0) {
-                    return;
-                }
-
-                this.equipmentMap.clear();
-                this.items.clear();
-                this.groups.clear();
-
-                // Unificar equipamentos
-                this.unifyEquipmentData();
-                
-                // Criar grupos
-                this.createGroups();
-                
-                // Criar items da timeline
-                this.createTimelineItems();
-                
-                // Inicializar timeline
-                this.initTimeline();
-                
-                // Atualizar interface
-                this.updateInterface();
-            }
-
-            unifyEquipmentData() {
-                // Processar dados CSV
-                this.csvData.forEach((item) => {
-                    const equipName = this.normalizeEquipmentName(item.Vaga || item.Placa);
-                    if (!this.equipmentMap.has(equipName)) {
-                        this.equipmentMap.set(equipName, {
-                            name: equipName,
-                            originalName: item.Vaga || item.Placa,
-                            apontamentos: [],
-                            status: []
-                        });
-                    }
-                    this.equipmentMap.get(equipName).apontamentos.push(item);
-                });
-
-                // Processar dados JSON
-                this.jsonData.forEach((item) => {
-                    const equipName = this.normalizeEquipmentName(item.vacancy_name);
-                    if (!this.equipmentMap.has(equipName)) {
-                        this.equipmentMap.set(equipName, {
-                            name: equipName,
-                            originalName: item.vacancy_name,
-                            apontamentos: [],
-                            status: []
-                        });
-                    }
-                    this.equipmentMap.get(equipName).status.push(item);
-                });
-                
-                // Ordenar dados por timestamp
-                for (const [equipName, data] of this.equipmentMap) {
-                    data.apontamentos.sort((a, b) => {
-                        const dateA = this.parseDate(a['Data Inicial']);
-                        const dateB = this.parseDate(b['Data Inicial']);
-                        return (dateA || 0) - (dateB || 0);
-                    });
-                    
-                    data.status.sort((a, b) => {
-                        const dateA = this.parseDate(a.start);
-                        const dateB = this.parseDate(b.start);
-                        return (dateA || 0) - (dateB || 0);
-                    });
-                }
-            }
-
-            normalizeEquipmentName(name) {
-                if (!name) return 'Equipamento Desconhecido';
-                
-                let normalizedName = name.toUpperCase().trim();
-                normalizedName = normalizedName.replace(/\s+/g, ' ');
-                
-                normalizedName = normalizedName
-                    .replace(/\s*-\s*GPS\s*-\s*/g, ' - GPS - ')
-                    .replace(/\s*-\s*(\d+)\s*HS\s*$/i, ' - $1HS')
-                    .replace(/\s*-\s*(\d+)\s*H\s*$/i, ' - $1HS')
-                    .replace(/CAMINHÃO/g, 'CAMINHAO')
-                    .replace(/VÁCUO/g, 'VACUO')
-                    .replace(/PRESSÃO/g, 'PRESSAO')
-                    .trim();
-                
-                return normalizedName;
-            }
-
-            createGroups() {
-                let groupId = 0;
-                
-                const sortedEquipments = Array.from(this.equipmentMap.entries())
-                    .sort(([nameA], [nameB]) => nameA.localeCompare(nameB));
-                
-                for (const [equipName, data] of sortedEquipments) {
-                    if (data.apontamentos.length > 0 || data.status.length > 0) {
-                        const displayName = this.getDisplayName(equipName);
-                        
-                        // Grupo para apontamentos
-                        this.groups.add({
-                            id: `${equipName}_apont`,
-                            content: `<div style="font-weight: 500; color: #2d3748; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #718096;">📊 Apontamentos</div>`,
-                            order: groupId * 2
-                        });
-                        
-                        // Grupo para status
-                        this.groups.add({
-                            id: `${equipName}_status`,
-                            content: `<div style="font-weight: 500; color: #2d3748; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #718096;">🔄 Status</div>`,
-                            order: groupId * 2 + 1
-                        });
-                        
-                        groupId++;
-                    }
-                }
-            }
-
-            getDisplayName(equipName) {
-                return equipName
-                    .replace(/CAMINHAO/g, 'CAMINHÃO')
-                    .replace(/VACUO/g, 'VÁCUO') 
-                    .replace(/PRESSAO/g, 'PRESSÃO')
-                    .replace(/\s+/g, ' ')
-                    .trim();
-            }
-
-            createTimelineItems() {
-                let itemId = 0;
-
-                for (const [equipName, data] of this.equipmentMap) {
-                    // Processar apontamentos
-                    data.apontamentos.forEach(apont => {
-                        const start = this.parseDate(apont['Data Inicial']);
-                        const end = this.parseDate(apont['Data Final']);
-                        
-                        if (start && end && start < end) {
-                            const category = apont['Categoria Demora'] || 'Outros';
-                            const className = this.apontColors[category] || 'apont-aguardando';
-                            
-                            this.items.add({
-                                id: `apont_${itemId++}`,
-                                group: `${equipName}_apont`,
-                                content: this.truncateText(category, 20),
-                                start: start,
-                                end: end,
-                                className: className,
-                                title: this.createApontTooltip(apont, equipName)
-                            });
-                        }
-                    });
-
-                    // Processar status com consolidação
-                    if (data.status.length > 0) {
-                        const consolidatedStatus = this.config.consolidationMode === 'intelligent' ? 
-                            this.consolidateConsecutiveStatus(data.status) : data.status;
-                        
-                        consolidatedStatus.forEach((status) => {
-                            const start = this.parseDate(status.start);
-                            const end = this.parseDate(status.end);
-                            
-                            if (start && end && start < end) {
-                                const statusCode = status.status || 'unknown';
-                                const className = this.statusColors[statusCode] || 'status-not_appropriated';
-                                
-                                this.items.add({
-                                    id: `status_${itemId++}`,
-                                    group: `${equipName}_status`,
-                                    content: this.truncateText(status.status_title || statusCode, 25),
-                                    start: start,
-                                    end: end,
-                                    className: className,
-                                    title: this.createStatusTooltip(status, equipName)
-                                });
-                            }
-                        });
-                    }
-                }
-            }
-
-            consolidateConsecutiveStatus(statusList) {
-                if (!statusList || statusList.length === 0) return [];
-                
-                const sortedStatus = [...statusList].sort((a, b) => 
-                    new Date(a.start) - new Date(b.start)
-                );
-                
-                const consolidated = [];
-                let current = null;
-                
-                sortedStatus.forEach(status => {
-                    if (!current) {
-                        current = { ...status };
-                    } else {
-                        const currentEnd = new Date(current.end);
-                        const statusStart = new Date(status.start);
-                        const gapMinutes = (statusStart - currentEnd) / (1000 * 60);
-                        
-                        // Se mesmo status e gap menor que 60 minutos, consolida
-                        if (current.status === status.status && 
-                            current.status_title === status.status_title && 
-                            Math.abs(gapMinutes) <= 60) {
-                            current.end = status.end;
-                            current.total_time = (current.total_time || 0) + (status.total_time || 0);
-                            current.count = (current.count || 1) + 1;
-                        } else {
-                            consolidated.push(current);
-                            current = { ...status };
-                        }
-                    }
-                });
-                
-                if (current) {
-                    consolidated.push(current);
-                }
-                
-                return consolidated;
-            }
-
             parseDate(dateStr) {
                 if (!dateStr) return null;
                 
@@ -1774,8 +1469,8 @@
 
             createApontTooltip(apont, equipName) {
                 return `
-                    <div style="font-size: 13px; line-height: 1.4;">
-                        <div style="font-weight: 600; margin-bottom: 8px; color: #2d3748;">📊 Apontamento Manual</div>
+                    <div style="font-size: 13px; line-height: 1.4; max-width: 300px;">
+                        <div style="font-weight: 700; margin-bottom: 8px; color: #2c3e50;">📊 Apontamento Manual</div>
                         <div style="margin-bottom: 4px;"><strong>Equipamento:</strong> ${equipName}</div>
                         <div style="margin-bottom: 4px;"><strong>Categoria:</strong> ${apont['Categoria Demora'] || 'N/A'}</div>
                         <div style="margin-bottom: 4px;"><strong>Período:</strong> ${apont['Data Inicial']} até ${apont['Data Final']}</div>
@@ -1785,95 +1480,9 @@
                 `;
             }
 
-            createStatusTooltip(status, equipName) {
-                const totalHours = parseFloat(status.total_time || 0);
-                const count = status.count || 1;
-                
-                const formatHours = (hours) => {
-                    const h = Math.floor(hours);
-                    const m = Math.round((hours - h) * 60);
-                    if (h === 0) return `${m}min`;
-                    if (m === 0) return `${h}h`;
-                    return `${h}h ${m}min`;
-                };
-                
-                let tooltipContent = `
-                    <div style="font-size: 13px; line-height: 1.4;">
-                        <div style="font-weight: 600; margin-bottom: 8px; color: #2d3748;">🔄 Status Automático</div>
-                        <div style="margin-bottom: 4px;"><strong>Equipamento:</strong> ${equipName}</div>
-                        <div style="margin-bottom: 4px;"><strong>Status:</strong> ${status.status_title || status.status}</div>
-                        <div style="margin-bottom: 4px;"><strong>Período:</strong> ${status.start} até ${status.end}</div>
-                        <div style="margin-bottom: 4px;"><strong>Duração:</strong> ${formatHours(totalHours)}</div>`;
-                
-                if (count > 1) {
-                    tooltipContent += `
-                        <div style="margin-bottom: 4px; color: #10b981;"><strong>✅ Consolidado:</strong> ${count} registros</div>`;
-                }
-                
-                tooltipContent += `
-                        <div><strong>Código da Vaga:</strong> ${status.vacancy_code || 'N/A'}</div>
-                    </div>
-                `;
-                
-                return tooltipContent;
-            }
-
-            initTimeline() {
-                if (this.items.length === 0) return;
-
-                const container = document.getElementById('timeline');
-                container.innerHTML = '';
-
-                const options = {
-                    orientation: 'top',
-                    stack: true,
-                    showCurrentTime: true,
-                    zoomMin: 1000 * 60 * 10, // 10 minutos
-                    zoomMax: 1000 * 60 * 60 * 24 * 30, // 30 dias
-                    editable: false,
-                    multiselect: false,
-                    selectable: true,
-                    tooltip: {
-                        followMouse: true,
-                        overflowMethod: 'flip'
-                    },
-                    format: {
-                        minorLabels: {
-                            minute: 'HH:mm',
-                            hour: 'HH:mm',
-                            day: 'DD/MM',
-                            month: 'MMM',
-                            year: 'YYYY'
-                        },
-                        majorLabels: {
-                            minute: 'ddd DD/MM',
-                            hour: 'ddd DD/MM',
-                            day: 'MMMM YYYY',
-                            month: 'YYYY',
-                            year: ''
-                        }
-                    },
-                    margin: {
-                        item: {
-                            horizontal: 2,
-                            vertical: 1
-                        }
-                    },
-                    height: '100%'
-                };
-
-                this.timeline = new vis.Timeline(container, this.items, this.groups, options);
-
-                setTimeout(() => {
-                    this.handlePeriodChange();
-                }, 100);
-            }
-
             updateInterface() {
-                // Mostrar stats
                 document.getElementById('statsPanel').style.display = 'block';
 
-                // Atualizar estatísticas
                 const totalApont = Array.from(this.equipmentMap.values())
                     .reduce((sum, data) => sum + data.apontamentos.length, 0);
                 const totalStatus = Array.from(this.equipmentMap.values())
@@ -1885,8 +1494,8 @@
                 document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('pt-BR');
                 document.getElementById('visibleItems').textContent = `${this.items.length} itens visíveis`;
 
-                // Atualizar filtros
                 this.updateFilters();
+                this.updateNextSyncTime();
             }
 
             updateFilters() {
@@ -1949,67 +1558,55 @@
 
             applyFilters() {
                 if (this.isUpdating || !this.timeline) return;
-                this.isUpdating = true;
 
-                try {
-                    const equipmentFilter = document.getElementById('equipmentFilter').value;
-                    const period = document.getElementById('periodFilter').value;
+                const equipmentFilter = document.getElementById('equipmentFilter').value;
+                const period = document.getElementById('periodFilter').value;
+                
+                let filteredItems = [];
+                
+                for (const item of this.items.get()) {
+                    let include = true;
                     
-                    let filteredItems = [];
-                    
-                    for (const item of this.items.get()) {
-                        let include = true;
-                        
-                        // Filtro por equipamento
-                        if (equipmentFilter) {
-                            const itemEquipment = item.group.replace(/_apont$|_status$/, '');
-                            if (itemEquipment !== equipmentFilter) {
-                                include = false;
-                            }
-                        }
-                        
-                        // Filtro por data personalizada
-                        if (period === 'custom') {
-                            const startDate = document.getElementById('startDate').value;
-                            const endDate = document.getElementById('endDate').value;
-                            
-                            if (startDate && item.start < new Date(startDate)) include = false;
-                            if (endDate && item.start > new Date(endDate)) include = false;
-                        }
-                        
-                        if (include) {
-                            filteredItems.push(item);
+                    if (equipmentFilter) {
+                        const itemEquipment = item.group.replace(/_apont$|_status$/, '');
+                        if (itemEquipment !== equipmentFilter) {
+                            include = false;
                         }
                     }
                     
-                    // Atualizar grupos visíveis
-                    const visibleEquipments = new Set();
-                    filteredItems.forEach(item => {
-                        const equipment = item.group.replace(/_apont$|_status$/, '');
-                        visibleEquipments.add(equipment);
-                    });
-                    
-                    const visibleGroups = [];
-                    for (const group of this.groups.get()) {
-                        const equipment = group.id.replace(/_apont$|_status$/, '');
-                        if (!equipmentFilter || visibleEquipments.has(equipment)) {
-                            visibleGroups.push(group);
-                        }
+                    if (period === 'custom') {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        
+                        if (startDate && item.start < new Date(startDate)) include = false;
+                        if (endDate && item.start > new Date(endDate)) include = false;
                     }
                     
-                    // Atualizar timeline
-                    this.timeline.setData({
-                        items: new vis.DataSet(filteredItems),
-                        groups: new vis.DataSet(visibleGroups)
-                    });
-                    
-                    document.getElementById('visibleItems').textContent = `${filteredItems.length} itens visíveis`;
-                    
-                } catch (error) {
-                    console.error('Erro ao aplicar filtros:', error);
-                } finally {
-                    this.isUpdating = false;
+                    if (include) {
+                        filteredItems.push(item);
+                    }
                 }
+                
+                const visibleEquipments = new Set();
+                filteredItems.forEach(item => {
+                    const equipment = item.group.replace(/_apont$|_status$/, '');
+                    visibleEquipments.add(equipment);
+                });
+                
+                const visibleGroups = [];
+                for (const group of this.groups.get()) {
+                    const equipment = group.id.replace(/_apont$|_status$/, '');
+                    if (!equipmentFilter || visibleEquipments.has(equipment)) {
+                        visibleGroups.push(group);
+                    }
+                }
+                
+                this.timeline.setData({
+                    items: new vis.DataSet(filteredItems),
+                    groups: new vis.DataSet(visibleGroups)
+                });
+                
+                document.getElementById('visibleItems').textContent = `${filteredItems.length} itens visíveis`;
             }
 
             updateSyncStatus(status, message) {
@@ -2020,619 +1617,73 @@
                 statusText.textContent = message;
             }
 
-            showError(elementId, message) {
-                document.getElementById(elementId).innerHTML = `
-                    <div class="error-message">${message}</div>
-                `;
-            }
-
-            loadSampleData() {
-                this.csvData = [
-                    {
-                        'Placa': 'ABC-1234',
-                        'Vaga': 'CAMINHÃO ALTA PRESSÃO - GPS - 01 - 24 HS',
-                        'Categoria Demora': 'Abastecimento',
-                        'Data Inicial': '25/06/2025 08:00:00',
-                        'Data Final': '25/06/2025 08:30:00',
-                        'Tempo Indisponível (HH:MM)': '0:30'
-                    },
-                    {
-                        'Placa': 'ABC-1234',
-                        'Vaga': 'CAMINHÃO ALTA PRESSÃO - GPS - 01 - 24 HS',
-                        'Categoria Demora': 'Refeição Motorista',
-                        'Data Inicial': '25/06/2025 12:00:00',
-                        'Data Final': '25/06/2025 13:00:00',
-                        'Tempo Indisponível (HH:MM)': '1:00'
-                    }
-                ];
-
-                this.jsonData = [
-                    {
-                        "vacancy_code": "530",
-                        "vacancy_name": "CAMINHÃO ALTA PRESSÃO - GPS - 01 - 24 HS",
-                        "status": "off",
-                        "status_title": "Motor Desligado",
-                        "start": "2025-06-25 07:00",
-                        "end": "2025-06-25 08:00",
-                        "total_time": "1.0"
-                    },
-                    {
-                        "vacancy_code": "530",
-                        "vacancy_name": "CAMINHÃO ALTA PRESSÃO - GPS - 01 - 24 HS",
-                        "status": "running",
-                        "status_title": "Em Operação",
-                        "start": "2025-06-25 08:30",
-                        "end": "2025-06-25 12:00",
-                        "total_time": "3.5"
-                    },
-                    {
-                        "vacancy_code": "530",
-                        "vacancy_name": "CAMINHÃO ALTA PRESSÃO - GPS - 01 - 24 HS",
-                        "status": "off",
-                        "status_title": "Motor Desligado",
-                        "start": "2025-06-25 13:00",
-                        "end": "2025-06-25 14:00",
-                        "total_time": "1.0"
-                    }
-                ];
-
-                // Marcar uploads como carregados
-                document.getElementById('csvUploadArea').classList.add('loaded');
-                document.getElementById('jsonUploadArea').classList.add('loaded');
-                
-                document.getElementById('csvInfo').innerHTML = `
-                    <div class="file-info">
-                        🧪 Dados de teste<br>
-                        📊 ${this.csvData.length} apontamentos carregados
-                    </div>
-                `;
-                
-                document.getElementById('jsonInfo').innerHTML = `
-                    <div class="file-info">
-                        🧪 Dados de teste<br>
-                        🔄 ${this.jsonData.length} registros de status carregados
-                    </div>
-                `;
-
-                this.processData();
-                this.updateSyncStatus('success', 'Dados de teste carregados');
-            }
-
-            validateTimeline() {
-                if (this.items.length === 0) {
-                    alert('Carregue dados primeiro para validar a timeline');
-                    return;
-                }
-
-                const statusItems = this.items.get().filter(item => item.id.startsWith('status_'));
-                const apontItems = this.items.get().filter(item => item.id.startsWith('apont_'));
-                
-                let validation = {
-                    statusItems: statusItems.length,
-                    apontItems: apontItems.length,
-                    equipments: this.equipmentMap.size,
-                    duplicates: 0
-                };
-
-                // Verificar duplicatas
-                const byEquipment = {};
-                statusItems.forEach(item => {
-                    const equipment = item.group.replace('_status', '');
-                    if (!byEquipment[equipment]) byEquipment[equipment] = [];
-                    byEquipment[equipment].push(item);
-                });
-
-                for (const [equipment, items] of Object.entries(byEquipment)) {
-                    const sorted = items.sort((a, b) => new Date(a.start) - new Date(b.start));
-                    for (let i = 0; i < sorted.length - 1; i++) {
-                        const current = sorted[i];
-                        const next = sorted[i + 1];
-                        if (current.content === next.content) {
-                            const gap = (new Date(next.start) - new Date(current.end)) / (1000 * 60);
-                            if (Math.abs(gap) <= 5) {
-                                validation.duplicates++;
-                            }
-                        }
-                    }
-                }
-
-                alert(`Validação da Timeline:
-• ${validation.statusItems} itens de status
-• ${validation.apontItems} itens de apontamentos  
-• ${validation.equipments} equipamentos
-• ${validation.duplicates} possíveis duplicatas encontradas
-
-${validation.duplicates === 0 ? '✅ Timeline validada com sucesso!' : '⚠️ Foram encontradas possíveis duplicatas'}`);
-            }
-
-            startAutoSync() {
-                this.startGitHubAutoSync();
-            }
-
             updateSystemInfo() {
-                const now = new Date();
-                const uptime = Math.floor((now - this.startTime) / 1000 / 60); // minutos
+                setInterval(() => {
+                    const now = new Date();
+                    const uptime = Math.floor((now - this.startTime) / 1000 / 60);
+                    
+                    // Atualizar informações do sistema se necessário
+                    this.updateNextSyncTime();
+                }, 60000); // Atualizar a cada minuto
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
                 
-                document.getElementById('systemLastUpdate').textContent = now.toLocaleString('pt-BR');
-                document.getElementById('totalProcessed').textContent = this.csvData.length + this.jsonData.length;
-                document.getElementById('uptime').textContent = uptime < 60 ? `${uptime}min` : `${Math.floor(uptime/60)}h ${uptime%60}min`;
+                document.body.appendChild(notification);
                 
-                // Calcular próxima sincronização
-                if (this.config.autoSyncInterval > 0) {
-                    const nextSync = new Date(now.getTime() + this.config.autoSyncInterval);
-                    const nextSyncElement = document.getElementById('nextSyncTime');
-                    if (nextSyncElement) {
-                        nextSyncElement.textContent = nextSync.toLocaleTimeString('pt-BR');
-                    }
-                }
+                setTimeout(() => {
+                    notification.style.animation = 'slideOutRight 0.3s ease-in';
+                    setTimeout(() => notification.remove(), 300);
+                }, 4000);
             }
         }
 
         // =============================================================================
         // FUNÇÕES GLOBAIS DE INTERFACE
         // =============================================================================
-        let fleetTimeline = null;
+        let productivitySystem = null;
 
         function switchTab(tabName) {
-            // Remover classe active de todas as tabs
             document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
-            // Ativar tab selecionada
             event.target.classList.add('active');
             document.getElementById(`${tabName}-tab`).classList.add('active');
         }
 
         function manualSync() {
-            if (fleetTimeline) {
-                fleetTimeline.syncFromGitHub();
+            if (productivitySystem) {
+                productivitySystem.syncFromGitHub();
             }
         }
 
         function applyFilters() {
-            if (fleetTimeline) {
-                fleetTimeline.applyFilters();
-            }
-        }
-
-        function loadSampleData() {
-            if (fleetTimeline) {
-                fleetTimeline.loadSampleData();
-            }
-        }
-
-        function validateTimeline() {
-            if (fleetTimeline) {
-                fleetTimeline.validateTimeline();
+            if (productivitySystem) {
+                productivitySystem.applyFilters();
             }
         }
 
         function saveSettings() {
             const autoSyncInterval = parseInt(document.getElementById('autoSyncInterval').value);
             const consolidationMode = document.getElementById('consolidationMode').value;
-            const operationMode = document.getElementById('operationMode').value;
             
-            if (fleetTimeline) {
-                fleetTimeline.config.autoSyncInterval = autoSyncInterval;
-                fleetTimeline.config.consolidationMode = consolidationMode;
-                fleetTimeline.config.operationMode = operationMode;
-                fleetTimeline.startGitHubAutoSync();
+            if (productivitySystem) {
+                productivitySystem.config.autoSyncInterval = autoSyncInterval;
+                productivitySystem.config.consolidationMode = consolidationMode;
+                productivitySystem.startGitHubAutoSync();
             }
             
-            alert('Configurações salvas! Auto-sync ' + (autoSyncInterval > 0 ? `ativo (${autoSyncInterval/1000/60}min)` : 'desabilitado'));
-        }
-
-        function updateRepositoryConfig() {
-            const csvRepo = document.getElementById('csvRepoUrl').value.trim();
-            const csvPath = document.getElementById('csvFilePath').value.trim();
-            const jsonRepo = document.getElementById('jsonRepoUrl').value.trim();
-            const jsonPath = document.getElementById('jsonFilePath').value.trim();
-            
-            if (!csvRepo) {
-                alert('❌ Repository CSV é obrigatório!');
-                return;
-            }
-            
-            if (fleetTimeline) {
-                // Atualizar CSV
-                const csvParts = csvRepo.split('/');
-                if (csvParts.length === 2) {
-                    fleetTimeline.githubConfig.csvRepo.owner = csvParts[0];
-                    fleetTimeline.githubConfig.csvRepo.repo = csvParts[1];
-                    fleetTimeline.githubConfig.csvRepo.path = csvPath;
-                    fleetTimeline.githubConfig.csvRepo.apiUrl = `https://api.github.com/repos/${csvRepo}/contents/${csvPath}`;
-                }
-                
-                // Atualizar JSON
-                if (jsonRepo) {
-                    const jsonParts = jsonRepo.split('/');
-                    if (jsonParts.length === 2) {
-                        fleetTimeline.githubConfig.jsonRepo.owner = jsonParts[0];
-                        fleetTimeline.githubConfig.jsonRepo.repo = jsonParts[1];
-                        fleetTimeline.githubConfig.jsonRepo.path = jsonPath;
-                        fleetTimeline.githubConfig.jsonRepo.apiUrl = `https://api.github.com/repos/${jsonRepo}/contents/${jsonPath}`;
-                        fleetTimeline.githubConfig.jsonRepo.enabled = true;
-                    }
-                } else {
-                    fleetTimeline.githubConfig.jsonRepo.enabled = false;
-                }
-                
-                console.log('🔧 Configuração atualizada:', fleetTimeline.githubConfig);
-                alert('✅ Configuração dos repositórios atualizada!');
-            }
-        }
-
-        function testRepositoryAccess() {
-            const csvRepo = document.getElementById('csvRepoUrl').value.trim();
-            const jsonRepo = document.getElementById('jsonRepoUrl').value.trim();
-            
-            let testResults = '🔍 TESTE DE ACESSO AOS REPOSITÓRIOS\n\n';
-            
-            if (csvRepo) {
-                testResults += `📊 Testando CSV: ${csvRepo}...\n`;
-                testGitHubRepo(csvRepo).then(result => {
-                    testResults += `   ${result}\n`;
-                    
-                    if (jsonRepo) {
-                        testResults += `\n🔄 Testando JSON: ${jsonRepo}...\n`;
-                        testGitHubRepo(jsonRepo).then(result2 => {
-                            testResults += `   ${result2}\n`;
-                            showTestResults(testResults);
-                        });
-                    } else {
-                        testResults += '\n⚠️ Repositório JSON não configurado\n';
-                        showTestResults(testResults);
-                    }
-                });
-            } else {
-                alert('❌ Configure pelo menos o repositório CSV primeiro!');
-            }
-        }
-
-        async function testGitHubRepo(repoPath) {
-            try {
-                const response = await fetch(`https://api.github.com/repos/${repoPath}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    return `✅ Repositório acessível: ${data.name} (${data.visibility || 'public'})`;
-                } else if (response.status === 404) {
-                    return `❌ Repositório não encontrado ou privado (404)`;
-                } else {
-                    return `⚠️ Erro ao acessar repositório (${response.status})`;
-                }
-            } catch (error) {
-                return `❌ Erro de conectividade: ${error.message}`;
-            }
-        }
-
-        function showTestResults(results) {
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 10000;
-                font-family: monospace;
-            `;
-            
-            modal.innerHTML = `
-                <div style="
-                    background: white;
-                    padding: 2rem;
-                    border-radius: 8px;
-                    max-width: 600px;
-                    max-height: 80vh;
-                    overflow-y: auto;
-                    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-                ">
-                    <h3 style="margin-bottom: 1rem; color: #2d3748;">🔍 Resultado do Teste</h3>
-                    <pre style="
-                        white-space: pre-wrap;
-                        background: #f7fafc;
-                        padding: 1rem;
-                        border-radius: 6px;
-                        font-size: 0.875rem;
-                        line-height: 1.4;
-                        border: 1px solid #e2e8f0;
-                    ">${results}</pre>
-                    <div style="margin-top: 1.5rem; text-align: right;">
-                        <button onclick="this.closest('div').parentNode.remove()" style="
-                            background: #3182ce;
-                            color: white;
-                            border: none;
-                            padding: 0.75rem 1.5rem;
-                            border-radius: 6px;
-                            cursor: pointer;
-                            font-weight: 500;
-                        ">Fechar</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-        }
-
-        function showKnownIssues() {
-            const issuesInfo = `
-🔧 PROBLEMAS CONHECIDOS E SOLUÇÕES
-
-❌ ERRO 404 (Repositório não encontrado):
-• CAUSA MAIS COMUM: Nome do repositório incorreto
-• Exemplo: Sistema busca "Controle-Status-Equipamentos" 
-  mas o real é "Controle-Status-Equipamentos-" (com hífen no final)
-• Verificar se o nome está exatamente correto (incluindo hífens, underscores)
-• Verificar se o repositório é público (não privado)
-• Verificar se o arquivo existe no caminho especificado
-• Solução: Use a aba "Configurações" para ajustar repositórios
-
-🔤 NOMES DE REPOSITÓRIO SENSÍVEIS:
-• GitHub é case-sensitive: "RepoName" ≠ "reponame"  
-• Hífens importam: "repo-name" ≠ "repo-name-"
-• Underscores importam: "repo_name" ≠ "repo-name"
-• Solução: Copie o nome EXATO do GitHub
-
-📄 ARQUIVO JSON NÃO ENCONTRADO:
-• O arquivo "data/latest-fleet-data.json" pode não existir
-• Caminho pode estar incorreto (case-sensitive)
-• Solução: Verificar estrutura de pastas no GitHub
-• Alternativa: Use modo "Somente CSV" nas configurações
-
-🔤 CARACTERES ESTRANHOS (Acentos):
-• Problema de encoding entre ISO-8859-1 e UTF-8
-• Sistema tentará corrigir automaticamente
-• Se persistir, verifique encoding do arquivo CSV original
-
-🌐 PROBLEMAS DE CONECTIVIDADE:
-• Verificar conexão com internet
-• GitHub pode ter rate limits temporários
-• Solução: Aguardar alguns minutos e tentar novamente
-
-📊 DADOS NÃO APARECEM NA TIMELINE:
-• Verificar se campos obrigatórios existem no CSV
-• CSV deve ter: "Data Inicial", "Data Final", "Vaga"
-• JSON deve ter: "start", "end", "vacancy_name"
-
-🔄 AUTO-SYNC NÃO FUNCIONA:
-• Verificar se está habilitado nas configurações
-• Verificar se não há erros de conectividade
-• Recarregar página se necessário
-
-💡 DICAS DE CONFIGURAÇÃO:
-• Use "Testar Acesso" para verificar repositórios
-• Configure modo "Somente CSV" se JSON não disponível
-• Ajuste intervalo de sync conforme necessidade
-• SEMPRE copie nomes de repositório diretamente do GitHub
-
-📞 SUPORTE:
-• Use "Diagnosticar CORS" para informações técnicas
-• Inclua logs do console (F12) em reports de erro
-• Verifique se repositórios são públicos no GitHub
-• Confirme nomes exatos dos repositórios no GitHub
-            `;
-            
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 10000;
-                font-family: monospace;
-            `;
-            
-            modal.innerHTML = `
-                <div style="
-                    background: white;
-                    padding: 2rem;
-                    border-radius: 8px;
-                    max-width: 700px;
-                    max-height: 80vh;
-                    overflow-y: auto;
-                    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-                ">
-                    <h3 style="margin-bottom: 1rem; color: #2d3748;">⚠️ Problemas Conhecidos e Soluções</h3>
-                    <pre style="
-                        white-space: pre-wrap;
-                        background: #f7fafc;
-                        padding: 1rem;
-                        border-radius: 6px;
-                        font-size: 0.875rem;
-                        line-height: 1.4;
-                        border: 1px solid #e2e8f0;
-                    ">${issuesInfo}</pre>
-                    <div style="margin-top: 1.5rem; text-align: right;">
-                        <button onclick="this.closest('div').parentNode.remove()" style="
-                            background: #3182ce;
-                            color: white;
-                            border: none;
-                            padding: 0.75rem 1.5rem;
-                            border-radius: 6px;
-                            cursor: pointer;
-                            font-weight: 500;
-                        ">Fechar</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-        }
-
-        function testGitHubConnection() {
-            if (fleetTimeline) {
-                fleetTimeline.updateSyncStatus('loading', 'Testando conexão...');
-                fleetTimeline.syncFromGitHub();
-            }
-        }
-
-        function testSpecificRepo() {
-            console.log('🧪 Testando especificamente o repositório JSON corrigido...');
-            
-            if (fleetTimeline) {
-                fleetTimeline.updateSyncStatus('loading', 'Testando repositório JSON...');
-                
-                // Testar apenas o JSON
-                fleetTimeline.fetchJSONFromGitHub().then(result => {
-                    if (result.success) {
-                        fleetTimeline.showGitHubNotification('🎉 SUCESSO! Repositório JSON encontrado e funcionando!', 'success');
-                        console.log('✅ PROBLEMA RESOLVIDO! JSON carregado com sucesso:', result.data.length, 'registros');
-                    } else {
-                        fleetTimeline.showGitHubNotification('❌ Repositório JSON ainda não encontrado', 'error');
-                        console.log('❌ Teste do JSON falhou');
-                    }
-                }).catch(error => {
-                    fleetTimeline.showGitHubNotification('❌ Erro ao testar JSON: ' + error.message, 'error');
-                    console.error('❌ Erro no teste:', error);
-                });
-            }
-        }
-
-        function diagnoseCorsIssues() {
-            const diagnosticInfo = `
-🔧 DIAGNÓSTICO DE CONECTIVIDADE
-
-📋 Informações do Sistema:
-• Origem: ${window.location.origin}
-• User Agent: ${navigator.userAgent.split(' ')[0]}
-• Protocolo: ${window.location.protocol}
-
-🌐 URLs Configuradas:
-• CSV API: https://api.github.com/repos/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/contents/data/apontamentos-atuais.csv
-• JSON API: https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos/contents/data/latest-fleet-data.json
-
-🔍 Possíveis Soluções:
-1. Verificar se os repositórios são públicos
-2. Verificar se os arquivos existem nos caminhos especificados
-3. Verificar conectividade com a internet
-4. Tentar recarregar a página
-
-⚠️ Problemas Conhecidos:
-• Se os repositórios forem privados, a API retorna 404
-• Se os arquivos não existirem, a API retorna 404
-• Problemas de rede podem causar timeouts
-
-📞 Para suporte, informe:
-• Este diagnóstico completo
-• Horário do erro: ${new Date().toLocaleString('pt-BR')}
-• Versão do sistema: 2.0 Professional
-            `;
-            
-            // Criar modal de diagnóstico
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 10000;
-                font-family: monospace;
-            `;
-            
-            modal.innerHTML = `
-                <div style="
-                    background: white;
-                    padding: 2rem;
-                    border-radius: 8px;
-                    max-width: 600px;
-                    max-height: 80vh;
-                    overflow-y: auto;
-                    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-                ">
-                    <h3 style="margin-bottom: 1rem; color: #2d3748;">🔧 Diagnóstico de Conectividade</h3>
-                    <pre style="
-                        white-space: pre-wrap;
-                        background: #f7fafc;
-                        padding: 1rem;
-                        border-radius: 6px;
-                        font-size: 0.875rem;
-                        line-height: 1.4;
-                        border: 1px solid #e2e8f0;
-                    ">${diagnosticInfo}</pre>
-                    <div style="margin-top: 1.5rem; text-align: right;">
-                        <button onclick="this.closest('div').parentNode.remove()" style="
-                            background: #3182ce;
-                            color: white;
-                            border: none;
-                            padding: 0.75rem 1.5rem;
-                            border-radius: 6px;
-                            cursor: pointer;
-                            font-weight: 500;
-                        ">Fechar</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            // Testar conectividade básica
-            testBasicConnectivity();
-        }
-
-        async function testBasicConnectivity() {
-            console.log('🔍 Iniciando teste de conectividade...');
-            
-            // Teste 1: GitHub API básica
-            try {
-                const response = await fetch('https://api.github.com/rate_limit');
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ GitHub API acessível. Rate limit:', data.rate.remaining);
-                } else {
-                    console.log('⚠️ GitHub API respondeu com erro:', response.status);
-                }
-            } catch (error) {
-                console.log('❌ GitHub API inacessível:', error.message);
-            }
-            
-            // Teste 2: Repositório CSV específico
-            try {
-                const response = await fetch('https://api.github.com/repos/GrupoGps-Mecanizada/Apontamento-Dos-Tablets');
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ Repositório CSV acessível:', data.name);
-                } else {
-                    console.log('⚠️ Repositório CSV não encontrado ou privado:', response.status);
-                }
-            } catch (error) {
-                console.log('❌ Erro ao acessar repositório CSV:', error.message);
-            }
-            
-            // Teste 3: Repositório JSON específico
-            try {
-                const response = await fetch('https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos');
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ Repositório JSON acessível:', data.name);
-                } else {
-                    console.log('⚠️ Repositório JSON não encontrado ou privado:', response.status);
-                }
-            } catch (error) {
-                console.log('❌ Erro ao acessar repositório JSON:', error.message);
-            }
-            
-            console.log('🔍 Teste de conectividade concluído. Verifique o console para detalhes.');
+            productivitySystem.showNotification(`⚙️ Configurações salvas! Auto-sync: ${autoSyncInterval > 0 ? `${autoSyncInterval/60000}min` : 'desabilitado'}`, 'success');
         }
 
         // =============================================================================
         // INICIALIZAÇÃO
         // =============================================================================
         document.addEventListener('DOMContentLoaded', () => {
-            fleetTimeline = new UnifiedFleetTimelinePro();
+            productivitySystem = new ProductivityMonitoringSystem();
         });
     </script>
 </body>
