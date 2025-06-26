@@ -546,6 +546,19 @@
             from { transform: translateX(0); opacity: 1; }
             to { transform: translateX(100%); opacity: 0; }
         }
+
+        /* Debug Panel */
+        .debug-panel {
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -579,6 +592,9 @@
                 </div>
                 <div class="nav-tab" onclick="switchTab('data-sources')">
                     <span>📁 Fontes de Dados</span>
+                </div>
+                <div class="nav-tab" onclick="switchTab('debug')">
+                    <span>🔧 Debug</span>
                 </div>
                 <div class="nav-tab" onclick="switchTab('settings')">
                     <span>⚙️ Configurações</span>
@@ -670,6 +686,14 @@
                             <div class="stat-value" id="lastUpdate">--:--</div>
                             <div class="stat-label">Última Atualização</div>
                         </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="conflictsResolved">0</div>
+                            <div class="stat-label">Conflitos Resolvidos</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="duplicatesRemoved">0</div>
+                            <div class="stat-label">Duplicatas Removidas</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -703,6 +727,38 @@
                 </div>
             </div>
 
+            <!-- Debug Tab -->
+            <div id="debug-tab" class="tab-content">
+                <div class="glass-panel">
+                    <div style="padding: 2rem;">
+                        <h2 style="margin-bottom: 2rem; color: #2c3e50;">🔧 Debug e Diagnóstico</h2>
+                        
+                        <div style="display: grid; gap: 2rem;">
+                            <div>
+                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">📊 Estatísticas de Processamento</h3>
+                                <div id="debugStats" style="font-family: monospace; background: #f8f9fa; padding: 1rem; border-radius: 8px;">
+                                    Aguardando dados...
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 style="color: #5a6c7d; margin-bottom: 1rem;">🔍 Log de Resolução de Conflitos</h3>
+                                <div id="debugLog" class="debug-panel">
+                                    Sistema inicializando...
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <button class="btn" onclick="exportDebugData()">
+                                    <span>📁</span>
+                                    Exportar Dados de Debug
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Settings Tab -->
             <div id="settings-tab" class="tab-content">
                 <div class="glass-panel">
@@ -722,11 +778,21 @@
                             </div>
                             
                             <div class="control-group">
-                                <label>Consolidação de Status:</label>
-                                <select id="consolidationMode">
-                                    <option value="intelligent" selected>Inteligente (Recomendado)</option>
-                                    <option value="strict">Rígida</option>
-                                    <option value="none">Desabilitada</option>
+                                <label>Modo de Resolução de Conflitos:</label>
+                                <select id="conflictResolution">
+                                    <option value="priority" selected>Por Prioridade (Recomendado)</option>
+                                    <option value="latest">Mais Recente</option>
+                                    <option value="longest">Maior Duração</option>
+                                </select>
+                            </div>
+                            
+                            <div class="control-group">
+                                <label>Tolerância de Gap (segundos):</label>
+                                <select id="gapTolerance">
+                                    <option value="30">30 segundos</option>
+                                    <option value="60" selected>60 segundos</option>
+                                    <option value="120">2 minutos</option>
+                                    <option value="300">5 minutos</option>
                                 </select>
                             </div>
                             
@@ -750,7 +816,7 @@
 
     <script>
         // =============================================================================
-        // CLASSE PRINCIPAL - VERSÃO APRIMORADA COM MELHOR CONSOLIDAÇÃO
+        // CLASSE PRINCIPAL - VERSÃO CORRIGIDA COM RESOLUÇÃO DE CONFLITOS
         // =============================================================================
         class ProductivityMonitoringSystem {
             constructor() {
@@ -765,6 +831,26 @@
                 this.startTime = new Date();
                 this.lastDataHash = '';
                 this.currentViewWindow = null;
+                this.debugLog = [];
+                this.processingStats = {
+                    conflictsResolved: 0,
+                    duplicatesRemoved: 0,
+                    originalRecords: 0,
+                    finalRecords: 0
+                };
+
+                // Hierarquia de prioridade de status (maior número = maior prioridade)
+                this.statusPriority = {
+                    'maintenance': 10,           // Manutenção tem prioridade máxima
+                    'out_of_plant': 9,          // Fora da planta
+                    'secondary_motor_on': 8,    // Motor secundário ligado
+                    'on': 7,                    // Motor ligado
+                    'running': 7,               // Motor rodando (alias para 'on')
+                    'stopped': 6,               // Parado ligado
+                    'off': 5,                   // Motor desligado
+                    'not_appropriated': 4,      // Não apropriado
+                    'no_data': 3               // Sem dados (menor prioridade)
+                };
 
                 // Configurações GitHub
                 this.githubConfig = {
@@ -787,22 +873,23 @@
                 // Configurações - padrão 10 minutos
                 this.config = {
                     autoSyncInterval: 600000, // 10 minutos
-                    consolidationMode: 'intelligent',
+                    conflictResolution: 'priority', // priority, latest, longest
+                    gapTolerance: 60, // segundos
                     retryAttempts: 3,
                     retryDelay: 2000
                 };
 
                 // Mapeamento de cores baseado na imagem fornecida
                 this.statusColors = {
-                    'running': 'status-running',           // Verde - Motor Ligado
-                    'on': 'status-on',                     // Azul - Motor Ligado
-                    'stopped': 'status-stopped',           // Amarelo - Parado Ligado
-                    'off': 'status-off',                   // Cinza - Motor Desligado
-                    'maintenance': 'status-maintenance',   // Laranja - Em Manutenção
-                    'out_of_plant': 'status-out_of_plant', // Marrom - Fora da Planta
-                    'not_appropriated': 'status-not_appropriated', // Cinza - Indisponível
-                    'no_data': 'status-no_data',           // Preto - Sem Dados de Bordo
-                    'secondary_motor_on': 'status-secondary_motor_on' // Roxo - Motor Secundário
+                    'running': 'status-running',           
+                    'on': 'status-on',                     
+                    'stopped': 'status-stopped',           
+                    'off': 'status-off',                   
+                    'maintenance': 'status-maintenance',   
+                    'out_of_plant': 'status-out_of_plant', 
+                    'not_appropriated': 'status-not_appropriated', 
+                    'no_data': 'status-no_data',           
+                    'secondary_motor_on': 'status-secondary_motor_on' 
                 };
 
                 this.apontColors = {
@@ -830,6 +917,7 @@
             async initSystem() {
                 console.log('🚀 Iniciando Monitoramento De Produtividade - GrupoGPS');
                 this.updateSyncStatus('loading', 'Inicializando sistema...');
+                this.addDebugLog('Sistema inicializado');
                 
                 this.setupEventListeners();
                 this.updateSystemInfo();
@@ -856,7 +944,44 @@
             }
 
             // =============================================================================
-            // SINCRONIZAÇÃO APRIMORADA COM GITHUB
+            // SISTEMA DE DEBUG E LOG
+            // =============================================================================
+            addDebugLog(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+                this.debugLog.push(logEntry);
+                
+                // Manter apenas os últimos 100 logs
+                if (this.debugLog.length > 100) {
+                    this.debugLog.shift();
+                }
+                
+                this.updateDebugPanel();
+                console.log(logEntry);
+            }
+
+            updateDebugPanel() {
+                const debugLogElement = document.getElementById('debugLog');
+                if (debugLogElement) {
+                    debugLogElement.innerHTML = this.debugLog.slice(-20).join('\n');
+                    debugLogElement.scrollTop = debugLogElement.scrollHeight;
+                }
+
+                const debugStatsElement = document.getElementById('debugStats');
+                if (debugStatsElement) {
+                    debugStatsElement.innerHTML = `
+                        Registros Originais: ${this.processingStats.originalRecords}<br>
+                        Registros Finais: ${this.processingStats.finalRecords}<br>
+                        Conflitos Resolvidos: ${this.processingStats.conflictsResolved}<br>
+                        Duplicatas Removidas: ${this.processingStats.duplicatesRemoved}<br>
+                        Taxa de Limpeza: ${this.processingStats.originalRecords > 0 ? 
+                            ((this.processingStats.originalRecords - this.processingStats.finalRecords) / this.processingStats.originalRecords * 100).toFixed(1) : 0}%
+                    `;
+                }
+            }
+
+            // =============================================================================
+            // SINCRONIZAÇÃO COM GITHUB
             // =============================================================================
             async initGitHubSync() {
                 console.log('🔄 Iniciando sincronização automática GitHub...');
@@ -869,6 +994,7 @@
 
                 this.isUpdating = true;
                 this.updateSyncStatus('loading', 'Sincronizando dados...');
+                this.addDebugLog('Iniciando sincronização com GitHub');
 
                 try {
                     // Salvar janela de visualização atual se existir
@@ -889,9 +1015,12 @@
                         if (JSON.stringify(newCsvData) !== JSON.stringify(this.csvData)) {
                             this.csvData = newCsvData;
                             newDataDetected = true;
+                            this.addDebugLog(`CSV atualizado: ${this.csvData.length} registros`);
                         }
                         successCount++;
                         console.log(`✅ CSV: ${this.csvData.length} registros`);
+                    } else {
+                        this.addDebugLog(`Erro no CSV: ${csvResult.reason || 'Falha na requisição'}`, 'error');
                     }
 
                     if (jsonResult.status === 'fulfilled' && jsonResult.value.success) {
@@ -902,41 +1031,57 @@
                             this.jsonData = newJsonData;
                             this.lastDataHash = newDataHash;
                             newDataDetected = true;
+                            this.addDebugLog(`JSON atualizado: ${this.jsonData.length} registros`);
                         }
                         successCount++;
                         console.log(`✅ JSON: ${this.jsonData.length} registros`);
+                    } else {
+                        this.addDebugLog(`Erro no JSON: ${jsonResult.reason || 'Falha na requisição'}`, 'error');
                     }
 
                     if (successCount > 0) {
                         if (newDataDetected) {
-                            await this.processDataSmartly();
+                            await this.processDataWithConflictResolution();
                             this.showNotification('✅ Dados atualizados com sucesso', 'success');
+                            this.addDebugLog('Processamento de dados concluído');
                         } else {
-                            console.log('ℹ️ Nenhum dado novo detectado');
+                            this.addDebugLog('Nenhum dado novo detectado');
                         }
                         
                         this.updateSyncStatus('success', 'Dados sincronizados');
                     } else {
                         this.updateSyncStatus('error', 'Falha na sincronização');
                         this.showNotification('❌ Erro na sincronização', 'error');
+                        this.addDebugLog('Falha na sincronização', 'error');
                     }
 
                 } catch (error) {
                     console.error('❌ Erro na sincronização:', error);
                     this.updateSyncStatus('error', 'Erro na sincronização');
                     this.showNotification('❌ Erro na sincronização: ' + error.message, 'error');
+                    this.addDebugLog(`Erro na sincronização: ${error.message}`, 'error');
                 } finally {
                     this.isUpdating = false;
                 }
             }
 
             // =============================================================================
-            // PROCESSAMENTO INTELIGENTE DOS DADOS
+            // PROCESSAMENTO COM RESOLUÇÃO DE CONFLITOS
             // =============================================================================
-            async processDataSmartly() {
+            async processDataWithConflictResolution() {
                 if (this.csvData.length === 0 && this.jsonData.length === 0) {
                     return;
                 }
+
+                this.addDebugLog('Iniciando processamento com resolução de conflitos');
+                
+                // Reset stats
+                this.processingStats = {
+                    conflictsResolved: 0,
+                    duplicatesRemoved: 0,
+                    originalRecords: this.jsonData.length,
+                    finalRecords: 0
+                };
 
                 // Limpar dados anteriores
                 this.equipmentMap.clear();
@@ -946,7 +1091,7 @@
                 // Processar dados
                 this.unifyEquipmentData();
                 this.createGroups();
-                this.createTimelineItemsImproved();
+                this.createTimelineItemsWithConflictResolution();
 
                 // Atualizar timeline sem perder visualização
                 if (this.timeline) {
@@ -956,21 +1101,171 @@
                 }
 
                 this.updateInterface();
+                this.addDebugLog(`Processamento concluído: ${this.processingStats.finalRecords} registros finais`);
             }
 
-            // Consolidação aprimorada para resolver problema de múltiplas visualizações
-            consolidateConsecutiveStatusImproved(statusList) {
+            // FUNÇÃO PRINCIPAL DE RESOLUÇÃO DE CONFLITOS
+            resolveStatusConflicts(statusList, equipmentName) {
                 if (!statusList || statusList.length === 0) return [];
 
-                // Ordenar por tempo de início
-                const sortedStatus = [...statusList].sort((a, b) => 
+                this.addDebugLog(`Resolvendo conflitos para ${equipmentName}: ${statusList.length} registros originais`);
+
+                // 1. Remover duplicatas exatas
+                const uniqueStatus = this.removeDuplicates(statusList);
+                const duplicatesRemoved = statusList.length - uniqueStatus.length;
+                this.processingStats.duplicatesRemoved += duplicatesRemoved;
+                
+                if (duplicatesRemoved > 0) {
+                    this.addDebugLog(`Removidas ${duplicatesRemoved} duplicatas de ${equipmentName}`);
+                }
+
+                // 2. Ordenar por tempo de início
+                const sortedStatus = uniqueStatus.sort((a, b) => 
                     new Date(a.start) - new Date(b.start)
                 );
+
+                // 3. Detectar e resolver sobreposições
+                const resolvedStatus = this.resolveOverlaps(sortedStatus, equipmentName);
+
+                // 4. Consolidar períodos consecutivos do mesmo status
+                const consolidatedStatus = this.consolidateConsecutive(resolvedStatus, equipmentName);
+
+                // 5. Preencher gaps pequenos
+                const finalStatus = this.fillSmallGaps(consolidatedStatus, equipmentName);
+
+                this.processingStats.finalRecords += finalStatus.length;
+                
+                this.addDebugLog(`${equipmentName}: ${statusList.length} → ${finalStatus.length} registros`);
+                
+                return finalStatus;
+            }
+
+            // Remover duplicatas exatas
+            removeDuplicates(statusList) {
+                const seen = new Set();
+                return statusList.filter(status => {
+                    const key = `${status.start}-${status.end}-${status.status}-${status.vacancy_code}`;
+                    if (seen.has(key)) {
+                        return false;
+                    }
+                    seen.add(key);
+                    return true;
+                });
+            }
+
+            // Resolver sobreposições baseado em prioridade
+            resolveOverlaps(statusList, equipmentName) {
+                if (statusList.length <= 1) return statusList;
+
+                const resolved = [];
+                let current = null;
+
+                for (const status of statusList) {
+                    if (!current) {
+                        current = { ...status };
+                        continue;
+                    }
+
+                    const currentEnd = new Date(current.end);
+                    const statusStart = new Date(status.start);
+                    const statusEnd = new Date(status.end);
+
+                    // Verificar se há sobreposição
+                    if (statusStart < currentEnd) {
+                        this.processingStats.conflictsResolved++;
+                        this.addDebugLog(`Conflito detectado em ${equipmentName}: ${current.status} vs ${status.status}`);
+
+                        // Resolver conflito baseado na configuração
+                        const resolution = this.resolveConflict(current, status);
+                        
+                        if (resolution.action === 'replace') {
+                            // Substituir completamente
+                            current = { ...status };
+                            this.addDebugLog(`Resolvido: ${status.status} substituiu ${current.status}`);
+                        } else if (resolution.action === 'split') {
+                            // Dividir o período
+                            if (resolution.beforeWinner) {
+                                // Manter o primeiro até o início do segundo
+                                current.end = status.start;
+                                resolved.push(current);
+                                current = { ...status };
+                            } else {
+                                // Ajustar o primeiro e manter o segundo
+                                current.end = status.start;
+                                if (new Date(current.start) < new Date(current.end)) {
+                                    resolved.push(current);
+                                }
+                                current = { ...status };
+                            }
+                            this.addDebugLog(`Resolvido: Período dividido entre ${current.status} e ${status.status}`);
+                        } else if (resolution.action === 'merge') {
+                            // Estender o período do vencedor
+                            if (resolution.winner === 'current') {
+                                current.end = statusEnd > currentEnd ? status.end : current.end;
+                            } else {
+                                current = { ...status };
+                                current.start = current.start < status.start ? current.start : status.start;
+                            }
+                            this.addDebugLog(`Resolvido: Períodos mesclados em ${current.status}`);
+                        }
+                    } else {
+                        // Sem sobreposição, adicionar o atual e continuar com o próximo
+                        resolved.push(current);
+                        current = { ...status };
+                    }
+                }
+
+                if (current) {
+                    resolved.push(current);
+                }
+
+                return resolved;
+            }
+
+            // Lógica de resolução de conflitos
+            resolveConflict(status1, status2) {
+                const priority1 = this.statusPriority[status1.status] || 0;
+                const priority2 = this.statusPriority[status2.status] || 0;
+
+                switch (this.config.conflictResolution) {
+                    case 'priority':
+                        if (priority1 > priority2) {
+                            return { action: 'merge', winner: 'current' };
+                        } else if (priority2 > priority1) {
+                            return { action: 'replace', winner: 'new' };
+                        } else {
+                            // Mesma prioridade, usar o mais recente
+                            return { action: 'replace', winner: 'new' };
+                        }
+                    
+                    case 'latest':
+                        // Sempre usar o mais recente
+                        return { action: 'replace', winner: 'new' };
+                    
+                    case 'longest':
+                        // Usar o de maior duração
+                        const duration1 = new Date(status1.end) - new Date(status1.start);
+                        const duration2 = new Date(status2.end) - new Date(status2.start);
+                        
+                        if (duration1 > duration2) {
+                            return { action: 'merge', winner: 'current' };
+                        } else {
+                            return { action: 'replace', winner: 'new' };
+                        }
+                    
+                    default:
+                        return { action: 'split', beforeWinner: false };
+                }
+            }
+
+            // Consolidar períodos consecutivos do mesmo status
+            consolidateConsecutive(statusList, equipmentName) {
+                if (statusList.length <= 1) return statusList;
 
                 const consolidated = [];
                 let current = null;
 
-                for (const status of sortedStatus) {
+                for (const status of statusList) {
                     if (!current) {
                         current = { ...status };
                         continue;
@@ -980,17 +1275,17 @@
                     const statusStart = new Date(status.start);
                     const gapSeconds = (statusStart - currentEnd) / 1000;
 
-                    // Se mesmo status e gap menor que 60 segundos, consolida
+                    // Se mesmo status e gap pequeno, consolidar
                     if (current.status === status.status && 
                         current.status_title === status.status_title && 
-                        Math.abs(gapSeconds) <= 60) {
+                        Math.abs(gapSeconds) <= this.config.gapTolerance) {
                         
                         // Estender período
                         current.end = status.end;
                         current.total_time = (parseFloat(current.total_time) || 0) + (parseFloat(status.total_time) || 0);
                         current.consolidated_count = (current.consolidated_count || 1) + 1;
                     } else {
-                        // Status diferente ou gap muito grande, adicionar atual e começar novo
+                        // Status diferente ou gap muito grande
                         consolidated.push(current);
                         current = { ...status };
                     }
@@ -1000,15 +1295,48 @@
                     consolidated.push(current);
                 }
 
-                console.log(`🔧 Consolidação: ${statusList.length} → ${consolidated.length} registros`);
                 return consolidated;
             }
 
-            createTimelineItemsImproved() {
+            // Preencher gaps pequenos entre status
+            fillSmallGaps(statusList, equipmentName) {
+                if (statusList.length <= 1) return statusList;
+
+                const filled = [];
+                
+                for (let i = 0; i < statusList.length; i++) {
+                    filled.push(statusList[i]);
+                    
+                    // Verificar gap para o próximo status
+                    if (i < statusList.length - 1) {
+                        const currentEnd = new Date(statusList[i].end);
+                        const nextStart = new Date(statusList[i + 1].start);
+                        const gapSeconds = (nextStart - currentEnd) / 1000;
+                        
+                        // Se gap pequeno (menor que tolerância), preencher com status 'off'
+                        if (gapSeconds > 0 && gapSeconds <= this.config.gapTolerance) {
+                            filled.push({
+                                ...statusList[i],
+                                status: 'off',
+                                status_title: 'Motor Desligado',
+                                start: statusList[i].end,
+                                end: statusList[i + 1].start,
+                                total_time: gapSeconds / 3600,
+                                gap_filled: true
+                            });
+                            this.addDebugLog(`Gap preenchido em ${equipmentName}: ${gapSeconds}s`);
+                        }
+                    }
+                }
+
+                return filled;
+            }
+
+            createTimelineItemsWithConflictResolution() {
                 let itemId = 0;
 
                 for (const [equipName, data] of this.equipmentMap) {
-                    // Processar apontamentos (sem consolidação, pois são eventos únicos)
+                    // Processar apontamentos (sem mudanças, pois são eventos únicos)
                     data.apontamentos.forEach(apont => {
                         const start = this.parseDate(apont['Data Inicial']);
                         const end = this.parseDate(apont['Data Final']);
@@ -1030,12 +1358,11 @@
                         }
                     });
 
-                    // Processar status COM consolidação aprimorada
+                    // Processar status COM resolução de conflitos
                     if (data.status.length > 0) {
-                        const consolidatedStatus = this.config.consolidationMode === 'intelligent' ? 
-                            this.consolidateConsecutiveStatusImproved(data.status) : data.status;
+                        const resolvedStatus = this.resolveStatusConflicts(data.status, equipName);
                         
-                        consolidatedStatus.forEach((status) => {
+                        resolvedStatus.forEach((status) => {
                             const start = this.parseDate(status.start);
                             const end = this.parseDate(status.end);
                             
@@ -1050,7 +1377,7 @@
                                     start: start,
                                     end: end,
                                     className: className,
-                                    title: this.createStatusTooltipImproved(status, equipName),
+                                    title: this.createStatusTooltipEnhanced(status, equipName),
                                     type: 'range'
                                 });
                             }
@@ -1059,9 +1386,10 @@
                 }
             }
 
-            createStatusTooltipImproved(status, equipName) {
+            createStatusTooltipEnhanced(status, equipName) {
                 const totalHours = parseFloat(status.total_time || 0);
                 const count = status.consolidated_count || 1;
+                const isGapFilled = status.gap_filled || false;
                 
                 const formatHours = (hours) => {
                     const h = Math.floor(hours);
@@ -1073,7 +1401,9 @@
                 
                 let tooltipContent = `
                     <div style="font-size: 13px; line-height: 1.4; max-width: 300px;">
-                        <div style="font-weight: 700; margin-bottom: 8px; color: #2c3e50;">🔄 Status Automático</div>
+                        <div style="font-weight: 700; margin-bottom: 8px; color: #2c3e50;">
+                            🔄 Status ${isGapFilled ? '(Gap Preenchido)' : 'Automático'}
+                        </div>
                         <div style="margin-bottom: 4px;"><strong>Equipamento:</strong> ${equipName}</div>
                         <div style="margin-bottom: 4px;"><strong>Status:</strong> ${status.status_title || status.status}</div>
                         <div style="margin-bottom: 4px;"><strong>Período:</strong> ${status.start} até ${status.end}</div>
@@ -1082,6 +1412,11 @@
                 if (count > 1) {
                     tooltipContent += `
                         <div style="margin-bottom: 4px; color: #27ae60;"><strong>✅ Consolidado:</strong> ${count} registros</div>`;
+                }
+
+                if (isGapFilled) {
+                    tooltipContent += `
+                        <div style="margin-bottom: 4px; color: #f39c12;"><strong>⚠️ Gap Preenchido</strong></div>`;
                 }
                 
                 tooltipContent += `
@@ -1092,103 +1427,8 @@
                 return tooltipContent;
             }
 
-            // Atualização inteligente da timeline sem reset
-            updateTimelineSmartly() {
-                if (!this.timeline) return;
-
-                try {
-                    // Salvar seleção atual
-                    const selection = this.timeline.getSelection();
-                    
-                    // Atualizar dados
-                    this.timeline.setData({
-                        items: this.items,
-                        groups: this.groups
-                    });
-
-                    // Restaurar janela de visualização se existir
-                    if (this.currentViewWindow) {
-                        setTimeout(() => {
-                            this.timeline.setWindow(this.currentViewWindow.start, this.currentViewWindow.end);
-                        }, 100);
-                    }
-
-                    // Restaurar seleção
-                    if (selection.length > 0) {
-                        setTimeout(() => {
-                            this.timeline.setSelection(selection);
-                        }, 150);
-                    }
-
-                } catch (error) {
-                    console.error('❌ Erro ao atualizar timeline:', error);
-                    // Em caso de erro, reinicializar completamente
-                    this.initTimeline();
-                }
-            }
-
-            initTimeline() {
-                if (this.items.length === 0) return;
-
-                const container = document.getElementById('timeline');
-                container.innerHTML = '';
-
-                const options = {
-                    orientation: 'top',
-                    stack: true,
-                    showCurrentTime: true,
-                    zoomMin: 1000 * 60 * 10, // 10 minutos
-                    zoomMax: 1000 * 60 * 60 * 24 * 30, // 30 dias
-                    editable: false,
-                    multiselect: false,
-                    selectable: true,
-                    tooltip: {
-                        followMouse: true,
-                        overflowMethod: 'flip'
-                    },
-                    format: {
-                        minorLabels: {
-                            minute: 'HH:mm',
-                            hour: 'HH:mm',
-                            day: 'DD/MM',
-                            month: 'MMM',
-                            year: 'YYYY'
-                        },
-                        majorLabels: {
-                            minute: 'ddd DD/MM',
-                            hour: 'ddd DD/MM',
-                            day: 'MMMM YYYY',
-                            month: 'YYYY',
-                            year: ''
-                        }
-                    },
-                    margin: {
-                        item: {
-                            horizontal: 2,
-                            vertical: 1
-                        }
-                    },
-                    height: '100%',
-                    // Configurações para evitar loop infinito
-                    maxHeight: 600,
-                    verticalScroll: true,
-                    horizontalScroll: true
-                };
-
-                this.timeline = new vis.Timeline(container, this.items, this.groups, options);
-
-                // Event listeners
-                this.timeline.on('rangechanged', (properties) => {
-                    this.currentViewWindow = properties;
-                });
-
-                setTimeout(() => {
-                    this.handlePeriodChange();
-                }, 100);
-            }
-
             // =============================================================================
-            // FUNÇÕES AUXILIARES APRIMORADAS
+            // FUNÇÕES AUXILIARES (sem mudanças significativas)
             // =============================================================================
             generateDataHash(data) {
                 return btoa(JSON.stringify(data)).slice(0, 32);
@@ -1299,7 +1539,6 @@
                 }
             }
 
-            // ... [Resto das funções auxiliares seguem o mesmo padrão das originais]
             unifyEquipmentData() {
                 this.csvData.forEach((item) => {
                     const equipName = this.normalizeEquipmentName(item.Vaga || item.Placa);
@@ -1483,6 +1722,100 @@
                 `;
             }
 
+            updateTimelineSmartly() {
+                if (!this.timeline) return;
+
+                try {
+                    // Salvar seleção atual
+                    const selection = this.timeline.getSelection();
+                    
+                    // Atualizar dados
+                    this.timeline.setData({
+                        items: this.items,
+                        groups: this.groups
+                    });
+
+                    // Restaurar janela de visualização se existir
+                    if (this.currentViewWindow) {
+                        setTimeout(() => {
+                            this.timeline.setWindow(this.currentViewWindow.start, this.currentViewWindow.end);
+                        }, 100);
+                    }
+
+                    // Restaurar seleção
+                    if (selection.length > 0) {
+                        setTimeout(() => {
+                            this.timeline.setSelection(selection);
+                        }, 150);
+                    }
+
+                } catch (error) {
+                    console.error('❌ Erro ao atualizar timeline:', error);
+                    this.addDebugLog(`Erro ao atualizar timeline: ${error.message}`, 'error');
+                    // Em caso de erro, reinicializar completamente
+                    this.initTimeline();
+                }
+            }
+
+            initTimeline() {
+                if (this.items.length === 0) return;
+
+                const container = document.getElementById('timeline');
+                container.innerHTML = '';
+
+                const options = {
+                    orientation: 'top',
+                    stack: true,
+                    showCurrentTime: true,
+                    zoomMin: 1000 * 60 * 10, // 10 minutos
+                    zoomMax: 1000 * 60 * 60 * 24 * 30, // 30 dias
+                    editable: false,
+                    multiselect: false,
+                    selectable: true,
+                    tooltip: {
+                        followMouse: true,
+                        overflowMethod: 'flip'
+                    },
+                    format: {
+                        minorLabels: {
+                            minute: 'HH:mm',
+                            hour: 'HH:mm',
+                            day: 'DD/MM',
+                            month: 'MMM',
+                            year: 'YYYY'
+                        },
+                        majorLabels: {
+                            minute: 'ddd DD/MM',
+                            hour: 'ddd DD/MM',
+                            day: 'MMMM YYYY',
+                            month: 'YYYY',
+                            year: ''
+                        }
+                    },
+                    margin: {
+                        item: {
+                            horizontal: 2,
+                            vertical: 1
+                        }
+                    },
+                    height: '100%',
+                    maxHeight: 600,
+                    verticalScroll: true,
+                    horizontalScroll: true
+                };
+
+                this.timeline = new vis.Timeline(container, this.items, this.groups, options);
+
+                // Event listeners
+                this.timeline.on('rangechanged', (properties) => {
+                    this.currentViewWindow = properties;
+                });
+
+                setTimeout(() => {
+                    this.handlePeriodChange();
+                }, 100);
+            }
+
             updateInterface() {
                 document.getElementById('statsPanel').style.display = 'block';
 
@@ -1496,9 +1829,12 @@
                 document.getElementById('equipmentCount').textContent = this.equipmentMap.size;
                 document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('pt-BR');
                 document.getElementById('visibleItems').textContent = `${this.items.length} itens visíveis`;
+                document.getElementById('conflictsResolved').textContent = this.processingStats.conflictsResolved;
+                document.getElementById('duplicatesRemoved').textContent = this.processingStats.duplicatesRemoved;
 
                 this.updateFilters();
                 this.updateNextSyncTime();
+                this.updateDebugPanel();
             }
 
             updateFilters() {
@@ -1625,7 +1961,6 @@
                     const now = new Date();
                     const uptime = Math.floor((now - this.startTime) / 1000 / 60);
                     
-                    // Atualizar informações do sistema se necessário
                     this.updateNextSyncTime();
                 }, 60000); // Atualizar a cada minuto
             }
@@ -1671,15 +2006,42 @@
 
         function saveSettings() {
             const autoSyncInterval = parseInt(document.getElementById('autoSyncInterval').value);
-            const consolidationMode = document.getElementById('consolidationMode').value;
+            const conflictResolution = document.getElementById('conflictResolution').value;
+            const gapTolerance = parseInt(document.getElementById('gapTolerance').value);
             
             if (productivitySystem) {
                 productivitySystem.config.autoSyncInterval = autoSyncInterval;
-                productivitySystem.config.consolidationMode = consolidationMode;
+                productivitySystem.config.conflictResolution = conflictResolution;
+                productivitySystem.config.gapTolerance = gapTolerance;
                 productivitySystem.startGitHubAutoSync();
+                productivitySystem.addDebugLog(`Configurações atualizadas: ${conflictResolution} mode, ${gapTolerance}s tolerance`);
             }
             
             productivitySystem.showNotification(`⚙️ Configurações salvas! Auto-sync: ${autoSyncInterval > 0 ? `${autoSyncInterval/60000}min` : 'desabilitado'}`, 'success');
+        }
+
+        function exportDebugData() {
+            if (productivitySystem) {
+                const debugData = {
+                    debugLog: productivitySystem.debugLog,
+                    processingStats: productivitySystem.processingStats,
+                    config: productivitySystem.config,
+                    equipmentCount: productivitySystem.equipmentMap.size,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const dataStr = JSON.stringify(debugData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `productivity-debug-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                
+                URL.revokeObjectURL(url);
+                productivitySystem.showNotification('📁 Dados de debug exportados', 'success');
+            }
         }
 
         // =============================================================================
