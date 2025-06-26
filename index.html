@@ -393,6 +393,17 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Animações para notificações GitHub */
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
         /* Cores da Timeline - Apontamentos */
         .vis-item.apont-abastecimento { background-color: #3182ce !important; border-color: #2c5aa0 !important; }
         .vis-item.apont-bloqueio { background-color: #e53e3e !important; border-color: #c53030 !important; }
@@ -647,7 +658,7 @@
                 </div>
 
                 <!-- Test Data Buttons -->
-                <div style="margin-top: 2rem; text-align: center; display: flex; gap: 1rem; justify-content: center;">
+                <div style="margin-top: 2rem; text-align: center; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                     <button class="btn secondary" onclick="loadSampleData()">
                         <span>🧪</span>
                         Carregar Dados de Teste
@@ -656,6 +667,37 @@
                         <span>✅</span>
                         Validar Timeline
                     </button>
+                    <button class="btn" onclick="testGitHubConnection()">
+                        <span>🔗</span>
+                        Testar Conexão GitHub
+                    </button>
+                </div>
+
+                <!-- GitHub Status -->
+                <div style="margin-top: 2rem;">
+                    <div class="source-card">
+                        <div class="source-header">
+                            <div class="source-title">
+                                <span>📡</span>
+                                Status da Sincronização GitHub
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; gap: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
+                                <span><strong>📊 Repositório CSV:</strong> Apontamento-Dos-Tablets</span>
+                                <span id="csvRepoStatus" class="source-status loading">Verificando...</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
+                                <span><strong>🔄 Repositório JSON:</strong> Controle-Status-Equipamentos</span>
+                                <span id="jsonRepoStatus" class="source-status loading">Verificando...</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
+                                <span><strong>⏰ Próxima sincronização:</strong></span>
+                                <span id="nextSyncTime">--</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -703,13 +745,34 @@
                 <div class="source-card" style="margin-top: 1.5rem;">
                     <div class="source-header">
                         <div class="source-title">
+                            <span>🔗</span>
+                            Repositórios GitHub
+                        </div>
+                    </div>
+                    
+                    <div style="font-size: 0.875rem; line-height: 1.6; color: #4a5568;">
+                        <p><strong>📊 CSV (Apontamentos):</strong><br>
+                        GrupoGps-Mecanizada/Apontamento-Dos-Tablets<br>
+                        <code>data/apontamentos-atuais.csv</code></p>
+                        
+                        <p style="margin-top: 1rem;"><strong>🔄 JSON (Status):</strong><br>
+                        GrupoGps-Mecanizada/Controle-Status-Equipamentos<br>
+                        <code>data/latest-fleet-data.json</code></p>
+                        
+                        <p style="margin-top: 1rem;"><strong>⏰ Sincronização:</strong> Automática a cada 5 minutos</p>
+                    </div>
+                </div>
+
+                <div class="source-card" style="margin-top: 1.5rem;">
+                    <div class="source-header">
+                        <div class="source-title">
                             <span>ℹ️</span>
                             Informações do Sistema
                         </div>
                     </div>
                     
                     <div style="font-size: 0.875rem; line-height: 1.6; color: #4a5568;">
-                        <p><strong>Versão:</strong> 2.0 Professional</p>
+                        <p><strong>Versão:</strong> 2.0 Professional com GitHub Sync</p>
                         <p><strong>Última atualização:</strong> <span id="systemLastUpdate">--</span></p>
                         <p><strong>Registros processados:</strong> <span id="totalProcessed">0</span></p>
                         <p><strong>Tempo de atividade:</strong> <span id="uptime">--</span></p>
@@ -721,7 +784,7 @@
 
     <script>
         // =============================================================================
-        // CLASSE PRINCIPAL - VERSÃO PROFISSIONAL MINIMALISTA
+        // CLASSE PRINCIPAL - VERSÃO PROFISSIONAL COM GITHUB SYNC
         // =============================================================================
         class UnifiedFleetTimelinePro {
             constructor() {
@@ -735,10 +798,28 @@
                 this.autoSyncInterval = null;
                 this.startTime = new Date();
 
+                // Configurações GitHub
+                this.githubConfig = {
+                    csvRepo: {
+                        owner: 'GrupoGps-Mecanizada',
+                        repo: 'Apontamento-Dos-Tablets',
+                        path: 'data/apontamentos-atuais.csv',
+                        url: 'https://raw.githubusercontent.com/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/main/data/apontamentos-atuais.csv'
+                    },
+                    jsonRepo: {
+                        owner: 'GrupoGps-Mecanizada', 
+                        repo: 'Controle-Status-Equipamentos',
+                        path: 'data/latest-fleet-data.json',
+                        url: 'https://raw.githubusercontent.com/GrupoGps-Mecanizada/Controle-Status-Equipamentos/main/data/latest-fleet-data.json'
+                    }
+                };
+
                 // Configurações
                 this.config = {
                     autoSyncInterval: 300000, // 5 minutos
-                    consolidationMode: 'intelligent'
+                    consolidationMode: 'intelligent',
+                    retryAttempts: 3,
+                    retryDelay: 2000
                 };
 
                 // Mapeamento de cores
@@ -770,6 +851,282 @@
                 this.initEvents();
                 this.updateSystemInfo();
                 this.startAutoSync();
+                
+                // Iniciar sincronização automática com GitHub
+                this.initGitHubSync();
+            }
+
+            // =============================================================================
+            // SINCRONIZAÇÃO AUTOMÁTICA COM GITHUB
+            // =============================================================================
+            async initGitHubSync() {
+                console.log('🚀 Iniciando sincronização automática com GitHub...');
+                this.updateSyncStatus('loading', 'Conectando aos repositórios...');
+                
+                // Primeira sincronização
+                await this.syncFromGitHub();
+                
+                // Configurar interval para sync automático
+                this.startGitHubAutoSync();
+            }
+
+            async syncFromGitHub() {
+                if (this.isUpdating) {
+                    console.log('⏸️ Sync já em andamento, aguardando...');
+                    return;
+                }
+
+                this.isUpdating = true;
+                this.updateSyncStatus('loading', 'Sincronizando dados...');
+                
+                console.log('🔄 Iniciando sincronização dual GitHub...');
+
+                try {
+                    // Sincronização paralela
+                    const [csvResult, jsonResult] = await Promise.allSettled([
+                        this.fetchCSVFromGitHub(),
+                        this.fetchJSONFromGitHub()
+                    ]);
+
+                    let successCount = 0;
+                    let errorMessages = [];
+
+                    // Processar resultado CSV
+                    if (csvResult.status === 'fulfilled' && csvResult.value.success) {
+                        this.csvData = csvResult.value.data;
+                        successCount++;
+                        console.log(`✅ CSV: ${this.csvData.length} registros sincronizados`);
+                        
+                        // Atualizar status do repositório CSV
+                        const csvRepoStatus = document.getElementById('csvRepoStatus');
+                        if (csvRepoStatus) {
+                            csvRepoStatus.className = 'source-status success';
+                            csvRepoStatus.textContent = 'Conectado';
+                        }
+                    } else {
+                        errorMessages.push('CSV: ' + (csvResult.reason || 'Erro desconhecido'));
+                        console.error('❌ Erro CSV:', csvResult.reason);
+                        
+                        // Atualizar status do repositório CSV
+                        const csvRepoStatus = document.getElementById('csvRepoStatus');
+                        if (csvRepoStatus) {
+                            csvRepoStatus.className = 'source-status error';
+                            csvRepoStatus.textContent = 'Erro';
+                        }
+                    }
+
+                    // Processar resultado JSON  
+                    if (jsonResult.status === 'fulfilled' && jsonResult.value.success) {
+                        this.jsonData = jsonResult.value.data;
+                        successCount++;
+                        console.log(`✅ JSON: ${this.jsonData.length} registros sincronizados`);
+                        
+                        // Atualizar status do repositório JSON
+                        const jsonRepoStatus = document.getElementById('jsonRepoStatus');
+                        if (jsonRepoStatus) {
+                            jsonRepoStatus.className = 'source-status success';
+                            jsonRepoStatus.textContent = 'Conectado';
+                        }
+                    } else {
+                        errorMessages.push('JSON: ' + (jsonResult.reason || 'Erro desconhecido'));
+                        console.error('❌ Erro JSON:', jsonResult.reason);
+                        
+                        // Atualizar status do repositório JSON
+                        const jsonRepoStatus = document.getElementById('jsonRepoStatus');
+                        if (jsonRepoStatus) {
+                            jsonRepoStatus.className = 'source-status error';
+                            jsonRepoStatus.textContent = 'Erro';
+                        }
+                    }
+
+                    // Atualizar interface baseado nos resultados
+                    if (successCount > 0) {
+                        this.processData();
+                        
+                        if (successCount === 2) {
+                            this.updateSyncStatus('success', 'Dados sincronizados com sucesso');
+                            this.showGitHubNotification('✅ Sincronização completa: CSV + JSON', 'success');
+                        } else {
+                            this.updateSyncStatus('success', `Sincronização parcial (${successCount}/2)`);
+                            this.showGitHubNotification(`⚠️ Sincronização parcial: ${errorMessages.join(', ')}`, 'warning');
+                        }
+                    } else {
+                        this.updateSyncStatus('error', 'Falha na sincronização');
+                        this.showGitHubNotification('❌ Falha completa na sincronização: ' + errorMessages.join(', '), 'error');
+                    }
+
+                } catch (error) {
+                    console.error('❌ Erro geral na sincronização:', error);
+                    this.updateSyncStatus('error', 'Erro na sincronização');
+                    this.showGitHubNotification('❌ Erro na sincronização: ' + error.message, 'error');
+                } finally {
+                    this.isUpdating = false;
+                }
+            }
+
+            async fetchCSVFromGitHub() {
+                const config = this.githubConfig.csvRepo;
+                
+                try {
+                    console.log(`📊 Buscando CSV de ${config.owner}/${config.repo}...`);
+                    
+                    const response = await this.fetchWithRetry(config.url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const csvText = await response.text();
+                    const parsedData = this.parseCSV(csvText);
+                    
+                    // Atualizar indicadores visuais
+                    document.getElementById('csvUploadArea').classList.add('loaded');
+                    document.getElementById('csvInfo').innerHTML = `
+                        <div class="file-info">
+                            🔗 Sincronizado do GitHub<br>
+                            📊 ${parsedData.length} apontamentos carregados<br>
+                            ⏰ ${new Date().toLocaleTimeString('pt-BR')}
+                        </div>
+                    `;
+
+                    return { success: true, data: parsedData };
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao buscar CSV:', error);
+                    
+                    document.getElementById('csvInfo').innerHTML = `
+                        <div class="error-message">
+                            ❌ Erro ao sincronizar CSV do GitHub<br>
+                            ${error.message}
+                        </div>
+                    `;
+                    
+                    throw error;
+                }
+            }
+
+            async fetchJSONFromGitHub() {
+                const config = this.githubConfig.jsonRepo;
+                
+                try {
+                    console.log(`🔄 Buscando JSON de ${config.owner}/${config.repo}...`);
+                    
+                    const response = await this.fetchWithRetry(config.url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const jsonData = await response.json();
+                    const records = jsonData.records || jsonData;
+                    
+                    if (!Array.isArray(records)) {
+                        throw new Error('Formato JSON inválido: esperado array de registros');
+                    }
+                    
+                    // Atualizar indicadores visuais
+                    document.getElementById('jsonUploadArea').classList.add('loaded');
+                    document.getElementById('jsonInfo').innerHTML = `
+                        <div class="file-info">
+                            🔗 Sincronizado do GitHub<br>
+                            🔄 ${records.length} registros de status carregados<br>
+                            ⏰ ${new Date().toLocaleTimeString('pt-BR')}
+                        </div>
+                    `;
+
+                    return { success: true, data: records };
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao buscar JSON:', error);
+                    
+                    document.getElementById('jsonInfo').innerHTML = `
+                        <div class="error-message">
+                            ❌ Erro ao sincronizar JSON do GitHub<br>
+                            ${error.message}
+                        </div>
+                    `;
+                    
+                    throw error;
+                }
+            }
+
+            async fetchWithRetry(url, attempt = 1) {
+                try {
+                    const response = await fetch(url + '?t=' + Date.now(), {
+                        method: 'GET',
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
+                        }
+                    });
+                    
+                    return response;
+                    
+                } catch (error) {
+                    if (attempt < this.config.retryAttempts) {
+                        console.log(`🔄 Tentativa ${attempt} falhou, tentando novamente em ${this.config.retryDelay}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
+                        return this.fetchWithRetry(url, attempt + 1);
+                    } else {
+                        throw new Error(`Falhou após ${this.config.retryAttempts} tentativas: ${error.message}`);
+                    }
+                }
+            }
+
+            startGitHubAutoSync() {
+                if (this.autoSyncInterval) {
+                    clearInterval(this.autoSyncInterval);
+                }
+
+                if (this.config.autoSyncInterval > 0) {
+                    console.log(`⏰ Auto-sync configurado para ${this.config.autoSyncInterval / 1000}s`);
+                    
+                    this.autoSyncInterval = setInterval(async () => {
+                        if (!this.isUpdating) {
+                            console.log('🔄 Executando auto-sync...');
+                            await this.syncFromGitHub();
+                        }
+                    }, this.config.autoSyncInterval);
+                }
+            }
+
+            showGitHubNotification(message, type = 'info') {
+                // Criar notificação temporária
+                const notification = document.createElement('div');
+                notification.className = `github-notification ${type}`;
+                notification.textContent = message;
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 80px;
+                    right: 1rem;
+                    z-index: 1000;
+                    padding: 1rem 1.5rem;
+                    border-radius: 8px;
+                    color: white;
+                    font-weight: 500;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    animation: slideInRight 0.3s ease-out;
+                    max-width: 400px;
+                    font-size: 0.875rem;
+                `;
+                
+                // Cores baseadas no tipo
+                const colors = {
+                    success: '#48bb78',
+                    error: '#e53e3e', 
+                    warning: '#ed8936',
+                    info: '#4299e1'
+                };
+                
+                notification.style.background = colors[type] || colors.info;
+                
+                document.body.appendChild(notification);
+                
+                // Auto-remover após 5 segundos
+                setTimeout(() => {
+                    notification.style.animation = 'slideOutRight 0.3s ease-in';
+                    setTimeout(() => notification.remove(), 300);
+                }, 5000);
             }
 
             initEvents() {
@@ -1549,15 +1906,7 @@ ${validation.duplicates === 0 ? '✅ Timeline validada com sucesso!' : '⚠️ F
             }
 
             startAutoSync() {
-                if (this.autoSyncInterval) {
-                    clearInterval(this.autoSyncInterval);
-                }
-
-                if (this.config.autoSyncInterval > 0) {
-                    this.autoSyncInterval = setInterval(() => {
-                        this.updateSystemInfo();
-                    }, this.config.autoSyncInterval);
-                }
+                this.startGitHubAutoSync();
             }
 
             updateSystemInfo() {
@@ -1567,6 +1916,15 @@ ${validation.duplicates === 0 ? '✅ Timeline validada com sucesso!' : '⚠️ F
                 document.getElementById('systemLastUpdate').textContent = now.toLocaleString('pt-BR');
                 document.getElementById('totalProcessed').textContent = this.csvData.length + this.jsonData.length;
                 document.getElementById('uptime').textContent = uptime < 60 ? `${uptime}min` : `${Math.floor(uptime/60)}h ${uptime%60}min`;
+                
+                // Calcular próxima sincronização
+                if (this.config.autoSyncInterval > 0) {
+                    const nextSync = new Date(now.getTime() + this.config.autoSyncInterval);
+                    const nextSyncElement = document.getElementById('nextSyncTime');
+                    if (nextSyncElement) {
+                        nextSyncElement.textContent = nextSync.toLocaleTimeString('pt-BR');
+                    }
+                }
             }
         }
 
@@ -1587,7 +1945,7 @@ ${validation.duplicates === 0 ? '✅ Timeline validada com sucesso!' : '⚠️ F
 
         function manualSync() {
             if (fleetTimeline) {
-                fleetTimeline.processData();
+                fleetTimeline.syncFromGitHub();
             }
         }
 
@@ -1616,10 +1974,17 @@ ${validation.duplicates === 0 ? '✅ Timeline validada com sucesso!' : '⚠️ F
             if (fleetTimeline) {
                 fleetTimeline.config.autoSyncInterval = autoSyncInterval;
                 fleetTimeline.config.consolidationMode = consolidationMode;
-                fleetTimeline.startAutoSync();
+                fleetTimeline.startGitHubAutoSync();
             }
             
-            alert('Configurações salvas com sucesso!');
+            alert('Configurações salvas! Auto-sync ' + (autoSyncInterval > 0 ? `ativo (${autoSyncInterval/1000/60}min)` : 'desabilitado'));
+        }
+
+        function testGitHubConnection() {
+            if (fleetTimeline) {
+                fleetTimeline.updateSyncStatus('loading', 'Testando conexão...');
+                fleetTimeline.syncFromGitHub();
+            }
         }
 
         // =============================================================================
