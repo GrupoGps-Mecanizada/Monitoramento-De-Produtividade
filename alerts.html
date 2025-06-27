@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Alertas - GrupoGPS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -225,7 +226,7 @@
             font-size: 0.95rem;
         }
 
-        select, input[type="text"], input[type="number"] {
+        select, input[type="text"], input[type="number"], input[type="date"], input[type="time"] {
             padding: 1rem;
             border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 12px;
@@ -527,73 +528,56 @@
             align-items: end;
         }
 
+        /* Configuration Panel */
+        .config-panel {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 1.5rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+
+        /* Report Table */
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .report-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .report-table td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .report-table tr:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .main-content {
                 padding: 1rem;
             }
 
-            getExampleCSVData() {
-                // Dados de exemplo para demonstração quando GitHub não está acessível
-                const now = new Date();
-                const today = now.toLocaleDateString('pt-BR').split('/').reverse().join('/');
-                const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-                const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-                
-                const formatDateTime = (date) => {
-                    const d = date.toLocaleDateString('pt-BR');
-                    const t = date.toLocaleTimeString('pt-BR');
-                    return `${d} ${t}`;
-                };
-
-                return [
-                    {
-                        'Placa': 'EGC2983',
-                        'Vaga': 'CAMINHÃO ALTA PRESSÃO - GPS - 11',
-                        'Categoria Demora': 'Documentação',
-                        'Data Inicial': formatDateTime(twoHoursAgo),
-                        'Data Final': formatDateTime(oneHourAgo),
-                        'Tempo Indisponível (HH:MM)': '01:00'
-                    },
-                    {
-                        'Placa': 'FSA3D71',
-                        'Vaga': 'CAMINHÃO AUTO VÁCUO - GPS - 05',
-                        'Categoria Demora': 'Refeição Motorista',
-                        'Data Inicial': formatDateTime(new Date(now.getTime() - 90 * 60 * 1000)),
-                        'Data Final': formatDateTime(new Date(now.getTime() - 20 * 60 * 1000)),
-                        'Tempo Indisponível (HH:MM)': '01:10'
-                    }
-                ];
-            }
-
-            getExampleJSONData() {
-                // Dados de exemplo para demonstração quando GitHub não está acessível
-                const now = new Date();
-                const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-                
-                return [
-                    {
-                        vacancy_code: "404",
-                        vacancy_name: "CAMINHÃO ALTA PRESSÃO - GPS - 11",
-                        status: "on",
-                        status_title: "Motor Ligado",
-                        start: oneHourAgo.toISOString(),
-                        end: now.toISOString(),
-                        total_time: "1.0"
-                    },
-                    {
-                        vacancy_code: "316",
-                        vacancy_name: "CAMINHÃO AUTO VÁCUO - GPS - 05",
-                        status: "on",
-                        status_title: "Motor Ligado",
-                        start: new Date(now.getTime() - 90 * 60 * 1000).toISOString(),
-                        end: now.toISOString(),
-                        total_time: "1.5"
-                    }
-                ];
-            }
-
-            .alert-details, .rule-config, .filters-grid {
+            .alert-details, .rule-config, .filters-grid, .config-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -605,6 +589,15 @@
                 width: 95%;
                 margin: 10% auto;
                 padding: 1.5rem;
+            }
+
+            .report-table {
+                font-size: 0.9rem;
+            }
+
+            .report-table th,
+            .report-table td {
+                padding: 0.5rem;
             }
         }
     </style>
@@ -641,8 +634,14 @@
                 <div class="nav-tab" onclick="switchTab('rules')">
                     <span>⚙️ Configurar Regras</span>
                 </div>
+                <div class="nav-tab" onclick="switchTab('reports')">
+                    <span>📊 Relatórios</span>
+                </div>
                 <div class="nav-tab" onclick="switchTab('stats')">
-                    <span>📊 Estatísticas</span>
+                    <span>📈 Estatísticas</span>
+                </div>
+                <div class="nav-tab" onclick="switchTab('config')">
+                    <span>🔧 Configurações</span>
                 </div>
             </div>
         </nav>
@@ -735,16 +734,90 @@
                     <div style="padding: 2rem;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                             <h3 style="color: #2c3e50;">⚙️ Configurar Regras de Alerta</h3>
-                            <button class="btn success" onclick="openRuleModal()">
-                                <span>➕</span>
-                                Nova Regra
-                            </button>
+                            <div style="display: flex; gap: 1rem;">
+                                <button class="btn secondary" onclick="syncRulesFromGitHub()">
+                                    <span>🔄</span>
+                                    Sincronizar
+                                </button>
+                                <button class="btn success" onclick="openRuleModal()">
+                                    <span>➕</span>
+                                    Nova Regra
+                                </button>
+                            </div>
                         </div>
                         
                         <div id="rulesList">
                             <div class="loading-state">
                                 <div class="loading-spinner"></div>
                                 <div>Carregando regras...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relatórios -->
+            <div id="reports-tab" class="tab-content">
+                <!-- Filtros de Relatório -->
+                <div class="filters-panel">
+                    <h4 style="color: #2c3e50; margin-bottom: 1rem;">🔍 Filtros do Relatório</h4>
+                    <div class="filters-grid">
+                        <div class="form-group">
+                            <label>Data Inicial:</label>
+                            <input type="date" id="reportDateStart">
+                        </div>
+                        <div class="form-group">
+                            <label>Data Final:</label>
+                            <input type="date" id="reportDateEnd">
+                        </div>
+                        <div class="form-group">
+                            <label>Equipamento:</label>
+                            <select id="reportEquipment">
+                                <option value="">Todos os equipamentos</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Gravidade:</label>
+                            <select id="reportSeverity">
+                                <option value="">Todas as gravidades</option>
+                                <option value="critical">Crítico</option>
+                                <option value="high">Alto</option>
+                                <option value="medium">Médio</option>
+                                <option value="low">Baixo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                        <button class="btn" onclick="generateReport()">
+                            <span>📊</span>
+                            Gerar Relatório
+                        </button>
+                        <button class="btn success" onclick="exportToExcel()">
+                            <span>📥</span>
+                            Exportar Excel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Análise Inteligente -->
+                <div class="glass-panel">
+                    <div style="padding: 2rem;">
+                        <h3 style="color: #2c3e50; margin-bottom: 2rem;">🧠 Análise Inteligente</h3>
+                        <div id="intelligentAnalysis">
+                            <div class="loading-state" style="height: 150px;">
+                                <div>Gere um relatório para ver a análise</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabela de Relatório -->
+                <div class="glass-panel">
+                    <div style="padding: 2rem;">
+                        <h3 style="color: #2c3e50; margin-bottom: 2rem;">📋 Dados Detalhados</h3>
+                        <div id="reportTable" style="overflow-x: auto;">
+                            <div class="loading-state">
+                                <div>Gere um relatório para ver os dados</div>
                             </div>
                         </div>
                     </div>
@@ -781,6 +854,72 @@
                             <div class="stat-card">
                                 <div class="stat-value" id="statsEquipments">0</div>
                                 <div class="stat-label">Equipamentos Monitorados</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configurações -->
+            <div id="config-tab" class="tab-content">
+                <div class="glass-panel">
+                    <div style="padding: 2rem;">
+                        <h3 style="color: #2c3e50; margin-bottom: 2rem;">🔧 Configurações do Sistema</h3>
+                        
+                        <!-- Configurações GitHub -->
+                        <div class="config-panel">
+                            <h4 style="color: #2c3e50; margin-bottom: 1rem;">📁 Repositório para Regras</h4>
+                            <div class="config-grid">
+                                <div class="form-group">
+                                    <label>Owner/Repositório:</label>
+                                    <input type="text" id="configGithubRepo" placeholder="GrupoGps-Mecanizada/Sistema-Alertas" value="GrupoGps-Mecanizada/Sistema-Alertas">
+                                </div>
+                                <div class="form-group">
+                                    <label>Token GitHub (Personal Access Token):</label>
+                                    <input type="password" id="configGithubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" value="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">
+                                </div>
+                                <div class="form-group">
+                                    <label>Branch:</label>
+                                    <input type="text" id="configGithubBranch" value="main">
+                                </div>
+                                <div class="form-group">
+                                    <label>Arquivo de Regras:</label>
+                                    <input type="text" id="configRulesFile" value="data/alert-rules.json">
+                                </div>
+                            </div>
+                            <div style="margin-top: 1rem;">
+                                <button class="btn" onclick="saveGitHubConfig()">
+                                    <span>💾</span>
+                                    Salvar Configurações
+                                </button>
+                                <button class="btn secondary" onclick="testGitHubConnection()">
+                                    <span>🔗</span>
+                                    Testar Conexão
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Status da Configuração -->
+                        <div class="config-panel">
+                            <h4 style="color: #2c3e50; margin-bottom: 1rem;">📊 Status do Sistema</h4>
+                            <div id="systemStatus">
+                                <div class="loading-state" style="height: 150px;">
+                                    <div>Verificando configurações...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Instruções -->
+                        <div class="config-panel">
+                            <h4 style="color: #2c3e50; margin-bottom: 1rem;">📖 Instruções de Configuração</h4>
+                            <div style="line-height: 1.8;">
+                                <p><strong>1.</strong> Crie um repositório no GitHub para armazenar as regras (ex: Sistema-Alertas)</p>
+                                <p><strong>2.</strong> Gere um Personal Access Token no GitHub com permissões de "repo"</p>
+                                <p><strong>3.</strong> Preencha as configurações acima com os dados do seu repositório</p>
+                                <p><strong>4.</strong> Teste a conexão para verificar se está funcionando</p>
+                                <p><strong>5.</strong> Após configurar, todas as regras serão sincronizadas entre dispositivos</p>
+                                <br>
+                                <p><em>⚠️ Nota: O token é armazenado localmente no navegador. Para máxima segurança, use um token com permissões mínimas apenas para o repositório específico.</em></p>
                             </div>
                         </div>
                     </div>
@@ -890,7 +1029,7 @@
 
     <script>
         // =============================================================================
-        // SISTEMA DE ALERTAS - GRUPOGPS
+        // SISTEMA DE ALERTAS - GRUPOGPS (VERSÃO MELHORADA)
         // =============================================================================
         class AlertSystem {
             constructor() {
@@ -899,11 +1038,14 @@
                 this.equipmentMap = new Map();
                 this.rules = [];
                 this.alerts = [];
+                this.processedAlerts = new Set(); // Para evitar duplicatas
                 this.isProcessing = false;
                 this.editingRuleId = null;
+                this.githubConfig = null;
+                this.reportData = [];
 
-                // Configurações GitHub - mesmas do index.html
-                this.githubConfig = {
+                // Configurações GitHub dos dados existentes
+                this.dataGithubConfig = {
                     csvRepo: {
                         apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/contents/data/apontamentos-atuais.csv'
                     },
@@ -916,12 +1058,14 @@
             }
 
             async initSystem() {
-                console.log('🚨 Iniciando Sistema de Alertas');
+                console.log('🚨 Iniciando Sistema de Alertas (Versão Melhorada)');
                 this.updateSyncStatus('loading', 'Iniciando sistema...');
                 
-                this.loadRulesFromStorage();
+                this.loadGitHubConfig();
                 this.loadAlertsFromStorage();
                 this.setupEventListeners();
+                this.initReportDates();
+                await this.syncRulesFromGitHub();
                 await this.syncData();
                 this.updateInterface();
                 
@@ -931,6 +1075,11 @@
                         this.processAlerts();
                     }
                 }, 30000);
+
+                // Sincronizar regras a cada 2 minutos
+                setInterval(() => {
+                    this.syncRulesFromGitHub(true);
+                }, 120000);
             }
 
             setupEventListeners() {
@@ -959,6 +1108,252 @@
                 document.getElementById('filterPeriod').addEventListener('change', () => {
                     this.updateAlertsList();
                 });
+            }
+
+            initReportDates() {
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                document.getElementById('reportDateStart').value = yesterday.toISOString().split('T')[0];
+                document.getElementById('reportDateEnd').value = today.toISOString().split('T')[0];
+            }
+
+            // =============================================================================
+            // CONFIGURAÇÕES GITHUB
+            // =============================================================================
+            loadGitHubConfig() {
+                const stored = localStorage.getItem('alertSystem_githubConfig');
+                if (stored) {
+                    this.githubConfig = JSON.parse(stored);
+                    this.updateConfigInterface();
+                } else {
+                    // Configuração padrão com token fornecido
+                    this.githubConfig = {
+                        repo: 'GrupoGps-Mecanizada/Sistema-Alertas',
+                        token: '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',
+                        branch: 'main',
+                        rulesFile: 'data/alert-rules.json'
+                    };
+                    localStorage.setItem('alertSystem_githubConfig', JSON.stringify(this.githubConfig));
+                }
+                this.updateSystemStatus();
+            }
+
+            saveGitHubConfig() {
+                const config = {
+                    repo: document.getElementById('configGithubRepo').value,
+                    token: document.getElementById('configGithubToken').value,
+                    branch: document.getElementById('configGithubBranch').value,
+                    rulesFile: document.getElementById('configRulesFile').value
+                };
+
+                this.githubConfig = config;
+                localStorage.setItem('alertSystem_githubConfig', JSON.stringify(config));
+                this.showNotification('✅ Configurações salvas', 'success');
+                this.updateSystemStatus();
+            }
+
+            updateConfigInterface() {
+                if (this.githubConfig) {
+                    document.getElementById('configGithubRepo').value = this.githubConfig.repo || '';
+                    document.getElementById('configGithubToken').value = this.githubConfig.token || '';
+                    document.getElementById('configGithubBranch').value = this.githubConfig.branch || 'main';
+                    document.getElementById('configRulesFile').value = this.githubConfig.rulesFile || 'data/alert-rules.json';
+                }
+            }
+
+            async testGitHubConnection() {
+                if (!this.githubConfig || !this.githubConfig.token) {
+                    this.showNotification('❌ Token não configurado', 'error');
+                    return;
+                }
+
+                try {
+                    this.updateSyncStatus('loading', 'Testando conexão...');
+                    
+                    const [owner, repo] = this.githubConfig.repo.split('/');
+                    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+                        headers: {
+                            'Authorization': `token ${this.githubConfig.token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        this.updateSyncStatus('success', 'Conexão funcionando');
+                        this.showNotification('✅ Conexão com GitHub OK', 'success');
+                    } else {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    this.updateSyncStatus('error', 'Erro de conexão');
+                    this.showNotification('❌ Erro na conexão: ' + error.message, 'error');
+                }
+            }
+
+            updateSystemStatus() {
+                const container = document.getElementById('systemStatus');
+                const hasToken = this.githubConfig && this.githubConfig.token;
+                const hasRepo = this.githubConfig && this.githubConfig.repo;
+
+                let status = '';
+                if (hasToken && hasRepo) {
+                    status = `
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                            <div style="text-align: center; padding: 1rem; background: rgba(39, 174, 96, 0.1); border-radius: 12px;">
+                                <div style="font-size: 2rem; color: #27ae60;">✅</div>
+                                <div>GitHub Configurado</div>
+                            </div>
+                            <div style="text-align: center; padding: 1rem; background: rgba(52, 152, 219, 0.1); border-radius: 12px;">
+                                <div style="font-size: 2rem; color: #3498db;">🔄</div>
+                                <div>Sincronização Ativa</div>
+                            </div>
+                            <div style="text-align: center; padding: 1rem; background: rgba(155, 89, 182, 0.1); border-radius: 12px;">
+                                <div style="font-size: 2rem; color: #9b59b6;">📁</div>
+                                <div>Repo: ${this.githubConfig.repo}</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    status = `
+                        <div style="text-align: center; padding: 2rem; background: rgba(231, 76, 60, 0.1); border-radius: 12px;">
+                            <div style="font-size: 3rem; color: #e74c3c;">⚠️</div>
+                            <div style="margin-top: 1rem; color: #e74c3c; font-weight: 600;">
+                                GitHub não configurado - usando armazenamento local
+                            </div>
+                            <div style="margin-top: 0.5rem; color: #7f8c8d;">
+                                Configure o GitHub para sincronizar regras entre dispositivos
+                            </div>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = status;
+            }
+
+            // =============================================================================
+            // SINCRONIZAÇÃO DE REGRAS
+            // =============================================================================
+            async syncRulesFromGitHub(silent = false) {
+                if (!silent) {
+                    this.updateSyncStatus('loading', 'Sincronizando regras...');
+                }
+
+                try {
+                    if (!this.githubConfig || !this.githubConfig.token) {
+                        // Carregar regras do localStorage se GitHub não configurado
+                        this.loadRulesFromStorage();
+                        if (!silent) {
+                            this.updateSyncStatus('warning', 'Usando armazenamento local');
+                        }
+                        return;
+                    }
+
+                    const [owner, repo] = this.githubConfig.repo.split('/');
+                    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${this.githubConfig.rulesFile}`, {
+                        headers: {
+                            'Authorization': `token ${this.githubConfig.token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const rulesJson = atob(data.content.replace(/\n/g, ''));
+                        const rulesData = JSON.parse(rulesJson);
+                        
+                        this.rules = rulesData.rules || [];
+                        this.saveRulesToStorage(); // Backup local
+                        
+                        if (!silent) {
+                            this.updateSyncStatus('success', 'Regras sincronizadas');
+                            this.showNotification('✅ Regras sincronizadas do GitHub', 'success');
+                        }
+                    } else if (response.status === 404) {
+                        // Arquivo não existe, criar com regras padrão
+                        this.loadRulesFromStorage();
+                        await this.saveRulesToGitHub();
+                        if (!silent) {
+                            this.updateSyncStatus('success', 'Arquivo criado no GitHub');
+                        }
+                    } else {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error('❌ Erro ao sincronizar regras:', error);
+                    this.loadRulesFromStorage(); // Fallback para localStorage
+                    if (!silent) {
+                        this.updateSyncStatus('error', 'Erro na sincronização');
+                        this.showNotification('⚠️ Erro ao sincronizar, usando dados locais', 'warning');
+                    }
+                }
+            }
+
+            async saveRulesToGitHub() {
+                if (!this.githubConfig || !this.githubConfig.token) {
+                    this.saveRulesToStorage();
+                    return;
+                }
+
+                try {
+                    const [owner, repo] = this.githubConfig.repo.split('/');
+                    
+                    // Primeiro, verificar se o arquivo existe para pegar o SHA
+                    let sha = null;
+                    try {
+                        const getResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${this.githubConfig.rulesFile}`, {
+                            headers: {
+                                'Authorization': `token ${this.githubConfig.token}`,
+                                'Accept': 'application/vnd.github.v3+json'
+                            }
+                        });
+                        if (getResponse.ok) {
+                            const existing = await getResponse.json();
+                            sha = existing.sha;
+                        }
+                    } catch (e) {
+                        // Arquivo não existe, SHA será null
+                    }
+
+                    const rulesData = {
+                        lastUpdated: new Date().toISOString(),
+                        version: "1.0.0",
+                        rules: this.rules
+                    };
+
+                    const content = btoa(JSON.stringify(rulesData, null, 2));
+                    const commitData = {
+                        message: `Atualização das regras de alerta - ${new Date().toLocaleString('pt-BR')}`,
+                        content: content,
+                        branch: this.githubConfig.branch
+                    };
+
+                    if (sha) {
+                        commitData.sha = sha;
+                    }
+
+                    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${this.githubConfig.rulesFile}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${this.githubConfig.token}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(commitData)
+                    });
+
+                    if (response.ok) {
+                        this.saveRulesToStorage(); // Backup local
+                        this.showNotification('✅ Regras salvas no GitHub', 'success');
+                    } else {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error('❌ Erro ao salvar no GitHub:', error);
+                    this.saveRulesToStorage(); // Fallback para localStorage
+                    this.showNotification('⚠️ Erro ao salvar no GitHub, salvando localmente', 'warning');
+                }
             }
 
             // =============================================================================
@@ -1017,7 +1412,7 @@
 
             async fetchCSVFromGitHub() {
                 try {
-                    const response = await fetch(this.githubConfig.csvRepo.apiUrl);
+                    const response = await fetch(this.dataGithubConfig.csvRepo.apiUrl);
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                     const apiData = await response.json();
@@ -1040,7 +1435,7 @@
 
             async fetchJSONFromGitHub() {
                 try {
-                    const response = await fetch(this.githubConfig.jsonRepo.apiUrl);
+                    const response = await fetch(this.dataGithubConfig.jsonRepo.apiUrl);
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                     const apiData = await response.json();
@@ -1061,6 +1456,66 @@
                     console.error('❌ Erro ao buscar JSON:', error);
                     return { success: false, data: [], error: error.message };
                 }
+            }
+
+            getExampleCSVData() {
+                // Dados de exemplo para demonstração quando GitHub não está acessível
+                const now = new Date();
+                const today = now.toLocaleDateString('pt-BR').split('/').reverse().join('/');
+                const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+                const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+                
+                const formatDateTime = (date) => {
+                    const d = date.toLocaleDateString('pt-BR');
+                    const t = date.toLocaleTimeString('pt-BR');
+                    return `${d} ${t}`;
+                };
+
+                return [
+                    {
+                        'Placa': 'EGC2983',
+                        'Vaga': 'CAMINHÃO ALTA PRESSÃO - GPS - 11',
+                        'Categoria Demora': 'Documentação',
+                        'Data Inicial': formatDateTime(twoHoursAgo),
+                        'Data Final': formatDateTime(oneHourAgo),
+                        'Tempo Indisponível (HH:MM)': '01:00'
+                    },
+                    {
+                        'Placa': 'FSA3D71',
+                        'Vaga': 'CAMINHÃO AUTO VÁCUO - GPS - 05',
+                        'Categoria Demora': 'Refeição Motorista',
+                        'Data Inicial': formatDateTime(new Date(now.getTime() - 90 * 60 * 1000)),
+                        'Data Final': formatDateTime(new Date(now.getTime() - 20 * 60 * 1000)),
+                        'Tempo Indisponível (HH:MM)': '01:10'
+                    }
+                ];
+            }
+
+            getExampleJSONData() {
+                // Dados de exemplo para demonstração quando GitHub não está acessível
+                const now = new Date();
+                const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+                
+                return [
+                    {
+                        vacancy_code: "404",
+                        vacancy_name: "CAMINHÃO ALTA PRESSÃO - GPS - 11",
+                        status: "on",
+                        status_title: "Motor Ligado",
+                        start: oneHourAgo.toISOString(),
+                        end: now.toISOString(),
+                        total_time: "1.0"
+                    },
+                    {
+                        vacancy_code: "316",
+                        vacancy_name: "CAMINHÃO AUTO VÁCUO - GPS - 05",
+                        status: "on",
+                        status_title: "Motor Ligado",
+                        start: new Date(now.getTime() - 90 * 60 * 1000).toISOString(),
+                        end: now.toISOString(),
+                        total_time: "1.5"
+                    }
+                ];
             }
 
             // =============================================================================
@@ -1144,6 +1599,7 @@
                 });
 
                 this.updateEquipmentFilter();
+                this.updateReportEquipmentFilter();
             }
 
             normalizeEquipmentName(name) {
@@ -1217,7 +1673,6 @@
                             message: "{equipamento} - Documentação há {tempo}"
                         }
                     ];
-                    this.saveRulesToStorage();
                 }
             }
 
@@ -1234,14 +1689,21 @@
                     this.alerts = this.alerts.filter(alert => alert.timestamp > thirtyDaysAgo);
                     this.saveAlertsToStorage();
                 }
+
+                // Carregar IDs processados
+                const processedIds = localStorage.getItem('alertSystem_processedIds');
+                if (processedIds) {
+                    this.processedAlerts = new Set(JSON.parse(processedIds));
+                }
             }
 
             saveAlertsToStorage() {
                 localStorage.setItem('alertSystem_alerts', JSON.stringify(this.alerts));
+                localStorage.setItem('alertSystem_processedIds', JSON.stringify(Array.from(this.processedAlerts)));
             }
 
             // =============================================================================
-            // PROCESSAMENTO DE ALERTAS
+            // PROCESSAMENTO DE ALERTAS (MELHORADO)
             // =============================================================================
             processAlerts() {
                 if (this.isProcessing || this.rules.length === 0) return;
@@ -1259,22 +1721,28 @@
                     }
                 }
 
-                // Adicionar novos alertas únicos
+                // Adicionar apenas alertas únicos e não processados
                 newAlerts.forEach(alert => {
-                    const exists = this.alerts.some(existing => 
-                        existing.equipamento === alert.equipamento &&
-                        existing.ruleId === alert.ruleId &&
-                        Math.abs(existing.timestamp - alert.timestamp) < 30000 // 30 segundos
-                    );
-                    
-                    if (!exists) {
+                    if (!this.processedAlerts.has(alert.uniqueId)) {
                         this.alerts.unshift(alert);
+                        this.processedAlerts.add(alert.uniqueId);
                     }
                 });
+
+                // Limpar IDs antigos para evitar crescimento excessivo
+                this.cleanupProcessedIds();
 
                 this.saveAlertsToStorage();
                 this.updateInterface();
                 this.isProcessing = false;
+            }
+
+            cleanupProcessedIds() {
+                const cutoffTime = Date.now() - (7 * 24 * 60 * 60 * 1000); // 7 dias
+                const alertsToKeep = this.alerts.filter(alert => alert.timestamp > cutoffTime);
+                const idsToKeep = new Set(alertsToKeep.map(alert => alert.uniqueId));
+                
+                this.processedAlerts = new Set([...this.processedAlerts].filter(id => idsToKeep.has(id)));
             }
 
             checkRule(equipName, data, rule, now) {
@@ -1285,7 +1753,8 @@
                 if (conditions.apontamento && conditions.apontamento !== "NENHUM") {
                     data.apontamentos.forEach(apont => {
                         if (this.matchesApontamento(apont, conditions, equipName, rule, now)) {
-                            alerts.push(this.createAlert(equipName, rule, apont, null, now));
+                            const alert = this.createAlert(equipName, rule, apont, null, now);
+                            if (alert) alerts.push(alert);
                         }
                     });
                 }
@@ -1293,7 +1762,8 @@
                 // Verificar status
                 data.status.forEach(status => {
                     if (this.matchesStatus(status, data.apontamentos, conditions, equipName, rule, now)) {
-                        alerts.push(this.createAlert(equipName, rule, null, status, now));
+                        const alert = this.createAlert(equipName, rule, null, status, now);
+                        if (alert) alerts.push(alert);
                     }
                 });
 
@@ -1370,20 +1840,44 @@
                     return h > 0 ? `${h}h ${m}min` : `${m}min`;
                 };
 
+                const formatTimeRange = (start, end) => {
+                    if (!start || !end) return '';
+                    const startTime = start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    const endTime = end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    return `${startTime} a ${endTime}`;
+                };
+
                 let message = rule.message;
                 let duration = 0;
                 let type = '';
+                let startTime = null;
+                let endTime = null;
+                let timeRange = '';
+                let uniqueId = '';
 
                 if (apontamento) {
-                    const start = this.parseDate(apontamento['Data Inicial']);
-                    const end = this.parseDate(apontamento['Data Final']);
-                    duration = (end - start) / (1000 * 60);
+                    startTime = this.parseDate(apontamento['Data Inicial']);
+                    endTime = this.parseDate(apontamento['Data Final']);
+                    if (startTime && endTime) {
+                        duration = (endTime - startTime) / (1000 * 60);
+                        timeRange = formatTimeRange(startTime, endTime);
+                        uniqueId = `${equipName}-${rule.id}-apont-${apontamento['Categoria Demora']}-${startTime.getTime()}`;
+                    }
                     type = 'Apontamento';
                 } else if (status) {
-                    const start = this.parseDate(status.start);
-                    const end = this.parseDate(status.end);
-                    duration = (end - start) / (1000 * 60);
+                    startTime = this.parseDate(status.start);
+                    endTime = this.parseDate(status.end);
+                    if (startTime && endTime) {
+                        duration = (endTime - startTime) / (1000 * 60);
+                        timeRange = formatTimeRange(startTime, endTime);
+                        uniqueId = `${equipName}-${rule.id}-status-${status.status}-${startTime.getTime()}`;
+                    }
                     type = 'Status';
+                }
+
+                // Verificar se já foi processado
+                if (this.processedAlerts.has(uniqueId)) {
+                    return null;
                 }
 
                 message = message
@@ -1394,6 +1888,7 @@
 
                 return {
                     id: Date.now() + Math.random(),
+                    uniqueId: uniqueId,
                     equipamento: equipName,
                     ruleId: rule.id,
                     ruleName: rule.name,
@@ -1401,6 +1896,11 @@
                     severity: rule.severity,
                     type: type,
                     duration: formatTime(duration),
+                    timeRange: timeRange,
+                    startTime: startTime,
+                    endTime: endTime,
+                    apontamento: apontamento ? apontamento['Categoria Demora'] : '',
+                    status: status ? status.status_title : '',
                     timestamp: timestamp.getTime(),
                     date: timestamp.toLocaleDateString('pt-BR'),
                     time: timestamp.toLocaleTimeString('pt-BR')
@@ -1452,7 +1952,7 @@
                 this.editingRuleId = null;
             }
 
-            saveRule() {
+            async saveRule() {
                 const formData = {
                     name: document.getElementById('ruleName').value,
                     conditions: {
@@ -1484,16 +1984,17 @@
                     this.showNotification('✅ Regra criada com sucesso', 'success');
                 }
 
-                this.saveRulesToStorage();
+                // Salvar no GitHub se configurado, senão salvar localmente
+                await this.saveRulesToGitHub();
                 this.updateRulesList();
                 this.closeRuleModal();
             }
 
-            toggleRule(ruleId) {
+            async toggleRule(ruleId) {
                 const rule = this.rules.find(r => r.id === ruleId);
                 if (rule) {
                     rule.active = !rule.active;
-                    this.saveRulesToStorage();
+                    await this.saveRulesToGitHub();
                     this.updateRulesList();
                     this.showNotification(
                         rule.active ? '✅ Regra ativada' : '⏸️ Regra desativada', 
@@ -1502,13 +2003,373 @@
                 }
             }
 
-            deleteRule(ruleId) {
+            async deleteRule(ruleId) {
                 if (confirm('Tem certeza que deseja excluir esta regra?')) {
                     this.rules = this.rules.filter(r => r.id !== ruleId);
-                    this.saveRulesToStorage();
+                    await this.saveRulesToGitHub();
                     this.updateRulesList();
                     this.showNotification('🗑️ Regra excluída', 'info');
                 }
+            }
+
+            // =============================================================================
+            // SISTEMA DE RELATÓRIOS
+            // =============================================================================
+            generateReport() {
+                const startDate = document.getElementById('reportDateStart').value;
+                const endDate = document.getElementById('reportDateEnd').value;
+                const equipment = document.getElementById('reportEquipment').value;
+                const severity = document.getElementById('reportSeverity').value;
+
+                if (!startDate || !endDate) {
+                    this.showNotification('❌ Selecione o período do relatório', 'error');
+                    return;
+                }
+
+                const start = new Date(startDate + 'T00:00:00');
+                const end = new Date(endDate + 'T23:59:59');
+
+                let filteredAlerts = this.alerts.filter(alert => {
+                    const alertDate = new Date(alert.timestamp);
+                    return alertDate >= start && alertDate <= end;
+                });
+
+                if (equipment) {
+                    filteredAlerts = filteredAlerts.filter(alert => alert.equipamento === equipment);
+                }
+
+                if (severity) {
+                    filteredAlerts = filteredAlerts.filter(alert => alert.severity === severity);
+                }
+
+                this.reportData = filteredAlerts;
+                this.renderReportTable();
+                this.generateIntelligentAnalysis();
+                this.showNotification(`📊 Relatório gerado: ${filteredAlerts.length} registros`, 'success');
+            }
+
+            renderReportTable() {
+                const container = document.getElementById('reportTable');
+                
+                if (this.reportData.length === 0) {
+                    container.innerHTML = `
+                        <div class="loading-state">
+                            <div style="font-size: 3rem;">📊</div>
+                            <div>Nenhum dado encontrado para o período selecionado</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const table = `
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Equipamento</th>
+                                <th>Tipo</th>
+                                <th>Apontamento</th>
+                                <th>Status</th>
+                                <th>Período</th>
+                                <th>Duração</th>
+                                <th>Gravidade</th>
+                                <th>Regra</th>
+                                <th>Causa</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${this.reportData.map(alert => `
+                                <tr>
+                                    <td>${alert.date} ${alert.time}</td>
+                                    <td>${this.getDisplayName(alert.equipamento)}</td>
+                                    <td>${alert.type}</td>
+                                    <td>${alert.apontamento || '-'}</td>
+                                    <td>${alert.status || '-'}</td>
+                                    <td>${alert.timeRange || '-'}</td>
+                                    <td>${alert.duration}</td>
+                                    <td><span class="severity-badge ${alert.severity}">${alert.severity}</span></td>
+                                    <td>${alert.ruleName}</td>
+                                    <td>${this.analyzeCause(alert)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+
+                container.innerHTML = table;
+            }
+
+            analyzeCause(alert) {
+                const causes = [];
+                
+                if (alert.apontamento === 'Documentação' && alert.duration.includes('h')) {
+                    causes.push('Documentação demorada');
+                }
+                
+                if (alert.apontamento === 'Refeição Motorista' && alert.status === 'Motor Ligado') {
+                    causes.push('Motor ligado durante refeição');
+                }
+                
+                if (alert.type === 'Status' && alert.status === 'Motor Ligado') {
+                    causes.push('Motor ligado prolongadamente');
+                }
+
+                if (alert.apontamento === 'Abastecimento' && alert.duration.includes('h')) {
+                    causes.push('Abastecimento prolongado');
+                }
+
+                return causes.length > 0 ? causes.join(', ') : 'Verificar condições operacionais';
+            }
+
+            generateIntelligentAnalysis() {
+                const container = document.getElementById('intelligentAnalysis');
+                
+                if (this.reportData.length === 0) {
+                    container.innerHTML = `
+                        <div class="loading-state" style="height: 150px;">
+                            <div>Nenhum dado para análise</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Análises estatísticas
+                const severityCount = {};
+                const equipmentCount = {};
+                const typeCount = {};
+                const apontamentoCount = {};
+                
+                this.reportData.forEach(alert => {
+                    severityCount[alert.severity] = (severityCount[alert.severity] || 0) + 1;
+                    equipmentCount[alert.equipamento] = (equipmentCount[alert.equipamento] || 0) + 1;
+                    typeCount[alert.type] = (typeCount[alert.type] || 0) + 1;
+                    if (alert.apontamento) {
+                        apontamentoCount[alert.apontamento] = (apontamentoCount[alert.apontamento] || 0) + 1;
+                    }
+                });
+
+                const mostProblematicEquipment = Object.keys(equipmentCount).reduce((a, b) => 
+                    equipmentCount[a] > equipmentCount[b] ? a : b);
+                
+                const mostCommonSeverity = Object.keys(severityCount).reduce((a, b) => 
+                    severityCount[a] > severityCount[b] ? a : b);
+
+                const mostCommonApontamento = Object.keys(apontamentoCount).length > 0 ? 
+                    Object.keys(apontamentoCount).reduce((a, b) => 
+                        apontamentoCount[a] > apontamentoCount[b] ? a : b) : 'N/A';
+
+                const analysis = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                        <div style="text-align: center; padding: 1.5rem; background: rgba(231, 76, 60, 0.1); border-radius: 12px;">
+                            <div style="font-size: 2rem; color: #e74c3c;">🚨</div>
+                            <div style="font-weight: 600; margin-top: 0.5rem;">Total de Alertas</div>
+                            <div style="font-size: 1.5rem; color: #e74c3c;">${this.reportData.length}</div>
+                        </div>
+                        
+                        <div style="text-align: center; padding: 1.5rem; background: rgba(243, 156, 18, 0.1); border-radius: 12px;">
+                            <div style="font-size: 2rem; color: #f39c12;">🏗️</div>
+                            <div style="font-weight: 600; margin-top: 0.5rem;">Equipamento Crítico</div>
+                            <div style="font-size: 1rem; color: #f39c12;">${this.getDisplayName(mostProblematicEquipment)}</div>
+                            <div style="font-size: 0.9rem; color: #7f8c8d;">${equipmentCount[mostProblematicEquipment]} alertas</div>
+                        </div>
+                        
+                        <div style="text-align: center; padding: 1.5rem; background: rgba(155, 89, 182, 0.1); border-radius: 12px;">
+                            <div style="font-size: 2rem; color: #9b59b6;">📊</div>
+                            <div style="font-weight: 600; margin-top: 0.5rem;">Gravidade Dominante</div>
+                            <div style="font-size: 1rem; color: #9b59b6;">${mostCommonSeverity}</div>
+                            <div style="font-size: 0.9rem; color: #7f8c8d;">${severityCount[mostCommonSeverity]} ocorrências</div>
+                        </div>
+                        
+                        <div style="text-align: center; padding: 1.5rem; background: rgba(52, 152, 219, 0.1); border-radius: 12px;">
+                            <div style="font-size: 2rem; color: #3498db;">📝</div>
+                            <div style="font-weight: 600; margin-top: 0.5rem;">Apontamento Frequente</div>
+                            <div style="font-size: 1rem; color: #3498db;">${mostCommonApontamento}</div>
+                            <div style="font-size: 0.9rem; color: #7f8c8d;">${apontamentoCount[mostCommonApontamento] || 0} ocorrências</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 2rem; padding: 1.5rem; background: rgba(255, 255, 255, 0.8); border-radius: 12px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 1rem;">💡 Recomendações Inteligentes</h4>
+                        <ul style="list-style: none; padding: 0;">
+                            ${this.generateRecommendations().map(rec => `
+                                <li style="margin-bottom: 0.8rem; padding: 0.8rem; background: rgba(52, 152, 219, 0.1); border-radius: 8px; border-left: 4px solid #3498db;">
+                                    <strong>${rec.title}:</strong> ${rec.description}
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+
+                container.innerHTML = analysis;
+            }
+
+            generateRecommendations() {
+                const recommendations = [];
+                const severityCount = {};
+                const equipmentCount = {};
+                const apontamentoCount = {};
+                
+                this.reportData.forEach(alert => {
+                    severityCount[alert.severity] = (severityCount[alert.severity] || 0) + 1;
+                    equipmentCount[alert.equipamento] = (equipmentCount[alert.equipamento] || 0) + 1;
+                    if (alert.apontamento) {
+                        apontamentoCount[alert.apontamento] = (apontamentoCount[alert.apontamento] || 0) + 1;
+                    }
+                });
+
+                // Recomendação para equipamento com mais alertas
+                const maxEquip = Object.keys(equipmentCount).reduce((a, b) => 
+                    equipmentCount[a] > equipmentCount[b] ? a : b);
+                if (equipmentCount[maxEquip] > 3) {
+                    recommendations.push({
+                        title: 'Equipamento Crítico',
+                        description: `${this.getDisplayName(maxEquip)} apresentou ${equipmentCount[maxEquip]} alertas. Recomenda-se revisão operacional e possível manutenção preventiva.`
+                    });
+                }
+
+                // Recomendação para refeição com motor ligado
+                const refeicaoAlerts = this.reportData.filter(a => 
+                    a.apontamento === 'Refeição Motorista' && a.status === 'Motor Ligado').length;
+                if (refeicaoAlerts > 0) {
+                    recommendations.push({
+                        title: 'Economia de Combustível',
+                        description: `${refeicaoAlerts} ocorrências de motor ligado durante refeição. Treinamento sobre desligamento do motor pode economizar combustível.`
+                    });
+                }
+
+                // Recomendação para documentação prolongada
+                const docAlerts = this.reportData.filter(a => a.apontamento === 'Documentação').length;
+                if (docAlerts > 2) {
+                    recommendations.push({
+                        title: 'Processo de Documentação',
+                        description: `${docAlerts} casos de documentação prolongada. Considere digitalização ou simplificação do processo.`
+                    });
+                }
+
+                // Recomendação geral de gravidade
+                const criticalCount = severityCount['critical'] || 0;
+                if (criticalCount > 0) {
+                    recommendations.push({
+                        title: 'Alertas Críticos',
+                        description: `${criticalCount} alertas críticos detectados. Ação imediata necessária para evitar impactos operacionais.`
+                    });
+                }
+
+                if (recommendations.length === 0) {
+                    recommendations.push({
+                        title: 'Operação Normal',
+                        description: 'Padrão operacional dentro do esperado. Continue monitorando para manter a eficiência.'
+                    });
+                }
+
+                return recommendations;
+            }
+
+            exportToExcel() {
+                if (this.reportData.length === 0) {
+                    this.showNotification('❌ Gere um relatório primeiro', 'error');
+                    return;
+                }
+
+                try {
+                    const ws_data = [
+                        ['Data/Hora', 'Equipamento', 'Tipo', 'Apontamento', 'Status', 'Período', 'Duração', 'Gravidade', 'Regra', 'Causa', 'Observações']
+                    ];
+
+                    this.reportData.forEach(alert => {
+                        ws_data.push([
+                            `${alert.date} ${alert.time}`,
+                            this.getDisplayName(alert.equipamento),
+                            alert.type,
+                            alert.apontamento || '',
+                            alert.status || '',
+                            alert.timeRange || '',
+                            alert.duration,
+                            alert.severity,
+                            alert.ruleName,
+                            this.analyzeCause(alert),
+                            alert.message
+                        ]);
+                    });
+
+                    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+                    
+                    // Ajustar largura das colunas
+                    const colWidths = [
+                        {wch: 20}, // Data/Hora
+                        {wch: 30}, // Equipamento
+                        {wch: 15}, // Tipo
+                        {wch: 20}, // Apontamento
+                        {wch: 15}, // Status
+                        {wch: 15}, // Período
+                        {wch: 10}, // Duração
+                        {wch: 10}, // Gravidade
+                        {wch: 25}, // Regra
+                        {wch: 30}, // Causa
+                        {wch: 40}  // Observações
+                    ];
+                    ws['!cols'] = colWidths;
+
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Relatório de Alertas");
+
+                    // Criar segunda aba com análise
+                    const analysis_data = [
+                        ['ANÁLISE INTELIGENTE'],
+                        [''],
+                        ['Métrica', 'Valor', 'Descrição'],
+                        ['Total de Alertas', this.reportData.length, 'Quantidade total de alertas no período'],
+                        ['Alertas Críticos', this.reportData.filter(a => a.severity === 'critical').length, 'Alertas que requerem ação imediata'],
+                        ['Alertas de Alto Risco', this.reportData.filter(a => a.severity === 'high').length, 'Alertas de alta prioridade'],
+                        ['Equipamentos Únicos', new Set(this.reportData.map(a => a.equipamento)).size, 'Número de equipamentos distintos com alertas'],
+                        [''],
+                        ['PRINCIPAIS PROBLEMAS'],
+                        [''],
+                        ['Problema', 'Frequência', 'Impacto'],
+                    ];
+
+                    // Adicionar problemas mais frequentes
+                    const problemCount = {};
+                    this.reportData.forEach(alert => {
+                        const problem = alert.apontamento || alert.type;
+                        problemCount[problem] = (problemCount[problem] || 0) + 1;
+                    });
+
+                    Object.entries(problemCount)
+                        .sort(([,a], [,b]) => b - a)
+                        .slice(0, 5)
+                        .forEach(([problem, count]) => {
+                            const impact = count > 5 ? 'Alto' : count > 2 ? 'Médio' : 'Baixo';
+                            analysis_data.push([problem, count, impact]);
+                        });
+
+                    const ws_analysis = XLSX.utils.aoa_to_sheet(analysis_data);
+                    ws_analysis['!cols'] = [{wch: 25}, {wch: 15}, {wch: 30}];
+                    XLSX.utils.book_append_sheet(wb, ws_analysis, "Análise");
+
+                    const fileName = `Relatorio_Alertas_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    XLSX.writeFile(wb, fileName);
+
+                    this.showNotification('📥 Excel exportado com sucesso', 'success');
+                } catch (error) {
+                    console.error('Erro ao exportar Excel:', error);
+                    this.showNotification('❌ Erro ao exportar Excel', 'error');
+                }
+            }
+
+            updateReportEquipmentFilter() {
+                const select = document.getElementById('reportEquipment');
+                const currentValue = select.value;
+                
+                select.innerHTML = '<option value="">Todos os equipamentos</option>';
+                
+                Array.from(this.equipmentMap.keys()).sort().forEach(equipName => {
+                    const option = document.createElement('option');
+                    option.value = equipName;
+                    option.textContent = this.getDisplayName(equipName);
+                    if (equipName === currentValue) option.selected = true;
+                    select.appendChild(option);
+                });
             }
 
             // =============================================================================
@@ -1577,6 +2438,10 @@
                             <div class="alert-detail">
                                 <div class="alert-detail-label">Tipo</div>
                                 <div class="alert-detail-value">${alert.type}</div>
+                            </div>
+                            <div class="alert-detail">
+                                <div class="alert-detail-label">Período</div>
+                                <div class="alert-detail-value">${alert.timeRange || alert.duration}</div>
                             </div>
                             <div class="alert-detail">
                                 <div class="alert-detail-label">Duração</div>
@@ -1734,6 +2599,7 @@
             clearAlerts() {
                 if (confirm('Tem certeza que deseja limpar todo o histórico de alertas?')) {
                     this.alerts = [];
+                    this.processedAlerts.clear();
                     this.saveAlertsToStorage();
                     this.updateInterface();
                     this.showNotification('🗑️ Histórico de alertas limpo', 'info');
@@ -1769,6 +2635,36 @@
         function closeRuleModal() {
             if (alertSystem) {
                 alertSystem.closeRuleModal();
+            }
+        }
+
+        function saveGitHubConfig() {
+            if (alertSystem) {
+                alertSystem.saveGitHubConfig();
+            }
+        }
+
+        function testGitHubConnection() {
+            if (alertSystem) {
+                alertSystem.testGitHubConnection();
+            }
+        }
+
+        function syncRulesFromGitHub() {
+            if (alertSystem) {
+                alertSystem.syncRulesFromGitHub();
+            }
+        }
+
+        function generateReport() {
+            if (alertSystem) {
+                alertSystem.generateReport();
+            }
+        }
+
+        function exportToExcel() {
+            if (alertSystem) {
+                alertSystem.exportToExcel();
             }
         }
 
