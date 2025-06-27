@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Alertas - GrupoGPS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #2c3e50;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-brand h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .sync-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50px;
+            font-size: 0.9rem;
+            color: #5a6c7d;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sync-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .sync-dot.success { background: #27ae60; }
+        .sync-dot.error { background: #e74c3c; }
+        .sync-dot.loading { background: #f39c12; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 0 2rem;
+        }
+
+        .nav-tabs-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .nav-tab {
+            padding: 1.2rem 2rem;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: #7f8c8d;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            position: relative;
+            background: transparent;
+        }
+
+        .nav-tab::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .nav-tab.active {
+            color: #fff;
+            border-bottom-color: transparent;
+        }
+
+        .nav-tab.active::before {
+            opacity: 1;
+        }
+
+        .nav-tab > span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .nav-tab:hover:not(.active) {
+            color: #2c3e50;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Glass Panel */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        /* Buttons */
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn.success { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .btn.danger { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .btn.warning { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .btn.secondary { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
+
+        /* Form Elements */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.95rem;
+        }
+
+        select, input[type="text"], input[type="number"] {
+            padding: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            background: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+            color: #2c3e50;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        /* Alert Cards */
+        .alert-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 5px solid;
+            transition: all 0.3s ease;
+        }
+
+        .alert-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert-card.critical { border-left-color: #e74c3c; }
+        .alert-card.high { border-left-color: #f39c12; }
+        .alert-card.medium { border-left-color: #f1c40f; }
+        .alert-card.low { border-left-color: #3498db; }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .alert-title {
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .alert-time {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .alert-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .alert-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .alert-detail-label {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            font-weight: 600;
+        }
+
+        .alert-detail-value {
+            font-size: 0.95rem;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        /* Rule Configuration */
+        .rule-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .rule-card.active {
+            border-color: #27ae60;
+            background: rgba(39, 174, 96, 0.05);
+        }
+
+        .rule-card.inactive {
+            border-color: #95a5a6;
+            background: rgba(149, 165, 166, 0.05);
+        }
+
+        .rule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .rule-name {
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .rule-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .rule-actions .btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            min-width: auto;
+        }
+
+        .rule-config {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .severity-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .severity-badge.critical { background: #e74c3c; color: white; }
+        .severity-badge.high { background: #f39c12; color: white; }
+        .severity-badge.medium { background: #f1c40f; color: #2c3e50; }
+        .severity-badge.low { background: #3498db; color: white; }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: #5a6c7d;
+            margin-top: 0.5rem;
+            font-weight: 600;
+        }
+
+        /* Loading States */
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            color: #5a6c7d;
+        }
+
+        .loading-spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .close {
+            color: #95a5a6;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #e74c3c;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            z-index: 10000;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            animation: slideInRight 0.3s ease-out;
+            max-width: 400px;
+            backdrop-filter: blur(20px);
+        }
+
+        .notification.success { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .notification.error { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .notification.warning { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .notification.info { background: linear-gradient(135deg, #3498db, #2980b9); }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Filters */
+        .filters-panel {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 1.5rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+
+            .alert-details, .rule-config, .filters-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-brand">
+                    <h1>🚨 Sistema de Alertas - GrupoGPS</h1>
+                </div>
+                
+                <div class="header-controls">
+                    <div class="sync-indicator">
+                        <div class="sync-dot loading" id="syncDot"></div>
+                        <span id="syncStatus">Iniciando sistema...</span>
+                    </div>
+                    
+                    <button class="btn" onclick="window.open('https://grupogps-mecanizada.github.io/Monitoramento-De-Produtividade/index.html', '_blank')">
+                        <span>📊</span>
+                        Voltar ao Dashboard
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+            <div class="nav-tabs-container">
+                <div class="nav-tab active" onclick="switchTab('history')">
+                    <span>📋 Histórico de Alertas</span>
+                </div>
+                <div class="nav-tab" onclick="switchTab('rules')">
+                    <span>⚙️ Configurar Regras</span>
+                </div>
+                <div class="nav-tab" onclick="switchTab('stats')">
+                    <span>📊 Estatísticas</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Histórico de Alertas -->
+            <div id="history-tab" class="tab-content active">
+                <!-- Estatísticas Rápidas -->
+                <div class="glass-panel">
+                    <div style="padding: 2rem;">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="totalAlerts">0</div>
+                                <div class="stat-label">Total de Alertas</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="activeAlerts">0</div>
+                                <div class="stat-label">Alertas Hoje</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="criticalAlerts">0</div>
+                                <div class="stat-label">Críticos</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="activeRules">0</div>
+                                <div class="stat-label">Regras Ativas</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="filters-panel">
+                    <div class="filters-grid">
+                        <div class="form-group">
+                            <label>Equipamento:</label>
+                            <select id="filterEquipment">
+                                <option value="">Todos os equipamentos</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Gravidade:</label>
+                            <select id="filterSeverity">
+                                <option value="">Todas as gravidades</option>
+                                <option value="critical">Crítico</option>
+                                <option value="high">Alto</option>
+                                <option value="medium">Médio</option>
+                                <option value="low">Baixo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Período:</label>
+                            <select id="filterPeriod">
+                                <option value="today">Hoje</option>
+                                <option value="yesterday">Ontem</option>
+                                <option value="week">Última semana</option>
+                                <option value="month">Último mês</option>
+                                <option value="all">Todos</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button class="btn" onclick="applyFilters()">
+                                <span>🔍</span>
+                                Filtrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de Alertas -->
+                <div class="glass-panel">
+                    <div style="padding: 2rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                            <h3 style="color: #2c3e50;">📋 Histórico de Alertas</h3>
+                            <button class="btn secondary" onclick="clearAlerts()">
+                                <span>🗑️</span>
+                                Limpar Histórico
+                            </button>
+                        </div>
+                        
+                        <div id="alertsList">
+                            <div class="loading-state">
+                                <div class="loading-spinner"></div>
+                                <div>Carregando alertas...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configurar Regras -->
+            <div id="rules-tab" class="tab-content">
+                <!-- Nova Regra -->
+                <div class="glass-panel">
+                    <div style="padding: 2rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                            <h3 style="color: #2c3e50;">⚙️ Configurar Regras de Alerta</h3>
+                            <button class="btn success" onclick="openRuleModal()">
+                                <span>➕</span>
+                                Nova Regra
+                            </button>
+                        </div>
+                        
+                        <div id="rulesList">
+                            <div class="loading-state">
+                                <div class="loading-spinner"></div>
+                                <div>Carregando regras...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estatísticas -->
+            <div id="stats-tab" class="tab-content">
+                <div class="glass-panel">
+                    <div style="padding: 2rem;">
+                        <h3 style="color: #2c3e50; margin-bottom: 2rem;">📊 Estatísticas Detalhadas</h3>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="statsTotal">0</div>
+                                <div class="stat-label">Total de Alertas</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="statsCritical">0</div>
+                                <div class="stat-label">Críticos</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="statsHigh">0</div>
+                                <div class="stat-label">Alto</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="statsMedium">0</div>
+                                <div class="stat-label">Médio</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="statsLow">0</div>
+                                <div class="stat-label">Baixo</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="statsEquipments">0</div>
+                                <div class="stat-label">Equipamentos Monitorados</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Nova/Editar Regra -->
+    <div id="ruleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Nova Regra de Alerta</h2>
+                <span class="close" onclick="closeRuleModal()">&times;</span>
+            </div>
+            
+            <form id="ruleForm">
+                <div class="form-group">
+                    <label>Nome da Regra:</label>
+                    <input type="text" id="ruleName" placeholder="Ex: Documentação Prolongada" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Apontamento:</label>
+                    <select id="ruleApontamento">
+                        <option value="">Qualquer apontamento</option>
+                        <option value="Documentação">Documentação</option>
+                        <option value="Abastecimento">Abastecimento</option>
+                        <option value="Refeição Motorista">Refeição Motorista</option>
+                        <option value="Preparação">Preparação</option>
+                        <option value="Aguardando Área">Aguardando Área</option>
+                        <option value="Bloqueio">Bloqueio</option>
+                        <option value="Descarregamento">Descarregamento</option>
+                        <option value="Pequenas manutenções">Pequenas Manutenções</option>
+                        <option value="NENHUM">SEM Apontamento</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Status do Motor:</label>
+                    <select id="ruleStatus">
+                        <option value="">Qualquer status</option>
+                        <option value="on">Motor Ligado</option>
+                        <option value="off">Motor Desligado</option>
+                        <option value="stopped">Parado Ligado</option>
+                        <option value="maintenance">Em Manutenção</option>
+                        <option value="out_of_plant">Fora da Planta</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Operador Lógico:</label>
+                    <select id="ruleOperator">
+                        <option value="AND">E (todas as condições)</option>
+                        <option value="OR">OU (qualquer condição)</option>
+                    </select>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Tempo:</label>
+                        <select id="ruleTimeOperator">
+                            <option value=">">Maior que</option>
+                            <option value="<">Menor que</option>
+                            <option value="=">Igual a</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Duração (minutos):</label>
+                        <input type="number" id="ruleTimeValue" min="1" placeholder="45" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Gravidade:</label>
+                    <select id="ruleSeverity">
+                        <option value="low">Baixo</option>
+                        <option value="medium">Médio</option>
+                        <option value="high">Alto</option>
+                        <option value="critical">Crítico</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Mensagem do Alerta:</label>
+                    <input type="text" id="ruleMessage" placeholder="{equipamento} - {apontamento} há {tempo} com {status}" required>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn success">
+                        <span>💾</span>
+                        Salvar Regra
+                    </button>
+                    <button type="button" class="btn secondary" onclick="closeRuleModal()">
+                        <span>❌</span>
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // =============================================================================
+        // SISTEMA DE ALERTAS - GRUPOGPS
+        // =============================================================================
+        class AlertSystem {
+            constructor() {
+                this.csvData = [];
+                this.jsonData = [];
+                this.equipmentMap = new Map();
+                this.rules = [];
+                this.alerts = [];
+                this.isProcessing = false;
+                this.editingRuleId = null;
+
+                // Configurações GitHub - mesmas do index.html
+                this.githubConfig = {
+                    csvRepo: {
+                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/contents/data/apontamentos-atuais.csv'
+                    },
+                    jsonRepo: {
+                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos-/contents/data/latest-fleet-data.json'
+                    }
+                };
+
+                this.initSystem();
+            }
+
+            async initSystem() {
+                console.log('🚨 Iniciando Sistema de Alertas');
+                this.updateSyncStatus('loading', 'Iniciando sistema...');
+                
+                this.loadRulesFromStorage();
+                this.loadAlertsFromStorage();
+                this.setupEventListeners();
+                await this.syncData();
+                this.updateInterface();
+                
+                // Processar alertas a cada 30 segundos
+                setInterval(() => {
+                    if (!this.isProcessing) {
+                        this.processAlerts();
+                    }
+                }, 30000);
+            }
+
+            setupEventListeners() {
+                // Form de regras
+                document.getElementById('ruleForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveRule();
+                });
+
+                // Fechar modal ao clicar fora
+                document.getElementById('ruleModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'ruleModal') {
+                        this.closeRuleModal();
+                    }
+                });
+            }
+
+            // =============================================================================
+            // SINCRONIZAÇÃO DE DADOS
+            // =============================================================================
+            async syncData() {
+                this.updateSyncStatus('loading', 'Sincronizando dados...');
+                
+                try {
+                    const [csvResult, jsonResult] = await Promise.allSettled([
+                        this.fetchCSVFromGitHub(),
+                        this.fetchJSONFromGitHub()
+                    ]);
+
+                    let successCount = 0;
+
+                    if (csvResult.status === 'fulfilled' && csvResult.value.success) {
+                        this.csvData = csvResult.value.data;
+                        successCount++;
+                    }
+
+                    if (jsonResult.status === 'fulfilled' && jsonResult.value.success) {
+                        this.jsonData = jsonResult.value.data;
+                        successCount++;
+                    }
+
+                    if (successCount > 0) {
+                        this.unifyEquipmentData();
+                        this.processAlerts();
+                        this.updateSyncStatus('success', 'Dados sincronizados');
+                        this.showNotification('✅ Dados atualizados com sucesso', 'success');
+                    } else {
+                        this.updateSyncStatus('error', 'Erro na sincronização');
+                        this.showNotification('❌ Erro na sincronização', 'error');
+                    }
+
+                } catch (error) {
+                    console.error('❌ Erro na sincronização:', error);
+                    this.updateSyncStatus('error', 'Erro na sincronização');
+                    this.showNotification('❌ Erro na sincronização: ' + error.message, 'error');
+                }
+            }
+
+            async fetchCSVFromGitHub() {
+                try {
+                    const response = await fetch(this.githubConfig.csvRepo.apiUrl);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                    const apiData = await response.json();
+                    let csvText = atob(apiData.content.replace(/\n/g, ''));
+                    
+                    try {
+                        csvText = decodeURIComponent(escape(csvText));
+                    } catch (e) {
+                        console.log('Mantendo texto original');
+                    }
+                    
+                    const parsedData = this.parseCSV(csvText);
+                    return { success: true, data: parsedData };
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao buscar CSV:', error);
+                    return { success: false, data: [], error: error.message };
+                }
+            }
+
+            async fetchJSONFromGitHub() {
+                try {
+                    const response = await fetch(this.githubConfig.jsonRepo.apiUrl);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                    const apiData = await response.json();
+                    let jsonText = atob(apiData.content.replace(/\n/g, ''));
+                    
+                    try {
+                        jsonText = decodeURIComponent(escape(jsonText));
+                    } catch (e) {
+                        console.log('Mantendo texto JSON original');
+                    }
+                    
+                    const jsonData = JSON.parse(jsonText);
+                    const records = jsonData.records || jsonData;
+                    
+                    return { success: true, data: Array.isArray(records) ? records : [] };
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao buscar JSON:', error);
+                    return { success: false, data: [], error: error.message };
+                }
+            }
+
+            // =============================================================================
+            // PROCESSAMENTO DE DADOS
+            // =============================================================================
+            parseCSV(csvText) {
+                const lines = csvText.trim().split('\n').filter(line => line.trim());
+                if (lines.length < 2) return [];
+
+                const delimiter = lines[0].includes(';') ? ';' : ',';
+                const headers = lines[0].split(delimiter).map(h => h.replace(/"/g, '').trim());
+                
+                const data = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    const values = this.parseCSVLine(line, delimiter);
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] ? values[index].replace(/"/g, '').trim() : '';
+                    });
+                    
+                    if (row['Data Inicial'] && row['Data Final']) {
+                        data.push(row);
+                    }
+                }
+                
+                return data;
+            }
+
+            parseCSVLine(line, delimiter) {
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === delimiter && !inQuotes) {
+                        values.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                values.push(current.trim());
+                
+                return values;
+            }
+
+            unifyEquipmentData() {
+                this.equipmentMap.clear();
+
+                // Processar CSV
+                this.csvData.forEach((item) => {
+                    const equipName = this.normalizeEquipmentName(item.Vaga || item.Placa);
+                    if (!this.equipmentMap.has(equipName)) {
+                        this.equipmentMap.set(equipName, {
+                            name: equipName,
+                            apontamentos: [],
+                            status: []
+                        });
+                    }
+                    this.equipmentMap.get(equipName).apontamentos.push(item);
+                });
+
+                // Processar JSON
+                this.jsonData.forEach((item) => {
+                    const equipName = this.normalizeEquipmentName(item.vacancy_name);
+                    if (!this.equipmentMap.has(equipName)) {
+                        this.equipmentMap.set(equipName, {
+                            name: equipName,
+                            apontamentos: [],
+                            status: []
+                        });
+                    }
+                    this.equipmentMap.get(equipName).status.push(item);
+                });
+
+                this.updateEquipmentFilter();
+            }
+
+            normalizeEquipmentName(name) {
+                if (!name) return 'Equipamento Desconhecido';
+                
+                return name.toUpperCase().trim()
+                    .replace(/\s+/g, ' ')
+                    .replace(/\s*-\s*GPS\s*-\s*/g, ' - GPS - ')
+                    .replace(/CAMINHÃO/g, 'CAMINHAO')
+                    .replace(/VÁCUO/g, 'VACUO')
+                    .replace(/PRESSÃO/g, 'PRESSAO');
+            }
+
+            parseDate(dateStr) {
+                if (!dateStr) return null;
+                
+                try {
+                    if (dateStr.includes('/')) {
+                        const [datePart, timePart = '00:00:00'] = dateStr.split(' ');
+                        const [day, month, year] = datePart.split('/');
+                        
+                        if (!day || !month || !year) return null;
+                        
+                        return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`);
+                    } else if (dateStr.includes('-')) {
+                        return new Date(dateStr.replace(' ', 'T'));
+                    }
+                    
+                    return null;
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            // =============================================================================
+            // SISTEMA DE REGRAS
+            // =============================================================================
+            loadRulesFromStorage() {
+                const stored = localStorage.getItem('alertSystem_rules');
+                if (stored) {
+                    this.rules = JSON.parse(stored);
+                } else {
+                    // Regras padrão
+                    this.rules = [
+                        {
+                            id: 1,
+                            name: "Refeição com Motor Ligado",
+                            active: true,
+                            conditions: {
+                                apontamento: "Refeição Motorista",
+                                status: "on",
+                                operator: "AND",
+                                timeOperator: ">",
+                                timeValue: 5
+                            },
+                            severity: "high",
+                            message: "{equipamento} - Refeição há {tempo} com motor ligado"
+                        },
+                        {
+                            id: 2,
+                            name: "Documentação Prolongada",
+                            active: true,
+                            conditions: {
+                                apontamento: "Documentação",
+                                status: "",
+                                operator: "AND",
+                                timeOperator: ">",
+                                timeValue: 45
+                            },
+                            severity: "medium",
+                            message: "{equipamento} - Documentação há {tempo}"
+                        }
+                    ];
+                    this.saveRulesToStorage();
+                }
+            }
+
+            saveRulesToStorage() {
+                localStorage.setItem('alertSystem_rules', JSON.stringify(this.rules));
+            }
+
+            loadAlertsFromStorage() {
+                const stored = localStorage.getItem('alertSystem_alerts');
+                if (stored) {
+                    this.alerts = JSON.parse(stored);
+                    // Remover alertas muito antigos (mais de 30 dias)
+                    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+                    this.alerts = this.alerts.filter(alert => alert.timestamp > thirtyDaysAgo);
+                    this.saveAlertsToStorage();
+                }
+            }
+
+            saveAlertsToStorage() {
+                localStorage.setItem('alertSystem_alerts', JSON.stringify(this.alerts));
+            }
+
+            // =============================================================================
+            // PROCESSAMENTO DE ALERTAS
+            // =============================================================================
+            processAlerts() {
+                if (this.isProcessing || this.rules.length === 0) return;
+                
+                this.isProcessing = true;
+                console.log('🔄 Processando alertas...');
+
+                const now = new Date();
+                const newAlerts = [];
+
+                for (const [equipName, data] of this.equipmentMap) {
+                    for (const rule of this.rules.filter(r => r.active)) {
+                        const alerts = this.checkRule(equipName, data, rule, now);
+                        newAlerts.push(...alerts);
+                    }
+                }
+
+                // Adicionar novos alertas únicos
+                newAlerts.forEach(alert => {
+                    const exists = this.alerts.some(existing => 
+                        existing.equipamento === alert.equipamento &&
+                        existing.ruleId === alert.ruleId &&
+                        Math.abs(existing.timestamp - alert.timestamp) < 30000 // 30 segundos
+                    );
+                    
+                    if (!exists) {
+                        this.alerts.unshift(alert);
+                    }
+                });
+
+                this.saveAlertsToStorage();
+                this.updateInterface();
+                this.isProcessing = false;
+            }
+
+            checkRule(equipName, data, rule, now) {
+                const alerts = [];
+                const conditions = rule.conditions;
+
+                // Verificar apontamentos
+                if (conditions.apontamento && conditions.apontamento !== "NENHUM") {
+                    data.apontamentos.forEach(apont => {
+                        if (this.matchesApontamento(apont, conditions, equipName, rule, now)) {
+                            alerts.push(this.createAlert(equipName, rule, apont, null, now));
+                        }
+                    });
+                }
+
+                // Verificar status
+                data.status.forEach(status => {
+                    if (this.matchesStatus(status, data.apontamentos, conditions, equipName, rule, now)) {
+                        alerts.push(this.createAlert(equipName, rule, null, status, now));
+                    }
+                });
+
+                return alerts;
+            }
+
+            matchesApontamento(apont, conditions, equipName, rule, now) {
+                const category = apont['Categoria Demora'] || '';
+                
+                // Verificar categoria
+                if (conditions.apontamento && category !== conditions.apontamento) {
+                    return false;
+                }
+
+                // Verificar duração
+                const start = this.parseDate(apont['Data Inicial']);
+                const end = this.parseDate(apont['Data Final']);
+                if (!start || !end) return false;
+
+                const durationMinutes = (end - start) / (1000 * 60);
+                
+                return this.checkTimeCondition(durationMinutes, conditions.timeOperator, conditions.timeValue);
+            }
+
+            matchesStatus(status, apontamentos, conditions, equipName, rule, now) {
+                // Verificar status
+                if (conditions.status && status.status !== conditions.status) {
+                    return false;
+                }
+
+                // Verificar duração
+                const start = this.parseDate(status.start);
+                const end = this.parseDate(status.end);
+                if (!start || !end) return false;
+
+                const durationMinutes = (end - start) / (1000 * 60);
+                
+                if (!this.checkTimeCondition(durationMinutes, conditions.timeOperator, conditions.timeValue)) {
+                    return false;
+                }
+
+                // Se tem condição de apontamento, verificar se existe apontamento correspondente
+                if (conditions.apontamento && conditions.apontamento !== "NENHUM") {
+                    const hasMatchingApont = apontamentos.some(apont => {
+                        const apontStart = this.parseDate(apont['Data Inicial']);
+                        const apontEnd = this.parseDate(apont['Data Final']);
+                        if (!apontStart || !apontEnd) return false;
+
+                        const category = apont['Categoria Demora'] || '';
+                        return category === conditions.apontamento &&
+                               apontStart <= end && apontEnd >= start; // Sobreposição
+                    });
+
+                    if (conditions.operator === "AND" && !hasMatchingApont) return false;
+                    if (conditions.operator === "OR" && !hasMatchingApont) return true;
+                }
+
+                return true;
+            }
+
+            checkTimeCondition(duration, operator, threshold) {
+                switch (operator) {
+                    case '>': return duration > threshold;
+                    case '<': return duration < threshold;
+                    case '=': return Math.abs(duration - threshold) < 1; // tolerância de 1 minuto
+                    default: return false;
+                }
+            }
+
+            createAlert(equipName, rule, apontamento, status, timestamp) {
+                const formatTime = (minutes) => {
+                    const h = Math.floor(minutes / 60);
+                    const m = Math.round(minutes % 60);
+                    return h > 0 ? `${h}h ${m}min` : `${m}min`;
+                };
+
+                let message = rule.message;
+                let duration = 0;
+                let type = '';
+
+                if (apontamento) {
+                    const start = this.parseDate(apontamento['Data Inicial']);
+                    const end = this.parseDate(apontamento['Data Final']);
+                    duration = (end - start) / (1000 * 60);
+                    type = 'Apontamento';
+                } else if (status) {
+                    const start = this.parseDate(status.start);
+                    const end = this.parseDate(status.end);
+                    duration = (end - start) / (1000 * 60);
+                    type = 'Status';
+                }
+
+                message = message
+                    .replace('{equipamento}', this.getDisplayName(equipName))
+                    .replace('{tempo}', formatTime(duration))
+                    .replace('{apontamento}', apontamento ? apontamento['Categoria Demora'] : '')
+                    .replace('{status}', status ? status.status_title : '');
+
+                return {
+                    id: Date.now() + Math.random(),
+                    equipamento: equipName,
+                    ruleId: rule.id,
+                    ruleName: rule.name,
+                    message: message,
+                    severity: rule.severity,
+                    type: type,
+                    duration: formatTime(duration),
+                    timestamp: timestamp.getTime(),
+                    date: timestamp.toLocaleDateString('pt-BR'),
+                    time: timestamp.toLocaleTimeString('pt-BR')
+                };
+            }
+
+            getDisplayName(equipName) {
+                return equipName
+                    .replace(/CAMINHAO/g, 'CAMINHÃO')
+                    .replace(/VACUO/g, 'VÁCUO')
+                    .replace(/PRESSAO/g, 'PRESSÃO');
+            }
+
+            // =============================================================================
+            // INTERFACE DE REGRAS
+            // =============================================================================
+            openRuleModal(ruleId = null) {
+                this.editingRuleId = ruleId;
+                const modal = document.getElementById('ruleModal');
+                const title = document.getElementById('modalTitle');
+                
+                if (ruleId) {
+                    title.textContent = 'Editar Regra';
+                    const rule = this.rules.find(r => r.id === ruleId);
+                    if (rule) {
+                        document.getElementById('ruleName').value = rule.name;
+                        document.getElementById('ruleApontamento').value = rule.conditions.apontamento || '';
+                        document.getElementById('ruleStatus').value = rule.conditions.status || '';
+                        document.getElementById('ruleOperator').value = rule.conditions.operator;
+                        document.getElementById('ruleTimeOperator').value = rule.conditions.timeOperator;
+                        document.getElementById('ruleTimeValue').value = rule.conditions.timeValue;
+                        document.getElementById('ruleSeverity').value = rule.severity;
+                        document.getElementById('ruleMessage').value = rule.message;
+                    }
+                } else {
+                    title.textContent = 'Nova Regra';
+                    document.getElementById('ruleForm').reset();
+                    document.getElementById('ruleOperator').value = 'AND';
+                    document.getElementById('ruleTimeOperator').value = '>';
+                    document.getElementById('ruleSeverity').value = 'medium';
+                    document.getElementById('ruleMessage').value = '{equipamento} - {apontamento} há {tempo}';
+                }
+                
+                modal.style.display = 'block';
+            }
+
+            closeRuleModal() {
+                document.getElementById('ruleModal').style.display = 'none';
+                this.editingRuleId = null;
+            }
+
+            saveRule() {
+                const formData = {
+                    name: document.getElementById('ruleName').value,
+                    conditions: {
+                        apontamento: document.getElementById('ruleApontamento').value,
+                        status: document.getElementById('ruleStatus').value,
+                        operator: document.getElementById('ruleOperator').value,
+                        timeOperator: document.getElementById('ruleTimeOperator').value,
+                        timeValue: parseInt(document.getElementById('ruleTimeValue').value)
+                    },
+                    severity: document.getElementById('ruleSeverity').value,
+                    message: document.getElementById('ruleMessage').value
+                };
+
+                if (this.editingRuleId) {
+                    // Editar regra existente
+                    const ruleIndex = this.rules.findIndex(r => r.id === this.editingRuleId);
+                    if (ruleIndex !== -1) {
+                        this.rules[ruleIndex] = { ...this.rules[ruleIndex], ...formData };
+                        this.showNotification('✅ Regra atualizada com sucesso', 'success');
+                    }
+                } else {
+                    // Nova regra
+                    const newRule = {
+                        id: Date.now(),
+                        active: true,
+                        ...formData
+                    };
+                    this.rules.push(newRule);
+                    this.showNotification('✅ Regra criada com sucesso', 'success');
+                }
+
+                this.saveRulesToStorage();
+                this.updateRulesList();
+                this.closeRuleModal();
+            }
+
+            toggleRule(ruleId) {
+                const rule = this.rules.find(r => r.id === ruleId);
+                if (rule) {
+                    rule.active = !rule.active;
+                    this.saveRulesToStorage();
+                    this.updateRulesList();
+                    this.showNotification(
+                        rule.active ? '✅ Regra ativada' : '⏸️ Regra desativada', 
+                        rule.active ? 'success' : 'warning'
+                    );
+                }
+            }
+
+            deleteRule(ruleId) {
+                if (confirm('Tem certeza que deseja excluir esta regra?')) {
+                    this.rules = this.rules.filter(r => r.id !== ruleId);
+                    this.saveRulesToStorage();
+                    this.updateRulesList();
+                    this.showNotification('🗑️ Regra excluída', 'info');
+                }
+            }
+
+            // =============================================================================
+            // INTERFACE
+            // =============================================================================
+            updateInterface() {
+                this.updateStats();
+                this.updateAlertsList();
+                this.updateRulesList();
+            }
+
+            updateStats() {
+                const today = new Date().toLocaleDateString('pt-BR');
+                const todayAlerts = this.alerts.filter(a => a.date === today);
+                
+                document.getElementById('totalAlerts').textContent = this.alerts.length;
+                document.getElementById('activeAlerts').textContent = todayAlerts.length;
+                document.getElementById('criticalAlerts').textContent = 
+                    this.alerts.filter(a => a.severity === 'critical').length;
+                document.getElementById('activeRules').textContent = 
+                    this.rules.filter(r => r.active).length;
+
+                // Stats detalhadas
+                document.getElementById('statsTotal').textContent = this.alerts.length;
+                document.getElementById('statsCritical').textContent = 
+                    this.alerts.filter(a => a.severity === 'critical').length;
+                document.getElementById('statsHigh').textContent = 
+                    this.alerts.filter(a => a.severity === 'high').length;
+                document.getElementById('statsMedium').textContent = 
+                    this.alerts.filter(a => a.severity === 'medium').length;
+                document.getElementById('statsLow').textContent = 
+                    this.alerts.filter(a => a.severity === 'low').length;
+                document.getElementById('statsEquipments').textContent = this.equipmentMap.size;
+            }
+
+            updateAlertsList() {
+                const container = document.getElementById('alertsList');
+                
+                if (this.alerts.length === 0) {
+                    container.innerHTML = `
+                        <div class="loading-state">
+                            <div style="font-size: 3rem;">✅</div>
+                            <div>Nenhum alerta registrado</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const filteredAlerts = this.getFilteredAlerts();
+                
+                container.innerHTML = filteredAlerts.map(alert => `
+                    <div class="alert-card ${alert.severity}">
+                        <div class="alert-header">
+                            <div class="alert-title">${alert.message}</div>
+                            <div class="alert-time">${alert.date} ${alert.time}</div>
+                        </div>
+                        <div class="alert-details">
+                            <div class="alert-detail">
+                                <div class="alert-detail-label">Equipamento</div>
+                                <div class="alert-detail-value">${this.getDisplayName(alert.equipamento)}</div>
+                            </div>
+                            <div class="alert-detail">
+                                <div class="alert-detail-label">Regra</div>
+                                <div class="alert-detail-value">${alert.ruleName}</div>
+                            </div>
+                            <div class="alert-detail">
+                                <div class="alert-detail-label">Tipo</div>
+                                <div class="alert-detail-value">${alert.type}</div>
+                            </div>
+                            <div class="alert-detail">
+                                <div class="alert-detail-label">Duração</div>
+                                <div class="alert-detail-value">${alert.duration}</div>
+                            </div>
+                            <div class="alert-detail">
+                                <div class="alert-detail-label">Gravidade</div>
+                                <div class="alert-detail-value">
+                                    <span class="severity-badge ${alert.severity}">${alert.severity}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateRulesList() {
+                const container = document.getElementById('rulesList');
+                
+                if (this.rules.length === 0) {
+                    container.innerHTML = `
+                        <div class="loading-state">
+                            <div style="font-size: 3rem;">⚙️</div>
+                            <div>Nenhuma regra configurada</div>
+                            <button class="btn success" onclick="alertSystem.openRuleModal()" style="margin-top: 1rem;">
+                                <span>➕</span>
+                                Criar Primeira Regra
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.rules.map(rule => `
+                    <div class="rule-card ${rule.active ? 'active' : 'inactive'}">
+                        <div class="rule-header">
+                            <div class="rule-name">${rule.name}</div>
+                            <div class="rule-actions">
+                                <button class="btn ${rule.active ? 'warning' : 'success'}" 
+                                        onclick="alertSystem.toggleRule(${rule.id})">
+                                    <span>${rule.active ? '⏸️' : '▶️'}</span>
+                                    ${rule.active ? 'Desativar' : 'Ativar'}
+                                </button>
+                                <button class="btn secondary" onclick="alertSystem.openRuleModal(${rule.id})">
+                                    <span>✏️</span>
+                                    Editar
+                                </button>
+                                <button class="btn danger" onclick="alertSystem.deleteRule(${rule.id})">
+                                    <span>🗑️</span>
+                                    Excluir
+                                </button>
+                            </div>
+                        </div>
+                        <div class="rule-config">
+                            <div>
+                                <strong>Apontamento:</strong> ${rule.conditions.apontamento || 'Qualquer'}
+                            </div>
+                            <div>
+                                <strong>Status:</strong> ${rule.conditions.status || 'Qualquer'}
+                            </div>
+                            <div>
+                                <strong>Tempo:</strong> ${rule.conditions.timeOperator} ${rule.conditions.timeValue} min
+                            </div>
+                            <div>
+                                <strong>Gravidade:</strong> <span class="severity-badge ${rule.severity}">${rule.severity}</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1rem;">
+                            <strong>Mensagem:</strong> ${rule.message}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateEquipmentFilter() {
+                const select = document.getElementById('filterEquipment');
+                const currentValue = select.value;
+                
+                select.innerHTML = '<option value="">Todos os equipamentos</option>';
+                
+                Array.from(this.equipmentMap.keys()).sort().forEach(equipName => {
+                    const option = document.createElement('option');
+                    option.value = equipName;
+                    option.textContent = this.getDisplayName(equipName);
+                    if (equipName === currentValue) option.selected = true;
+                    select.appendChild(option);
+                });
+            }
+
+            getFilteredAlerts() {
+                const equipmentFilter = document.getElementById('filterEquipment').value;
+                const severityFilter = document.getElementById('filterSeverity').value;
+                const periodFilter = document.getElementById('filterPeriod').value;
+
+                let filtered = [...this.alerts];
+
+                if (equipmentFilter) {
+                    filtered = filtered.filter(a => a.equipamento === equipmentFilter);
+                }
+
+                if (severityFilter) {
+                    filtered = filtered.filter(a => a.severity === severityFilter);
+                }
+
+                if (periodFilter !== 'all') {
+                    const now = new Date();
+                    let startDate;
+
+                    switch (periodFilter) {
+                        case 'today':
+                            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                            break;
+                        case 'yesterday':
+                            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+                            const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                            filtered = filtered.filter(a => a.timestamp >= startDate.getTime() && a.timestamp < endDate.getTime());
+                            return filtered;
+                        case 'week':
+                            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            break;
+                        case 'month':
+                            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                            break;
+                    }
+
+                    if (startDate) {
+                        filtered = filtered.filter(a => a.timestamp >= startDate.getTime());
+                    }
+                }
+
+                return filtered;
+            }
+
+            updateSyncStatus(status, message) {
+                const dot = document.getElementById('syncDot');
+                const statusText = document.getElementById('syncStatus');
+                
+                dot.className = `sync-dot ${status}`;
+                statusText.textContent = message;
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.animation = 'slideOutRight 0.3s ease-in';
+                    setTimeout(() => notification.remove(), 300);
+                }, 4000);
+            }
+
+            clearAlerts() {
+                if (confirm('Tem certeza que deseja limpar todo o histórico de alertas?')) {
+                    this.alerts = [];
+                    this.saveAlertsToStorage();
+                    this.updateInterface();
+                    this.showNotification('🗑️ Histórico de alertas limpo', 'info');
+                }
+            }
+        }
+
+        // =============================================================================
+        // FUNÇÕES GLOBAIS
+        // =============================================================================
+        let alertSystem = null;
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        function applyFilters() {
+            if (alertSystem) {
+                alertSystem.updateAlertsList();
+            }
+        }
+
+        function clearAlerts() {
+            if (alertSystem) {
+                alertSystem.clearAlerts();
+            }
+        }
+
+        function openRuleModal(ruleId = null) {
+            if (alertSystem) {
+                alertSystem.openRuleModal(ruleId);
+            }
+        }
+
+        function closeRuleModal() {
+            if (alertSystem) {
+                alertSystem.closeRuleModal();
+            }
+        }
+
+        // =============================================================================
+        // INICIALIZAÇÃO
+        // =============================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            alertSystem = new AlertSystem();
+        });
+    </script>
+</body>
+</html>
