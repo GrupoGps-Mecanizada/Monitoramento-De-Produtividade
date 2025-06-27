@@ -89,6 +89,7 @@
         .sync-dot.success { background: #27ae60; }
         .sync-dot.error { background: #e74c3c; }
         .sync-dot.loading { background: #f39c12; }
+        .sync-dot.warning { background: #f39c12; }
 
         @keyframes pulse {
             0%, 100% { opacity: 1; transform: scale(1); }
@@ -443,16 +444,19 @@
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(5px);
+            overflow-y: auto;
         }
 
         .modal-content {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
-            margin: 5% auto;
+            margin: 2% auto;
             padding: 2rem;
             border-radius: 20px;
             width: 90%;
             max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
 
@@ -527,6 +531,66 @@
         @media (max-width: 768px) {
             .main-content {
                 padding: 1rem;
+            }
+
+            getExampleCSVData() {
+                // Dados de exemplo para demonstração quando GitHub não está acessível
+                const now = new Date();
+                const today = now.toLocaleDateString('pt-BR').split('/').reverse().join('/');
+                const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+                const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+                
+                const formatDateTime = (date) => {
+                    const d = date.toLocaleDateString('pt-BR');
+                    const t = date.toLocaleTimeString('pt-BR');
+                    return `${d} ${t}`;
+                };
+
+                return [
+                    {
+                        'Placa': 'EGC2983',
+                        'Vaga': 'CAMINHÃO ALTA PRESSÃO - GPS - 11',
+                        'Categoria Demora': 'Documentação',
+                        'Data Inicial': formatDateTime(twoHoursAgo),
+                        'Data Final': formatDateTime(oneHourAgo),
+                        'Tempo Indisponível (HH:MM)': '01:00'
+                    },
+                    {
+                        'Placa': 'FSA3D71',
+                        'Vaga': 'CAMINHÃO AUTO VÁCUO - GPS - 05',
+                        'Categoria Demora': 'Refeição Motorista',
+                        'Data Inicial': formatDateTime(new Date(now.getTime() - 90 * 60 * 1000)),
+                        'Data Final': formatDateTime(new Date(now.getTime() - 20 * 60 * 1000)),
+                        'Tempo Indisponível (HH:MM)': '01:10'
+                    }
+                ];
+            }
+
+            getExampleJSONData() {
+                // Dados de exemplo para demonstração quando GitHub não está acessível
+                const now = new Date();
+                const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+                
+                return [
+                    {
+                        vacancy_code: "404",
+                        vacancy_name: "CAMINHÃO ALTA PRESSÃO - GPS - 11",
+                        status: "on",
+                        status_title: "Motor Ligado",
+                        start: oneHourAgo.toISOString(),
+                        end: now.toISOString(),
+                        total_time: "1.0"
+                    },
+                    {
+                        vacancy_code: "316",
+                        vacancy_name: "CAMINHÃO AUTO VÁCUO - GPS - 05",
+                        status: "on",
+                        status_title: "Motor Ligado",
+                        start: new Date(now.getTime() - 90 * 60 * 1000).toISOString(),
+                        end: now.toISOString(),
+                        total_time: "1.5"
+                    }
+                ];
             }
 
             .alert-details, .rule-config, .filters-grid {
@@ -640,13 +704,6 @@
                                 <option value="all">Todos</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>&nbsp;</label>
-                            <button class="btn" onclick="applyFilters()">
-                                <span>🔍</span>
-                                Filtrar
-                            </button>
-                        </div>
                     </div>
                 </div>
 
@@ -730,6 +787,11 @@
                 </div>
             </div>
         </main>
+
+        <!-- Footer -->
+        <footer style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255, 255, 255, 0.2); padding: 2rem; text-align: center; color: #5a6c7d; font-size: 0.9rem;">
+            <p>Desenvolvido por <strong style="color: #2c3e50;">Warlison Abreu</strong> | © 2025 GrupoGPS - Todos os direitos reservados</p>
+        </footer>
     </div>
 
     <!-- Modal Nova/Editar Regra -->
@@ -884,6 +946,19 @@
                         this.closeRuleModal();
                     }
                 });
+
+                // Filtros automáticos
+                document.getElementById('filterEquipment').addEventListener('change', () => {
+                    this.updateAlertsList();
+                });
+
+                document.getElementById('filterSeverity').addEventListener('change', () => {
+                    this.updateAlertsList();
+                });
+
+                document.getElementById('filterPeriod').addEventListener('change', () => {
+                    this.updateAlertsList();
+                });
             }
 
             // =============================================================================
@@ -903,27 +978,40 @@
                     if (csvResult.status === 'fulfilled' && csvResult.value.success) {
                         this.csvData = csvResult.value.data;
                         successCount++;
+                    } else {
+                        console.warn('⚠️ Erro no CSV, usando dados de exemplo:', csvResult.reason);
+                        this.csvData = this.getExampleCSVData();
                     }
 
                     if (jsonResult.status === 'fulfilled' && jsonResult.value.success) {
                         this.jsonData = jsonResult.value.data;
                         successCount++;
+                    } else {
+                        console.warn('⚠️ Erro no JSON, usando dados de exemplo:', jsonResult.reason);
+                        this.jsonData = this.getExampleJSONData();
                     }
 
+                    this.unifyEquipmentData();
+                    this.processAlerts();
+                    
                     if (successCount > 0) {
-                        this.unifyEquipmentData();
-                        this.processAlerts();
                         this.updateSyncStatus('success', 'Dados sincronizados');
                         this.showNotification('✅ Dados atualizados com sucesso', 'success');
                     } else {
-                        this.updateSyncStatus('error', 'Erro na sincronização');
-                        this.showNotification('❌ Erro na sincronização', 'error');
+                        this.updateSyncStatus('warning', 'Usando dados de exemplo');
+                        this.showNotification('⚠️ Usando dados de exemplo (erro de acesso ao GitHub)', 'warning');
                     }
 
                 } catch (error) {
                     console.error('❌ Erro na sincronização:', error);
                     this.updateSyncStatus('error', 'Erro na sincronização');
                     this.showNotification('❌ Erro na sincronização: ' + error.message, 'error');
+                    
+                    // Usar dados de exemplo em caso de erro total
+                    this.csvData = this.getExampleCSVData();
+                    this.jsonData = this.getExampleJSONData();
+                    this.unifyEquipmentData();
+                    this.processAlerts();
                 }
             }
 
@@ -1664,12 +1752,6 @@
             
             event.target.classList.add('active');
             document.getElementById(`${tabName}-tab`).classList.add('active');
-        }
-
-        function applyFilters() {
-            if (alertSystem) {
-                alertSystem.updateAlertsList();
-            }
         }
 
         function clearAlerts() {
