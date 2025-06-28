@@ -1124,7 +1124,7 @@
                 // Configuração GitHub - TOKEN DEVE SER CONFIGURADO MANUALMENTE
                 this.githubConfig = {
                     repo: 'GrupoGps-Mecanizada/Monitoramento-De-Produtividade',
-                    token: '', // CONFIGURE SEU TOKEN MANUALMENTE NA ABA CONFIGURAÇÕES
+                    token: '', // DEIXE VAZIO! Configure na aba Configurações
                     branch: 'main',
                     rulesFile: 'data/alert-rules.json',
                     alertsFile: 'data/alerts-generated.json'
@@ -1147,6 +1147,7 @@
                     this.loadGitHubConfig();
                     this.setupEventListeners();
                     this.initReportDates();
+                    this.updateSystemStatus(); // Mostrar status inicial
                     
                     // Carregar dados salvos primeiro
                     this.loadRulesFromStorage();
@@ -1178,6 +1179,13 @@
                     }, 300000); // 5 minutos ao invés de 30 segundos
 
                     this.updateSyncStatus('success', 'Sistema ativo');
+                    
+                    // Verificar se token está configurado
+                    if (!this.githubConfig.token) {
+                        setTimeout(() => {
+                            this.showNotification('⚠️ Configure o token GitHub na aba Configurações para sincronização', 'warning');
+                        }, 2000);
+                    }
                     
                 } catch (error) {
                     console.error('❌ Erro na inicialização:', error);
@@ -2050,8 +2058,15 @@
                 const stored = localStorage.getItem('alertSystem_githubConfig');
                 if (stored) {
                     const config = JSON.parse(stored);
+                    // Forçar repositório correto se estiver errado
+                    if (config.repo && config.repo.includes('Sistema-Alertas')) {
+                        config.repo = 'GrupoGps-Mecanizada/Monitoramento-De-Produtividade';
+                        console.log('🔧 Corrigindo repositório para Monitoramento-De-Produtividade');
+                    }
                     this.githubConfig = { ...this.githubConfig, ...config };
                 }
+                // Garantir que o repositório está sempre correto
+                this.githubConfig.repo = 'GrupoGps-Mecanizada/Monitoramento-De-Produtividade';
                 this.updateConfigInterface();
             }
 
@@ -2067,6 +2082,11 @@
                 localStorage.setItem('alertSystem_githubConfig', JSON.stringify(this.githubConfig));
                 this.showNotification('✅ Configurações salvas', 'success');
                 this.updateSystemStatus();
+                
+                // Avisar sobre token se estiver configurado
+                if (config.token && config.token.length > 0) {
+                    this.showNotification('🔐 Token GitHub configurado com sucesso', 'success');
+                }
             }
 
             updateConfigInterface() {
@@ -2079,6 +2099,12 @@
             }
 
             async testGitHubConnection() {
+                if (!this.githubConfig.token) {
+                    this.updateSyncStatus('error', 'Token não configurado');
+                    this.showNotification('❌ Configure o token GitHub primeiro', 'error');
+                    return;
+                }
+
                 try {
                     this.updateSyncStatus('loading', 'Testando conexão...');
                     
@@ -2093,6 +2119,8 @@
                     if (response.ok) {
                         this.updateSyncStatus('success', 'Conexão funcionando');
                         this.showNotification('✅ Conexão com GitHub OK', 'success');
+                    } else if (response.status === 401) {
+                        throw new Error('Token inválido ou expirado');
                     } else {
                         throw new Error(`HTTP ${response.status}`);
                     }
@@ -2104,6 +2132,7 @@
 
             updateSystemStatus() {
                 const container = document.getElementById('systemStatus');
+                const tokenConfigured = this.githubConfig.token && this.githubConfig.token.length > 0;
                 
                 const status = `
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
@@ -2111,13 +2140,13 @@
                             <div style="font-size: 2rem; color: #27ae60;">✅</div>
                             <div>Sistema Ativo</div>
                         </div>
-                        <div style="text-align: center; padding: 1rem; background: rgba(52, 152, 219, 0.1); border-radius: 12px;">
-                            <div style="font-size: 2rem; color: #3498db;">🔄</div>
-                            <div>Sincronização GitHub</div>
+                        <div style="text-align: center; padding: 1rem; background: rgba(${tokenConfigured ? '39, 174, 96' : '231, 76, 60'}, 0.1); border-radius: 12px;">
+                            <div style="font-size: 2rem; color: ${tokenConfigured ? '#27ae60' : '#e74c3c'};">${tokenConfigured ? '🔐' : '🔒'}</div>
+                            <div>Token ${tokenConfigured ? 'Configurado' : 'Não Configurado'}</div>
                         </div>
                         <div style="text-align: center; padding: 1rem; background: rgba(155, 89, 182, 0.1); border-radius: 12px;">
                             <div style="font-size: 2rem; color: #9b59b6;">📁</div>
-                            <div>Repo: ${this.githubConfig.repo}</div>
+                            <div>Repo: Monitoramento-De-Produtividade</div>
                         </div>
                         <div style="text-align: center; padding: 1rem; background: rgba(241, 196, 15, 0.1); border-radius: 12px;">
                             <div style="font-size: 2rem; color: #f1c40f;">🚀</div>
