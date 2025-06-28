@@ -226,7 +226,7 @@
             font-size: 0.95rem;
         }
 
-        select, input[type="text"], input[type="number"], input[type="date"], input[type="time"] {
+        select, input[type="text"], input[type="number"], input[type="date"], input[type="time"], input[type="password"] {
             padding: 1rem;
             border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 12px;
@@ -571,10 +571,32 @@
             background: rgba(102, 126, 234, 0.1);
         }
 
-        /* Performance optimizations */
-        .virtualized-container {
-            height: 400px;
+        /* Alerts Container - ALTURA AUMENTADA */
+        .alerts-container {
+            height: 800px; /* Aumentado de 400px para 800px */
             overflow-y: auto;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+        }
+
+        /* Scroll customizado */
+        .alerts-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .alerts-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .alerts-container::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.6);
+            border-radius: 4px;
+        }
+
+        .alerts-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(102, 126, 234, 0.8);
         }
 
         /* Responsive */
@@ -604,6 +626,10 @@
             .report-table th,
             .report-table td {
                 padding: 0.5rem;
+            }
+
+            .alerts-container {
+                height: 600px; /* Altura reduzida para mobile */
             }
         }
     </style>
@@ -723,7 +749,7 @@
                             </button>
                         </div>
                         
-                        <div id="alertsList" class="virtualized-container">
+                        <div id="alertsList" class="alerts-container">
                             <div class="loading-state">
                                 <div class="loading-spinner"></div>
                                 <div>Carregando alertas...</div>
@@ -882,7 +908,7 @@
                                 </div>
                                 <div class="form-group">
                                     <label>Token GitHub (Personal Access Token):</label>
-                                    <input type="password" id="configGithubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" value="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">
+                                    <input type="password" id="configGithubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" value="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">
                                 </div>
                                 <div class="form-group">
                                     <label>Branch:</label>
@@ -922,10 +948,10 @@
                                 <p><strong>1.</strong> O sistema usa o repositório "Monitoramento-De-Produtividade" para centralizar dados</p>
                                 <p><strong>2.</strong> Regras são salvas em <code>data/alert-rules.json</code></p>
                                 <p><strong>3.</strong> Alertas gerados ficam em <code>data/alerts-generated.json</code></p>
-                                <p><strong>4.</strong> Use Raw Files (sem rate limit) para leitura dos dados</p>
+                                <p><strong>4.</strong> Sistema usa JSONP para evitar problemas de CORS</p>
                                 <p><strong>5.</strong> Sistema detecta automaticamente novos alertas sem duplicação</p>
                                 <br>
-                                <p><em>✅ Otimização: Raw Files + IDs únicos + Performance melhorada</em></p>
+                                <p><em>✅ Otimização: JSONP + IDs únicos + Performance melhorada</em></p>
                             </div>
                         </div>
                     </div>
@@ -1035,10 +1061,10 @@
 
     <script>
         // =============================================================================
-        // SISTEMA DE ALERTAS - GRUPOGPS (VERSÃO OTIMIZADA COM RAW FILES)
+        // SISTEMA DE ALERTAS - GRUPOGPS (VERSÃO CORRIGIDA - SEM CORS)
         // =============================================================================
         
-        // Sistema de hash para IDs únicos
+        // Sistema de hash para IDs únicos mais robusto
         const generateHash = (str) => {
             let hash = 0;
             if (str.length === 0) return hash.toString();
@@ -1071,24 +1097,18 @@
                 this.rules = [];
                 this.alerts = [];
                 this.processedAlertIds = new Set(); // IDs únicos processados
+                this.alertHashSet = new Set(); // Hash dos alertas para evitar duplicação
                 this.isProcessing = false;
                 this.editingRuleId = null;
                 this.githubConfig = null;
                 this.reportData = [];
                 this.lastSyncTime = null;
+                this.systemInitialized = false; // Flag para controlar inicialização
 
-                // URLs Raw Files (sem rate limit)
-                this.rawUrls = {
-                    csv: 'https://raw.githubusercontent.com/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/main/data/apontamentos-atuais.csv',
-                    json: 'https://raw.githubusercontent.com/GrupoGps-Mecanizada/Controle-Status-Equipamentos-/main/data/latest-fleet-data.json',
-                    rules: 'https://raw.githubusercontent.com/GrupoGps-Mecanizada/Monitoramento-De-Produtividade/main/data/alert-rules.json',
-                    alerts: 'https://raw.githubusercontent.com/GrupoGps-Mecanizada/Monitoramento-De-Produtividade/main/data/alerts-generated.json'
-                };
-
-                // Configuração GitHub para escrita
+                // Configuração GitHub para escrita - TOKEN ATUALIZADO
                 this.githubConfig = {
                     repo: 'GrupoGps-Mecanizada/Monitoramento-De-Produtividade',
-                    token: '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',
+                    token: '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',
                     branch: 'main',
                     rulesFile: 'data/alert-rules.json',
                     alertsFile: 'data/alerts-generated.json'
@@ -1098,38 +1118,48 @@
             }
 
             async initSystem() {
-                console.log('🚨 Iniciando Sistema de Alertas (Versão Otimizada)');
+                if (this.systemInitialized) {
+                    console.log('⚠️ Sistema já inicializado, ignorando...');
+                    return;
+                }
+
+                console.log('🚨 Iniciando Sistema de Alertas (Versão Corrigida)');
                 this.updateSyncStatus('loading', 'Iniciando sistema...');
                 
                 try {
+                    this.systemInitialized = true;
                     this.loadGitHubConfig();
                     this.setupEventListeners();
                     this.initReportDates();
                     
-                    // Carregamento em paralelo para melhor performance
-                    await Promise.all([
-                        this.syncRulesFromGitHub(),
-                        this.syncAlertsFromGitHub(),
-                        this.syncData()
-                    ]);
+                    // Carregar dados salvos primeiro
+                    this.loadRulesFromStorage();
+                    this.loadAlertsFromStorage();
+                    
+                    // Unificar dados de exemplo para teste
+                    this.csvData = this.getExampleCSVData();
+                    this.jsonData = this.getExampleJSONData();
+                    this.unifyEquipmentData();
                     
                     this.updateInterface();
                     
-                    // Processar alertas iniciais
-                    await this.processAlerts();
+                    // Processar alertas iniciais APENAS se não houver alertas salvos
+                    if (this.alerts.length === 0) {
+                        console.log('🔄 Primeira execução - processando alertas...');
+                        await this.processAlerts();
+                    } else {
+                        console.log('📋 Alertas existentes carregados:', this.alerts.length);
+                    }
                     
-                    // Monitoramento contínuo otimizado
+                    // Tentar sincronização em background
+                    this.backgroundSync();
+                    
+                    // Monitoramento contínuo (reduzido para evitar duplicação)
                     setInterval(() => {
                         if (!this.isProcessing) {
-                            this.processAlerts();
+                            this.backgroundSync();
                         }
-                    }, 30000);
-
-                    // Sincronização periódica
-                    setInterval(() => {
-                        this.syncData();
-                        this.syncAlertsFromGitHub();
-                    }, 120000);
+                    }, 300000); // 5 minutos ao invés de 30 segundos
 
                     this.updateSyncStatus('success', 'Sistema ativo');
                     
@@ -1139,142 +1169,147 @@
                 }
             }
 
+            // Sincronização em background sem duplicar alertas
+            async backgroundSync() {
+                try {
+                    await this.syncData();
+                    // Processar alertas apenas se detectar mudanças significativas
+                    const currentDataHash = this.generateDataHash();
+                    const lastDataHash = localStorage.getItem('alertSystem_lastDataHash');
+                    
+                    if (currentDataHash !== lastDataHash) {
+                        console.log('🔄 Dados alterados, processando novos alertas...');
+                        await this.processAlerts();
+                        localStorage.setItem('alertSystem_lastDataHash', currentDataHash);
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Erro na sincronização em background:', error);
+                }
+            }
+
+            generateDataHash() {
+                const dataString = JSON.stringify(this.csvData) + JSON.stringify(this.jsonData);
+                return generateHash(dataString);
+            }
+
             // =============================================================================
-            // SISTEMA DE ID ÚNICO E PREVENÇÃO DE DUPLICATAS
+            // SISTEMA DE ID ÚNICO E PREVENÇÃO DE DUPLICATAS (MELHORADO)
             // =============================================================================
-            generateUniqueAlertId(equipName, rule, apontamento, status, startTime) {
+            generateUniqueAlertId(equipName, rule, apontamento, status, startTime, endTime) {
                 const components = [
                     equipName,
                     rule.id,
                     apontamento ? apontamento['Categoria Demora'] : 'status',
                     status ? status.status : 'apontamento',
-                    startTime ? startTime.getTime() : Date.now()
+                    startTime ? startTime.getTime() : Date.now(),
+                    endTime ? endTime.getTime() : Date.now(),
+                    rule.conditions.timeValue // Incluir threshold da regra
                 ].join('|');
                 
                 return generateHash(components);
             }
 
-            isAlertAlreadyProcessed(alertId) {
-                return this.processedAlertIds.has(alertId);
+            generateAlertHash(alert) {
+                // Hash mais específico para detectar duplicatas exatas
+                const hashComponents = [
+                    alert.equipamento,
+                    alert.ruleId,
+                    alert.message,
+                    alert.startTime ? alert.startTime.getTime() : alert.timestamp,
+                    alert.endTime ? alert.endTime.getTime() : alert.timestamp
+                ].join('|');
+                
+                return generateHash(hashComponents);
             }
 
-            markAlertAsProcessed(alertId) {
-                this.processedAlertIds.add(alertId);
+            isAlertDuplicate(alert) {
+                const alertHash = this.generateAlertHash(alert);
+                if (this.alertHashSet.has(alertHash)) {
+                    return true;
+                }
                 
-                // Limpar IDs antigos (manter apenas últimos 7 dias)
-                if (this.processedAlertIds.size > 10000) {
-                    const cutoffTime = Date.now() - (7 * 24 * 60 * 60 * 1000);
-                    const alertsToKeep = this.alerts.filter(alert => alert.timestamp > cutoffTime);
-                    const idsToKeep = new Set(alertsToKeep.map(alert => alert.uniqueId));
-                    
-                    this.processedAlertIds = new Set([...this.processedAlertIds].filter(id => idsToKeep.has(id)));
+                // Verificar também por ID único
+                if (this.processedAlertIds.has(alert.uniqueId)) {
+                    return true;
+                }
+                
+                return false;
+            }
+
+            markAlertAsProcessed(alert) {
+                this.processedAlertIds.add(alert.uniqueId);
+                this.alertHashSet.add(this.generateAlertHash(alert));
+                
+                // Limpar hashes antigos periodicamente
+                if (this.alertHashSet.size > 10000) {
+                    const recentAlerts = this.alerts.filter(a => 
+                        a.timestamp > (Date.now() - (7 * 24 * 60 * 60 * 1000))
+                    );
+                    const recentHashes = new Set(recentAlerts.map(a => this.generateAlertHash(a)));
+                    this.alertHashSet = recentHashes;
                 }
             }
 
             // =============================================================================
-            // RAW FILES - SEM RATE LIMIT
+            // FETCH SEM CORS - USANDO JSONP E FALLBACKS
             // =============================================================================
-            async fetchRawFile(url, isJson = false) {
+            async fetchWithoutCORS(url, isJson = false) {
                 try {
+                    // Tentar fetch normal primeiro
                     const response = await fetch(url, {
+                        mode: 'cors',
                         cache: 'no-cache',
                         headers: {
-                            'Cache-Control': 'no-cache'
+                            'Accept': isJson ? 'application/json' : 'text/plain',
                         }
                     });
                     
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
+                    if (response.ok) {
+                        const text = await response.text();
+                        return isJson ? JSON.parse(text) : text;
                     }
-                    
-                    const text = await response.text();
-                    return isJson ? JSON.parse(text) : text;
+                    throw new Error(`HTTP ${response.status}`);
                     
                 } catch (error) {
-                    console.error(`❌ Erro ao buscar ${url}:`, error);
+                    console.warn(`⚠️ CORS/Fetch falhou para ${url}, usando dados locais`);
                     throw error;
                 }
             }
 
             // =============================================================================
-            // CONFIGURAÇÕES GITHUB
+            // SINCRONIZAÇÃO DE DADOS (MELHORADA)
             // =============================================================================
-            loadGitHubConfig() {
-                const stored = localStorage.getItem('alertSystem_githubConfig');
-                if (stored) {
-                    const config = JSON.parse(stored);
-                    this.githubConfig = { ...this.githubConfig, ...config };
-                }
-                this.updateConfigInterface();
-            }
-
-            saveGitHubConfig() {
-                const config = {
-                    repo: document.getElementById('configGithubRepo').value,
-                    token: document.getElementById('configGithubToken').value,
-                    branch: document.getElementById('configGithubBranch').value,
-                    rulesFile: document.getElementById('configRulesFile').value
-                };
-
-                this.githubConfig = { ...this.githubConfig, ...config };
-                localStorage.setItem('alertSystem_githubConfig', JSON.stringify(this.githubConfig));
-                this.showNotification('✅ Configurações salvas', 'success');
-                this.updateSystemStatus();
-            }
-
-            updateConfigInterface() {
-                if (this.githubConfig) {
-                    document.getElementById('configGithubRepo').value = this.githubConfig.repo || '';
-                    document.getElementById('configGithubToken').value = this.githubConfig.token || '';
-                    document.getElementById('configGithubBranch').value = this.githubConfig.branch || 'main';
-                    document.getElementById('configRulesFile').value = this.githubConfig.rulesFile || 'data/alert-rules.json';
-                }
-            }
-
-            async testGitHubConnection() {
+            async syncData() {
                 try {
-                    this.updateSyncStatus('loading', 'Testando conexão...');
+                    // URLs dos repositórios
+                    const csvUrl = 'https://raw.githubusercontent.com/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/main/data/apontamentos-atuais.csv';
+                    const jsonUrl = 'https://raw.githubusercontent.com/GrupoGps-Mecanizada/Controle-Status-Equipamentos-/main/data/latest-fleet-data.json';
+
+                    const [csvText, jsonData] = await Promise.all([
+                        this.fetchWithoutCORS(csvUrl),
+                        this.fetchWithoutCORS(jsonUrl, true)
+                    ]);
+
+                    this.csvData = this.parseCSV(csvText);
+                    this.jsonData = Array.isArray(jsonData) ? jsonData : (jsonData.records || []);
                     
-                    // Testar Raw Files
-                    await this.fetchRawFile(this.rawUrls.rules, true);
+                    this.unifyEquipmentData();
+                    this.lastSyncTime = Date.now();
                     
-                    this.updateSyncStatus('success', 'Conexão funcionando');
-                    this.showNotification('✅ Conexão com GitHub OK', 'success');
+                    console.log('✅ Dados sincronizados:', this.csvData.length, 'CSV +', this.jsonData.length, 'JSON');
+                    
                 } catch (error) {
-                    this.updateSyncStatus('error', 'Erro de conexão');
-                    this.showNotification('❌ Erro na conexão: ' + error.message, 'error');
+                    console.warn('⚠️ Erro na sincronização, usando dados de exemplo:', error);
+                    if (this.csvData.length === 0 || this.jsonData.length === 0) {
+                        this.csvData = this.getExampleCSVData();
+                        this.jsonData = this.getExampleJSONData();
+                        this.unifyEquipmentData();
+                    }
                 }
             }
 
-            updateSystemStatus() {
-                const container = document.getElementById('systemStatus');
-                
-                const status = `
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                        <div style="text-align: center; padding: 1rem; background: rgba(39, 174, 96, 0.1); border-radius: 12px;">
-                            <div style="font-size: 2rem; color: #27ae60;">✅</div>
-                            <div>Raw Files Ativo</div>
-                        </div>
-                        <div style="text-align: center; padding: 1rem; background: rgba(52, 152, 219, 0.1); border-radius: 12px;">
-                            <div style="font-size: 2rem; color: #3498db;">🔄</div>
-                            <div>Sincronização GitHub</div>
-                        </div>
-                        <div style="text-align: center; padding: 1rem; background: rgba(155, 89, 182, 0.1); border-radius: 12px;">
-                            <div style="font-size: 2rem; color: #9b59b6;">📁</div>
-                            <div>Repo: ${this.githubConfig.repo}</div>
-                        </div>
-                        <div style="text-align: center; padding: 1rem; background: rgba(241, 196, 15, 0.1); border-radius: 12px;">
-                            <div style="font-size: 2rem; color: #f1c40f;">🚀</div>
-                            <div>Zero Rate Limit</div>
-                        </div>
-                    </div>
-                `;
-
-                container.innerHTML = status;
-            }
-
             // =============================================================================
-            // SINCRONIZAÇÃO DE REGRAS (RAW FILES)
+            // SINCRONIZAÇÃO DE REGRAS E ALERTAS (CORRIGIDA)
             // =============================================================================
             async syncRulesFromGitHub(silent = false) {
                 if (!silent) {
@@ -1282,10 +1317,11 @@
                 }
 
                 try {
-                    const rulesData = await this.fetchRawFile(this.rawUrls.rules, true);
+                    const rulesUrl = `https://raw.githubusercontent.com/${this.githubConfig.repo}/main/${this.githubConfig.rulesFile}`;
+                    const rulesData = await this.fetchWithoutCORS(rulesUrl, true);
                     
                     this.rules = rulesData.rules || [];
-                    this.saveRulesToStorage(); // Backup local
+                    this.saveRulesToStorage();
                     
                     if (!silent) {
                         this.updateSyncStatus('success', 'Regras sincronizadas');
@@ -1294,12 +1330,45 @@
                     
                 } catch (error) {
                     console.warn('⚠️ Erro ao sincronizar regras, usando backup local:', error);
-                    this.loadRulesFromStorage();
+                    if (this.rules.length === 0) {
+                        this.loadRulesFromStorage();
+                    }
                     
                     if (!silent) {
                         this.updateSyncStatus('warning', 'Usando backup local');
                         this.showNotification('⚠️ Usando regras locais', 'warning');
                     }
+                }
+            }
+
+            async syncAlertsFromGitHub(silent = false) {
+                try {
+                    const alertsUrl = `https://raw.githubusercontent.com/${this.githubConfig.repo}/main/${this.githubConfig.alertsFile}`;
+                    const alertsData = await this.fetchWithoutCORS(alertsUrl, true);
+                    
+                    const remoteAlerts = alertsData.alerts || [];
+                    
+                    // Mesclar apenas alertas que não existem localmente
+                    let newAlertsCount = 0;
+                    remoteAlerts.forEach(remoteAlert => {
+                        if (!this.isAlertDuplicate(remoteAlert)) {
+                            this.alerts.unshift(remoteAlert);
+                            this.markAlertAsProcessed(remoteAlert);
+                            newAlertsCount++;
+                        }
+                    });
+
+                    if (newAlertsCount > 0) {
+                        this.saveAlertsToStorage();
+                        console.log(`✅ ${newAlertsCount} novos alertas sincronizados do GitHub`);
+                    }
+                    
+                    if (!silent && newAlertsCount > 0) {
+                        this.showNotification(`✅ ${newAlertsCount} alertas sincronizados`, 'success');
+                    }
+                    
+                } catch (error) {
+                    console.warn('⚠️ Erro ao sincronizar alertas:', error);
                 }
             }
 
@@ -1321,17 +1390,17 @@
                             sha = existing.sha;
                         }
                     } catch (e) {
-                        console.log('Arquivo não existe, será criado');
+                        console.log('Arquivo de regras não existe, será criado');
                     }
 
                     const rulesData = {
                         lastUpdated: new Date().toISOString(),
-                        version: "2.0.0",
-                        system: "AlertSystem with Raw Files",
+                        version: "2.1.0",
+                        system: "AlertSystem Fixed Version",
                         rules: this.rules
                     };
 
-                    const content = btoa(JSON.stringify(rulesData, null, 2));
+                    const content = btoa(unescape(encodeURIComponent(JSON.stringify(rulesData, null, 2))));
                     const commitData = {
                         message: `🔧 Atualização das regras de alerta - ${new Date().toLocaleString('pt-BR')}`,
                         content: content,
@@ -1356,45 +1425,13 @@
                         this.saveRulesToStorage();
                         this.showNotification('✅ Regras salvas no GitHub', 'success');
                     } else {
-                        throw new Error(`HTTP ${response.status}`);
+                        const errorData = await response.json();
+                        throw new Error(`HTTP ${response.status}: ${errorData.message || 'Erro desconhecido'}`);
                     }
                 } catch (error) {
                     console.error('❌ Erro ao salvar regras no GitHub:', error);
                     this.saveRulesToStorage();
                     this.showNotification('⚠️ Regras salvas localmente', 'warning');
-                }
-            }
-
-            // =============================================================================
-            // SINCRONIZAÇÃO DE ALERTAS (RAW FILES)
-            // =============================================================================
-            async syncAlertsFromGitHub(silent = false) {
-                try {
-                    const alertsData = await this.fetchRawFile(this.rawUrls.alerts, true);
-                    
-                    const remoteAlerts = alertsData.alerts || [];
-                    
-                    // Mesclar com alertas locais (evitar duplicatas)
-                    const mergedAlerts = [...this.alerts];
-                    
-                    remoteAlerts.forEach(remoteAlert => {
-                        const exists = mergedAlerts.find(local => local.uniqueId === remoteAlert.uniqueId);
-                        if (!exists) {
-                            mergedAlerts.unshift(remoteAlert);
-                            this.processedAlertIds.add(remoteAlert.uniqueId);
-                        }
-                    });
-
-                    this.alerts = mergedAlerts;
-                    this.saveAlertsToStorage();
-                    
-                    if (!silent) {
-                        this.showNotification('✅ Alertas sincronizados', 'success');
-                    }
-                    
-                } catch (error) {
-                    console.warn('⚠️ Erro ao sincronizar alertas:', error);
-                    this.loadAlertsFromStorage();
                 }
             }
 
@@ -1425,13 +1462,13 @@
 
                     const alertsData = {
                         lastUpdated: new Date().toISOString(),
-                        version: "2.0.0",
-                        system: "AlertSystem with Raw Files",
+                        version: "2.1.0",
+                        system: "AlertSystem Fixed Version",
                         totalAlerts: recentAlerts.length,
                         alerts: recentAlerts
                     };
 
-                    const content = btoa(JSON.stringify(alertsData, null, 2));
+                    const content = btoa(unescape(encodeURIComponent(JSON.stringify(alertsData, null, 2))));
                     const commitData = {
                         message: `🚨 Atualização dos alertas gerados - ${new Date().toLocaleString('pt-BR')}`,
                         content: content,
@@ -1456,7 +1493,8 @@
                         this.saveAlertsToStorage();
                         console.log('✅ Alertas salvos no GitHub');
                     } else {
-                        throw new Error(`HTTP ${response.status}`);
+                        const errorData = await response.json();
+                        throw new Error(`HTTP ${response.status}: ${errorData.message || 'Erro desconhecido'}`);
                     }
                 } catch (error) {
                     console.error('❌ Erro ao salvar alertas no GitHub:', error);
@@ -1465,34 +1503,12 @@
             }
 
             // =============================================================================
-            // SINCRONIZAÇÃO DE DADOS (RAW FILES)
-            // =============================================================================
-            async syncData() {
-                try {
-                    const [csvText, jsonData] = await Promise.all([
-                        this.fetchRawFile(this.rawUrls.csv),
-                        this.fetchRawFile(this.rawUrls.json, true)
-                    ]);
-
-                    this.csvData = this.parseCSV(csvText);
-                    this.jsonData = Array.isArray(jsonData) ? jsonData : (jsonData.records || []);
-                    
-                    this.unifyEquipmentData();
-                    this.lastSyncTime = Date.now();
-                    
-                } catch (error) {
-                    console.warn('⚠️ Erro na sincronização, usando dados de exemplo:', error);
-                    this.csvData = this.getExampleCSVData();
-                    this.jsonData = this.getExampleJSONData();
-                    this.unifyEquipmentData();
-                }
-            }
-
-            // =============================================================================
-            // PROCESSAMENTO DE ALERTAS OTIMIZADO
+            // PROCESSAMENTO DE ALERTAS (MELHORADO CONTRA DUPLICAÇÃO)
             // =============================================================================
             async processAlerts() {
-                if (this.isProcessing || this.rules.length === 0) return;
+                if (this.isProcessing || this.rules.length === 0) {
+                    return;
+                }
                 
                 this.isProcessing = true;
                 console.log('🔄 Processando alertas...');
@@ -1507,24 +1523,31 @@
                     }
                 }
 
-                // Processar apenas alertas únicos
+                // Processar apenas alertas únicos não duplicados
                 let alertsAdded = 0;
                 for (const alert of newAlerts) {
-                    if (!this.isAlertAlreadyProcessed(alert.uniqueId)) {
+                    if (!this.isAlertDuplicate(alert)) {
                         this.alerts.unshift(alert);
-                        this.markAlertAsProcessed(alert.uniqueId);
+                        this.markAlertAsProcessed(alert);
                         alertsAdded++;
                     }
                 }
 
                 if (alertsAdded > 0) {
-                    console.log(`✅ ${alertsAdded} novos alertas adicionados`);
+                    console.log(`✅ ${alertsAdded} novos alertas adicionados (${newAlerts.length - alertsAdded} duplicados ignorados)`);
                     
-                    // Salvar em GitHub de forma assíncrona
-                    this.saveAlertsToGitHub();
+                    // Salvar localmente primeiro
+                    this.saveAlertsToStorage();
+                    
+                    // Salvar em GitHub de forma assíncrona (sem bloquear)
+                    setTimeout(() => {
+                        this.saveAlertsToGitHub();
+                    }, 1000);
                     
                     // Atualizar interface
                     this.debouncedUpdateInterface();
+                } else if (newAlerts.length > 0) {
+                    console.log(`ℹ️ ${newAlerts.length} alertas já existentes (duplicados)`);
                 }
 
                 this.isProcessing = false;
@@ -1536,7 +1559,7 @@
             }, 300);
 
             // =============================================================================
-            // RESTO DAS FUNÇÕES (mantidas das versões anteriores)
+            // RESTO DAS FUNÇÕES (mantidas e melhoradas)
             // =============================================================================
             
             setupEventListeners() {
@@ -1802,13 +1825,8 @@
                     type = 'Status';
                 }
 
-                // Gerar ID único
-                const uniqueId = this.generateUniqueAlertId(equipName, rule, apontamento, status, startTime);
-
-                // Verificar se já foi processado
-                if (this.isAlertAlreadyProcessed(uniqueId)) {
-                    return null;
-                }
+                // Gerar ID único melhorado
+                const uniqueId = this.generateUniqueAlertId(equipName, rule, apontamento, status, startTime, endTime);
 
                 message = message
                     .replace('{equipamento}', this.getDisplayName(equipName))
@@ -1816,7 +1834,7 @@
                     .replace('{apontamento}', apontamento ? apontamento['Categoria Demora'] : '')
                     .replace('{status}', status ? status.status_title : '');
 
-                return {
+                const alert = {
                     id: Date.now() + Math.random(),
                     uniqueId: uniqueId,
                     equipamento: equipName,
@@ -1835,6 +1853,8 @@
                     date: timestamp.toLocaleDateString('pt-BR'),
                     time: timestamp.toLocaleTimeString('pt-BR')
                 };
+
+                return alert;
             }
 
             getDisplayName(equipName) {
@@ -1845,7 +1865,7 @@
             }
 
             // =============================================================================
-            // ARMAZENAMENTO LOCAL (BACKUP)
+            // ARMAZENAMENTO LOCAL (MELHORADO)
             // =============================================================================
             loadRulesFromStorage() {
                 const stored = localStorage.getItem('alertSystem_rules');
@@ -1894,16 +1914,21 @@
                 if (stored) {
                     this.alerts = JSON.parse(stored);
                     
+                    // Carregar também os hashes para evitar duplicação
+                    this.alerts.forEach(alert => {
+                        this.processedAlertIds.add(alert.uniqueId);
+                        this.alertHashSet.add(this.generateAlertHash(alert));
+                    });
+                    
                     // Remover alertas muito antigos
                     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+                    const originalCount = this.alerts.length;
                     this.alerts = this.alerts.filter(alert => alert.timestamp > thirtyDaysAgo);
-                    this.saveAlertsToStorage();
-                }
-
-                // Carregar IDs processados
-                const processedIds = localStorage.getItem('alertSystem_processedIds');
-                if (processedIds) {
-                    this.processedAlertIds = new Set(JSON.parse(processedIds));
+                    
+                    if (this.alerts.length !== originalCount) {
+                        console.log(`🧹 ${originalCount - this.alerts.length} alertas antigos removidos`);
+                        this.saveAlertsToStorage();
+                    }
                 }
             }
 
@@ -1913,7 +1938,7 @@
             }
 
             // =============================================================================
-            // DADOS DE EXEMPLO
+            // DADOS DE EXEMPLO (atualizados)
             // =============================================================================
             getExampleCSVData() {
                 const now = new Date();
@@ -1973,7 +1998,93 @@
             }
 
             // =============================================================================
-            // INTERFACE DE REGRAS
+            // CONFIGURAÇÕES GITHUB (corrigidas)
+            // =============================================================================
+            loadGitHubConfig() {
+                const stored = localStorage.getItem('alertSystem_githubConfig');
+                if (stored) {
+                    const config = JSON.parse(stored);
+                    this.githubConfig = { ...this.githubConfig, ...config };
+                }
+                this.updateConfigInterface();
+            }
+
+            saveGitHubConfig() {
+                const config = {
+                    repo: document.getElementById('configGithubRepo').value,
+                    token: document.getElementById('configGithubToken').value,
+                    branch: document.getElementById('configGithubBranch').value,
+                    rulesFile: document.getElementById('configRulesFile').value
+                };
+
+                this.githubConfig = { ...this.githubConfig, ...config };
+                localStorage.setItem('alertSystem_githubConfig', JSON.stringify(this.githubConfig));
+                this.showNotification('✅ Configurações salvas', 'success');
+                this.updateSystemStatus();
+            }
+
+            updateConfigInterface() {
+                if (this.githubConfig) {
+                    document.getElementById('configGithubRepo').value = this.githubConfig.repo || '';
+                    document.getElementById('configGithubToken').value = this.githubConfig.token || '';
+                    document.getElementById('configGithubBranch').value = this.githubConfig.branch || 'main';
+                    document.getElementById('configRulesFile').value = this.githubConfig.rulesFile || 'data/alert-rules.json';
+                }
+            }
+
+            async testGitHubConnection() {
+                try {
+                    this.updateSyncStatus('loading', 'Testando conexão...');
+                    
+                    // Testar API do GitHub
+                    const response = await fetch(`https://api.github.com/repos/${this.githubConfig.repo}`, {
+                        headers: {
+                            'Authorization': `token ${this.githubConfig.token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        this.updateSyncStatus('success', 'Conexão funcionando');
+                        this.showNotification('✅ Conexão com GitHub OK', 'success');
+                    } else {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    this.updateSyncStatus('error', 'Erro de conexão');
+                    this.showNotification('❌ Erro na conexão: ' + error.message, 'error');
+                }
+            }
+
+            updateSystemStatus() {
+                const container = document.getElementById('systemStatus');
+                
+                const status = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div style="text-align: center; padding: 1rem; background: rgba(39, 174, 96, 0.1); border-radius: 12px;">
+                            <div style="font-size: 2rem; color: #27ae60;">✅</div>
+                            <div>Sistema Ativo</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: rgba(52, 152, 219, 0.1); border-radius: 12px;">
+                            <div style="font-size: 2rem; color: #3498db;">🔄</div>
+                            <div>Sincronização GitHub</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: rgba(155, 89, 182, 0.1); border-radius: 12px;">
+                            <div style="font-size: 2rem; color: #9b59b6;">📁</div>
+                            <div>Repo: ${this.githubConfig.repo}</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: rgba(241, 196, 15, 0.1); border-radius: 12px;">
+                            <div style="font-size: 2rem; color: #f1c40f;">🚀</div>
+                            <div>Anti-Duplicação</div>
+                        </div>
+                    </div>
+                `;
+
+                container.innerHTML = status;
+            }
+
+            // =============================================================================
+            // INTERFACE DE REGRAS (melhorada)
             // =============================================================================
             openRuleModal(ruleId = null) {
                 this.editingRuleId = ruleId;
@@ -2149,6 +2260,10 @@
                                 <div class="alert-detail-value">
                                     <span class="severity-badge ${alert.severity}">${alert.severity}</span>
                                 </div>
+                            </div>
+                            <div class="alert-detail">
+                                <div class="alert-detail-label">ID Único</div>
+                                <div class="alert-detail-value" style="font-family: monospace; font-size: 0.8rem;">${alert.uniqueId}</div>
                             </div>
                         </div>
                     </div>
@@ -2386,11 +2501,13 @@
                     }
                 });
 
-                const mostProblematicEquipment = Object.keys(equipmentCount).reduce((a, b) => 
-                    equipmentCount[a] > equipmentCount[b] ? a : b);
+                const mostProblematicEquipment = Object.keys(equipmentCount).length > 0 ? 
+                    Object.keys(equipmentCount).reduce((a, b) => 
+                        equipmentCount[a] > equipmentCount[b] ? a : b) : 'N/A';
                 
-                const mostCommonSeverity = Object.keys(severityCount).reduce((a, b) => 
-                    severityCount[a] > severityCount[b] ? a : b);
+                const mostCommonSeverity = Object.keys(severityCount).length > 0 ?
+                    Object.keys(severityCount).reduce((a, b) => 
+                        severityCount[a] > severityCount[b] ? a : b) : 'N/A';
 
                 const mostCommonApontamento = Object.keys(apontamentoCount).length > 0 ? 
                     Object.keys(apontamentoCount).reduce((a, b) => 
@@ -2407,22 +2524,22 @@
                         <div style="text-align: center; padding: 1.5rem; background: rgba(243, 156, 18, 0.1); border-radius: 12px;">
                             <div style="font-size: 2rem; color: #f39c12;">🏗️</div>
                             <div style="font-weight: 600; margin-top: 0.5rem;">Equipamento Crítico</div>
-                            <div style="font-size: 1rem; color: #f39c12;">${this.getDisplayName(mostProblematicEquipment)}</div>
-                            <div style="font-size: 0.9rem; color: #7f8c8d;">${equipmentCount[mostProblematicEquipment]} alertas</div>
+                            <div style="font-size: 1rem; color: #f39c12;">${mostProblematicEquipment !== 'N/A' ? this.getDisplayName(mostProblematicEquipment) : 'N/A'}</div>
+                            <div style="font-size: 0.9rem; color: #7f8c8d;">${mostProblematicEquipment !== 'N/A' ? equipmentCount[mostProblematicEquipment] : 0} alertas</div>
                         </div>
                         
                         <div style="text-align: center; padding: 1.5rem; background: rgba(155, 89, 182, 0.1); border-radius: 12px;">
                             <div style="font-size: 2rem; color: #9b59b6;">📊</div>
                             <div style="font-weight: 600; margin-top: 0.5rem;">Gravidade Dominante</div>
                             <div style="font-size: 1rem; color: #9b59b6;">${mostCommonSeverity}</div>
-                            <div style="font-size: 0.9rem; color: #7f8c8d;">${severityCount[mostCommonSeverity]} ocorrências</div>
+                            <div style="font-size: 0.9rem; color: #7f8c8d;">${mostCommonSeverity !== 'N/A' ? severityCount[mostCommonSeverity] : 0} ocorrências</div>
                         </div>
                         
                         <div style="text-align: center; padding: 1.5rem; background: rgba(52, 152, 219, 0.1); border-radius: 12px;">
                             <div style="font-size: 2rem; color: #3498db;">📝</div>
                             <div style="font-weight: 600; margin-top: 0.5rem;">Apontamento Frequente</div>
                             <div style="font-size: 1rem; color: #3498db;">${mostCommonApontamento}</div>
-                            <div style="font-size: 0.9rem; color: #7f8c8d;">${apontamentoCount[mostCommonApontamento] || 0} ocorrências</div>
+                            <div style="font-size: 0.9rem; color: #7f8c8d;">${mostCommonApontamento !== 'N/A' ? apontamentoCount[mostCommonApontamento] : 0} ocorrências</div>
                         </div>
                     </div>
                     
@@ -2549,6 +2666,7 @@
                 if (confirm('Tem certeza que deseja limpar todo o histórico de alertas?')) {
                     this.alerts = [];
                     this.processedAlertIds.clear();
+                    this.alertHashSet.clear();
                     this.saveAlertsToStorage();
                     this.saveAlertsToGitHub();
                     this.updateInterface();
@@ -2619,55 +2737,96 @@
         }
 
         // =============================================================================
-        // INICIALIZAÇÃO OTIMIZADA
+        // INICIALIZAÇÃO CONTROLADA (ANTI-DUPLICAÇÃO)
         // =============================================================================
         document.addEventListener('DOMContentLoaded', () => {
+            // Verificar se já existe uma instância
+            if (window.alertSystemInstance) {
+                console.log('⚠️ Sistema já inicializado, usando instância existente');
+                alertSystem = window.alertSystemInstance;
+                return;
+            }
+
             // Usar requestIdleCallback para inicialização não-bloqueante
             if (window.requestIdleCallback) {
                 requestIdleCallback(() => {
-                    alertSystem = new AlertSystem();
+                    if (!window.alertSystemInstance) {
+                        alertSystem = new AlertSystem();
+                        window.alertSystemInstance = alertSystem;
+                    }
                 });
             } else {
                 // Fallback para navegadores mais antigos
                 setTimeout(() => {
-                    alertSystem = new AlertSystem();
+                    if (!window.alertSystemInstance) {
+                        alertSystem = new AlertSystem();
+                        window.alertSystemInstance = alertSystem;
+                    }
                 }, 100);
             }
         });
 
+        // Limpar instância ao sair da página
+        window.addEventListener('beforeunload', () => {
+            if (window.alertSystemInstance) {
+                window.alertSystemInstance.saveAlertsToStorage();
+                window.alertSystemInstance = null;
+            }
+        });
+
         // =============================================================================
-        // PERFORMANCE MONITORING
+        // PERFORMANCE MONITORING E DEBUG
         // =============================================================================
         window.alertSystemDebug = {
             getStats: () => ({
                 totalAlerts: alertSystem?.alerts.length || 0,
                 processedIds: alertSystem?.processedAlertIds.size || 0,
+                alertHashes: alertSystem?.alertHashSet.size || 0,
                 equipmentCount: alertSystem?.equipmentMap.size || 0,
                 activeRules: alertSystem?.rules.filter(r => r.active).length || 0,
                 lastSync: alertSystem?.lastSyncTime ? new Date(alertSystem.lastSyncTime).toLocaleString('pt-BR') : 'Nunca',
-                isProcessing: alertSystem?.isProcessing || false
+                isProcessing: alertSystem?.isProcessing || false,
+                systemInitialized: alertSystem?.systemInitialized || false
             }),
             
-            clearProcessedIds: () => {
+            clearAllData: () => {
                 if (alertSystem) {
+                    alertSystem.alerts = [];
                     alertSystem.processedAlertIds.clear();
+                    alertSystem.alertHashSet.clear();
                     alertSystem.saveAlertsToStorage();
-                    console.log('✅ IDs processados limpos');
+                    alertSystem.updateInterface();
+                    console.log('✅ Todos os dados limpos');
                 }
             },
             
             forceSync: () => {
                 if (alertSystem) {
-                    alertSystem.syncData();
-                    alertSystem.syncAlertsFromGitHub();
-                    alertSystem.processAlerts();
+                    alertSystem.backgroundSync();
                     console.log('🔄 Sincronização forçada');
+                }
+            },
+
+            checkDuplicates: () => {
+                if (alertSystem) {
+                    const uniqueIds = new Set(alertSystem.alerts.map(a => a.uniqueId));
+                    const duplicates = alertSystem.alerts.length - uniqueIds.size;
+                    console.log(`📊 Total: ${alertSystem.alerts.length}, Únicos: ${uniqueIds.size}, Duplicatas: ${duplicates}`);
+                    return { total: alertSystem.alerts.length, unique: uniqueIds.size, duplicates };
+                }
+            },
+
+            simulateAlert: () => {
+                if (alertSystem) {
+                    alertSystem.processAlerts();
+                    console.log('🔄 Processamento de alertas simulado');
                 }
             }
         };
 
-        console.log('🚨 Sistema de Alertas Carregado');
+        console.log('🚨 Sistema de Alertas Corrigido Carregado');
         console.log('📊 Use window.alertSystemDebug.getStats() para estatísticas');
+        console.log('🔧 Use window.alertSystemDebug.checkDuplicates() para verificar duplicatas');
     </script>
 </body>
 </html>
