@@ -908,7 +908,10 @@
                                 </div>
                                 <div class="form-group">
                                     <label>Token GitHub (Personal Access Token):</label>
-                                    <input type="password" id="configGithubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" value="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">
+                                    <input type="password" id="configGithubToken" placeholder="cole seu token aqui (ghp_xxxxxxxxxxxx)" value="">
+                                    <small style="color: #e74c3c; font-size: 0.85rem; margin-top: 0.5rem; display: block;">
+                                        ⚠️ <strong>IMPORTANTE:</strong> Configure seu token manualmente. Não deixe tokens em código público!
+                                    </small>
                                 </div>
                                 <div class="form-group">
                                     <label>Branch:</label>
@@ -951,7 +954,20 @@
                                 <p><strong>4.</strong> Sistema usa JSONP para evitar problemas de CORS</p>
                                 <p><strong>5.</strong> Sistema detecta automaticamente novos alertas sem duplicação</p>
                                 <br>
-                                <p><em>✅ Otimização: JSONP + IDs únicos + Performance melhorada</em></p>
+                                <div style="background: rgba(231, 76, 60, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #e74c3c;">
+                                    <h5 style="color: #e74c3c; margin-bottom: 0.5rem;">🔐 Como Configurar o Token GitHub:</h5>
+                                    <ol style="margin: 0; padding-left: 1.5rem; color: #2c3e50;">
+                                        <li>Acesse: GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)</li>
+                                        <li>Clique em "Generate new token (classic)"</li>
+                                        <li>Nome: "Sistema Alertas GrupoGPS"</li>
+                                        <li>Selecione: <strong>repo</strong> (Full control of private repositories)</li>
+                                        <li>Clique em "Generate token"</li>
+                                        <li>Copie o token (ghp_xxxx...) e cole no campo acima</li>
+                                        <li>Clique em "Salvar Configurações"</li>
+                                    </ol>
+                                </div>
+                                <br>
+                                <p><em>✅ Segurança: Token nunca fica no código público + IDs únicos + Performance melhorada</em></p>
                             </div>
                         </div>
                     </div>
@@ -1105,10 +1121,10 @@
                 this.lastSyncTime = null;
                 this.systemInitialized = false; // Flag para controlar inicialização
 
-                // Configuração GitHub para escrita - TOKEN ATUALIZADO
+                // Configuração GitHub - TOKEN DEVE SER CONFIGURADO MANUALMENTE
                 this.githubConfig = {
                     repo: 'GrupoGps-Mecanizada/Monitoramento-De-Produtividade',
-                    token: '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',
+                    token: '', // CONFIGURE SEU TOKEN MANUALMENTE NA ABA CONFIGURAÇÕES
                     branch: 'main',
                     rulesFile: 'data/alert-rules.json',
                     alertsFile: 'data/alerts-generated.json'
@@ -1211,12 +1227,23 @@
 
             generateAlertHash(alert) {
                 // Hash mais específico para detectar duplicatas exatas
+                const getTimestamp = (timeValue) => {
+                    if (!timeValue) return alert.timestamp || Date.now();
+                    if (typeof timeValue === 'number') return timeValue;
+                    if (timeValue instanceof Date) return timeValue.getTime();
+                    if (typeof timeValue === 'string') {
+                        const parsed = new Date(timeValue);
+                        return isNaN(parsed.getTime()) ? alert.timestamp || Date.now() : parsed.getTime();
+                    }
+                    return alert.timestamp || Date.now();
+                };
+
                 const hashComponents = [
                     alert.equipamento,
                     alert.ruleId,
                     alert.message,
-                    alert.startTime ? alert.startTime.getTime() : alert.timestamp,
-                    alert.endTime ? alert.endTime.getTime() : alert.timestamp
+                    getTimestamp(alert.startTime),
+                    getTimestamp(alert.endTime)
                 ].join('|');
                 
                 return generateHash(hashComponents);
@@ -1373,6 +1400,12 @@
             }
 
             async saveRulesToGitHub() {
+                if (!this.githubConfig.token) {
+                    this.showNotification('⚠️ Configure o token GitHub nas configurações primeiro', 'warning');
+                    this.saveRulesToStorage();
+                    return;
+                }
+
                 try {
                     const [owner, repo] = this.githubConfig.repo.split('/');
                     
@@ -1431,11 +1464,21 @@
                 } catch (error) {
                     console.error('❌ Erro ao salvar regras no GitHub:', error);
                     this.saveRulesToStorage();
-                    this.showNotification('⚠️ Regras salvas localmente', 'warning');
+                    if (error.message.includes('401')) {
+                        this.showNotification('❌ Token inválido! Configure um novo token', 'error');
+                    } else {
+                        this.showNotification('⚠️ Erro no GitHub, regras salvas localmente', 'warning');
+                    }
                 }
             }
 
             async saveAlertsToGitHub() {
+                if (!this.githubConfig.token) {
+                    // Salvar apenas localmente se não há token
+                    this.saveAlertsToStorage();
+                    return;
+                }
+
                 try {
                     const [owner, repo] = this.githubConfig.repo.split('/');
                     
@@ -1499,6 +1542,9 @@
                 } catch (error) {
                     console.error('❌ Erro ao salvar alertas no GitHub:', error);
                     this.saveAlertsToStorage();
+                    if (error.message.includes('401')) {
+                        console.warn('⚠️ Token inválido para salvar alertas');
+                    }
                 }
             }
 
