@@ -1,1 +1,21 @@
-
+{
+  "lastUpdated": "2025-06-28T21:00:01.481Z",
+  "version": "2.1.0",
+  "system": "AlertSystem Fixed Version",
+  "rules": [
+    {
+      "id": 1751143806042,
+      "active": true,
+      "name": "teste 2",
+      "conditions": {
+        "apontamento": "Documentação",
+        "status": "on",
+        "operator": "AND",
+        "timeOperator": ">",
+        "timeValue": 15
+      },
+      "severity": "medium",
+      "message": "{equipamento} - {apontamento} há {tempo}"
+    }
+  ]
+}
