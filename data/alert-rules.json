@@ -1,35 +1,6 @@
 {
-  "lastUpdated": "2025-06-29T17:34:42.074Z",
+  "lastUpdated": "2025-06-29T17:36:32.209Z",
   "version": "2.1.0",
   "system": "AlertSystem Optimized Version",
-  "rules": [
-    {
-      "id": 1751218473801,
-      "active": true,
-      "name": "Documentação",
-      "severity": "low",
-      "message": "teste",
-      "type": "advanced",
-      "conditions": {
-        "logic": "AND",
-        "rules": [
-          {
-            "type": "apontamento",
-            "operator": "equals",
-            "value": "Documentação"
-          },
-          {
-            "type": "status",
-            "operator": "equals",
-            "value": "off"
-          },
-          {
-            "type": "time",
-            "operator": ">",
-            "value": 30
-          }
-        ]
-      }
-    }
-  ]
+  "rules": []
 }
