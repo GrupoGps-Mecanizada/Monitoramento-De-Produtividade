@@ -1,9 +1,28 @@
 {
-  "lastUpdated": "2025-06-29T00:34:26.492Z",
+  "lastUpdated": "2025-06-29T00:39:26.494Z",
   "version": "2.1.0",
   "system": "AlertSystem Fixed Version",
-  "totalAlerts": 24,
+  "totalAlerts": 25,
   "alerts": [
+    {
+      "id": 1751157564651.7073,
+      "uniqueId": "99bbu5",
+      "equipamento": "CAMINHAO ALTA PRESSAO - GPS - 01 - 24 HS",
+      "ruleId": 1751144426335,
+      "ruleName": "teste 2",
+      "message": "CAMINHÃO ALTA PRESSÃO - GPS - 01 - 24 HS -  há 1h 26min",
+      "severity": "medium",
+      "type": "Status",
+      "duration": "1h 26min",
+      "timeRange": "20:04 a 21:31",
+      "startTime": "2025-06-28T23:04:44.000Z",
+      "endTime": "2025-06-29T00:31:02.000Z",
+      "apontamento": "",
+      "status": "Motor Desligado",
+      "timestamp": 1751157564615,
+      "date": "28/06/2025",
+      "time": "21:39:24"
+    },
     {
       "id": 1751157264488.3994,
       "uniqueId": "f26rp8",
