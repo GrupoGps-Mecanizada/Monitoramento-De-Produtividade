@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2025-06-29T15:30:11.811Z",
+  "lastUpdated": "2025-06-29T15:30:31.783Z",
   "version": "2.1.0",
   "system": "AlertSystem Fixed Version",
   "rules": [
     {
       "id": 1751144426335,
-      "active": true,
+      "active": false,
       "name": "Motor Desligado",
       "conditions": {
         "apontamento": "",
