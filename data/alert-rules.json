@@ -1,6 +1,35 @@
 {
-  "lastUpdated": "2025-06-29T17:36:32.209Z",
+  "lastUpdated": "2025-06-29T17:45:29.604Z",
   "version": "2.1.0",
   "system": "AlertSystem Optimized Version",
-  "rules": []
+  "rules": [
+    {
+      "id": 1751219129315,
+      "active": true,
+      "name": "Documentação + Motor Desligado",
+      "severity": "high",
+      "message": "Equipamento com motor desligado após documentação",
+      "type": "advanced",
+      "conditions": {
+        "logic": "AND",
+        "rules": [
+          {
+            "type": "apontamento",
+            "operator": "equals",
+            "value": "Documentação"
+          },
+          {
+            "type": "status",
+            "operator": "equals",
+            "value": "off"
+          },
+          {
+            "type": "time",
+            "operator": ">",
+            "value": 15
+          }
+        ]
+      }
+    }
+  ]
 }
