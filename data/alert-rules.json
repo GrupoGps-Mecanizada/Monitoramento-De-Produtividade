@@ -1,22 +1,8 @@
 {
-  "lastUpdated": "2025-06-29T17:34:34.270Z",
+  "lastUpdated": "2025-06-29T17:34:42.074Z",
   "version": "2.1.0",
   "system": "AlertSystem Optimized Version",
   "rules": [
-    {
-      "id": 1751144426335,
-      "active": false,
-      "name": "Motor Desligado",
-      "conditions": {
-        "apontamento": "",
-        "status": "off",
-        "operator": "AND",
-        "timeOperator": ">",
-        "timeValue": 60
-      },
-      "severity": "high",
-      "message": "Equipamento com motor desligado"
-    },
     {
       "id": 1751218473801,
       "active": true,
