@@ -1,10 +1,29 @@
 {
-  "lastUpdated": "2025-06-30T11:49:06.855Z",
+  "lastUpdated": "2025-06-30T11:49:08.658Z",
   "version": "2.1.0",
   "system": "AlertSystem Optimized Version",
-  "totalAlerts": 16,
+  "totalAlerts": 17,
   "consolidatedEvents": 2,
   "alerts": [
+    {
+      "id": 1751284147388.5007,
+      "uniqueId": "frtf11",
+      "equipamento": "CAMINHAO ALTA PRESSAO - GPS - 11",
+      "ruleId": 1751219129315,
+      "ruleName": "Documentação + Motor Desligado",
+      "message": "Equipamento com motor desligado após documentação",
+      "severity": "high",
+      "type": "Status",
+      "duration": "1h 32min",
+      "timeRange": "06:49 a 08:21",
+      "startTime": "2025-06-30T09:49:07.385Z",
+      "endTime": "2025-06-30T11:21:07.385Z",
+      "consolidated": true,
+      "recordCount": 9,
+      "timestamp": 1751284147388,
+      "date": "30/06/2025",
+      "time": "08:49:07"
+    },
     {
       "id": 1751284145600.2798,
       "uniqueId": "yc3fof",
