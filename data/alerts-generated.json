@@ -1,10 +1,29 @@
 {
-  "lastUpdated": "2025-06-30T11:47:54.038Z",
+  "lastUpdated": "2025-06-30T11:48:52.909Z",
   "version": "2.1.0",
   "system": "AlertSystem Optimized Version",
-  "totalAlerts": 17,
+  "totalAlerts": 18,
   "consolidatedEvents": 2,
   "alerts": [
+    {
+      "id": 1751284131303.6719,
+      "uniqueId": "wcw2xx",
+      "equipamento": "CAMINHAO ALTA PRESSAO - GPS - 11",
+      "ruleId": 1751219129315,
+      "ruleName": "Documentação + Motor Desligado",
+      "message": "Equipamento com motor desligado após documentação",
+      "severity": "high",
+      "type": "Status",
+      "duration": "1h 32min",
+      "timeRange": "06:48 a 08:20",
+      "startTime": "2025-06-30T09:48:51.300Z",
+      "endTime": "2025-06-30T11:20:51.300Z",
+      "consolidated": true,
+      "recordCount": 9,
+      "timestamp": 1751284131303,
+      "date": "30/06/2025",
+      "time": "08:48:51"
+    },
     {
       "id": 1751284072575.7036,
       "uniqueId": "h1lvq5",
