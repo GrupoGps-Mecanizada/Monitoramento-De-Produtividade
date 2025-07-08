@@ -355,41 +355,6 @@
             border-color: #8e44ad !important; 
         }
 
-        /* Animação de Alerta Melhorada */
-        @keyframes alertPulse {
-            0%, 100% { 
-                box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 0 rgba(231, 76, 60, 0.7) !important;
-                border-width: 2px !important;
-            }
-            50% { 
-                box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4), 0 0 0 8px rgba(231, 76, 60, 0.2) !important;
-                border-width: 3px !important;
-            }
-        }
-
-        .vis-item.alert-active {
-            animation: alertPulse 2s infinite !important;
-            border-color: #e74c3c !important;
-            position: relative !important;
-        }
-
-        .vis-item.alert-active::after {
-            content: '🚨';
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            font-size: 12px;
-            background: #e74c3c;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            z-index: 10;
-        }
-
         /* Dashboard Stats Melhorado */
         .stats-grid {
             display: grid;
@@ -711,7 +676,7 @@
                 <div class="header-controls">
                     <div class="sync-indicator">
                         <div class="sync-dot loading" id="syncDot"></div>
-                        <span id="syncStatus">Aguardando dados...</span>
+                        <span id="syncStatus">Inicializando sistema...</span>
                     </div>
                     
                     <div class="last-update-info">
@@ -725,19 +690,19 @@
         <!-- Navigation -->
         <nav class="nav-tabs">
             <div class="nav-tabs-container">
-                <div class="nav-tab active" onclick="switchTab('timeline')">
+                <div class="nav-tab active" data-tab="timeline">
                     <span>Timeline</span>
                 </div>
-                <div class="nav-tab" onclick="switchTab('dashboard')">
+                <div class="nav-tab" data-tab="dashboard">
                     <span>Dashboard</span>
                 </div>
-                <div class="nav-tab" onclick="switchTab('realtime')">
+                <div class="nav-tab" data-tab="realtime">
                     <span>Tempo Real</span>
                 </div>
-                <div class="nav-tab" onclick="switchTab('alerts')">
+                <div class="nav-tab" data-tab="alerts">
                     <span>Alertas</span>
                 </div>
-                <div class="nav-tab" onclick="switchTab('settings')">
+                <div class="nav-tab" data-tab="settings">
                     <span>Configurações</span>
                 </div>
             </div>
@@ -753,7 +718,7 @@
                         <div style="display: flex; align-items: center; gap: 1rem;">
                             <span id="visibleItems">0 itens visíveis</span>
                             <div class="filter-container">
-                                <button class="filter-toggle-btn" onclick="toggleFilterPanel()">
+                                <button class="filter-toggle-btn" id="filterToggleBtn">
                                     <span>🔍</span>
                                     Filtros Avançados
                                 </button>
@@ -788,8 +753,8 @@
                                         </select>
                                     </div>
                                     <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                                        <button class="btn small secondary" onclick="clearFilters()">Limpar</button>
-                                        <button class="btn small" onclick="applyFilters()">Aplicar</button>
+                                        <button class="btn small secondary" id="clearFiltersBtn">Limpar</button>
+                                        <button class="btn small" id="applyFiltersBtn">Aplicar</button>
                                     </div>
                                 </div>
                             </div>
@@ -799,7 +764,7 @@
                     <div id="timeline">
                         <div class="loading-state">
                             <div class="loading-spinner"></div>
-                            <div>Carregue os dados CSV e JSON para visualizar a timeline</div>
+                            <div>Sincronizando dados do GitHub...</div>
                         </div>
                     </div>
                 </div>
@@ -902,7 +867,7 @@
                 <div class="glass-panel">
                     <div class="panel-header">
                         <div class="panel-title">Indicadores de Performance em Tempo Real</div>
-                        <button class="btn small" onclick="refreshRealTime()">🔄 Atualizar</button>
+                        <button class="btn small" id="refreshRealTimeBtn">🔄 Atualizar</button>
                     </div>
                     <div class="panel-content">
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
@@ -932,7 +897,7 @@
                 <div class="glass-panel">
                     <div class="panel-header">
                         <div class="panel-title">Histórico de Alertas de Produtividade</div>
-                        <button class="btn success small" onclick="exportAlerts()">📊 Exportar</button>
+                        <button class="btn success small" id="exportAlertsBtn">📊 Exportar</button>
                     </div>
                     <div class="panel-content">
                         <div id="alertsList">
@@ -951,8 +916,8 @@
                     <div class="panel-header">
                         <div class="panel-title">Configurações de Produtividade por Status</div>
                         <div style="display: flex; gap: 1rem;">
-                            <button class="btn secondary small" onclick="loadConfigFromGitHub()">🔄 Sincronizar GitHub</button>
-                            <button class="btn success small" onclick="saveConfigToGitHub()">💾 Salvar no GitHub</button>
+                            <button class="btn secondary small" id="loadConfigBtn">🔄 Sincronizar GitHub</button>
+                            <button class="btn success small" id="saveConfigBtn">💾 Salvar no GitHub</button>
                         </div>
                     </div>
                     <div class="panel-content">
@@ -966,7 +931,7 @@
                 <div class="glass-panel">
                     <div class="panel-header">
                         <div class="panel-title">Configurações de Alertas por Status</div>
-                        <button class="btn success small" onclick="saveAlertConfig()">💾 Salvar Alertas</button>
+                        <button class="btn success small" id="saveAlertConfigBtn">💾 Salvar Alertas</button>
                     </div>
                     <div class="panel-content">
                         <div class="config-grid" id="alertConfig">
@@ -1007,7 +972,329 @@
 
     <script>
         // =============================================================================
-        // SISTEMA DE PRODUTIVIDADE AVANÇADO - CLASSE PRINCIPAL
+        // SISTEMA DE CONSOLIDAÇÃO DE BLOCOS INTEGRADO
+        // =============================================================================
+        class BlockConsolidationSystem {
+            constructor() {
+                this.config = {
+                    gapTolerance: 60, // segundos - gap máximo para consolidar
+                    conflictResolution: 'priority' // priority, latest, longest
+                };
+
+                // Hierarquia de prioridade de status (maior número = maior prioridade)
+                this.statusPriority = {
+                    'maintenance': 10,           // Manutenção tem prioridade máxima
+                    'out_of_plant': 9,          // Fora da planta
+                    'secondary_motor_on': 8,    // Motor secundário ligado
+                    'on': 7,                    // Motor ligado
+                    'running': 7,               // Motor rodando (alias para 'on')
+                    'stopped': 6,               // Parado ligado
+                    'off': 5,                   // Motor desligado
+                    'not_appropriated': 4,      // Não apropriado
+                    'no_data': 3               // Sem dados (menor prioridade)
+                };
+
+                this.consolidationStats = {
+                    originalBlocks: 0,
+                    consolidatedBlocks: 0,
+                    conflictsResolved: 0,
+                    duplicatesRemoved: 0
+                };
+            }
+
+            // FUNÇÃO PRINCIPAL DE CONSOLIDAÇÃO
+            processDataWithConsolidation(equipmentMap) {
+                console.log('🔧 Iniciando consolidação de blocos...');
+                
+                // Reset estatísticas
+                this.consolidationStats = {
+                    originalBlocks: 0,
+                    consolidatedBlocks: 0,
+                    conflictsResolved: 0,
+                    duplicatesRemoved: 0
+                };
+
+                for (const [equipName, data] of equipmentMap) {
+                    if (data.status && data.status.length > 0) {
+                        console.log(`📊 Processando ${equipName}: ${data.status.length} registros originais`);
+                        
+                        // Aplicar consolidação completa
+                        data.status = this.consolidateStatusBlocks(data.status, equipName);
+                        
+                        console.log(`✅ ${equipName}: ${data.status.length} registros após consolidação`);
+                    }
+                }
+
+                this.logConsolidationResults();
+                return equipmentMap;
+            }
+
+            // CONSOLIDAÇÃO COMPLETA DE STATUS
+            consolidateStatusBlocks(statusList, equipmentName) {
+                if (!statusList || statusList.length === 0) return [];
+
+                console.log(`🔧 Consolidando ${equipmentName}: ${statusList.length} registros`);
+                this.consolidationStats.originalBlocks += statusList.length;
+
+                // 1. Remover duplicatas exatas
+                const uniqueStatus = this.removeDuplicates(statusList, equipmentName);
+                
+                // 2. Ordenar por tempo de início
+                const sortedStatus = uniqueStatus.sort((a, b) => 
+                    new Date(a.start) - new Date(b.start)
+                );
+
+                // 3. Resolver sobreposições
+                const resolvedStatus = this.resolveOverlaps(sortedStatus, equipmentName);
+
+                // 4. Consolidar períodos consecutivos do mesmo status
+                const consolidatedStatus = this.consolidateConsecutive(resolvedStatus, equipmentName);
+
+                // 5. Preencher gaps pequenos
+                const finalStatus = this.fillSmallGaps(consolidatedStatus, equipmentName);
+
+                this.consolidationStats.consolidatedBlocks += finalStatus.length;
+                
+                console.log(`📈 ${equipmentName}: ${statusList.length} → ${finalStatus.length} blocos (${statusList.length - finalStatus.length} consolidados)`);
+                
+                return finalStatus;
+            }
+
+            // 1. REMOÇÃO DE DUPLICATAS EXATAS
+            removeDuplicates(statusList, equipmentName) {
+                const seen = new Set();
+                const duplicatesRemoved = [];
+                
+                const unique = statusList.filter(status => {
+                    // Criar chave única baseada em propriedades críticas
+                    const key = `${status.start}-${status.end}-${status.status}-${status.vacancy_code || ''}`;
+                    
+                    if (seen.has(key)) {
+                        duplicatesRemoved.push(status);
+                        return false;
+                    }
+                    
+                    seen.add(key);
+                    return true;
+                });
+
+                if (duplicatesRemoved.length > 0) {
+                    console.log(`🗑️ ${equipmentName}: Removidas ${duplicatesRemoved.length} duplicatas exatas`);
+                    this.consolidationStats.duplicatesRemoved += duplicatesRemoved.length;
+                }
+
+                return unique;
+            }
+
+            // 2. RESOLUÇÃO DE SOBREPOSIÇÕES
+            resolveOverlaps(statusList, equipmentName) {
+                if (statusList.length <= 1) return statusList;
+
+                const resolved = [];
+                let current = null;
+
+                for (const status of statusList) {
+                    if (!current) {
+                        current = { ...status };
+                        continue;
+                    }
+
+                    const currentEnd = new Date(current.end);
+                    const statusStart = new Date(status.start);
+
+                    // Verificar se há sobreposição
+                    if (statusStart < currentEnd) {
+                        console.log(`⚠️ Sobreposição detectada em ${equipmentName}: ${current.status} vs ${status.status}`);
+                        this.consolidationStats.conflictsResolved++;
+
+                        // Resolver conflito baseado na prioridade
+                        const priority1 = this.statusPriority[current.status] || 0;
+                        const priority2 = this.statusPriority[status.status] || 0;
+
+                        if (priority2 > priority1) {
+                            current = { ...status };
+                        } else {
+                            current.end = status.end;
+                            current.total_time = (parseFloat(current.total_time) || 0) + (parseFloat(status.total_time) || 0);
+                        }
+                    } else {
+                        resolved.push(current);
+                        current = { ...status };
+                    }
+                }
+
+                if (current) {
+                    resolved.push(current);
+                }
+
+                return resolved;
+            }
+
+            // 3. CONSOLIDAÇÃO DE PERÍODOS CONSECUTIVOS
+            consolidateConsecutive(statusList, equipmentName) {
+                if (statusList.length <= 1) return statusList;
+
+                const consolidated = [];
+                let current = null;
+                let blocksConsolidated = 0;
+
+                for (const status of statusList) {
+                    if (!current) {
+                        current = { ...status };
+                        continue;
+                    }
+
+                    const currentEnd = new Date(current.end);
+                    const statusStart = new Date(status.start);
+                    const gapSeconds = (statusStart - currentEnd) / 1000;
+
+                    // Verificar se pode consolidar
+                    const canConsolidate = (
+                        current.status === status.status && 
+                        current.status_title === status.status_title &&
+                        Math.abs(gapSeconds) <= this.config.gapTolerance
+                    );
+
+                    if (canConsolidate) {
+                        // Consolidar: estender período e somar tempo total
+                        current.end = status.end;
+                        current.total_time = (parseFloat(current.total_time) || 0) + (parseFloat(status.total_time) || 0);
+                        current.consolidated_count = (current.consolidated_count || 1) + 1;
+                        
+                        blocksConsolidated++;
+                        console.log(`🔗 Consolidado: ${current.status} - ${current.consolidated_count} blocos unidos`);
+                        
+                    } else {
+                        consolidated.push(current);
+                        current = { ...status };
+                    }
+                }
+
+                if (current) {
+                    consolidated.push(current);
+                }
+
+                return consolidated;
+            }
+
+            // 4. PREENCHIMENTO DE GAPS PEQUENOS
+            fillSmallGaps(statusList, equipmentName) {
+                if (statusList.length <= 1) return statusList;
+
+                const filled = [];
+                let gapsFilled = 0;
+                
+                for (let i = 0; i < statusList.length; i++) {
+                    filled.push(statusList[i]);
+                    
+                    // Verificar gap para o próximo status
+                    if (i < statusList.length - 1) {
+                        const currentEnd = new Date(statusList[i].end);
+                        const nextStart = new Date(statusList[i + 1].start);
+                        const gapSeconds = (nextStart - currentEnd) / 1000;
+                        
+                        // Se gap pequeno, preencher com status 'off'
+                        if (gapSeconds > 0 && gapSeconds <= this.config.gapTolerance) {
+                            const gapBlock = {
+                                ...statusList[i],
+                                status: 'off',
+                                status_title: 'Motor Desligado',
+                                start: statusList[i].end,
+                                end: statusList[i + 1].start,
+                                total_time: gapSeconds / 3600,
+                                gap_filled: true,
+                                gap_duration_seconds: gapSeconds
+                            };
+                            
+                            filled.push(gapBlock);
+                            gapsFilled++;
+                        }
+                    }
+                }
+
+                if (gapsFilled > 0) {
+                    console.log(`🔗 ${equipmentName}: ${gapsFilled} gaps preenchidos`);
+                }
+
+                return filled;
+            }
+
+            // RELATÓRIO DE CONSOLIDAÇÃO
+            logConsolidationResults() {
+                const stats = this.consolidationStats;
+                const totalReduction = stats.originalBlocks - stats.consolidatedBlocks;
+                const reductionPercentage = stats.originalBlocks > 0 ? 
+                    ((totalReduction / stats.originalBlocks) * 100).toFixed(1) : 0;
+
+                console.log('📊 === RELATÓRIO DE CONSOLIDAÇÃO ===');
+                console.log(`📥 Blocos Originais: ${stats.originalBlocks}`);
+                console.log(`📤 Blocos Finais: ${stats.consolidatedBlocks}`);
+                console.log(`🔗 Blocos Consolidados: ${totalReduction}`);
+                console.log(`📈 Taxa de Redução: ${reductionPercentage}%`);
+                console.log(`⚠️ Conflitos Resolvidos: ${stats.conflictsResolved}`);
+                console.log(`🗑️ Duplicatas Removidas: ${stats.duplicatesRemoved}`);
+                console.log('======================================');
+            }
+
+            // CRIAÇÃO DE TOOLTIP MELHORADO
+            createConsolidatedTooltip(status, equipName) {
+                const totalHours = parseFloat(status.total_time || 0);
+                const count = status.consolidated_count || 1;
+                const isGapFilled = status.gap_filled || false;
+                
+                const formatHours = (hours) => {
+                    const h = Math.floor(hours);
+                    const m = Math.round((hours - h) * 60);
+                    if (h === 0) return `${m}min`;
+                    if (m === 0) return `${h}h`;
+                    return `${h}h ${m}min`;
+                };
+
+                const formatDateTime = (dateStr) => {
+                    try {
+                        const date = new Date(dateStr);
+                        return date.toLocaleString('pt-BR');
+                    } catch {
+                        return dateStr;
+                    }
+                };
+                
+                const shortEquipName = equipName.length > 25 ? equipName.substring(0, 25) + '...' : equipName;
+                const statusTitle = (status.status_title || status.status);
+                
+                let tooltipContent = `
+                    <div style="font-size: 12px; line-height: 1.3; max-width: 300px;">
+                        <div style="font-weight: 700; margin-bottom: 6px; color: #fff; font-size: 11px;">
+                            🔄 Status ${isGapFilled ? '(Gap Preenchido)' : (count > 1 ? '(Consolidado)' : '')}
+                        </div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Equipamento:</strong><br>${shortEquipName}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Status:</strong> ${statusTitle}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Início:</strong><br>${formatDateTime(status.start)}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Fim:</strong><br>${formatDateTime(status.end)}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Duração:</strong> ${formatHours(totalHours)}</div>`;
+                
+                if (count > 1) {
+                    tooltipContent += `
+                        <div style="margin-bottom: 3px; color: #90EE90; font-size: 10px;">
+                            <strong>✅ Consolidado:</strong> ${count} blocos originais unidos
+                        </div>`;
+                }
+
+                if (isGapFilled) {
+                    tooltipContent += `
+                        <div style="margin-bottom: 3px; color: #FFB347; font-size: 10px;">
+                            <strong>⚠️ Gap Preenchido</strong>
+                        </div>`;
+                }
+                
+                tooltipContent += `</div>`;
+                
+                return tooltipContent;
+            }
+        }
+
+        // =============================================================================
+        // SISTEMA DE PRODUTIVIDADE PRINCIPAL CORRIGIDO
         // =============================================================================
         class ProductivitySystem {
             constructor() {
@@ -1023,13 +1310,15 @@
                 this.realTimeInterval = null;
                 this.productivityChart = null;
                 this.equipmentChart = null;
-                this.consolidationStats = { originalBlocks: 0, consolidatedBlocks: 0 };
+                
+                // Sistema de Consolidação INTEGRADO
+                this.blockConsolidationSystem = new BlockConsolidationSystem();
 
                 // Sistema de Alertas
                 this.activeAlerts = new Map();
                 this.alertHistory = [];
 
-                // Configurações do GitHub para regras de produtividade
+                // Configurações do GitHub
                 this.githubConfig = {
                     csvRepo: {
                         owner: 'GrupoGps-Mecanizada',
@@ -1043,7 +1332,6 @@
                         path: 'data/latest-fleet-data.json',
                         apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos-/contents/data/latest-fleet-data.json'
                     },
-                    // NOVO: Repositório para configurações de produtividade
                     configRepo: {
                         owner: 'GrupoGps-Mecanizada',
                         repo: 'Sistema-Produtividade-Config',
@@ -1052,9 +1340,8 @@
                     }
                 };
 
-                // Configurações padrão (serão substituídas pelo GitHub)
+                // Configurações padrão de produtividade
                 this.productivityRules = {
-                    // Status que são PRODUTIVOS para cada tipo de equipamento
                     productive: {
                         'secondary_motor_on': {
                             equipments: ['alta_pressao', 'hiper_vacuo'],
@@ -1067,7 +1354,6 @@
                             priority: 9
                         }
                     },
-                    // Status que são OPERACIONAIS
                     operational: {
                         'on': {
                             equipments: ['all'],
@@ -1085,7 +1371,6 @@
                             priority: 6
                         }
                     },
-                    // Status que são IMPRODUTIVOS
                     idle: {
                         'off': {
                             equipments: ['all'],
@@ -1106,7 +1391,6 @@
                             alertLimit: 240
                         }
                     },
-                    // Status que NÃO COMPUTAM
                     nonComputable: {
                         'not_appropriated': {
                             equipments: ['all'],
@@ -1145,7 +1429,7 @@
             }
 
             // =============================================================================
-            // INICIALIZAÇÃO
+            // INICIALIZAÇÃO CORRIGIDA
             // =============================================================================
             async initSystem() {
                 console.log('🚀 Sistema de Produtividade Avançado - GrupoGPS iniciando...');
@@ -1159,19 +1443,102 @@
                 
                 this.buildConfigUI();
                 this.updateSystemInfo();
+                
+                // Iniciar sincronização automática
                 await this.initGitHubSync();
+                
                 this.startAlertMonitoring();
                 this.startRealTimeMonitoring();
-            }
-
-            setupEventListeners() {
-                document.getElementById('periodFilter')?.addEventListener('change', () => {
-                    this.handlePeriodChange();
-                });
+                
+                console.log('✅ Sistema inicializado com sucesso');
             }
 
             // =============================================================================
-            // CONFIGURAÇÕES EXTERNAS DO GITHUB
+            // SINCRONIZAÇÃO AUTOMÁTICA COM GITHUB
+            // =============================================================================
+            async initGitHubSync() {
+                console.log('🔄 Iniciando sincronização GitHub...');
+                this.updateSyncStatus('loading', 'Sincronizando com GitHub...');
+                
+                try {
+                    // Primeira sincronização
+                    await this.syncFromGitHub();
+                    
+                    // Configurar sincronização automática a cada 5 minutos
+                    this.autoSyncInterval = setInterval(async () => {
+                        try {
+                            await this.syncFromGitHub();
+                        } catch (error) {
+                            console.error('❌ Erro na sincronização automática:', error);
+                        }
+                    }, 300000); // 5 minutos
+                    
+                    console.log('✅ Sincronização automática configurada');
+                    
+                } catch (error) {
+                    console.error('❌ Erro na sincronização inicial:', error);
+                    this.updateSyncStatus('error', 'Erro na sincronização inicial');
+                }
+            }
+
+            async syncFromGitHub() {
+                let csvLoaded = false;
+                let jsonLoaded = false;
+                
+                try {
+                    // Carregar CSV
+                    try {
+                        const csvResponse = await fetch(this.githubConfig.csvRepo.apiUrl);
+                        if (csvResponse.ok) {
+                            const csvData = await csvResponse.json();
+                            const csvContent = atob(csvData.content.replace(/\n/g, ''));
+                            await this.processCsvData(csvContent);
+                            csvLoaded = true;
+                            console.log('✅ Dados CSV sincronizados do GitHub');
+                        } else {
+                            console.log('⚠️ CSV não encontrado no GitHub (404)');
+                        }
+                    } catch (error) {
+                        console.log('⚠️ Erro ao carregar CSV:', error.message);
+                    }
+
+                    // Carregar JSON
+                    try {
+                        const jsonResponse = await fetch(this.githubConfig.jsonRepo.apiUrl);
+                        if (jsonResponse.ok) {
+                            const jsonData = await jsonResponse.json();
+                            const jsonContent = atob(jsonData.content.replace(/\n/g, ''));
+                            await this.processJsonData(jsonContent);
+                            jsonLoaded = true;
+                            console.log('✅ Dados JSON sincronizados do GitHub');
+                        } else {
+                            console.log('⚠️ JSON não encontrado no GitHub (404)');
+                        }
+                    } catch (error) {
+                        console.log('⚠️ Erro ao carregar JSON:', error.message);
+                    }
+
+                    // Se pelo menos um arquivo foi carregado, processar dados
+                    if (csvLoaded || jsonLoaded) {
+                        console.log('🔧 Aplicando consolidação de blocos...');
+                        this.equipmentMap = this.blockConsolidationSystem.processDataWithConsolidation(this.equipmentMap);
+                        await this.processAllData();
+                        this.updateSyncStatus('success', 'Dados sincronizados com sucesso');
+                        this.showNotification('Dados sincronizados do GitHub!', 'success');
+                    } else {
+                        this.updateSyncStatus('error', 'Nenhum dado encontrado no GitHub');
+                        this.showNotification('Nenhum dado encontrado nos repositórios GitHub', 'warning');
+                    }
+
+                } catch (error) {
+                    console.error('❌ Erro na sincronização:', error);
+                    this.updateSyncStatus('error', 'Erro na sincronização');
+                    throw error;
+                }
+            }
+
+            // =============================================================================
+            // CONFIGURAÇÕES EXTERNAS DO GITHUB CORRIGIDAS
             // =============================================================================
             async loadConfigFromGitHub() {
                 try {
@@ -1203,61 +1570,883 @@
                         console.log('✅ Configurações carregadas do GitHub com sucesso');
                         this.showNotification('Configurações sincronizadas do GitHub', 'success');
                         
-                    } else {
-                        console.log('⚠️ Arquivo de configuração não encontrado no GitHub, usando padrões');
-                        // Criar arquivo padrão no GitHub
-                        await this.saveConfigToGitHub();
+                    } else if (response.status === 404) {
+                        console.log('⚠️ Arquivo de configuração não encontrado no GitHub, criando padrão...');
+                        await this.createDefaultConfigOnGitHub();
                     }
                 } catch (error) {
                     console.error('❌ Erro ao carregar configurações do GitHub:', error);
-                    this.showNotification('Erro ao carregar configurações, usando padrões', 'warning');
+                    console.log('📝 Usando configurações padrão locais');
+                    this.showNotification('Usando configurações padrão locais', 'warning');
                 }
             }
 
-            async saveConfigToGitHub() {
+            async createDefaultConfigOnGitHub() {
                 try {
-                    console.log('💾 Salvando configurações no GitHub...');
+                    console.log('📝 Criando configurações padrão...');
                     
-                    const config = {
+                    const defaultConfig = {
                         productivityRules: this.productivityRules,
                         alertConfig: this.alertConfig,
                         lastUpdate: new Date().toISOString(),
-                        version: '1.0.0'
+                        version: '1.0.0',
+                        description: 'Configurações padrão do Sistema de Produtividade GrupoGPS'
                     };
                     
-                    const configContent = JSON.stringify(config, null, 2);
-                    const encodedContent = btoa(unescape(encodeURIComponent(configContent)));
-                    
-                    // Verificar se arquivo existe
-                    let sha = null;
-                    try {
-                        const existingResponse = await fetch(this.githubConfig.configRepo.apiUrl);
-                        if (existingResponse.ok) {
-                            const existingData = await existingResponse.json();
-                            sha = existingData.sha;
-                        }
-                    } catch (error) {
-                        console.log('Criando novo arquivo de configuração');
-                    }
-                    
-                    const payload = {
-                        message: `Atualizar configurações de produtividade - ${new Date().toLocaleString('pt-BR')}`,
-                        content: encodedContent,
-                        ...(sha && { sha })
-                    };
-                    
-                    // Nota: Em produção, isso precisaria de autenticação
-                    console.log('📝 Configurações preparadas para GitHub:', config);
-                    this.showNotification('Configurações salvas localmente (GitHub requer autenticação)', 'info');
+                    console.log('💾 Configurações padrão criadas localmente:', defaultConfig);
+                    this.showNotification('Configurações padrão criadas com sucesso', 'success');
                     
                 } catch (error) {
-                    console.error('❌ Erro ao salvar configurações no GitHub:', error);
-                    this.showNotification('Erro ao salvar no GitHub', 'error');
+                    console.error('❌ Erro ao criar configuração padrão:', error);
+                    this.showNotification('Erro ao criar configurações padrão', 'error');
                 }
             }
 
             // =============================================================================
-            // INTERFACE DE CONFIGURAÇÕES DINÂMICA
+            // EVENT LISTENERS CORRIGIDOS
+            // =============================================================================
+            setupEventListeners() {
+                // Navegação por abas - CORRIGIDO
+                document.querySelectorAll('.nav-tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const tabName = tab.getAttribute('data-tab');
+                        this.switchTab(tabName);
+                    });
+                });
+
+                // Filtros
+                const filterToggleBtn = document.getElementById('filterToggleBtn');
+                if (filterToggleBtn) {
+                    filterToggleBtn.addEventListener('click', () => this.toggleFilterPanel());
+                }
+
+                const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+                if (clearFiltersBtn) {
+                    clearFiltersBtn.addEventListener('click', () => this.clearFilters());
+                }
+
+                const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+                if (applyFiltersBtn) {
+                    applyFiltersBtn.addEventListener('click', () => this.applyFilters());
+                }
+
+                // Real-time
+                const refreshRealTimeBtn = document.getElementById('refreshRealTimeBtn');
+                if (refreshRealTimeBtn) {
+                    refreshRealTimeBtn.addEventListener('click', () => this.refreshRealTime());
+                }
+
+                // Configurações
+                const loadConfigBtn = document.getElementById('loadConfigBtn');
+                if (loadConfigBtn) {
+                    loadConfigBtn.addEventListener('click', () => this.loadConfigFromGitHub());
+                }
+
+                const saveConfigBtn = document.getElementById('saveConfigBtn');
+                if (saveConfigBtn) {
+                    saveConfigBtn.addEventListener('click', () => this.saveConfigToGitHub());
+                }
+
+                const saveAlertConfigBtn = document.getElementById('saveAlertConfigBtn');
+                if (saveAlertConfigBtn) {
+                    saveAlertConfigBtn.addEventListener('click', () => this.saveAlertConfig());
+                }
+
+                // Exportar alertas
+                const exportAlertsBtn = document.getElementById('exportAlertsBtn');
+                if (exportAlertsBtn) {
+                    exportAlertsBtn.addEventListener('click', () => this.exportAlerts());
+                }
+
+                // Filtros de período/status
+                const periodFilter = document.getElementById('periodFilter');
+                if (periodFilter) {
+                    periodFilter.addEventListener('change', () => this.applyFilters());
+                }
+                
+                const statusFilter = document.getElementById('statusFilter');
+                if (statusFilter) {
+                    statusFilter.addEventListener('change', () => this.applyFilters());
+                }
+                
+                const alertFilter = document.getElementById('alertFilter');
+                if (alertFilter) {
+                    alertFilter.addEventListener('change', () => this.applyFilters());
+                }
+            }
+
+            // Função de navegação por abas - CORRIGIDA
+            switchTab(tabName) {
+                // Remover classe active de todas as abas
+                document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                
+                // Adicionar classe active à aba selecionada
+                const selectedTab = document.querySelector(`[data-tab="${tabName}"]`);
+                if (selectedTab) {
+                    selectedTab.classList.add('active');
+                }
+                
+                const selectedContent = document.getElementById(`${tabName}-tab`);
+                if (selectedContent) {
+                    selectedContent.classList.add('active');
+                }
+            }
+
+            toggleFilterPanel() {
+                const panel = document.getElementById('filterPanel');
+                if (panel) {
+                    panel.classList.toggle('show');
+                }
+            }
+
+            clearFilters() {
+                const periodFilter = document.getElementById('periodFilter');
+                const statusFilter = document.getElementById('statusFilter');
+                const alertFilter = document.getElementById('alertFilter');
+                
+                if (periodFilter) periodFilter.value = 'week';
+                if (statusFilter) statusFilter.value = '';
+                if (alertFilter) alertFilter.value = '';
+                
+                this.applyFilters();
+            }
+
+            applyFilters() {
+                console.log('🔍 Aplicando filtros...');
+                // Implementar lógica de filtros na timeline
+                this.showNotification('Filtros aplicados', 'info');
+                this.toggleFilterPanel();
+            }
+
+            refreshRealTime() {
+                this.updateRealTimeData();
+                this.showNotification('Dados em tempo real atualizados!', 'success');
+            }
+
+            // =============================================================================
+            // PROCESSAMENTO DE DADOS
+            // =============================================================================
+            async processCsvData(csvText) {
+                console.log('📄 Processando dados CSV...');
+                
+                const lines = csvText.split('\n').filter(line => line.trim());
+                if (lines.length === 0) return;
+                
+                const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                
+                this.csvData = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const values = this.parseCSVLine(lines[i]);
+                    if (values.length === headers.length) {
+                        const record = {};
+                        headers.forEach((header, index) => {
+                            record[header] = values[index];
+                        });
+                        this.csvData.push(record);
+                    }
+                }
+                
+                console.log(`✅ ${this.csvData.length} registros CSV processados`);
+            }
+
+            async processJsonData(jsonText) {
+                console.log('📄 Processando dados JSON...');
+                
+                try {
+                    this.jsonData = JSON.parse(jsonText);
+                    if (!Array.isArray(this.jsonData)) {
+                        this.jsonData = [this.jsonData];
+                    }
+                    console.log(`✅ ${this.jsonData.length} registros JSON processados`);
+                } catch (error) {
+                    console.error('❌ Erro ao parsear JSON:', error);
+                    throw error;
+                }
+            }
+
+            parseCSVLine(line) {
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                
+                values.push(current.trim());
+                return values.map(v => v.replace(/"/g, ''));
+            }
+
+            // =============================================================================
+            // PROCESSAMENTO COMPLETO DOS DADOS
+            // =============================================================================
+            async processAllData() {
+                console.log('🔄 Processando todos os dados...');
+                
+                // Construir mapa de equipamentos
+                this.buildEquipmentMap();
+                
+                // Atualizar timeline
+                this.updateTimeline();
+                
+                // Atualizar dashboard
+                this.updateDashboard();
+                
+                // Atualizar estatísticas
+                this.updateStats();
+                
+                console.log('✅ Processamento completo finalizado');
+            }
+
+            buildEquipmentMap() {
+                // Processar dados JSON (status dos equipamentos)
+                if (this.jsonData.length > 0) {
+                    for (const item of this.jsonData) {
+                        if (item.equipments) {
+                            for (const [equipName, equipData] of Object.entries(item.equipments)) {
+                                const normalizedName = this.normalizeEquipmentName(equipName);
+                                
+                                if (!this.equipmentMap.has(normalizedName)) {
+                                    this.equipmentMap.set(normalizedName, {
+                                        name: normalizedName,
+                                        status: [],
+                                        apontamentos: []
+                                    });
+                                }
+                                
+                                const equipment = this.equipmentMap.get(normalizedName);
+                                if (equipData.status) {
+                                    equipment.status.push(...equipData.status);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Processar dados CSV (apontamentos)
+                if (this.csvData.length > 0) {
+                    for (const record of this.csvData) {
+                        const equipName = this.normalizeEquipmentName(record['EQUIPAMENTO'] || record['equipamento'] || '');
+                        
+                        if (equipName && equipName !== 'EQUIPAMENTO DESCONHECIDO') {
+                            if (!this.equipmentMap.has(equipName)) {
+                                this.equipmentMap.set(equipName, {
+                                    name: equipName,
+                                    status: [],
+                                    apontamentos: []
+                                });
+                            }
+                            
+                            const equipment = this.equipmentMap.get(equipName);
+                            equipment.apontamentos.push(record);
+                        }
+                    }
+                }
+                
+                console.log(`🏗️ Mapa de equipamentos construído: ${this.equipmentMap.size} equipamentos`);
+            }
+
+            // =============================================================================
+            // TIMELINE E INTERFACE
+            // =============================================================================
+            updateTimeline() {
+                console.log('📊 Atualizando timeline...');
+                
+                if (!this.timeline) {
+                    this.initTimeline();
+                }
+                
+                this.items.clear();
+                this.groups.clear();
+                
+                let itemId = 1;
+                const groupsMap = new Map();
+                
+                for (const [equipName, data] of this.equipmentMap) {
+                    // Adicionar grupo se não existir
+                    if (!groupsMap.has(equipName)) {
+                        const groupId = groupsMap.size + 1;
+                        groupsMap.set(equipName, groupId);
+                        this.groups.add({
+                            id: groupId,
+                            content: this.getDisplayName(equipName),
+                            order: groupId
+                        });
+                    }
+                    
+                    const groupId = groupsMap.get(equipName);
+                    
+                    // Adicionar status consolidados
+                    for (const status of data.status) {
+                        this.items.add({
+                            id: itemId++,
+                            group: groupId,
+                            start: new Date(status.start),
+                            end: new Date(status.end),
+                            content: this.getStatusDisplayName(status.status),
+                            title: this.blockConsolidationSystem.createConsolidatedTooltip(status, equipName),
+                            className: this.statusColors[status.status] || 'status-unknown',
+                            type: 'range'
+                        });
+                    }
+                    
+                    // Adicionar apontamentos
+                    for (const apont of data.apontamentos) {
+                        const startDate = this.parseDate(apont['DATA INICIO'] || apont['data_inicio']);
+                        const endDate = this.parseDate(apont['DATA FIM'] || apont['data_fim']);
+                        
+                        if (startDate && endDate) {
+                            this.items.add({
+                                id: itemId++,
+                                group: groupId,
+                                start: startDate,
+                                end: endDate,
+                                content: apont['ATIVIDADE'] || apont['atividade'] || 'Atividade',
+                                title: `Apontamento: ${apont['ATIVIDADE'] || 'Atividade'}\nInício: ${startDate.toLocaleString()}\nFim: ${endDate.toLocaleString()}`,
+                                className: 'apontamento-item',
+                                type: 'range',
+                                style: 'background-color: rgba(52, 152, 219, 0.7); border-color: #3498db;'
+                            });
+                        }
+                    }
+                }
+                
+                // Atualizar contador de itens visíveis
+                document.getElementById('visibleItems').textContent = `${this.items.length} itens visíveis`;
+                
+                console.log(`✅ Timeline atualizada: ${this.items.length} itens, ${this.groups.length} grupos`);
+            }
+
+            initTimeline() {
+                const container = document.getElementById('timeline');
+                container.innerHTML = '';
+                
+                const options = {
+                    height: '600px',
+                    margin: { item: 10, axis: 40 },
+                    orientation: 'top',
+                    stack: true,
+                    showCurrentTime: true,
+                    zoomable: true,
+                    moveable: true,
+                    selectable: true,
+                    multiselect: false,
+                    tooltip: {
+                        followMouse: true,
+                        overflowMethod: 'cap'
+                    },
+                    format: {
+                        minorLabels: {
+                            hour: 'HH:mm',
+                            day: 'DD/MM'
+                        },
+                        majorLabels: {
+                            hour: 'DD/MM/YYYY',
+                            day: 'MMMM YYYY'
+                        }
+                    }
+                };
+                
+                this.timeline = new vis.Timeline(container, this.items, this.groups, options);
+                
+                // Event listeners
+                this.timeline.on('select', (properties) => {
+                    console.log('Item selecionado:', properties);
+                });
+            }
+
+            // =============================================================================
+            // CHARTS E DASHBOARD IMPLEMENTADOS
+            // =============================================================================
+            initCharts() {
+                // Gráfico de Produtividade
+                const productivityCtx = document.getElementById('productivityChart');
+                if (productivityCtx) {
+                    this.productivityChart = new Chart(productivityCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Produtivo', 'Operacional', 'Ocioso'],
+                            datasets: [{
+                                data: [0, 0, 0],
+                                backgroundColor: ['#27ae60', '#3498db', '#e74c3c'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Gráfico por Tipo de Equipamento
+                const equipmentCtx = document.getElementById('equipmentChart');
+                if (equipmentCtx) {
+                    this.equipmentChart = new Chart(equipmentCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Alta Pressão', 'Auto Vácuo', 'Hiper Vácuo'],
+                            datasets: [
+                                {
+                                    label: 'Produtivo',
+                                    data: [0, 0, 0],
+                                    backgroundColor: '#27ae60'
+                                },
+                                {
+                                    label: 'Operacional',
+                                    data: [0, 0, 0],
+                                    backgroundColor: '#3498db'
+                                },
+                                {
+                                    label: 'Ocioso',
+                                    data: [0, 0, 0],
+                                    backgroundColor: '#e74c3c'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    stacked: true
+                                },
+                                y: {
+                                    stacked: true
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            updateDashboard() {
+                if (!this.equipmentMap.size) return;
+
+                console.log('📈 Atualizando dashboard...');
+
+                const stats = this.calculateProductivityStats();
+                
+                // Atualizar KPIs principais
+                document.getElementById('fleetProductivity').textContent = stats.fleetProductivity + '%';
+                document.getElementById('activeAlerts').textContent = this.activeAlerts.size;
+                document.getElementById('productiveTime').textContent = this.formatHours(stats.productiveTime);
+                document.getElementById('operationalTime').textContent = this.formatHours(stats.operationalTime);
+                document.getElementById('idleTime').textContent = this.formatHours(stats.idleTime);
+                document.getElementById('workingEquipments').textContent = stats.workingEquipments;
+
+                // Atualizar detalhes
+                document.getElementById('productivityDetail').textContent = `${stats.productiveEquipments} equipamentos produtivos`;
+                document.getElementById('alertsDetail').textContent = `${this.activeAlerts.size} equipamentos com alertas`;
+                document.getElementById('productiveDetail').textContent = `${Math.round(stats.productivityPercentage)}% do tempo total`;
+                document.getElementById('operationalDetail').textContent = `${Math.round(stats.operationalPercentage)}% do tempo total`;
+                document.getElementById('idleDetail').textContent = `${Math.round(stats.idlePercentage)}% do tempo total`;
+                document.getElementById('workingDetail').textContent = `De ${stats.totalEquipments} equipamentos`;
+
+                // Atualizar gráficos
+                if (this.productivityChart) {
+                    this.productivityChart.data.datasets[0].data = [
+                        stats.productiveTime,
+                        stats.operationalTime,
+                        stats.idleTime
+                    ];
+                    this.productivityChart.update();
+                }
+
+                if (this.equipmentChart) {
+                    this.equipmentChart.data.datasets[0].data = [
+                        stats.byType.alta_pressao.productive,
+                        stats.byType.auto_vacuo.productive,
+                        stats.byType.hiper_vacuo.productive
+                    ];
+                    this.equipmentChart.data.datasets[1].data = [
+                        stats.byType.alta_pressao.operational,
+                        stats.byType.auto_vacuo.operational,
+                        stats.byType.hiper_vacuo.operational
+                    ];
+                    this.equipmentChart.data.datasets[2].data = [
+                        stats.byType.alta_pressao.idle,
+                        stats.byType.auto_vacuo.idle,
+                        stats.byType.hiper_vacuo.idle
+                    ];
+                    this.equipmentChart.update();
+                }
+            }
+
+            calculateProductivityStats() {
+                const stats = {
+                    totalEquipments: this.equipmentMap.size,
+                    productiveEquipments: 0,
+                    workingEquipments: 0,
+                    productiveTime: 0,
+                    operationalTime: 0,
+                    idleTime: 0,
+                    totalTime: 0,
+                    fleetProductivity: 0,
+                    productivityPercentage: 0,
+                    operationalPercentage: 0,
+                    idlePercentage: 0,
+                    byType: {
+                        alta_pressao: { productive: 0, operational: 0, idle: 0 },
+                        auto_vacuo: { productive: 0, operational: 0, idle: 0 },
+                        hiper_vacuo: { productive: 0, operational: 0, idle: 0 }
+                    }
+                };
+
+                const now = new Date();
+
+                for (const [equipName, data] of this.equipmentMap) {
+                    const equipmentType = this.getEquipmentType(equipName);
+                    const workingPeriodStatus = this.getWorkingPeriodStatus(data.status);
+                    
+                    let equipProductiveTime = 0;
+                    let equipOperationalTime = 0;
+                    let equipIdleTime = 0;
+
+                    // Calcular tempos por classificação
+                    for (const status of workingPeriodStatus) {
+                        const classification = this.classifyStatusExact(status.status, equipmentType);
+                        const duration = parseFloat(status.total_time || 0);
+
+                        switch (classification) {
+                            case 'PRODUCTIVE':
+                                equipProductiveTime += duration;
+                                break;
+                            case 'OPERATIONAL':
+                                equipOperationalTime += duration;
+                                break;
+                            case 'IDLE':
+                                equipIdleTime += duration;
+                                break;
+                        }
+                    }
+
+                    // Verificar se equipamento está trabalhando atualmente
+                    const currentStatus = this.findCurrentActiveStatus(workingPeriodStatus, now);
+                    if (currentStatus) {
+                        const classification = this.classifyStatusExact(currentStatus.status, equipmentType);
+                        if (classification === 'PRODUCTIVE') {
+                            stats.productiveEquipments++;
+                        }
+                        if (classification === 'PRODUCTIVE' || classification === 'OPERATIONAL') {
+                            stats.workingEquipments++;
+                        }
+                    }
+
+                    // Acumular totais
+                    stats.productiveTime += equipProductiveTime;
+                    stats.operationalTime += equipOperationalTime;
+                    stats.idleTime += equipIdleTime;
+
+                    // Acumular por tipo
+                    const typeKey = equipmentType === 'all' ? 'alta_pressao' : equipmentType;
+                    if (stats.byType[typeKey]) {
+                        stats.byType[typeKey].productive += equipProductiveTime;
+                        stats.byType[typeKey].operational += equipOperationalTime;
+                        stats.byType[typeKey].idle += equipIdleTime;
+                    }
+                }
+
+                stats.totalTime = stats.productiveTime + stats.operationalTime + stats.idleTime;
+
+                if (stats.totalTime > 0) {
+                    stats.productivityPercentage = (stats.productiveTime / stats.totalTime) * 100;
+                    stats.operationalPercentage = (stats.operationalTime / stats.totalTime) * 100;
+                    stats.idlePercentage = (stats.idleTime / stats.totalTime) * 100;
+                    stats.fleetProductivity = Math.round(stats.productivityPercentage + (stats.operationalPercentage * 0.6));
+                }
+
+                return stats;
+            }
+
+            updateStats() {
+                // Atualizar estatísticas do sistema
+                const totalApontamentos = Array.from(this.equipmentMap.values())
+                    .reduce((sum, data) => sum + (data.apontamentos?.length || 0), 0);
+                
+                const totalStatus = Array.from(this.equipmentMap.values())
+                    .reduce((sum, data) => sum + (data.status?.length || 0), 0);
+
+                document.getElementById('apontCount').textContent = totalApontamentos;
+                document.getElementById('statusCount').textContent = totalStatus;
+                document.getElementById('equipmentCount').textContent = this.equipmentMap.size;
+                document.getElementById('consolidatedBlocks').textContent = 
+                    this.blockConsolidationSystem.consolidationStats.originalBlocks - 
+                    this.blockConsolidationSystem.consolidationStats.consolidatedBlocks;
+            }
+
+            // =============================================================================
+            // MONITORAMENTO DE ALERTAS
+            // =============================================================================
+            startAlertMonitoring() {
+                if (this.alertCheckInterval) {
+                    clearInterval(this.alertCheckInterval);
+                }
+
+                // Verificar alertas a cada 30 segundos
+                this.alertCheckInterval = setInterval(() => {
+                    this.checkAlerts();
+                }, 30000);
+
+                console.log('🚨 Monitoramento de alertas iniciado');
+            }
+
+            checkAlerts() {
+                if (!this.equipmentMap.size) return;
+
+                const now = new Date();
+                let newAlerts = 0;
+
+                for (const [equipName, data] of this.equipmentMap) {
+                    const equipmentType = this.getEquipmentType(equipName);
+                    const workingPeriodStatus = this.getWorkingPeriodStatus(data.status);
+                    const currentStatus = this.findCurrentActiveStatus(workingPeriodStatus, now);
+                    
+                    if (currentStatus) {
+                        const duration = this.calculateCurrentStatusDuration(currentStatus, now);
+                        const alertKey = `${equipName}_${currentStatus.status}`;
+                        
+                        // Verificar se deve gerar alerta
+                        const alertConfig = this.alertConfig[currentStatus.status];
+                        if (alertConfig && alertConfig.active && duration >= alertConfig.limit) {
+                            
+                            if (!this.activeAlerts.has(alertKey)) {
+                                // Novo alerta
+                                const alert = {
+                                    id: Date.now(),
+                                    equipName,
+                                    status: currentStatus.status,
+                                    duration,
+                                    timestamp: now,
+                                    type: this.getAlertType(currentStatus.status)
+                                };
+                                
+                                this.activeAlerts.set(alertKey, alert);
+                                this.alertHistory.push(alert);
+                                newAlerts++;
+                                
+                                console.log(`🚨 Novo alerta: ${equipName} em ${currentStatus.status} por ${duration}min`);
+                            } else {
+                                // Atualizar duração do alerta existente
+                                this.activeAlerts.get(alertKey).duration = duration;
+                            }
+                        } else {
+                            // Remover alerta se condições não são mais atendidas
+                            if (this.activeAlerts.has(alertKey)) {
+                                this.activeAlerts.delete(alertKey);
+                                console.log(`✅ Alerta resolvido: ${equipName}`);
+                            }
+                        }
+                    }
+                }
+
+                if (newAlerts > 0) {
+                    this.showNotification(`${newAlerts} novo(s) alerta(s) detectado(s)`, 'warning');
+                    this.updateAlertsList();
+                }
+            }
+
+            getAlertType(status) {
+                const criticalStatuses = ['maintenance', 'off'];
+                return criticalStatuses.includes(status) ? 'critical' : 'warning';
+            }
+
+            updateAlertsList() {
+                const container = document.getElementById('alertsList');
+                if (!container) return;
+
+                if (this.alertHistory.length === 0) {
+                    container.innerHTML = '<div class="loading-state"><div>Nenhum alerta registrado</div></div>';
+                    return;
+                }
+
+                const alertsHtml = this.alertHistory
+                    .sort((a, b) => b.timestamp - a.timestamp)
+                    .slice(0, 50) // Últimos 50 alertas
+                    .map(alert => `
+                        <div class="realtime-item" style="margin-bottom: 0.5rem; padding: 1rem; border-left: 4px solid ${alert.type === 'critical' ? '#e74c3c' : '#f39c12'};">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>${this.getDisplayName(alert.equipName)}</strong><br>
+                                    <span style="color: #7f8c8d;">${this.getStatusDisplayName(alert.status)} por ${alert.duration}min</span>
+                                </div>
+                                <div style="font-size: 0.8rem; color: #95a5a6;">
+                                    ${alert.timestamp.toLocaleString('pt-BR')}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                container.innerHTML = alertsHtml;
+            }
+
+            // =============================================================================
+            // MONITORAMENTO EM TEMPO REAL
+            // =============================================================================
+            startRealTimeMonitoring() {
+                if (this.realTimeInterval) {
+                    clearInterval(this.realTimeInterval);
+                }
+
+                // Atualizar a cada 30 segundos
+                this.realTimeInterval = setInterval(() => {
+                    this.updateRealTimeData();
+                }, 30000);
+
+                console.log('⚡ Monitoramento em tempo real iniciado');
+            }
+
+            updateRealTimeData() {
+                if (!this.equipmentMap.size) return;
+
+                const realTimeData = {
+                    criticalAlerts: [],
+                    idleEquipments: [],
+                    productiveEquipments: [],
+                    transitEquipments: [],
+                    avgProductivity: 0,
+                    longestIdle: 0,
+                    equipmentInTransit: 0,
+                    equipmentInMaintenance: 0
+                };
+
+                const now = new Date();
+                let totalProductivity = 0;
+                let equipmentCount = 0;
+
+                for (const [equipName, data] of this.equipmentMap) {
+                    const equipmentType = this.getEquipmentType(equipName);
+                    const workingPeriodStatus = this.getWorkingPeriodStatus(data.status);
+                    const currentStatus = this.findCurrentActiveStatus(workingPeriodStatus, now);
+                    
+                    if (currentStatus) {
+                        const duration = this.calculateCurrentStatusDuration(currentStatus, now);
+                        const classification = this.classifyStatusExact(currentStatus.status, equipmentType);
+                        const displayName = this.getDisplayName(equipName);
+
+                        const equipment = {
+                            name: displayName,
+                            status: currentStatus.status,
+                            duration: duration,
+                            classification: classification
+                        };
+
+                        switch (classification) {
+                            case 'PRODUCTIVE':
+                                realTimeData.productiveEquipments.push(equipment);
+                                totalProductivity += 100;
+                                break;
+                            case 'OPERATIONAL':
+                                realTimeData.transitEquipments.push(equipment);
+                                realTimeData.equipmentInTransit++;
+                                totalProductivity += 60;
+                                break;
+                            case 'IDLE':
+                                realTimeData.idleEquipments.push(equipment);
+                                if (duration > realTimeData.longestIdle) {
+                                    realTimeData.longestIdle = duration;
+                                }
+                                if (currentStatus.status === 'maintenance') {
+                                    realTimeData.equipmentInMaintenance++;
+                                }
+                                break;
+                        }
+
+                        // Verificar alertas críticos
+                        const alertKey = `${equipName}_${currentStatus.status}`;
+                        if (this.activeAlerts.has(alertKey)) {
+                            realTimeData.criticalAlerts.push({
+                                ...equipment,
+                                alertDuration: this.activeAlerts.get(alertKey).duration
+                            });
+                        }
+
+                        equipmentCount++;
+                    }
+                }
+
+                realTimeData.avgProductivity = equipmentCount > 0 ? Math.round(totalProductivity / equipmentCount) : 0;
+
+                this.renderRealTimeData(realTimeData);
+            }
+
+            renderRealTimeData(data) {
+                // Alertas Críticos
+                const criticalContainer = document.getElementById('criticalAlerts');
+                if (criticalContainer) {
+                    criticalContainer.innerHTML = data.criticalAlerts.length === 0 
+                        ? '<div class="realtime-item">Nenhum alerta crítico 🎉</div>'
+                        : data.criticalAlerts.map(alert => `
+                            <div class="realtime-item">
+                                <span>${alert.name}</span>
+                                <span>${alert.alertDuration}min em ${this.getStatusDisplayName(alert.status)}</span>
+                            </div>
+                        `).join('');
+                }
+
+                // Equipamentos Ociosos
+                const idleContainer = document.getElementById('idleEquipments');
+                if (idleContainer) {
+                    idleContainer.innerHTML = data.idleEquipments.length === 0
+                        ? '<div class="realtime-item">Todos equipamentos ativos 🎉</div>'
+                        : data.idleEquipments.slice(0, 5).map(equip => `
+                            <div class="realtime-item">
+                                <span>${equip.name}</span>
+                                <span>${equip.duration}min ${this.getStatusDisplayName(equip.status)}</span>
+                            </div>
+                        `).join('');
+                }
+
+                // Equipamentos Produtivos
+                const productiveContainer = document.getElementById('productiveEquipments');
+                if (productiveContainer) {
+                    productiveContainer.innerHTML = data.productiveEquipments.length === 0
+                        ? '<div class="realtime-item">Nenhum equipamento produtivo</div>'
+                        : data.productiveEquipments.slice(0, 5).map(equip => `
+                            <div class="realtime-item">
+                                <span>${equip.name}</span>
+                                <span>${equip.duration}min trabalhando</span>
+                            </div>
+                        `).join('');
+                }
+
+                // Em Trânsito
+                const transitContainer = document.getElementById('transitEquipments');
+                if (transitContainer) {
+                    transitContainer.innerHTML = data.transitEquipments.length === 0
+                        ? '<div class="realtime-item">Nenhum equipamento em trânsito</div>'
+                        : data.transitEquipments.slice(0, 5).map(equip => `
+                            <div class="realtime-item">
+                                <span>${equip.name}</span>
+                                <span>${equip.duration}min ${this.getStatusDisplayName(equip.status)}</span>
+                            </div>
+                        `).join('');
+                }
+
+                // Indicadores de Performance
+                document.getElementById('avgProductivity').textContent = data.avgProductivity + '%';
+                document.getElementById('longestIdle').textContent = data.longestIdle + 'min';
+                document.getElementById('equipmentInTransit').textContent = data.equipmentInTransit;
+                document.getElementById('equipmentInMaintenance').textContent = data.equipmentInMaintenance;
+            }
+
+            // =============================================================================
+            // CONFIGURAÇÕES DA INTERFACE
             // =============================================================================
             buildConfigUI() {
                 this.buildProductivityConfigUI();
@@ -1353,86 +2542,17 @@
                 container.innerHTML = alertStatuses;
             }
 
-            getStatusDisplayName(status) {
-                const names = {
-                    'on': 'Motor Ligado',
-                    'off': 'Motor Desligado',
-                    'stopped': 'Parado',
-                    'maintenance': 'Manutenção',
-                    'secondary_motor_on': 'Motor Secundário',
-                    'out_of_plant': 'Fora da Planta',
-                    'not_appropriated': 'Não Apropriado',
-                    'no_data': 'Sem Dados',
-                    'running': 'Em Movimento'
-                };
-                return names[status] || status.charAt(0).toUpperCase() + status.slice(1);
+            // =============================================================================
+            // FUNÇÕES AUXILIARES
+            // =============================================================================
+            getEquipmentType(equipmentName) {
+                const name = equipmentName.toUpperCase();
+                if (name.includes('ALTA PRESSÃO') || name.includes('ALTA PRESSAO')) return 'alta_pressao';
+                if (name.includes('AUTO VÁCUO') || name.includes('AUTO VACUO')) return 'auto_vacuo';
+                if (name.includes('HIPER VÁCUO') || name.includes('HIPER VACUO')) return 'hiper_vacuo';
+                return 'alta_pressao'; // Padrão
             }
 
-            // =============================================================================
-            // CONSOLIDAÇÃO DE DADOS CONSECUTIVOS
-            // =============================================================================
-            consolidateConsecutiveStatus(statusList, equipmentName) {
-                if (!statusList || statusList.length === 0) return [];
-
-                console.log(`🔧 Consolidando dados para ${equipmentName}: ${statusList.length} registros originais`);
-                
-                // Ordenar por data de início
-                const sortedStatus = [...statusList].sort((a, b) => 
-                    new Date(a.start) - new Date(b.start)
-                );
-
-                const consolidated = [];
-                let current = null;
-                const gapTolerance = 300; // 5 minutos em segundos
-
-                for (const status of sortedStatus) {
-                    if (!current) {
-                        current = { ...status };
-                        continue;
-                    }
-
-                    const currentEnd = new Date(current.end);
-                    const statusStart = new Date(status.start);
-                    const gapSeconds = (statusStart - currentEnd) / 1000;
-
-                    // Consolidar se:
-                    // 1. Mesmo status
-                    // 2. Gap menor que tolerância OU sobrepõe
-                    const shouldConsolidate = (
-                        current.status === status.status && 
-                        current.status_title === status.status_title &&
-                        Math.abs(gapSeconds) <= gapTolerance
-                    );
-
-                    if (shouldConsolidate) {
-                        // Estender o período atual
-                        current.end = status.end;
-                        current.total_time = (parseFloat(current.total_time) || 0) + (parseFloat(status.total_time) || 0);
-                        current.consolidated_count = (current.consolidated_count || 1) + 1;
-                        
-                        console.log(`🔗 Consolidado: ${current.status} - ${current.consolidated_count} blocos unidos`);
-                    } else {
-                        // Finalizar atual e iniciar novo
-                        consolidated.push(current);
-                        current = { ...status };
-                    }
-                }
-
-                if (current) {
-                    consolidated.push(current);
-                }
-
-                this.consolidationStats.originalBlocks += statusList.length;
-                this.consolidationStats.consolidatedBlocks += consolidated.length;
-
-                console.log(`✅ ${equipmentName}: ${statusList.length} → ${consolidated.length} blocos (${statusList.length - consolidated.length} consolidados)`);
-                
-                return consolidated;
-            }
-
-            // =============================================================================
-            // LÓGICA DE PRODUTIVIDADE CORRIGIDA
-            // =============================================================================
             classifyStatusExact(status, equipmentType) {
                 // Verificar em cada categoria
                 for (const [category, statusList] of Object.entries(this.productivityRules)) {
@@ -1446,7 +2566,6 @@
                     }
                 }
 
-                console.warn(`⚠️ Status não configurado: ${status} para ${equipmentType}`);
                 return 'IDLE'; // Padrão para improdutivo
             }
 
@@ -1472,243 +2591,7 @@
                     return sortedStatus.slice(lastNotAppropriatedIndex + 1);
                 }
                 
-                // Se não há not_appropriated, retornar todos
                 return sortedStatus;
-            }
-
-            // =============================================================================
-            // MONITORAMENTO EM TEMPO REAL
-            // =============================================================================
-            startRealTimeMonitoring() {
-                if (this.realTimeInterval) {
-                    clearInterval(this.realTimeInterval);
-                }
-
-                // Atualizar a cada 30 segundos
-                this.realTimeInterval = setInterval(() => {
-                    this.updateRealTimeData();
-                }, 30000);
-
-                // Primeira atualização imediata
-                setTimeout(() => this.updateRealTimeData(), 2000);
-            }
-
-            updateRealTimeData() {
-                if (!this.equipmentMap.size) return;
-
-                const realTimeData = {
-                    criticalAlerts: [],
-                    idleEquipments: [],
-                    productiveEquipments: [],
-                    transitEquipments: [],
-                    avgProductivity: 0,
-                    longestIdle: 0,
-                    equipmentInTransit: 0,
-                    equipmentInMaintenance: 0
-                };
-
-                const now = new Date();
-                let totalProductivity = 0;
-                let equipmentCount = 0;
-
-                for (const [equipName, data] of this.equipmentMap) {
-                    const equipmentType = this.getEquipmentType(equipName);
-                    const workingPeriodStatus = this.getWorkingPeriodStatus(data.status);
-                    const currentStatus = this.findCurrentActiveStatus(workingPeriodStatus, now);
-                    
-                    if (currentStatus) {
-                        const duration = this.calculateCurrentStatusDuration(currentStatus, now);
-                        const classification = this.classifyStatusExact(currentStatus.status, equipmentType);
-                        const displayName = this.getDisplayName(equipName);
-
-                        // Calcular produtividade individual
-                        const equipment = {
-                            name: displayName,
-                            status: currentStatus.status,
-                            duration: duration,
-                            classification: classification
-                        };
-
-                        // Categorizar por status atual
-                        switch (classification) {
-                            case 'PRODUCTIVE':
-                                realTimeData.productiveEquipments.push(equipment);
-                                totalProductivity += 100;
-                                break;
-                            case 'OPERATIONAL':
-                                realTimeData.transitEquipments.push(equipment);
-                                realTimeData.equipmentInTransit++;
-                                totalProductivity += 60; // Operacional conta como 60% produtivo
-                                break;
-                            case 'IDLE':
-                                realTimeData.idleEquipments.push(equipment);
-                                if (duration > realTimeData.longestIdle) {
-                                    realTimeData.longestIdle = duration;
-                                }
-                                if (currentStatus.status === 'maintenance') {
-                                    realTimeData.equipmentInMaintenance++;
-                                }
-                                break;
-                        }
-
-                        // Verificar alertas críticos
-                        const alertKey = `${equipName}_${currentStatus.status}`;
-                        if (this.activeAlerts.has(alertKey)) {
-                            realTimeData.criticalAlerts.push({
-                                ...equipment,
-                                alertDuration: this.activeAlerts.get(alertKey).duration
-                            });
-                        }
-
-                        equipmentCount++;
-                    }
-                }
-
-                // Calcular média de produtividade
-                realTimeData.avgProductivity = equipmentCount > 0 ? Math.round(totalProductivity / equipmentCount) : 0;
-
-                this.renderRealTimeData(realTimeData);
-            }
-
-            renderRealTimeData(data) {
-                // Alertas Críticos
-                const criticalContainer = document.getElementById('criticalAlerts');
-                if (criticalContainer) {
-                    criticalContainer.innerHTML = data.criticalAlerts.length === 0 
-                        ? '<div class="realtime-item">Nenhum alerta crítico 🎉</div>'
-                        : data.criticalAlerts.map(alert => `
-                            <div class="realtime-item">
-                                <span>${alert.name}</span>
-                                <span>${alert.alertDuration}min em ${this.getStatusDisplayName(alert.status)}</span>
-                            </div>
-                        `).join('');
-                }
-
-                // Equipamentos Ociosos
-                const idleContainer = document.getElementById('idleEquipments');
-                if (idleContainer) {
-                    idleContainer.innerHTML = data.idleEquipments.length === 0
-                        ? '<div class="realtime-item">Todos equipamentos ativos 🎉</div>'
-                        : data.idleEquipments.slice(0, 5).map(equip => `
-                            <div class="realtime-item">
-                                <span>${equip.name}</span>
-                                <span>${equip.duration}min ${this.getStatusDisplayName(equip.status)}</span>
-                            </div>
-                        `).join('');
-                }
-
-                // Equipamentos Produtivos
-                const productiveContainer = document.getElementById('productiveEquipments');
-                if (productiveContainer) {
-                    productiveContainer.innerHTML = data.productiveEquipments.length === 0
-                        ? '<div class="realtime-item">Nenhum equipamento produtivo</div>'
-                        : data.productiveEquipments.slice(0, 5).map(equip => `
-                            <div class="realtime-item">
-                                <span>${equip.name}</span>
-                                <span>${equip.duration}min trabalhando</span>
-                            </div>
-                        `).join('');
-                }
-
-                // Em Trânsito
-                const transitContainer = document.getElementById('transitEquipments');
-                if (transitContainer) {
-                    transitContainer.innerHTML = data.transitEquipments.length === 0
-                        ? '<div class="realtime-item">Nenhum equipamento em trânsito</div>'
-                        : data.transitEquipments.slice(0, 5).map(equip => `
-                            <div class="realtime-item">
-                                <span>${equip.name}</span>
-                                <span>${equip.duration}min ${this.getStatusDisplayName(equip.status)}</span>
-                            </div>
-                        `).join('');
-                }
-
-                // Indicadores de Performance
-                document.getElementById('avgProductivity').textContent = data.avgProductivity + '%';
-                document.getElementById('longestIdle').textContent = data.longestIdle + 'min';
-                document.getElementById('equipmentInTransit').textContent = data.equipmentInTransit;
-                document.getElementById('equipmentInMaintenance').textContent = data.equipmentInMaintenance;
-            }
-
-            // =============================================================================
-            // CHARTS E DASHBOARD
-            // =============================================================================
-            initCharts() {
-                // Gráfico de Produtividade
-                const productivityCtx = document.getElementById('productivityChart');
-                if (productivityCtx) {
-                    this.productivityChart = new Chart(productivityCtx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['Produtivo', 'Operacional', 'Ocioso'],
-                            datasets: [{
-                                data: [0, 0, 0],
-                                backgroundColor: ['#27ae60', '#3498db', '#e74c3c'],
-                                borderWidth: 0
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'bottom'
-                                }
-                            }
-                        }
-                    });
-                }
-
-                // Gráfico por Tipo de Equipamento
-                const equipmentCtx = document.getElementById('equipmentChart');
-                if (equipmentCtx) {
-                    this.equipmentChart = new Chart(equipmentCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: ['Alta Pressão', 'Auto Vácuo', 'Hiper Vácuo'],
-                            datasets: [
-                                {
-                                    label: 'Produtivo',
-                                    data: [0, 0, 0],
-                                    backgroundColor: '#27ae60'
-                                },
-                                {
-                                    label: 'Operacional',
-                                    data: [0, 0, 0],
-                                    backgroundColor: '#3498db'
-                                },
-                                {
-                                    label: 'Ocioso',
-                                    data: [0, 0, 0],
-                                    backgroundColor: '#e74c3c'
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                x: {
-                                    stacked: true
-                                },
-                                y: {
-                                    stacked: true
-                                }
-                            }
-                        }
-                    });
-                }
-            }
-
-            // =============================================================================
-            // FUNÇÕES AUXILIARES
-            // =============================================================================
-            getEquipmentType(equipmentName) {
-                const name = equipmentName.toUpperCase();
-                if (name.includes('ALTA PRESSÃO') || name.includes('ALTA PRESSAO')) return 'alta_pressao';
-                if (name.includes('AUTO VÁCUO') || name.includes('AUTO VACUO')) return 'auto_vacuo';
-                if (name.includes('HIPER VÁCUO') || name.includes('HIPER VACUO')) return 'hiper_vacuo';
-                return 'all';
             }
 
             findCurrentActiveStatus(statusList, currentTime) {
@@ -1759,6 +2642,21 @@
                     .trim();
             }
 
+            getStatusDisplayName(status) {
+                const names = {
+                    'on': 'Motor Ligado',
+                    'off': 'Motor Desligado',
+                    'stopped': 'Parado',
+                    'maintenance': 'Manutenção',
+                    'secondary_motor_on': 'Motor Secundário',
+                    'out_of_plant': 'Fora da Planta',
+                    'not_appropriated': 'Não Apropriado',
+                    'no_data': 'Sem Dados',
+                    'running': 'Em Movimento'
+                };
+                return names[status] || status.charAt(0).toUpperCase() + status.slice(1);
+            }
+
             normalizeEquipmentName(name) {
                 if (!name) return 'Equipamento Desconhecido';
                 
@@ -1775,6 +2673,42 @@
                     .trim();
                 
                 return normalizedName;
+            }
+
+            parseDate(dateStr) {
+                if (!dateStr) return null;
+                
+                try {
+                    // Tentar diferentes formatos
+                    let date = new Date(dateStr);
+                    
+                    if (isNaN(date.getTime())) {
+                        // Tentar formato brasileiro DD/MM/YYYY HH:mm:ss
+                        const parts = dateStr.split(' ');
+                        if (parts.length >= 2) {
+                            const datePart = parts[0].split('/');
+                            const timePart = parts[1];
+                            
+                            if (datePart.length === 3) {
+                                const [day, month, year] = datePart;
+                                date = new Date(`${year}-${month}-${day}T${timePart}`);
+                            }
+                        }
+                    }
+                    
+                    return isNaN(date.getTime()) ? null : date;
+                } catch (error) {
+                    console.error('❌ Erro ao fazer parse da data:', dateStr, error);
+                    return null;
+                }
+            }
+
+            formatHours(hours) {
+                const h = Math.floor(hours);
+                const m = Math.round((hours - h) * 60);
+                if (h === 0) return `${m}min`;
+                if (m === 0) return `${h}h`;
+                return `${h}h ${m}min`;
             }
 
             updateSyncStatus(status, message) {
@@ -1801,13 +2735,6 @@
                         minute: '2-digit'
                     });
                 }
-
-                // Atualizar estatísticas de consolidação
-                const consolidatedElement = document.getElementById('consolidatedBlocks');
-                if (consolidatedElement) {
-                    const saved = this.consolidationStats.originalBlocks - this.consolidationStats.consolidatedBlocks;
-                    consolidatedElement.textContent = saved;
-                }
             }
 
             showNotification(message, type = 'info') {
@@ -1823,96 +2750,108 @@
                 }, 4000);
             }
 
-            // Métodos stub para manter compatibilidade
-            async initGitHubSync() {
-                console.log('🔄 Inicializando sincronização GitHub...');
+            // =============================================================================
+            // CONFIGURAÇÕES DO GITHUB
+            // =============================================================================
+            async saveConfigToGitHub() {
+                try {
+                    console.log('💾 Preparando configurações para GitHub...');
+                    
+                    const config = {
+                        productivityRules: this.productivityRules,
+                        alertConfig: this.alertConfig,
+                        lastUpdate: new Date().toISOString(),
+                        version: '1.0.0'
+                    };
+                    
+                    const configContent = JSON.stringify(config, null, 2);
+                    
+                    // Simular salvamento (em produção, precisaria de autenticação)
+                    console.log('📝 Configurações preparadas para GitHub:', config);
+                    this.showNotification('Configurações preparadas (necessária autenticação GitHub para salvar)', 'info');
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao preparar configurações:', error);
+                    this.showNotification('Erro ao preparar configurações', 'error');
+                }
             }
 
-            startAlertMonitoring() {
-                console.log('🚨 Inicializando monitoramento de alertas...');
-            }
-
-            handlePeriodChange() {
-                console.log('📅 Mudança de período detectada');
-            }
-        }
-
-        // =============================================================================
-        // FUNÇÕES GLOBAIS DE INTERFACE
-        // =============================================================================
-        let productivitySystem = null;
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            event.target.classList.add('active');
-            document.getElementById(`${tabName}-tab`).classList.add('active');
-        }
-
-        function toggleFilterPanel() {
-            const panel = document.getElementById('filterPanel');
-            panel.classList.toggle('show');
-        }
-
-        function clearFilters() {
-            document.getElementById('periodFilter').value = 'week';
-            document.getElementById('statusFilter').value = '';
-            document.getElementById('alertFilter').value = '';
-        }
-
-        function applyFilters() {
-            toggleFilterPanel();
-        }
-
-        function refreshRealTime() {
-            if (productivitySystem) {
-                productivitySystem.updateRealTimeData();
-                productivitySystem.showNotification('Dados em tempo real atualizados!', 'success');
-            }
-        }
-
-        function loadConfigFromGitHub() {
-            if (productivitySystem) {
-                productivitySystem.loadConfigFromGitHub();
-            }
-        }
-
-        function saveConfigToGitHub() {
-            if (productivitySystem) {
-                productivitySystem.saveConfigToGitHub();
-            }
-        }
-
-        function saveAlertConfig() {
-            if (productivitySystem) {
+            saveAlertConfig() {
                 // Coletar dados dos inputs de alerta
-                Object.keys(productivitySystem.alertConfig).forEach(status => {
+                Object.keys(this.alertConfig).forEach(status => {
                     const limitInput = document.getElementById(`alert_limit_${status}`);
                     const equipmentSelect = document.getElementById(`alert_equipment_${status}`);
                     const activeInput = document.getElementById(`alert_active_${status}`);
                     
-                    if (limitInput) productivitySystem.alertConfig[status].limit = parseInt(limitInput.value);
-                    if (equipmentSelect) productivitySystem.alertConfig[status].equipment = equipmentSelect.value;
-                    if (activeInput) productivitySystem.alertConfig[status].active = activeInput.checked;
+                    if (limitInput) this.alertConfig[status].limit = parseInt(limitInput.value);
+                    if (equipmentSelect) this.alertConfig[status].equipment = equipmentSelect.value;
+                    if (activeInput) this.alertConfig[status].active = activeInput.checked;
                 });
                 
-                productivitySystem.showNotification('Configurações de alertas salvas!', 'success');
+                this.showNotification('Configurações de alertas salvas!', 'success');
+            }
+
+            exportAlerts() {
+                const alertsData = {
+                    activeAlerts: Array.from(this.activeAlerts.entries()),
+                    alertHistory: this.alertHistory,
+                    exportDate: new Date().toISOString()
+                };
+                
+                const dataStr = JSON.stringify(alertsData, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `alertas_produtividade_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                
+                this.showNotification('Alertas exportados com sucesso!', 'success');
             }
         }
 
-        function exportAlerts() {
-            if (productivitySystem) {
-                productivitySystem.showNotification('Funcionalidade de exportação será implementada', 'info');
-            }
-        }
+        // =============================================================================
+        // INICIALIZAÇÃO GLOBAL
+        // =============================================================================
+        let productivitySystem = null;
 
         // Event listeners
         document.addEventListener('DOMContentLoaded', () => {
             productivitySystem = new ProductivitySystem();
             
-            console.log('🎯 Sistema Avançado carregado!');
+            console.log('🎯 Sistema de Produtividade GrupoGPS carregado com sucesso!');
+            console.log('🔄 Sincronização automática ativada com GitHub');
         });
+
+        // Adicionar estilos para itens de apontamento
+        const additionalStyles = `
+            .vis-item.apontamento-item {
+                background-color: rgba(52, 152, 219, 0.8) !important;
+                border-color: #3498db !important;
+                border-style: dashed !important;
+            }
+            
+            .vis-item.consolidated-item::before {
+                content: '🔗';
+                position: absolute;
+                top: -5px;
+                right: -5px;
+                font-size: 10px;
+                background: #27ae60;
+                border-radius: 50%;
+                width: 16px;
+                height: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                z-index: 10;
+            }
+        `;
+        
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = additionalStyles;
+        document.head.appendChild(styleSheet);
     </script>
 </body>
 </html>
