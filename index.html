@@ -108,7 +108,7 @@
             50% { opacity: 0.7; transform: scale(1.1); }
         }
 
-        /* Navigation Tabs */
+        /* Navigation Tabs - Simplificada */
         .nav-tabs {
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(20px);
@@ -571,35 +571,6 @@
             margin-top: 1rem;
         }
 
-        /* Tooltip personalizado */
-        .custom-tooltip {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 12px;
-            max-width: 350px;
-            word-wrap: break-word;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            z-index: 10000;
-            pointer-events: none;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            line-height: 1.4;
-        }
-
-        .custom-tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            margin-left: -5px;
-            border-width: 5px;
-            border-style: solid;
-            border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
-        }
-
         /* Seção de configurações expandida */
         .config-section {
             background: rgba(255, 255, 255, 0.8);
@@ -659,17 +630,11 @@
             </div>
         </header>
 
-        <!-- Navigation Tabs -->
+        <!-- Navigation Tabs - Apenas Timeline e Configurações -->
         <nav class="nav-tabs">
             <div class="nav-tabs-container">
                 <div class="nav-tab active" onclick="switchTab('timeline')">
                     <span>📊 Timeline</span>
-                </div>
-                <div class="nav-tab" onclick="switchTab('alerts')">
-                    <span>🚨 Alertas</span>
-                </div>
-                <div class="nav-tab" onclick="switchTab('reports')">
-                    <span>📈 Relatórios</span>
                 </div>
                 <div class="nav-tab" onclick="switchTab('settings')">
                     <span>⚙️ Configurações</span>
@@ -730,55 +695,7 @@
                     <div id="timeline">
                         <div class="loading-state">
                             <div class="loading-spinner"></div>
-                            <div>Carregue os dados CSV e JSON para visualizar a timeline</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Alertas Tab -->
-            <div id="alerts-tab" class="tab-content">
-                <div class="glass-panel">
-                    <div style="padding: 2rem;">
-                        <h2 style="margin-bottom: 2rem; color: #2c3e50; display: flex; align-items: center; gap: 0.5rem;">
-                            🚨 Sistema de Alertas
-                        </h2>
-                        
-                        <div style="text-align: center; color: #7f8c8d; padding: 4rem 2rem;">
-                            <div style="font-size: 3rem; margin-bottom: 1rem;">🔔</div>
-                            <h3 style="margin-bottom: 1rem; color: #5a6c7d;">Sistema de Alertas em Desenvolvimento</h3>
-                            <p>Os alertas serão carregados dinamicamente do GitHub quando disponíveis.</p>
-                            
-                            <div style="margin-top: 2rem;">
-                                <button class="btn" onclick="loadAlertsPage()">
-                                    <span>🔄</span>
-                                    Verificar Alertas
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Relatórios Tab -->
-            <div id="reports-tab" class="tab-content">
-                <div class="glass-panel">
-                    <div style="padding: 2rem;">
-                        <h2 style="margin-bottom: 2rem; color: #2c3e50; display: flex; align-items: center; gap: 0.5rem;">
-                            📈 Relatórios e Análises
-                        </h2>
-                        
-                        <div style="text-align: center; color: #7f8c8d; padding: 4rem 2rem;">
-                            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
-                            <h3 style="margin-bottom: 1rem; color: #5a6c7d;">Relatórios em Desenvolvimento</h3>
-                            <p>Os relatórios serão carregados dinamicamente do GitHub quando disponíveis.</p>
-                            
-                            <div style="margin-top: 2rem;">
-                                <button class="btn" onclick="loadReportsPage()">
-                                    <span>🔄</span>
-                                    Verificar Relatórios
-                                </button>
-                            </div>
+                            <div>Carregando dados do GitHub...</div>
                         </div>
                     </div>
                 </div>
@@ -866,14 +783,14 @@
                     <div class="config-grid">
                         <div>
                             <h4 style="color: #5a6c7d; margin-bottom: 1rem;">📊 CSV (Apontamentos)</h4>
-                            <p style="color: #7f8c8d;">GrupoGps-Mecanizada/Apontamento-Dos-Tablets</p>
-                            <p style="font-size: 0.9rem; color: #95a5a6;">data/apontamentos-atuais.csv</p>
+                            <p style="color: #7f8c8d;">Banco-De-Dados/Apontamentos</p>
+                            <p style="font-size: 0.9rem; color: #95a5a6;">apontamentos-atuais.csv</p>
                         </div>
                         
                         <div>
                             <h4 style="color: #5a6c7d; margin-bottom: 1rem;">🔄 JSON (Status)</h4>
-                            <p style="color: #7f8c8d;">GrupoGps-Mecanizada/Controle-Status-Equipamentos-</p>
-                            <p style="font-size: 0.9rem; color: #95a5a6;">data/latest-fleet-data.json</p>
+                            <p style="color: #7f8c8d;">Banco-De-Dados/Timeline</p>
+                            <p style="font-size: 0.9rem; color: #95a5a6;">latest-fleet-data.json</p>
                         </div>
                         
                         <div>
@@ -896,7 +813,7 @@
                         </div>
                         
                         <div>
-                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">🔍 Log de Resolução de Conflitos</h4>
+                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">🔍 Log de Sistema</h4>
                             <div id="debugLog" class="debug-panel">
                                 Sistema inicializando...
                             </div>
@@ -921,987 +838,291 @@
 
     <script>
         // =============================================================================
-        // CLASSE PRINCIPAL - VERSÃO OTIMIZADA E CORRIGIDA
+        // CONFIGURAÇÃO CENTRALIZADA
         // =============================================================================
-        class ProductivityMonitoringSystem {
+        const APP_CONFIG = {
+            // URLs dos repositórios - ATUALIZADOS
+            repositories: {
+                csv: {
+                    owner: 'GrupoGps-Mecanizada',
+                    repo: 'Banco-De-Dados',
+                    path: 'Apontamentos/apontamentos-atuais.csv',
+                    apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Banco-De-Dados/contents/Apontamentos/apontamentos-atuais.csv'
+                },
+                json: {
+                    owner: 'GrupoGps-Mecanizada',
+                    repo: 'Banco-De-Dados',
+                    path: 'Timeline/latest-fleet-data.json',
+                    apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Banco-De-Dados/contents/Timeline/latest-fleet-data.json'
+                }
+            },
+            
+            // Configurações de sistema
+            system: {
+                autoSyncInterval: 600000, // 10 minutos
+                conflictResolution: 'priority',
+                gapTolerance: 60,
+                cacheTimeout: 300000, // 5 minutos
+                retryAttempts: 3,
+                retryDelay: 2000,
+                maxLogEntries: 100,
+                batchSize: 100
+            },
+            
+            // Configurações de performance
+            performance: {
+                debounceDelay: 300,
+                renderDelay: 200,
+                fitDelay: 500
+            },
+            
+            // Prioridades de status
+            statusPriority: {
+                'maintenance': 10,
+                'out_of_plant': 9,
+                'secondary_motor_on': 8,
+                'on': 7,
+                'running': 7,
+                'stopped': 6,
+                'off': 5,
+                'not_appropriated': 4,
+                'no_data': 3
+            },
+            
+            // Cores dos status
+            statusColors: {
+                'running': 'status-running',
+                'on': 'status-on',
+                'stopped': 'status-stopped',
+                'off': 'status-off',
+                'maintenance': 'status-maintenance',
+                'out_of_plant': 'status-out_of_plant',
+                'not_appropriated': 'status-not_appropriated',
+                'no_data': 'status-no_data',
+                'secondary_motor_on': 'status-secondary_motor_on'
+            },
+            
+            // Cores dos apontamentos
+            apontColors: {
+                'Abastecimento': 'apont-abastecimento',
+                'Bloqueio': 'apont-bloqueio',
+                'Descarregamento': 'apont-descarregamento',
+                'Documentação': 'apont-documentacao',
+                'Preparação': 'apont-preparacao',
+                'Pequenas manutenções': 'apont-manutencao',
+                'Manutenção': 'apont-manutencao',
+                'Refeição Motorista': 'apont-refeicao',
+                'Aguardando': 'apont-aguardando',
+                'Aguardando Área': 'apont-aguardando',
+                'Aguardando semáforo/cancela': 'apont-aguardando',
+                'Aguardando carreta bascular': 'apont-aguardando',
+                'Troca de Equipamento': 'apont-manutencao'
+            }
+        };
+
+        // =============================================================================
+        // SISTEMA DE CACHE INTELIGENTE
+        // =============================================================================
+        class CacheManager {
             constructor() {
-                this.timeline = null;
-                this.items = new vis.DataSet();
-                this.groups = new vis.DataSet();
-                this.csvData = [];
-                this.jsonData = [];
-                this.equipmentMap = new Map();
-                this.isUpdating = false;
-                this.autoSyncInterval = null;
-                this.startTime = new Date();
-                this.lastDataHash = '';
-                this.currentViewWindow = null;
-                this.debugLog = [];
-                this.processingStats = {
-                    conflictsResolved: 0,
-                    duplicatesRemoved: 0,
-                    originalRecords: 0,
-                    finalRecords: 0
-                };
-
-                // Performance optimization
-                this.batchSize = 100;
-                this.renderQueue = [];
-                this.isRendering = false;
-                this.debounceTimers = new Map();
-
-                // Hierarquia de prioridade de status (maior número = maior prioridade)
-                this.statusPriority = {
-                    'maintenance': 10,           // Manutenção tem prioridade máxima
-                    'out_of_plant': 9,          // Fora da planta
-                    'secondary_motor_on': 8,    // Motor secundário ligado
-                    'on': 7,                    // Motor ligado
-                    'running': 7,               // Motor rodando (alias para 'on')
-                    'stopped': 6,               // Parado ligado
-                    'off': 5,                   // Motor desligado
-                    'not_appropriated': 4,      // Não apropriado
-                    'no_data': 3               // Sem dados (menor prioridade)
-                };
-
-                // Configurações GitHub
-                this.githubConfig = {
-                    csvRepo: {
-                        owner: 'GrupoGps-Mecanizada',
-                        repo: 'Apontamento-Dos-Tablets',
-                        path: 'data/apontamentos-atuais.csv',
-                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Apontamento-Dos-Tablets/contents/data/apontamentos-atuais.csv',
-                        enabled: true
-                    },
-                    jsonRepo: {
-                        owner: 'GrupoGps-Mecanizada',
-                        repo: 'Controle-Status-Equipamentos-',
-                        path: 'data/latest-fleet-data.json',
-                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Controle-Status-Equipamentos-/contents/data/latest-fleet-data.json',
-                        enabled: true
-                    },
-                    alertsRepo: {
-                        owner: 'GrupoGps-Mecanizada',
-                        repo: 'Monitoramento-De-Produtividade',
-                        path: 'alerts.html',
-                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Monitoramento-De-Produtividade/contents/alerts.html'
-                    },
-                    reportsRepo: {
-                        owner: 'GrupoGps-Mecanizada', 
-                        repo: 'Productivity-Reports',
-                        path: 'reports.html',
-                        apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Productivity-Reports/contents/reports.html'
-                    }
-                };
-
-                // Configurações - padrão 10 minutos
-                this.config = {
-                    autoSyncInterval: 600000, // 10 minutos
-                    conflictResolution: 'priority', // priority, latest, longest
-                    gapTolerance: 60, // segundos
-                    retryAttempts: 3,
-                    retryDelay: 2000
-                };
-
-                // Mapeamento de cores baseado na imagem fornecida
-                this.statusColors = {
-                    'running': 'status-running',           
-                    'on': 'status-on',                     
-                    'stopped': 'status-stopped',           
-                    'off': 'status-off',                   
-                    'maintenance': 'status-maintenance',   
-                    'out_of_plant': 'status-out_of_plant', 
-                    'not_appropriated': 'status-not_appropriated', 
-                    'no_data': 'status-no_data',           
-                    'secondary_motor_on': 'status-secondary_motor_on' 
-                };
-
-                this.apontColors = {
-                    'Abastecimento': 'apont-abastecimento',
-                    'Bloqueio': 'apont-bloqueio',
-                    'Descarregamento': 'apont-descarregamento',
-                    'Documentação': 'apont-documentacao',
-                    'Preparação': 'apont-preparacao',
-                    'Pequenas manutenções': 'apont-manutencao',
-                    'Manutenção': 'apont-manutencao',
-                    'Refeição Motorista': 'apont-refeicao',
-                    'Aguardando': 'apont-aguardando',
-                    'Aguardando Área': 'apont-aguardando',
-                    'Aguardando semáforo/cancela': 'apont-aguardando',
-                    'Aguardando carreta bascular': 'apont-aguardando',
-                    'Troca de Equipamento': 'apont-manutencao'
-                };
-
-                this.initSystem();
+                this.cache = new Map();
+                this.timestamps = new Map();
             }
 
-            // =============================================================================
-            // INICIALIZAÇÃO DO SISTEMA
-            // =============================================================================
-            async initSystem() {
-                console.log('🚀 Iniciando Monitoramento De Produtividade - GrupoGPS');
-                this.updateSyncStatus('loading', 'Inicializando sistema...');
-                this.addDebugLog('Sistema inicializado');
-                
-                this.setupEventListeners();
-                this.updateSystemInfo();
-                this.updateLastUpdateTime(); // Mostrar horário inicial
-                await this.initGitHubSync();
+            set(key, data, ttl = APP_CONFIG.system.cacheTimeout) {
+                this.cache.set(key, data);
+                this.timestamps.set(key, Date.now() + ttl);
+                this.log(`Cache SET: ${key} (TTL: ${ttl}ms)`);
             }
 
-            setupEventListeners() {
-                // Filtros com debounce para otimização
-                document.getElementById('equipmentFilter').addEventListener('change', () => {
-                    this.debounceFilter('equipment', () => this.applyFilters(), 300);
-                });
+            get(key) {
+                if (!this.cache.has(key)) return null;
 
-                document.getElementById('periodFilter').addEventListener('change', () => {
-                    this.handlePeriodChange();
-                });
-
-                document.getElementById('startDate').addEventListener('change', () => {
-                    this.debounceFilter('startDate', () => this.applyFilters(), 500);
-                });
-
-                document.getElementById('endDate').addEventListener('change', () => {
-                    this.debounceFilter('endDate', () => this.applyFilters(), 500);
-                });
-            }
-
-            // Debounce helper para otimização
-            debounceFilter(key, callback, delay) {
-                if (this.debounceTimers.has(key)) {
-                    clearTimeout(this.debounceTimers.get(key));
+                const timestamp = this.timestamps.get(key);
+                if (Date.now() > timestamp) {
+                    this.cache.delete(key);
+                    this.timestamps.delete(key);
+                    this.log(`Cache EXPIRED: ${key}`);
+                    return null;
                 }
-                
-                this.debounceTimers.set(key, setTimeout(callback, delay));
+
+                this.log(`Cache HIT: ${key}`);
+                return this.cache.get(key);
             }
 
-            // =============================================================================
-            // SISTEMA DE DEBUG E LOG
-            // =============================================================================
-            addDebugLog(message, type = 'info') {
+            has(key) {
+                return this.get(key) !== null;
+            }
+
+            clear() {
+                this.cache.clear();
+                this.timestamps.clear();
+                this.log('Cache CLEARED');
+            }
+
+            log(message) {
+                if (window.productivitySystem) {
+                    window.productivitySystem.logger.debug(`[Cache] ${message}`);
+                }
+            }
+        }
+
+        // =============================================================================
+        // SISTEMA DE LOG MELHORADO
+        // =============================================================================
+        class Logger {
+            constructor() {
+                this.logs = [];
+                this.levels = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
+                this.currentLevel = this.levels.INFO;
+            }
+
+            debug(message) { this.log('DEBUG', message); }
+            info(message) { this.log('INFO', message); }
+            warn(message) { this.log('WARN', message); }
+            error(message) { this.log('ERROR', message); }
+
+            log(level, message) {
+                if (this.levels[level] < this.currentLevel) return;
+
                 const timestamp = new Date().toLocaleTimeString();
-                const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
-                this.debugLog.push(logEntry);
-                
-                // Manter apenas os últimos 100 logs
-                if (this.debugLog.length > 100) {
-                    this.debugLog.shift();
+                const logEntry = {
+                    timestamp,
+                    level,
+                    message,
+                    fullMessage: `[${timestamp}] ${level}: ${message}`
+                };
+
+                this.logs.push(logEntry);
+                console.log(logEntry.fullMessage);
+
+                // Manter apenas os últimos logs
+                if (this.logs.length > APP_CONFIG.system.maxLogEntries) {
+                    this.logs.shift();
                 }
-                
+
                 this.updateDebugPanel();
-                console.log(logEntry);
             }
 
             updateDebugPanel() {
                 const debugLogElement = document.getElementById('debugLog');
                 if (debugLogElement) {
-                    debugLogElement.innerHTML = this.debugLog.slice(-20).join('\n');
+                    const recentLogs = this.logs.slice(-20).map(log => log.fullMessage);
+                    debugLogElement.innerHTML = recentLogs.join('\n');
                     debugLogElement.scrollTop = debugLogElement.scrollHeight;
                 }
+            }
 
-                const debugStatsElement = document.getElementById('debugStats');
-                if (debugStatsElement) {
-                    debugStatsElement.innerHTML = `
-                        Registros Originais: ${this.processingStats.originalRecords}<br>
-                        Registros Finais: ${this.processingStats.finalRecords}<br>
-                        Conflitos Resolvidos: ${this.processingStats.conflictsResolved}<br>
-                        Duplicatas Removidas: ${this.processingStats.duplicatesRemoved}<br>
-                        Taxa de Limpeza: ${this.processingStats.originalRecords > 0 ? 
-                            ((this.processingStats.originalRecords - this.processingStats.finalRecords) / this.processingStats.originalRecords * 100).toFixed(1) : 0}%
-                    `;
+            getLogs() {
+                return this.logs;
+            }
+
+            exportLogs() {
+                return {
+                    logs: this.logs,
+                    exportedAt: new Date().toISOString(),
+                    totalLogs: this.logs.length
+                };
+            }
+        }
+
+        // =============================================================================
+        // GERENCIADOR DE DADOS
+        // =============================================================================
+        class DataManager {
+            constructor(cache, logger) {
+                this.cache = cache;
+                this.logger = logger;
+                this.isLoading = false;
+                this.lastHashes = new Map();
+            }
+
+            async fetchFromGitHub(type) {
+                const config = APP_CONFIG.repositories[type];
+                const cacheKey = `github_${type}`;
+
+                // Verificar cache primeiro
+                if (this.cache.has(cacheKey)) {
+                    this.logger.info(`Usando dados em cache para ${type}`);
+                    return { success: true, data: this.cache.get(cacheKey), fromCache: true };
                 }
-            }
 
-            // =============================================================================
-            // SINCRONIZAÇÃO COM GITHUB
-            // =============================================================================
-            async initGitHubSync() {
-                console.log('🔄 Iniciando sincronização automática GitHub...');
-                await this.syncFromGitHub();
-                this.startGitHubAutoSync();
-            }
-
-            async syncFromGitHub() {
-                if (this.isUpdating) return;
-
-                this.isUpdating = true;
-                this.updateSyncStatus('loading', 'Sincronizando dados...');
-                this.addDebugLog('Iniciando sincronização com GitHub');
+                this.logger.info(`Buscando ${type} de ${config.owner}/${config.repo}...`);
 
                 try {
-                    // Salvar janela de visualização atual se existir
-                    if (this.timeline) {
-                        this.currentViewWindow = this.timeline.getWindow();
+                    const response = await this.fetchWithRetry(config.apiUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
 
-                    const [csvResult, jsonResult] = await Promise.allSettled([
-                        this.fetchCSVFromGitHub(),
-                        this.fetchJSONFromGitHub()
-                    ]);
+                    const apiData = await response.json();
+                    
+                    if (apiData.type !== 'file') {
+                        throw new Error('Não é um arquivo válido');
+                    }
 
-                    let successCount = 0;
-                    let newDataDetected = false;
+                    let content = atob(apiData.content.replace(/\n/g, ''));
+                    
+                    // Tentar decodificar UTF-8
+                    try {
+                        content = decodeURIComponent(escape(content));
+                    } catch (error) {
+                        this.logger.warn('Mantendo conteúdo original - falha na decodificação UTF-8');
+                    }
 
-                    if (csvResult.status === 'fulfilled' && csvResult.value.success) {
-                        const newCsvData = csvResult.value.data;
-                        if (JSON.stringify(newCsvData) !== JSON.stringify(this.csvData)) {
-                            this.csvData = newCsvData;
-                            newDataDetected = true;
-                            this.addDebugLog(`CSV atualizado: ${this.csvData.length} registros`);
-                        }
-                        successCount++;
-                        console.log(`✅ CSV: ${this.csvData.length} registros`);
+                    let parsedData;
+                    if (type === 'csv') {
+                        parsedData = this.parseCSV(content);
                     } else {
-                        this.addDebugLog(`Erro no CSV: ${csvResult.reason || 'Falha na requisição'}`, 'error');
+                        const jsonData = JSON.parse(content);
+                        parsedData = jsonData.records || jsonData;
                     }
 
-                    if (jsonResult.status === 'fulfilled' && jsonResult.value.success) {
-                        const newJsonData = jsonResult.value.data;
-                        const newDataHash = this.generateDataHash(newJsonData);
-                        
-                        if (newDataHash !== this.lastDataHash) {
-                            this.jsonData = newJsonData;
-                            this.lastDataHash = newDataHash;
-                            newDataDetected = true;
-                            this.addDebugLog(`JSON atualizado: ${this.jsonData.length} registros`);
-                        }
-                        successCount++;
-                        console.log(`✅ JSON: ${this.jsonData.length} registros`);
-                    } else {
-                        this.addDebugLog(`Erro no JSON: ${jsonResult.reason || 'Falha na requisição'}`, 'error');
+                    if (!Array.isArray(parsedData)) {
+                        throw new Error('Dados não estão em formato de array');
                     }
 
-                    if (successCount > 0) {
-                        if (newDataDetected) {
-                            await this.processDataWithConflictResolution();
-                            this.showNotification('✅ Dados atualizados com sucesso', 'success');
-                            this.addDebugLog('Processamento de dados concluído');
-                            
-                            // Forçar inicialização da timeline após processamento
-                            setTimeout(() => {
-                                if (this.items.length > 0 && !this.timeline) {
-                                    this.addDebugLog('Forçando inicialização da timeline...', 'warning');
-                                    this.initTimeline();
-                                    setTimeout(() => {
-                                        if (this.timeline) {
-                                            this.handlePeriodChange();
-                                            this.applyFilters();
-                                        }
-                                    }, 500);
-                                }
-                            }, 300);
-                        } else {
-                            this.addDebugLog('Nenhum dado novo detectado');
-                        }
-                        
-                        this.updateSyncStatus('success', 'Dados sincronizados');
-                        this.updateLastUpdateTime(); // Atualizar horário no header
-                    } else {
-                        this.updateSyncStatus('error', 'Falha na sincronização');
-                        this.showNotification('❌ Erro na sincronização', 'error');
-                        this.addDebugLog('Falha na sincronização', 'error');
-                    }
+                    // Verificar se os dados mudaram
+                    const dataHash = this.generateHash(parsedData);
+                    const hasChanged = this.lastHashes.get(type) !== dataHash;
+                    this.lastHashes.set(type, dataHash);
 
-                } catch (error) {
-                    console.error('❌ Erro na sincronização:', error);
-                    this.updateSyncStatus('error', 'Erro na sincronização');
-                    this.showNotification('❌ Erro na sincronização: ' + error.message, 'error');
-                    this.addDebugLog(`Erro na sincronização: ${error.message}`, 'error');
-                } finally {
-                    this.isUpdating = false;
-                }
-            }
+                    // Cache dos dados
+                    this.cache.set(cacheKey, parsedData);
 
-            // =============================================================================
-            // PROCESSAMENTO COM RESOLUÇÃO DE CONFLITOS (SEM ALTERAÇÕES)
-            // =============================================================================
-            async processDataWithConflictResolution() {
-                if (this.csvData.length === 0 && this.jsonData.length === 0) {
-                    return;
-                }
-
-                this.addDebugLog('Iniciando processamento com resolução de conflitos');
-                
-                // Reset stats
-                this.processingStats = {
-                    conflictsResolved: 0,
-                    duplicatesRemoved: 0,
-                    originalRecords: this.jsonData.length,
-                    finalRecords: 0
-                };
-
-                // Limpar dados anteriores
-                this.equipmentMap.clear();
-                this.items.clear();
-                this.groups.clear();
-
-                // Processar dados
-                this.unifyEquipmentData();
-                this.createGroups();
-                this.createTimelineItemsWithConflictResolution();
-
-                // Inicializar ou atualizar timeline com garantia de rendering
-                await this.ensureTimelineInitialization();
-
-                this.updateInterface();
-                this.addDebugLog(`Processamento concluído: ${this.processingStats.finalRecords} registros finais`);
-            }
-
-            // Nova função para garantir inicialização da timeline com retry
-            async ensureTimelineInitialization() {
-                return new Promise((resolve) => {
-                    if (this.items.length === 0) {
-                        this.addDebugLog('Nenhum item para exibir na timeline', 'warning');
-                        resolve();
-                        return;
-                    }
-
-                    const attemptInitialization = (attempt = 1) => {
-                        if (this.timeline) {
-                            // Timeline já existe, atualizar e forçar renderização
-                            this.updateTimelineSmartly();
-                            this.forceTimelineRender();
-                            setTimeout(resolve, 200);
-                        } else {
-                            // Timeline não existe, inicializar
-                            this.initTimeline();
-                            setTimeout(() => {
-                                if (this.timeline) {
-                                    this.addDebugLog(`Timeline inicializada com sucesso (tentativa ${attempt})`);
-                                    this.forceTimelineRender();
-                                    // Aplicar período padrão
-                                    setTimeout(() => {
-                                        this.handlePeriodChange();
-                                        resolve();
-                                    }, 300);
-                                } else if (attempt < 3) {
-                                    this.addDebugLog(`Tentativa ${attempt} falhou, tentando novamente...`, 'warning');
-                                    setTimeout(() => attemptInitialization(attempt + 1), 500);
-                                } else {
-                                    this.addDebugLog('Falha ao inicializar timeline após 3 tentativas', 'error');
-                                    resolve();
-                                }
-                            }, 400);
-                        }
+                    this.logger.info(`${type.toUpperCase()} carregado: ${parsedData.length} registros ${hasChanged ? '(NOVOS)' : '(SEM MUDANÇAS)'}`);
+                    
+                    return { 
+                        success: true, 
+                        data: parsedData, 
+                        hasChanged,
+                        fromCache: false 
                     };
 
-                    attemptInitialization();
-                });
-            }
-
-            // Nova função para forçar renderização da timeline
-            forceTimelineRender() {
-                if (!this.timeline) return;
-
-                try {
-                    // Forçar redraw da timeline
-                    this.timeline.redraw();
-                    
-                    // Garantir que os dados estão carregados
-                    const itemsCount = this.items.length;
-                    const groupsCount = this.groups.length;
-                    
-                    this.addDebugLog(`Forçando render: ${itemsCount} itens, ${groupsCount} grupos`);
-                    
-                    // Se ainda não tem dados visíveis, forçar fit
-                    if (itemsCount > 0) {
-                        setTimeout(() => {
-                            if (this.timeline) {
-                                this.timeline.fit();
-                                this.addDebugLog('Timeline forçada a exibir dados');
-                            }
-                        }, 100);
-                    }
                 } catch (error) {
-                    this.addDebugLog(`Erro ao forçar render: ${error.message}`, 'error');
+                    this.logger.error(`Erro ao buscar ${type}: ${error.message}`);
+                    return { success: false, data: [], error: error.message, hasChanged: false };
                 }
             }
 
-            // FUNÇÃO PRINCIPAL DE RESOLUÇÃO DE CONFLITOS (MANTIDA INTACTA)
-            resolveStatusConflicts(statusList, equipmentName) {
-                if (!statusList || statusList.length === 0) return [];
-
-                this.addDebugLog(`Resolvendo conflitos para ${equipmentName}: ${statusList.length} registros originais`);
-
-                // 1. Remover duplicatas exatas
-                const uniqueStatus = this.removeDuplicates(statusList);
-                const duplicatesRemoved = statusList.length - uniqueStatus.length;
-                this.processingStats.duplicatesRemoved += duplicatesRemoved;
-                
-                if (duplicatesRemoved > 0) {
-                    this.addDebugLog(`Removidas ${duplicatesRemoved} duplicatas de ${equipmentName}`);
-                }
-
-                // 2. Ordenar por tempo de início
-                const sortedStatus = uniqueStatus.sort((a, b) => 
-                    new Date(a.start) - new Date(b.start)
-                );
-
-                // 3. Detectar e resolver sobreposições
-                const resolvedStatus = this.resolveOverlaps(sortedStatus, equipmentName);
-
-                // 4. Consolidar períodos consecutivos do mesmo status
-                const consolidatedStatus = this.consolidateConsecutive(resolvedStatus, equipmentName);
-
-                // 5. Preencher gaps pequenos
-                const finalStatus = this.fillSmallGaps(consolidatedStatus, equipmentName);
-
-                this.processingStats.finalRecords += finalStatus.length;
-                
-                this.addDebugLog(`${equipmentName}: ${statusList.length} → ${finalStatus.length} registros`);
-                
-                return finalStatus;
-            }
-
-            // Remover duplicatas exatas
-            removeDuplicates(statusList) {
-                const seen = new Set();
-                return statusList.filter(status => {
-                    const key = `${status.start}-${status.end}-${status.status}-${status.vacancy_code}`;
-                    if (seen.has(key)) {
-                        return false;
-                    }
-                    seen.add(key);
-                    return true;
-                });
-            }
-
-            // Resolver sobreposições baseado em prioridade
-            resolveOverlaps(statusList, equipmentName) {
-                if (statusList.length <= 1) return statusList;
-
-                const resolved = [];
-                let current = null;
-
-                for (const status of statusList) {
-                    if (!current) {
-                        current = { ...status };
-                        continue;
-                    }
-
-                    const currentEnd = new Date(current.end);
-                    const statusStart = new Date(status.start);
-                    const statusEnd = new Date(status.end);
-
-                    // Verificar se há sobreposição
-                    if (statusStart < currentEnd) {
-                        this.processingStats.conflictsResolved++;
-                        this.addDebugLog(`Conflito detectado em ${equipmentName}: ${current.status} vs ${status.status}`);
-
-                        // Resolver conflito baseado na configuração
-                        const resolution = this.resolveConflict(current, status);
+            async fetchWithRetry(url, attempts = APP_CONFIG.system.retryAttempts) {
+                for (let i = 0; i < attempts; i++) {
+                    try {
+                        const response = await fetch(url);
+                        if (response.ok) return response;
                         
-                        if (resolution.action === 'replace') {
-                            // Substituir completamente
-                            current = { ...status };
-                            this.addDebugLog(`Resolvido: ${status.status} substituiu ${current.status}`);
-                        } else if (resolution.action === 'split') {
-                            // Dividir o período
-                            if (resolution.beforeWinner) {
-                                // Manter o primeiro até o início do segundo
-                                current.end = status.start;
-                                resolved.push(current);
-                                current = { ...status };
-                            } else {
-                                // Ajustar o primeiro e manter o segundo
-                                current.end = status.start;
-                                if (new Date(current.start) < new Date(current.end)) {
-                                    resolved.push(current);
-                                }
-                                current = { ...status };
-                            }
-                            this.addDebugLog(`Resolvido: Período dividido entre ${current.status} e ${status.status}`);
-                        } else if (resolution.action === 'merge') {
-                            // Estender o período do vencedor
-                            if (resolution.winner === 'current') {
-                                current.end = statusEnd > currentEnd ? status.end : current.end;
-                            } else {
-                                current = { ...status };
-                                current.start = current.start < status.start ? current.start : status.start;
-                            }
-                            this.addDebugLog(`Resolvido: Períodos mesclados em ${current.status}`);
-                        }
-                    } else {
-                        // Sem sobreposição, adicionar o atual e continuar com o próximo
-                        resolved.push(current);
-                        current = { ...status };
-                    }
-                }
-
-                if (current) {
-                    resolved.push(current);
-                }
-
-                return resolved;
-            }
-
-            // Lógica de resolução de conflitos
-            resolveConflict(status1, status2) {
-                const priority1 = this.statusPriority[status1.status] || 0;
-                const priority2 = this.statusPriority[status2.status] || 0;
-
-                switch (this.config.conflictResolution) {
-                    case 'priority':
-                        if (priority1 > priority2) {
-                            return { action: 'merge', winner: 'current' };
-                        } else if (priority2 > priority1) {
-                            return { action: 'replace', winner: 'new' };
+                        if (i < attempts - 1) {
+                            this.logger.warn(`Tentativa ${i + 1} falhou, tentando novamente em ${APP_CONFIG.system.retryDelay}ms...`);
+                            await this.delay(APP_CONFIG.system.retryDelay * (i + 1));
                         } else {
-                            // Mesma prioridade, usar o mais recente
-                            return { action: 'replace', winner: 'new' };
+                            throw new Error(`Falha após ${attempts} tentativas`);
                         }
-                    
-                    case 'latest':
-                        // Sempre usar o mais recente
-                        return { action: 'replace', winner: 'new' };
-                    
-                    case 'longest':
-                        // Usar o de maior duração
-                        const duration1 = new Date(status1.end) - new Date(status1.start);
-                        const duration2 = new Date(status2.end) - new Date(status2.start);
-                        
-                        if (duration1 > duration2) {
-                            return { action: 'merge', winner: 'current' };
-                        } else {
-                            return { action: 'replace', winner: 'new' };
-                        }
-                    
-                    default:
-                        return { action: 'split', beforeWinner: false };
-                }
-            }
-
-            // Consolidar períodos consecutivos do mesmo status
-            consolidateConsecutive(statusList, equipmentName) {
-                if (statusList.length <= 1) return statusList;
-
-                const consolidated = [];
-                let current = null;
-
-                for (const status of statusList) {
-                    if (!current) {
-                        current = { ...status };
-                        continue;
-                    }
-
-                    const currentEnd = new Date(current.end);
-                    const statusStart = new Date(status.start);
-                    const gapSeconds = (statusStart - currentEnd) / 1000;
-
-                    // Se mesmo status e gap pequeno, consolidar
-                    if (current.status === status.status && 
-                        current.status_title === status.status_title && 
-                        Math.abs(gapSeconds) <= this.config.gapTolerance) {
-                        
-                        // Estender período
-                        current.end = status.end;
-                        current.total_time = (parseFloat(current.total_time) || 0) + (parseFloat(status.total_time) || 0);
-                        current.consolidated_count = (current.consolidated_count || 1) + 1;
-                    } else {
-                        // Status diferente ou gap muito grande
-                        consolidated.push(current);
-                        current = { ...status };
-                    }
-                }
-
-                if (current) {
-                    consolidated.push(current);
-                }
-
-                return consolidated;
-            }
-
-            // Preencher gaps pequenos entre status
-            fillSmallGaps(statusList, equipmentName) {
-                if (statusList.length <= 1) return statusList;
-
-                const filled = [];
-                
-                for (let i = 0; i < statusList.length; i++) {
-                    filled.push(statusList[i]);
-                    
-                    // Verificar gap para o próximo status
-                    if (i < statusList.length - 1) {
-                        const currentEnd = new Date(statusList[i].end);
-                        const nextStart = new Date(statusList[i + 1].start);
-                        const gapSeconds = (nextStart - currentEnd) / 1000;
-                        
-                        // Se gap pequeno (menor que tolerância), preencher com status 'off'
-                        if (gapSeconds > 0 && gapSeconds <= this.config.gapTolerance) {
-                            filled.push({
-                                ...statusList[i],
-                                status: 'off',
-                                status_title: 'Motor Desligado',
-                                start: statusList[i].end,
-                                end: statusList[i + 1].start,
-                                total_time: gapSeconds / 3600,
-                                gap_filled: true
-                            });
-                            this.addDebugLog(`Gap preenchido em ${equipmentName}: ${gapSeconds}s`);
-                        }
-                    }
-                }
-
-                return filled;
-            }
-
-            createTimelineItemsWithConflictResolution() {
-                let itemId = 0;
-
-                for (const [equipName, data] of this.equipmentMap) {
-                    // Processar apontamentos (sem mudanças, pois são eventos únicos)
-                    data.apontamentos.forEach(apont => {
-                        const start = this.parseDate(apont['Data Inicial']);
-                        const end = this.parseDate(apont['Data Final']);
-                        
-                        if (start && end && start < end) {
-                            const category = apont['Categoria Demora'] || 'Outros';
-                            const className = this.apontColors[category] || 'apont-aguardando';
-                            
-                            this.items.add({
-                                id: `apont_${itemId++}`,
-                                group: `${equipName}_apont`,
-                                content: this.truncateText(category, 20),
-                                start: start,
-                                end: end,
-                                className: className,
-                                title: this.createApontTooltip(apont, equipName),
-                                type: 'range'
-                            });
-                        }
-                    });
-
-                    // Processar status COM resolução de conflitos
-                    if (data.status.length > 0) {
-                        const resolvedStatus = this.resolveStatusConflicts(data.status, equipName);
-                        
-                        resolvedStatus.forEach((status) => {
-                            const start = this.parseDate(status.start);
-                            const end = this.parseDate(status.end);
-                            
-                            if (start && end && start < end) {
-                                const statusCode = status.status || 'unknown';
-                                const className = this.statusColors[statusCode] || 'status-not_appropriated';
-                                
-                                this.items.add({
-                                    id: `status_${itemId++}`,
-                                    group: `${equipName}_status`,
-                                    content: this.truncateText(status.status_title || statusCode, 25),
-                                    start: start,
-                                    end: end,
-                                    className: className,
-                                    title: this.createStatusTooltipEnhanced(status, equipName),
-                                    type: 'range'
-                                });
-                            }
-                        });
-                    }
-                }
-            }
-
-            // Tooltip corrigido com formato de data DD-MM-AAAA e melhor controle de largura
-            createStatusTooltipEnhanced(status, equipName) {
-                const totalHours = parseFloat(status.total_time || 0);
-                const count = status.consolidated_count || 1;
-                const isGapFilled = status.gap_filled || false;
-                
-                const formatHours = (hours) => {
-                    const h = Math.floor(hours);
-                    const m = Math.round((hours - h) * 60);
-                    if (h === 0) return `${m}min`;
-                    if (m === 0) return `${h}h`;
-                    return `${h}h ${m}min`;
-                };
-
-                const formatDateTime = (dateStr) => {
-                    try {
-                        const date = new Date(dateStr);
-                        const day = date.getDate().toString().padStart(2, '0');
-                        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                        const year = date.getFullYear();
-                        const hours = date.getHours().toString().padStart(2, '0');
-                        const minutes = date.getMinutes().toString().padStart(2, '0');
-                        return `${day}-${month}-${year} ${hours}:${minutes}`;
-                    } catch {
-                        return dateStr;
-                    }
-                };
-                
-                // Truncar nome do equipamento se muito longo
-                const shortEquipName = equipName.length > 25 ? equipName.substring(0, 25) + '...' : equipName;
-                const statusTitle = (status.status_title || status.status);
-                const shortStatusTitle = statusTitle.length > 30 ? statusTitle.substring(0, 30) + '...' : statusTitle;
-                
-                let tooltipContent = `
-                    <div style="font-size: 12px; line-height: 1.3; max-width: 280px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;">
-                        <div style="font-weight: 700; margin-bottom: 6px; color: #fff; font-size: 11px;">
-                            🔄 Status ${isGapFilled ? '(Gap)' : 'Auto'}
-                        </div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Equipamento:</strong><br>${shortEquipName}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Status:</strong> ${shortStatusTitle}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Início:</strong><br>${formatDateTime(status.start)}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Fim:</strong><br>${formatDateTime(status.end)}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Duração:</strong> ${formatHours(totalHours)}</div>`;
-                
-                if (count > 1) {
-                    tooltipContent += `
-                        <div style="margin-bottom: 3px; color: #90EE90; font-size: 10px;"><strong>✅ Consolidado:</strong> ${count}x</div>`;
-                }
-
-                if (isGapFilled) {
-                    tooltipContent += `
-                        <div style="color: #FFB347; font-size: 10px;"><strong>⚠️ Gap Preenchido</strong></div>`;
-                }
-                
-                tooltipContent += `</div>`;
-                
-                return tooltipContent;
-            }
-
-            // =============================================================================
-            // NAVEGAÇÃO ENTRE PÁGINAS (CORRIGIDA PARA ABRIR URLs DIRETAS)
-            // =============================================================================
-            async loadAlertsPage() {
-                try {
-                    this.showNotification('🔄 Abrindo página de alertas...', 'info');
-                    
-                    // URL direta do GitHub Pages
-                    const alertsUrl = 'https://grupogps-mecanizada.github.io/Monitoramento-De-Produtividade/alerts.html';
-                    
-                    // Abrir em nova aba
-                    window.open(alertsUrl, '_blank');
-                    
-                    this.showNotification('✅ Página de alertas aberta em nova aba', 'success');
-                } catch (error) {
-                    this.showNotification('⚠️ Erro ao abrir página de alertas', 'error');
-                    this.addDebugLog(`Erro ao abrir alertas: ${error.message}`, 'error');
-                }
-            }
-
-            async loadReportsPage() {
-                try {
-                    this.showNotification('🔄 Abrindo página de relatórios...', 'info');
-                    
-                    // URL direta do GitHub Pages
-                    const reportsUrl = 'https://grupogps-mecanizada.github.io/Productivity-Reports/reports.html';
-                    
-                    // Abrir em nova aba
-                    window.open(reportsUrl, '_blank');
-                    
-                    this.showNotification('✅ Página de relatórios aberta em nova aba', 'success');
-                } catch (error) {
-                    this.showNotification('⚠️ Erro ao abrir página de relatórios', 'error');
-                    this.addDebugLog(`Erro ao abrir relatórios: ${error.message}`, 'error');
-                }
-            }
-
-            // =============================================================================
-            // FUNÇÕES AUXILIARES (MANTIDAS INTACTAS COM OTIMIZAÇÕES)
-            // =============================================================================
-            generateDataHash(data) {
-                return btoa(JSON.stringify(data)).slice(0, 32);
-            }
-
-            async fetchCSVFromGitHub() {
-                const config = this.githubConfig.csvRepo;
-                
-                try {
-                    console.log(`📊 Buscando CSV de ${config.owner}/${config.repo}...`);
-                    const response = await fetch(config.apiUrl);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-
-                    const apiData = await response.json();
-                    
-                    if (apiData.type !== 'file') {
-                        throw new Error('Não é um arquivo válido');
-                    }
-                    
-                    let csvText = atob(apiData.content.replace(/\n/g, ''));
-                    
-                    try {
-                        csvText = decodeURIComponent(escape(csvText));
                     } catch (error) {
-                        console.log('⚠️ Mantendo texto original');
-                    }
-                    
-                    const parsedData = this.parseCSV(csvText);
-                    console.log(`✅ CSV carregado: ${parsedData.length} registros`);
-                    return { success: true, data: parsedData };
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao buscar CSV:', error);
-                    return { success: false, data: [], error: error.message };
-                }
-            }
-
-            async fetchJSONFromGitHub() {
-                const config = this.githubConfig.jsonRepo;
-                
-                try {
-                    console.log(`🔄 Buscando JSON de ${config.owner}/${config.repo}...`);
-                    const response = await fetch(config.apiUrl);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-
-                    const apiData = await response.json();
-                    
-                    if (apiData.type !== 'file') {
-                        throw new Error('Não é um arquivo válido');
-                    }
-                    
-                    let jsonText = atob(apiData.content.replace(/\n/g, ''));
-                    
-                    try {
-                        jsonText = decodeURIComponent(escape(jsonText));
-                    } catch (error) {
-                        console.log('⚠️ Mantendo texto JSON original');
-                    }
-                    
-                    const jsonData = JSON.parse(jsonText);
-                    const records = jsonData.records || jsonData;
-                    
-                    if (!Array.isArray(records)) {
-                        throw new Error('Formato JSON inválido');
-                    }
-                    
-                    console.log(`✅ JSON carregado: ${records.length} registros`);
-                    return { success: true, data: records };
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao buscar JSON:', error);
-                    return { success: false, data: [], error: error.message };
-                }
-            }
-
-            startGitHubAutoSync() {
-                if (this.autoSyncInterval) {
-                    clearInterval(this.autoSyncInterval);
-                }
-
-                if (this.config.autoSyncInterval > 0) {
-                    console.log(`⏰ Auto-sync configurado para ${this.config.autoSyncInterval / 60000} minutos`);
-                    
-                    this.autoSyncInterval = setInterval(async () => {
-                        if (!this.isUpdating) {
-                            console.log('🔄 Executando auto-sync...');
-                            await this.syncFromGitHub();
-                        }
-                    }, this.config.autoSyncInterval);
-
-                    this.updateNextSyncTime();
-                }
-            }
-
-            updateNextSyncTime() {
-                if (this.config.autoSyncInterval > 0) {
-                    const nextUpdate = new Date(Date.now() + this.config.autoSyncInterval);
-                    const nextUpdateElement = document.getElementById('nextUpdate');
-                    if (nextUpdateElement) {
-                        nextUpdateElement.textContent = nextUpdate.toLocaleTimeString('pt-BR');
+                        if (i === attempts - 1) throw error;
+                        await this.delay(APP_CONFIG.system.retryDelay * (i + 1));
                     }
                 }
-            }
-
-            unifyEquipmentData() {
-                this.csvData.forEach((item) => {
-                    const equipName = this.normalizeEquipmentName(item.Vaga || item.Placa);
-                    if (!this.equipmentMap.has(equipName)) {
-                        this.equipmentMap.set(equipName, {
-                            name: equipName,
-                            originalName: item.Vaga || item.Placa,
-                            apontamentos: [],
-                            status: []
-                        });
-                    }
-                    this.equipmentMap.get(equipName).apontamentos.push(item);
-                });
-
-                this.jsonData.forEach((item) => {
-                    const equipName = this.normalizeEquipmentName(item.vacancy_name);
-                    if (!this.equipmentMap.has(equipName)) {
-                        this.equipmentMap.set(equipName, {
-                            name: equipName,
-                            originalName: item.vacancy_name,
-                            apontamentos: [],
-                            status: []
-                        });
-                    }
-                    this.equipmentMap.get(equipName).status.push(item);
-                });
-
-                for (const [equipName, data] of this.equipmentMap) {
-                    data.apontamentos.sort((a, b) => {
-                        const dateA = this.parseDate(a['Data Inicial']);
-                        const dateB = this.parseDate(b['Data Inicial']);
-                        return (dateA || 0) - (dateB || 0);
-                    });
-                    
-                    data.status.sort((a, b) => {
-                        const dateA = this.parseDate(a.start);
-                        const dateB = this.parseDate(b.start);
-                        return (dateA || 0) - (dateB || 0);
-                    });
-                }
-            }
-
-            normalizeEquipmentName(name) {
-                if (!name) return 'Equipamento Desconhecido';
-                
-                let normalizedName = name.toUpperCase().trim();
-                normalizedName = normalizedName.replace(/\s+/g, ' ');
-                
-                normalizedName = normalizedName
-                    .replace(/\s*-\s*GPS\s*-\s*/g, ' - GPS - ')
-                    .replace(/\s*-\s*(\d+)\s*HS\s*$/i, ' - $1HS')
-                    .replace(/\s*-\s*(\d+)\s*H\s*$/i, ' - $1HS')
-                    .replace(/CAMINHÃO/g, 'CAMINHAO')
-                    .replace(/VÁCUO/g, 'VACUO')
-                    .replace(/PRESSÃO/g, 'PRESSAO')
-                    .trim();
-                
-                return normalizedName;
-            }
-
-            createGroups() {
-                let groupId = 0;
-                
-                const sortedEquipments = Array.from(this.equipmentMap.entries())
-                    .sort(([nameA], [nameB]) => nameA.localeCompare(nameB));
-                
-                for (const [equipName, data] of sortedEquipments) {
-                    if (data.apontamentos.length > 0 || data.status.length > 0) {
-                        const displayName = this.getDisplayName(equipName);
-                        
-                        this.groups.add({
-                            id: `${equipName}_apont`,
-                            content: `<div style="font-weight: 600; color: #2c3e50; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #7f8c8d;">📊 Apontamentos</div>`,
-                            order: groupId * 2
-                        });
-                        
-                        this.groups.add({
-                            id: `${equipName}_status`,
-                            content: `<div style="font-weight: 600; color: #2c3e50; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #7f8c8d;">🔄 Status</div>`,
-                            order: groupId * 2 + 1
-                        });
-                        
-                        groupId++;
-                    }
-                }
-            }
-
-            getDisplayName(equipName) {
-                return equipName
-                    .replace(/CAMINHAO/g, 'CAMINHÃO')
-                    .replace(/VACUO/g, 'VÁCUO') 
-                    .replace(/PRESSAO/g, 'PRESSÃO')
-                    .replace(/\s+/g, ' ')
-                    .trim();
             }
 
             parseCSV(csvText) {
@@ -1952,155 +1173,242 @@
                 return values;
             }
 
-            parseDate(dateStr) {
-                if (!dateStr) return null;
-                
-                try {
-                    if (dateStr.includes('/')) {
-                        const [datePart, timePart = '00:00:00'] = dateStr.split(' ');
-                        const [day, month, year] = datePart.split('/');
-                        
-                        if (!day || !month || !year) return null;
-                        
-                        return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`);
-                    } else if (dateStr.includes('-')) {
-                        return new Date(dateStr.replace(' ', 'T'));
-                    }
-                    
-                    return null;
-                } catch (error) {
-                    return null;
-                }
+            generateHash(data) {
+                return btoa(JSON.stringify(data)).slice(0, 32);
             }
 
-            truncateText(text, maxLength) {
-                if (!text) return '';
-                return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
             }
+        }
 
-            createApontTooltip(apont, equipName) {
-                const formatDateTime = (dateStr) => {
-                    try {
-                        // Para dados do CSV que vêm no formato DD/MM/AAAA HH:MM:SS
-                        if (dateStr.includes('/')) {
-                            const [datePart, timePart = ''] = dateStr.split(' ');
-                            const [day, month, year] = datePart.split('/');
-                            const time = timePart || '';
-                            return `${day}-${month}-${year} ${time}`.trim();
-                        }
-                        return dateStr;
-                    } catch {
-                        return dateStr;
-                    }
+        // =============================================================================
+        // RESOLVEDOR DE CONFLITOS
+        // =============================================================================
+        class ConflictResolver {
+            constructor(logger) {
+                this.logger = logger;
+                this.stats = {
+                    conflictsResolved: 0,
+                    duplicatesRemoved: 0,
+                    originalRecords: 0,
+                    finalRecords: 0
                 };
-
-                // Truncar nome do equipamento e categoria se muito longos
-                const shortEquipName = equipName.length > 25 ? equipName.substring(0, 25) + '...' : equipName;
-                const category = apont['Categoria Demora'] || 'N/A';
-                const shortCategory = category.length > 30 ? category.substring(0, 30) + '...' : category;
-
-                return `
-                    <div style="font-size: 12px; line-height: 1.3; max-width: 280px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;">
-                        <div style="font-weight: 700; margin-bottom: 6px; color: #fff; font-size: 11px;">📊 Apontamento Manual</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Equipamento:</strong><br>${shortEquipName}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Categoria:</strong> ${shortCategory}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Início:</strong><br>${formatDateTime(apont['Data Inicial'])}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Fim:</strong><br>${formatDateTime(apont['Data Final'])}</div>
-                        <div style="font-size: 11px;"><strong>Duração:</strong> ${apont['Tempo Indisponível (HH:MM)'] || 'N/A'}</div>
-                    </div>
-                `;
             }
 
-            updateTimelineSmartly() {
-                if (!this.timeline) return;
+            resolveStatusConflicts(statusList, equipmentName) {
+                if (!statusList || statusList.length === 0) return [];
 
-                try {
-                    // Salvar seleção atual
-                    const selection = this.timeline.getSelection();
-                    
-                    // Atualizar dados
-                    this.timeline.setData({
-                        items: this.items,
-                        groups: this.groups
-                    });
+                this.logger.debug(`Resolvendo conflitos para ${equipmentName}: ${statusList.length} registros`);
+                this.stats.originalRecords += statusList.length;
 
-                    // Restaurar janela de visualização se existir
-                    if (this.currentViewWindow) {
-                        setTimeout(() => {
-                            this.timeline.setWindow(this.currentViewWindow.start, this.currentViewWindow.end);
-                        }, 100);
+                // Pipeline de resolução
+                let resolved = this.removeDuplicates(statusList);
+                resolved = this.sortByTime(resolved);
+                resolved = this.resolveOverlaps(resolved, equipmentName);
+                resolved = this.consolidateConsecutive(resolved, equipmentName);
+                resolved = this.fillSmallGaps(resolved, equipmentName);
+
+                this.stats.finalRecords += resolved.length;
+                this.logger.debug(`${equipmentName}: ${statusList.length} → ${resolved.length} registros`);
+
+                return resolved;
+            }
+
+            removeDuplicates(statusList) {
+                const seen = new Set();
+                const unique = statusList.filter(status => {
+                    const key = `${status.start}-${status.end}-${status.status}-${status.vacancy_code}`;
+                    if (seen.has(key)) {
+                        this.stats.duplicatesRemoved++;
+                        return false;
+                    }
+                    seen.add(key);
+                    return true;
+                });
+                return unique;
+            }
+
+            sortByTime(statusList) {
+                return statusList.sort((a, b) => new Date(a.start) - new Date(b.start));
+            }
+
+            resolveOverlaps(statusList, equipmentName) {
+                if (statusList.length <= 1) return statusList;
+
+                const resolved = [];
+                let current = null;
+
+                for (const status of statusList) {
+                    if (!current) {
+                        current = { ...status };
+                        continue;
                     }
 
-                    // Restaurar seleção
-                    if (selection.length > 0) {
-                        setTimeout(() => {
-                            this.timeline.setSelection(selection);
-                        }, 150);
-                    }
+                    const currentEnd = new Date(current.end);
+                    const statusStart = new Date(status.start);
 
-                } catch (error) {
-                    console.error('❌ Erro ao atualizar timeline:', error);
-                    this.addDebugLog(`Erro ao atualizar timeline: ${error.message}`, 'error');
-                    // Em caso de erro, reinicializar completamente
-                    this.initTimeline();
+                    if (statusStart < currentEnd) {
+                        this.stats.conflictsResolved++;
+                        this.logger.debug(`Conflito: ${current.status} vs ${status.status} em ${equipmentName}`);
+
+                        const resolution = this.resolveConflict(current, status);
+                        current = this.applyResolution(current, status, resolution);
+                    } else {
+                        resolved.push(current);
+                        current = { ...status };
+                    }
                 }
+
+                if (current) resolved.push(current);
+                return resolved;
+            }
+
+            resolveConflict(status1, status2) {
+                const priority1 = APP_CONFIG.statusPriority[status1.status] || 0;
+                const priority2 = APP_CONFIG.statusPriority[status2.status] || 0;
+
+                switch (APP_CONFIG.system.conflictResolution) {
+                    case 'priority':
+                        return priority1 >= priority2 ? 'keep_first' : 'use_second';
+                    case 'latest':
+                        return 'use_second';
+                    case 'longest':
+                        const duration1 = new Date(status1.end) - new Date(status1.start);
+                        const duration2 = new Date(status2.end) - new Date(status2.start);
+                        return duration1 >= duration2 ? 'keep_first' : 'use_second';
+                    default:
+                        return 'use_second';
+                }
+            }
+
+            applyResolution(current, newStatus, resolution) {
+                if (resolution === 'keep_first') {
+                    return { ...current, end: Math.max(current.end, newStatus.end) };
+                } else {
+                    return { ...newStatus };
+                }
+            }
+
+            consolidateConsecutive(statusList, equipmentName) {
+                if (statusList.length <= 1) return statusList;
+
+                const consolidated = [];
+                let current = null;
+
+                for (const status of statusList) {
+                    if (!current) {
+                        current = { ...status };
+                        continue;
+                    }
+
+                    const currentEnd = new Date(current.end);
+                    const statusStart = new Date(status.start);
+                    const gapSeconds = (statusStart - currentEnd) / 1000;
+
+                    if (current.status === status.status && 
+                        Math.abs(gapSeconds) <= APP_CONFIG.system.gapTolerance) {
+                        
+                        current.end = status.end;
+                        current.total_time = (parseFloat(current.total_time) || 0) + (parseFloat(status.total_time) || 0);
+                        current.consolidated_count = (current.consolidated_count || 1) + 1;
+                    } else {
+                        consolidated.push(current);
+                        current = { ...status };
+                    }
+                }
+
+                if (current) consolidated.push(current);
+                return consolidated;
+            }
+
+            fillSmallGaps(statusList, equipmentName) {
+                if (statusList.length <= 1) return statusList;
+
+                const filled = [];
+                
+                for (let i = 0; i < statusList.length; i++) {
+                    filled.push(statusList[i]);
+                    
+                    if (i < statusList.length - 1) {
+                        const currentEnd = new Date(statusList[i].end);
+                        const nextStart = new Date(statusList[i + 1].start);
+                        const gapSeconds = (nextStart - currentEnd) / 1000;
+                        
+                        if (gapSeconds > 0 && gapSeconds <= APP_CONFIG.system.gapTolerance) {
+                            filled.push({
+                                ...statusList[i],
+                                status: 'off',
+                                status_title: 'Motor Desligado',
+                                start: statusList[i].end,
+                                end: statusList[i + 1].start,
+                                total_time: gapSeconds / 3600,
+                                gap_filled: true
+                            });
+                        }
+                    }
+                }
+
+                return filled;
+            }
+
+            getStats() {
+                return { ...this.stats };
+            }
+
+            resetStats() {
+                this.stats = {
+                    conflictsResolved: 0,
+                    duplicatesRemoved: 0,
+                    originalRecords: 0,
+                    finalRecords: 0
+                };
+            }
+        }
+
+        // =============================================================================
+        // GERENCIADOR DE TIMELINE
+        // =============================================================================
+        class TimelineManager {
+            constructor(logger) {
+                this.logger = logger;
+                this.timeline = null;
+                this.items = new vis.DataSet();
+                this.groups = new vis.DataSet();
+                this.currentViewWindow = null;
+                this.debounceTimers = new Map();
             }
 
             initTimeline() {
-                if (this.items.length === 0) {
-                    this.addDebugLog('Nenhum item para inicializar timeline', 'warning');
-                    // Mesmo sem dados, mostrar container vazio
-                    const container = document.getElementById('timeline');
-                    container.innerHTML = '<div class="loading-state"><div>Aguardando dados...</div></div>';
-                    return;
-                }
-
                 const container = document.getElementById('timeline');
                 if (!container) {
-                    this.addDebugLog('Container da timeline não encontrado', 'error');
-                    return;
+                    this.logger.error('Container da timeline não encontrado');
+                    return false;
                 }
 
-                // Limpar container completamente
+                if (this.items.length === 0) {
+                    container.innerHTML = '<div class="loading-state"><div>Aguardando dados...</div></div>';
+                    return false;
+                }
+
                 container.innerHTML = '';
-                
-                this.addDebugLog(`Inicializando timeline com ${this.items.length} itens e ${this.groups.length} grupos`);
+                this.logger.info(`Inicializando timeline com ${this.items.length} itens`);
 
                 const options = {
                     orientation: 'top',
                     stack: true,
                     showCurrentTime: true,
-                    zoomMin: 1000 * 60 * 10, // 10 minutos
-                    zoomMax: 1000 * 60 * 60 * 24 * 30, // 30 dias
+                    zoomMin: 1000 * 60 * 10,
+                    zoomMax: 1000 * 60 * 60 * 24 * 30,
                     editable: false,
                     multiselect: false,
                     selectable: true,
-                    tooltip: {
-                        followMouse: true,
-                        overflowMethod: 'flip'
-                    },
+                    tooltip: { followMouse: true, overflowMethod: 'flip' },
                     format: {
-                        minorLabels: {
-                            minute: 'HH:mm',
-                            hour: 'HH:mm',
-                            day: 'DD/MM',
-                            month: 'MMM',
-                            year: 'YYYY'
-                        },
-                        majorLabels: {
-                            minute: 'ddd DD/MM',
-                            hour: 'ddd DD/MM',
-                            day: 'MMMM YYYY',
-                            month: 'YYYY',
-                            year: ''
-                        }
+                        minorLabels: { minute: 'HH:mm', hour: 'HH:mm', day: 'DD/MM', month: 'MMM', year: 'YYYY' },
+                        majorLabels: { minute: 'ddd DD/MM', hour: 'ddd DD/MM', day: 'MMMM YYYY', month: 'YYYY', year: '' }
                     },
-                    margin: {
-                        item: {
-                            horizontal: 2,
-                            vertical: 1
-                        }
-                    },
+                    margin: { item: { horizontal: 2, vertical: 1 } },
                     height: '100%',
                     maxHeight: 600,
                     verticalScroll: true,
@@ -2108,100 +1416,100 @@
                 };
 
                 try {
-                    // Verificar se vis está disponível
-                    if (typeof vis === 'undefined') {
-                        this.addDebugLog('Biblioteca vis.js não carregada', 'error');
-                        return;
-                    }
-
-                    // Criar timeline
                     this.timeline = new vis.Timeline(container, this.items, this.groups, options);
-
-                    // Event listeners
+                    
                     this.timeline.on('rangechanged', (properties) => {
                         this.currentViewWindow = properties;
                     });
 
-                    // Aguardar renderização inicial
                     setTimeout(() => {
                         if (this.timeline) {
                             this.timeline.fit();
-                            this.addDebugLog('Timeline renderizada e ajustada');
+                            this.logger.info('Timeline renderizada com sucesso');
                         }
-                    }, 200);
+                    }, APP_CONFIG.performance.fitDelay);
 
-                    this.addDebugLog('Timeline inicializada com sucesso');
-
+                    return true;
                 } catch (error) {
-                    this.addDebugLog(`Erro ao inicializar timeline: ${error.message}`, 'error');
-                    console.error('❌ Erro ao inicializar timeline:', error);
-                    
-                    // Fallback: mostrar erro no container
+                    this.logger.error(`Erro ao inicializar timeline: ${error.message}`);
                     container.innerHTML = `
                         <div class="loading-state">
-                            <div style="color: #e74c3c;">❌ Erro ao carregar timeline</div>
+                            <div style="color: #e74c3c;">Erro ao carregar timeline</div>
                             <div style="font-size: 0.9rem; margin-top: 0.5rem;">${error.message}</div>
                         </div>
                     `;
+                    return false;
                 }
             }
 
-            updateInterface() {
-                const totalApont = Array.from(this.equipmentMap.values())
-                    .reduce((sum, data) => sum + data.apontamentos.length, 0);
-                const totalStatus = Array.from(this.equipmentMap.values())
-                    .reduce((sum, data) => sum + data.status.length, 0);
-
-                document.getElementById('apontCount').textContent = totalApont;
-                document.getElementById('statusCount').textContent = totalStatus;
-                document.getElementById('equipmentCount').textContent = this.equipmentMap.size;
-                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('pt-BR');
-                document.getElementById('visibleItems').textContent = `${this.items.length} itens visíveis`;
-                document.getElementById('conflictsResolved').textContent = this.processingStats.conflictsResolved;
-                document.getElementById('duplicatesRemoved').textContent = this.processingStats.duplicatesRemoved;
-
-                // Atualizar horário no header
-                const lastUpdateTimeElement = document.getElementById('lastUpdateTime');
-                if (lastUpdateTimeElement) {
-                    lastUpdateTimeElement.textContent = new Date().toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                }
-
-                this.updateFilters();
-                this.updateNextSyncTime();
-                this.updateDebugPanel();
-            }
-
-            updateFilters() {
-                const equipmentSelect = document.getElementById('equipmentFilter');
-                const currentValue = equipmentSelect.value;
-                equipmentSelect.innerHTML = '<option value="">Todos os equipamentos</option>';
-
-                Array.from(this.equipmentMap.keys()).sort().forEach(equipName => {
-                    const option = document.createElement('option');
-                    option.value = equipName;
-                    option.textContent = this.getDisplayName(equipName);
-                    if (equipName === currentValue) option.selected = true;
-                    equipmentSelect.appendChild(option);
-                });
-            }
-
-            handlePeriodChange() {
-                const period = document.getElementById('periodFilter').value;
-                const customGroup = document.getElementById('customDateGroup');
-                const customGroup2 = document.getElementById('customDateGroup2');
+            updateData(items, groups) {
+                this.items.clear();
+                this.groups.clear();
                 
-                if (period === 'custom') {
-                    customGroup.style.display = 'block';
-                    customGroup2.style.display = 'block';
-                    return;
-                } else {
-                    customGroup.style.display = 'none';
-                    customGroup2.style.display = 'none';
+                if (items.length > 0) {
+                    this.items.add(items);
+                }
+                if (groups.length > 0) {
+                    this.groups.add(groups);
                 }
 
+                if (this.timeline) {
+                    this.timeline.setData({ items: this.items, groups: this.groups });
+                    
+                    if (this.currentViewWindow) {
+                        setTimeout(() => {
+                            this.timeline.setWindow(this.currentViewWindow.start, this.currentViewWindow.end);
+                        }, APP_CONFIG.performance.renderDelay);
+                    }
+                } else {
+                    this.initTimeline();
+                }
+            }
+
+            applyFilters(equipmentFilter, periodFilter, startDate, endDate) {
+                if (!this.timeline) return;
+
+                let filteredItems = [];
+                
+                for (const item of this.items.get()) {
+                    let include = true;
+                    
+                    if (equipmentFilter) {
+                        const itemEquipment = item.group.replace(/_apont$|_status$/, '');
+                        if (itemEquipment !== equipmentFilter) include = false;
+                    }
+                    
+                    if (periodFilter === 'custom') {
+                        if (startDate && item.start < new Date(startDate)) include = false;
+                        if (endDate && item.start > new Date(endDate)) include = false;
+                    }
+                    
+                    if (include) filteredItems.push(item);
+                }
+                
+                const visibleEquipments = new Set();
+                filteredItems.forEach(item => {
+                    const equipment = item.group.replace(/_apont$|_status$/, '');
+                    visibleEquipments.add(equipment);
+                });
+                
+                const visibleGroups = [];
+                for (const group of this.groups.get()) {
+                    const equipment = group.id.replace(/_apont$|_status$/, '');
+                    if (!equipmentFilter || visibleEquipments.has(equipment)) {
+                        visibleGroups.push(group);
+                    }
+                }
+                
+                this.timeline.setData({
+                    items: new vis.DataSet(filteredItems),
+                    groups: new vis.DataSet(visibleGroups)
+                });
+                
+                this.updateVisibleItemsCount(filteredItems.length);
+            }
+
+            setPeriodWindow(period) {
                 if (!this.timeline) return;
 
                 const now = new Date();
@@ -2232,77 +1540,543 @@
                 this.timeline.setWindow(start, end);
             }
 
+            updateVisibleItemsCount(count) {
+                const element = document.getElementById('visibleItems');
+                if (element) {
+                    element.textContent = `${count} itens visíveis`;
+                }
+            }
+
+            debounceAction(key, action, delay = APP_CONFIG.performance.debounceDelay) {
+                if (this.debounceTimers.has(key)) {
+                    clearTimeout(this.debounceTimers.get(key));
+                }
+                this.debounceTimers.set(key, setTimeout(action, delay));
+            }
+        }
+
+        // =============================================================================
+        // CLASSE PRINCIPAL REFINADA
+        // =============================================================================
+        class ProductivityMonitoringSystem {
+            constructor() {
+                // Componentes do sistema
+                this.cache = new CacheManager();
+                this.logger = new Logger();
+                this.dataManager = new DataManager(this.cache, this.logger);
+                this.conflictResolver = new ConflictResolver(this.logger);
+                this.timelineManager = new TimelineManager(this.logger);
+                
+                // Estado do sistema
+                this.equipmentMap = new Map();
+                this.isUpdating = false;
+                this.autoSyncInterval = null;
+                this.startTime = new Date();
+                
+                this.initSystem();
+            }
+
+            async initSystem() {
+                this.logger.info('Iniciando Monitoramento De Produtividade - GrupoGPS');
+                this.updateSyncStatus('loading', 'Inicializando sistema...');
+                
+                this.setupEventListeners();
+                this.updateSystemInfo();
+                this.updateLastUpdateTime();
+                
+                // Iniciar sincronização
+                await this.syncFromGitHub();
+                this.startAutoSync();
+            }
+
+            setupEventListeners() {
+                // Filtros com debounce
+                document.getElementById('equipmentFilter').addEventListener('change', () => {
+                    this.timelineManager.debounceAction('equipment', () => this.applyFilters());
+                });
+
+                document.getElementById('periodFilter').addEventListener('change', () => {
+                    this.handlePeriodChange();
+                });
+
+                document.getElementById('startDate').addEventListener('change', () => {
+                    this.timelineManager.debounceAction('startDate', () => this.applyFilters(), 500);
+                });
+
+                document.getElementById('endDate').addEventListener('change', () => {
+                    this.timelineManager.debounceAction('endDate', () => this.applyFilters(), 500);
+                });
+            }
+
+            async syncFromGitHub() {
+                if (this.isUpdating) return;
+
+                this.isUpdating = true;
+                this.updateSyncStatus('loading', 'Sincronizando dados...');
+                this.logger.info('Iniciando sincronização com GitHub');
+
+                try {
+                    const [csvResult, jsonResult] = await Promise.allSettled([
+                        this.dataManager.fetchFromGitHub('csv'),
+                        this.dataManager.fetchFromGitHub('json')
+                    ]);
+
+                    let hasNewData = false;
+                    let successCount = 0;
+
+                    // Processar resultado CSV
+                    if (csvResult.status === 'fulfilled' && csvResult.value.success) {
+                        if (csvResult.value.hasChanged || !csvResult.value.fromCache) {
+                            hasNewData = true;
+                        }
+                        successCount++;
+                    }
+
+                    // Processar resultado JSON
+                    if (jsonResult.status === 'fulfilled' && jsonResult.value.success) {
+                        if (jsonResult.value.hasChanged || !jsonResult.value.fromCache) {
+                            hasNewData = true;
+                        }
+                        successCount++;
+                    }
+
+                    if (successCount > 0) {
+                        if (hasNewData) {
+                            // Processar apenas se houver dados novos
+                            await this.processData(
+                                csvResult.value?.data || [],
+                                jsonResult.value?.data || []
+                            );
+                            this.showNotification('Dados atualizados com sucesso', 'success');
+                        } else {
+                            this.logger.info('Nenhum dado novo detectado');
+                        }
+                        
+                        this.updateSyncStatus('success', 'Dados sincronizados');
+                        this.updateLastUpdateTime();
+                    } else {
+                        this.updateSyncStatus('error', 'Falha na sincronização');
+                        this.showNotification('Erro na sincronização', 'error');
+                    }
+
+                } catch (error) {
+                    this.logger.error(`Erro na sincronização: ${error.message}`);
+                    this.updateSyncStatus('error', 'Erro na sincronização');
+                    this.showNotification(`Erro na sincronização: ${error.message}`, 'error');
+                } finally {
+                    this.isUpdating = false;
+                }
+            }
+
+            async processData(csvData, jsonData) {
+                this.logger.info('Iniciando processamento de dados');
+                this.conflictResolver.resetStats();
+
+                // Limpar dados anteriores
+                this.equipmentMap.clear();
+
+                // Unificar dados de equipamentos
+                this.unifyEquipmentData(csvData, jsonData);
+
+                // Criar grupos e itens da timeline
+                const { groups, items } = this.createTimelineData();
+
+                // Atualizar timeline
+                this.timelineManager.updateData(items, groups);
+
+                // Atualizar interface
+                this.updateInterface();
+                
+                this.logger.info('Processamento de dados concluído');
+            }
+
+            unifyEquipmentData(csvData, jsonData) {
+                // Processar apontamentos CSV
+                csvData.forEach((item) => {
+                    const equipName = this.normalizeEquipmentName(item.Vaga || item.Placa);
+                    if (!this.equipmentMap.has(equipName)) {
+                        this.equipmentMap.set(equipName, {
+                            name: equipName,
+                            originalName: item.Vaga || item.Placa,
+                            apontamentos: [],
+                            status: []
+                        });
+                    }
+                    this.equipmentMap.get(equipName).apontamentos.push(item);
+                });
+
+                // Processar status JSON
+                jsonData.forEach((item) => {
+                    const equipName = this.normalizeEquipmentName(item.vacancy_name);
+                    if (!this.equipmentMap.has(equipName)) {
+                        this.equipmentMap.set(equipName, {
+                            name: equipName,
+                            originalName: item.vacancy_name,
+                            apontamentos: [],
+                            status: []
+                        });
+                    }
+                    this.equipmentMap.get(equipName).status.push(item);
+                });
+
+                // Ordenar dados
+                for (const [equipName, data] of this.equipmentMap) {
+                    data.apontamentos.sort((a, b) => {
+                        const dateA = this.parseDate(a['Data Inicial']);
+                        const dateB = this.parseDate(b['Data Inicial']);
+                        return (dateA || 0) - (dateB || 0);
+                    });
+                    
+                    data.status.sort((a, b) => {
+                        const dateA = this.parseDate(a.start);
+                        const dateB = this.parseDate(b.start);
+                        return (dateA || 0) - (dateB || 0);
+                    });
+                }
+            }
+
+            createTimelineData() {
+                const groups = [];
+                const items = [];
+                let itemId = 0;
+                let groupId = 0;
+
+                const sortedEquipments = Array.from(this.equipmentMap.entries())
+                    .sort(([nameA], [nameB]) => nameA.localeCompare(nameB));
+
+                for (const [equipName, data] of sortedEquipments) {
+                    if (data.apontamentos.length > 0 || data.status.length > 0) {
+                        const displayName = this.getDisplayName(equipName);
+                        
+                        // Criar grupos
+                        groups.push({
+                            id: `${equipName}_apont`,
+                            content: `<div style="font-weight: 600; color: #2c3e50; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #7f8c8d;">📊 Apontamentos</div>`,
+                            order: groupId * 2
+                        });
+                        
+                        groups.push({
+                            id: `${equipName}_status`,
+                            content: `<div style="font-weight: 600; color: #2c3e50; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #7f8c8d;">🔄 Status</div>`,
+                            order: groupId * 2 + 1
+                        });
+
+                        // Processar apontamentos
+                        data.apontamentos.forEach(apont => {
+                            const start = this.parseDate(apont['Data Inicial']);
+                            const end = this.parseDate(apont['Data Final']);
+                            
+                            if (start && end && start < end) {
+                                const category = apont['Categoria Demora'] || 'Outros';
+                                const className = APP_CONFIG.apontColors[category] || 'apont-aguardando';
+                                
+                                items.push({
+                                    id: `apont_${itemId++}`,
+                                    group: `${equipName}_apont`,
+                                    content: this.truncateText(category, 20),
+                                    start: start,
+                                    end: end,
+                                    className: className,
+                                    title: this.createApontTooltip(apont, equipName),
+                                    type: 'range'
+                                });
+                            }
+                        });
+
+                        // Processar status com resolução de conflitos
+                        if (data.status.length > 0) {
+                            const resolvedStatus = this.conflictResolver.resolveStatusConflicts(data.status, equipName);
+                            
+                            resolvedStatus.forEach((status) => {
+                                const start = this.parseDate(status.start);
+                                const end = this.parseDate(status.end);
+                                
+                                if (start && end && start < end) {
+                                    const statusCode = status.status || 'unknown';
+                                    const className = APP_CONFIG.statusColors[statusCode] || 'status-not_appropriated';
+                                    
+                                    items.push({
+                                        id: `status_${itemId++}`,
+                                        group: `${equipName}_status`,
+                                        content: this.truncateText(status.status_title || statusCode, 25),
+                                        start: start,
+                                        end: end,
+                                        className: className,
+                                        title: this.createStatusTooltip(status, equipName),
+                                        type: 'range'
+                                    });
+                                }
+                            });
+                        }
+                        
+                        groupId++;
+                    }
+                }
+
+                return { groups, items };
+            }
+
+            // Métodos auxiliares
+            normalizeEquipmentName(name) {
+                if (!name) return 'Equipamento Desconhecido';
+                
+                let normalizedName = name.toUpperCase().trim();
+                normalizedName = normalizedName.replace(/\s+/g, ' ');
+                
+                normalizedName = normalizedName
+                    .replace(/\s*-\s*GPS\s*-\s*/g, ' - GPS - ')
+                    .replace(/\s*-\s*(\d+)\s*HS\s*$/i, ' - $1HS')
+                    .replace(/\s*-\s*(\d+)\s*H\s*$/i, ' - $1HS')
+                    .replace(/CAMINHÃO/g, 'CAMINHAO')
+                    .replace(/VÁCUO/g, 'VACUO')
+                    .replace(/PRESSÃO/g, 'PRESSAO')
+                    .trim();
+                
+                return normalizedName;
+            }
+
+            getDisplayName(equipName) {
+                return equipName
+                    .replace(/CAMINHAO/g, 'CAMINHÃO')
+                    .replace(/VACUO/g, 'VÁCUO') 
+                    .replace(/PRESSAO/g, 'PRESSÃO')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            }
+
+            parseDate(dateStr) {
+                if (!dateStr) return null;
+                
+                try {
+                    if (dateStr.includes('/')) {
+                        const [datePart, timePart = '00:00:00'] = dateStr.split(' ');
+                        const [day, month, year] = datePart.split('/');
+                        
+                        if (!day || !month || !year) return null;
+                        
+                        return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`);
+                    } else if (dateStr.includes('-')) {
+                        return new Date(dateStr.replace(' ', 'T'));
+                    }
+                    
+                    return null;
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            truncateText(text, maxLength) {
+                if (!text) return '';
+                return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
+            }
+
+            createApontTooltip(apont, equipName) {
+                const formatDateTime = (dateStr) => {
+                    try {
+                        if (dateStr.includes('/')) {
+                            const [datePart, timePart = ''] = dateStr.split(' ');
+                            const [day, month, year] = datePart.split('/');
+                            const time = timePart || '';
+                            return `${day}-${month}-${year} ${time}`.trim();
+                        }
+                        return dateStr;
+                    } catch {
+                        return dateStr;
+                    }
+                };
+
+                const shortEquipName = equipName.length > 25 ? equipName.substring(0, 25) + '...' : equipName;
+                const category = apont['Categoria Demora'] || 'N/A';
+                const shortCategory = category.length > 30 ? category.substring(0, 30) + '...' : category;
+
+                return `
+                    <div style="font-size: 12px; line-height: 1.3; max-width: 280px; word-wrap: break-word;">
+                        <div style="font-weight: 700; margin-bottom: 6px; color: #fff; font-size: 11px;">📊 Apontamento Manual</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Equipamento:</strong><br>${shortEquipName}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Categoria:</strong> ${shortCategory}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Início:</strong><br>${formatDateTime(apont['Data Inicial'])}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Fim:</strong><br>${formatDateTime(apont['Data Final'])}</div>
+                        <div style="font-size: 11px;"><strong>Duração:</strong> ${apont['Tempo Indisponível (HH:MM)'] || 'N/A'}</div>
+                    </div>
+                `;
+            }
+
+            createStatusTooltip(status, equipName) {
+                const totalHours = parseFloat(status.total_time || 0);
+                const count = status.consolidated_count || 1;
+                const isGapFilled = status.gap_filled || false;
+                
+                const formatHours = (hours) => {
+                    const h = Math.floor(hours);
+                    const m = Math.round((hours - h) * 60);
+                    if (h === 0) return `${m}min`;
+                    if (m === 0) return `${h}h`;
+                    return `${h}h ${m}min`;
+                };
+
+                const formatDateTime = (dateStr) => {
+                    try {
+                        const date = new Date(dateStr);
+                        const day = date.getDate().toString().padStart(2, '0');
+                        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                        const year = date.getFullYear();
+                        const hours = date.getHours().toString().padStart(2, '0');
+                        const minutes = date.getMinutes().toString().padStart(2, '0');
+                        return `${day}-${month}-${year} ${hours}:${minutes}`;
+                    } catch {
+                        return dateStr;
+                    }
+                };
+                
+                const shortEquipName = equipName.length > 25 ? equipName.substring(0, 25) + '...' : equipName;
+                const statusTitle = (status.status_title || status.status);
+                const shortStatusTitle = statusTitle.length > 30 ? statusTitle.substring(0, 30) + '...' : statusTitle;
+                
+                let tooltipContent = `
+                    <div style="font-size: 12px; line-height: 1.3; max-width: 280px; word-wrap: break-word;">
+                        <div style="font-weight: 700; margin-bottom: 6px; color: #fff; font-size: 11px;">
+                            🔄 Status ${isGapFilled ? '(Gap)' : 'Auto'}
+                        </div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Equipamento:</strong><br>${shortEquipName}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Status:</strong> ${shortStatusTitle}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Início:</strong><br>${formatDateTime(status.start)}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Fim:</strong><br>${formatDateTime(status.end)}</div>
+                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Duração:</strong> ${formatHours(totalHours)}</div>`;
+                
+                if (count > 1) {
+                    tooltipContent += `
+                        <div style="margin-bottom: 3px; color: #90EE90; font-size: 10px;"><strong>✅ Consolidado:</strong> ${count}x</div>`;
+                }
+
+                if (isGapFilled) {
+                    tooltipContent += `
+                        <div style="color: #FFB347; font-size: 10px;"><strong>⚠️ Gap Preenchido</strong></div>`;
+                }
+                
+                tooltipContent += `</div>`;
+                
+                return tooltipContent;
+            }
+
+            handlePeriodChange() {
+                const period = document.getElementById('periodFilter').value;
+                const customGroup = document.getElementById('customDateGroup');
+                const customGroup2 = document.getElementById('customDateGroup2');
+                
+                if (period === 'custom') {
+                    customGroup.style.display = 'block';
+                    customGroup2.style.display = 'block';
+                    return;
+                } else {
+                    customGroup.style.display = 'none';
+                    customGroup2.style.display = 'none';
+                }
+
+                this.timelineManager.setPeriodWindow(period);
+            }
+
             applyFilters() {
-                if (this.isUpdating || !this.timeline) return;
+                if (this.isUpdating) return;
 
                 const equipmentFilter = document.getElementById('equipmentFilter').value;
                 const period = document.getElementById('periodFilter').value;
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
                 
-                let filteredItems = [];
-                
-                for (const item of this.items.get()) {
-                    let include = true;
+                this.timelineManager.applyFilters(equipmentFilter, period, startDate, endDate);
+            }
+
+            updateInterface() {
+                const totalApont = Array.from(this.equipmentMap.values())
+                    .reduce((sum, data) => sum + data.apontamentos.length, 0);
+                const totalStatus = Array.from(this.equipmentMap.values())
+                    .reduce((sum, data) => sum + data.status.length, 0);
+                const stats = this.conflictResolver.getStats();
+
+                // Atualizar estatísticas
+                document.getElementById('apontCount').textContent = totalApont;
+                document.getElementById('statusCount').textContent = totalStatus;
+                document.getElementById('equipmentCount').textContent = this.equipmentMap.size;
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('pt-BR');
+                document.getElementById('conflictsResolved').textContent = stats.conflictsResolved;
+                document.getElementById('duplicatesRemoved').textContent = stats.duplicatesRemoved;
+
+                // Atualizar filtros
+                this.updateFilters();
+                this.updateNextSyncTime();
+                this.updateDebugStats(stats);
+            }
+
+            updateFilters() {
+                const equipmentSelect = document.getElementById('equipmentFilter');
+                const currentValue = equipmentSelect.value;
+                equipmentSelect.innerHTML = '<option value="">Todos os equipamentos</option>';
+
+                Array.from(this.equipmentMap.keys()).sort().forEach(equipName => {
+                    const option = document.createElement('option');
+                    option.value = equipName;
+                    option.textContent = this.getDisplayName(equipName);
+                    if (equipName === currentValue) option.selected = true;
+                    equipmentSelect.appendChild(option);
+                });
+            }
+
+            updateDebugStats(stats) {
+                const debugStatsElement = document.getElementById('debugStats');
+                if (debugStatsElement) {
+                    debugStatsElement.innerHTML = `
+                        Registros Originais: ${stats.originalRecords}<br>
+                        Registros Finais: ${stats.finalRecords}<br>
+                        Conflitos Resolvidos: ${stats.conflictsResolved}<br>
+                        Duplicatas Removidas: ${stats.duplicatesRemoved}<br>
+                        Taxa de Limpeza: ${stats.originalRecords > 0 ? 
+                            ((stats.originalRecords - stats.finalRecords) / stats.originalRecords * 100).toFixed(1) : 0}%
+                    `;
+                }
+            }
+
+            startAutoSync() {
+                if (this.autoSyncInterval) {
+                    clearInterval(this.autoSyncInterval);
+                }
+
+                if (APP_CONFIG.system.autoSyncInterval > 0) {
+                    this.logger.info(`Auto-sync configurado para ${APP_CONFIG.system.autoSyncInterval / 60000} minutos`);
                     
-                    if (equipmentFilter) {
-                        const itemEquipment = item.group.replace(/_apont$|_status$/, '');
-                        if (itemEquipment !== equipmentFilter) {
-                            include = false;
+                    this.autoSyncInterval = setInterval(async () => {
+                        if (!this.isUpdating) {
+                            this.logger.info('Executando auto-sync...');
+                            await this.syncFromGitHub();
                         }
-                    }
-                    
-                    if (period === 'custom') {
-                        const startDate = document.getElementById('startDate').value;
-                        const endDate = document.getElementById('endDate').value;
-                        
-                        if (startDate && item.start < new Date(startDate)) include = false;
-                        if (endDate && item.start > new Date(endDate)) include = false;
-                    }
-                    
-                    if (include) {
-                        filteredItems.push(item);
+                    }, APP_CONFIG.system.autoSyncInterval);
+
+                    this.updateNextSyncTime();
+                }
+            }
+
+            updateNextSyncTime() {
+                if (APP_CONFIG.system.autoSyncInterval > 0) {
+                    const nextUpdate = new Date(Date.now() + APP_CONFIG.system.autoSyncInterval);
+                    const nextUpdateElement = document.getElementById('nextUpdate');
+                    if (nextUpdateElement) {
+                        nextUpdateElement.textContent = nextUpdate.toLocaleTimeString('pt-BR');
                     }
                 }
-                
-                const visibleEquipments = new Set();
-                filteredItems.forEach(item => {
-                    const equipment = item.group.replace(/_apont$|_status$/, '');
-                    visibleEquipments.add(equipment);
-                });
-                
-                const visibleGroups = [];
-                for (const group of this.groups.get()) {
-                    const equipment = group.id.replace(/_apont$|_status$/, '');
-                    if (!equipmentFilter || visibleEquipments.has(equipment)) {
-                        visibleGroups.push(group);
-                    }
-                }
-                
-                this.timeline.setData({
-                    items: new vis.DataSet(filteredItems),
-                    groups: new vis.DataSet(visibleGroups)
-                });
-                
-                document.getElementById('visibleItems').textContent = `${filteredItems.length} itens visíveis`;
             }
 
             updateSyncStatus(status, message) {
                 const dot = document.getElementById('syncDot');
                 const statusText = document.getElementById('syncStatus');
                 
-                dot.className = `sync-dot ${status}`;
-                statusText.textContent = message;
+                if (dot) dot.className = `sync-dot ${status}`;
+                if (statusText) statusText.textContent = message;
             }
 
             updateSystemInfo() {
-                // Atualizar imediatamente
                 this.updateLastUpdateTime();
-                
                 setInterval(() => {
-                    const now = new Date();
-                    const uptime = Math.floor((now - this.startTime) / 1000 / 60);
-                    
                     this.updateNextSyncTime();
-                }, 60000); // Atualizar a cada minuto
+                }, 60000);
             }
 
             updateLastUpdateTime() {
@@ -2327,6 +2101,48 @@
                     setTimeout(() => notification.remove(), 300);
                 }, 4000);
             }
+
+            // Métodos para configurações
+            saveSettings() {
+                const autoSyncInterval = parseInt(document.getElementById('autoSyncInterval').value);
+                const conflictResolution = document.getElementById('conflictResolution').value;
+                const gapTolerance = parseInt(document.getElementById('gapTolerance').value);
+                
+                APP_CONFIG.system.autoSyncInterval = autoSyncInterval;
+                APP_CONFIG.system.conflictResolution = conflictResolution;
+                APP_CONFIG.system.gapTolerance = gapTolerance;
+                
+                this.startAutoSync();
+                this.logger.info(`Configurações atualizadas: ${conflictResolution} mode, ${gapTolerance}s tolerance`);
+                this.showNotification(`Configurações salvas! Auto-sync: ${autoSyncInterval > 0 ? `${autoSyncInterval/60000}min` : 'desabilitado'}`, 'success');
+            }
+
+            exportDebugData() {
+                const debugData = {
+                    logs: this.logger.exportLogs(),
+                    stats: this.conflictResolver.getStats(),
+                    config: APP_CONFIG,
+                    equipmentCount: this.equipmentMap.size,
+                    systemInfo: {
+                        startTime: this.startTime,
+                        uptime: Date.now() - this.startTime.getTime(),
+                        userAgent: navigator.userAgent
+                    },
+                    timestamp: new Date().toISOString()
+                };
+                
+                const dataStr = JSON.stringify(debugData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `productivity-debug-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                
+                URL.revokeObjectURL(url);
+                this.showNotification('Dados de debug exportados', 'success');
+            }
         }
 
         // =============================================================================
@@ -2342,61 +2158,15 @@
             document.getElementById(`${tabName}-tab`).classList.add('active');
         }
 
-        function applyFilters() {
-            if (productivitySystem) {
-                productivitySystem.applyFilters();
-            }
-        }
-
         function saveSettings() {
-            const autoSyncInterval = parseInt(document.getElementById('autoSyncInterval').value);
-            const conflictResolution = document.getElementById('conflictResolution').value;
-            const gapTolerance = parseInt(document.getElementById('gapTolerance').value);
-            
             if (productivitySystem) {
-                productivitySystem.config.autoSyncInterval = autoSyncInterval;
-                productivitySystem.config.conflictResolution = conflictResolution;
-                productivitySystem.config.gapTolerance = gapTolerance;
-                productivitySystem.startGitHubAutoSync();
-                productivitySystem.addDebugLog(`Configurações atualizadas: ${conflictResolution} mode, ${gapTolerance}s tolerance`);
+                productivitySystem.saveSettings();
             }
-            
-            productivitySystem.showNotification(`⚙️ Configurações salvas! Auto-sync: ${autoSyncInterval > 0 ? `${autoSyncInterval/60000}min` : 'desabilitado'}`, 'success');
         }
 
         function exportDebugData() {
             if (productivitySystem) {
-                const debugData = {
-                    debugLog: productivitySystem.debugLog,
-                    processingStats: productivitySystem.processingStats,
-                    config: productivitySystem.config,
-                    equipmentCount: productivitySystem.equipmentMap.size,
-                    timestamp: new Date().toISOString()
-                };
-                
-                const dataStr = JSON.stringify(debugData, null, 2);
-                const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(dataBlob);
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `productivity-debug-${new Date().toISOString().split('T')[0]}.json`;
-                a.click();
-                
-                URL.revokeObjectURL(url);
-                productivitySystem.showNotification('📁 Dados de debug exportados', 'success');
-            }
-        }
-
-        function loadAlertsPage() {
-            if (productivitySystem) {
-                productivitySystem.loadAlertsPage();
-            }
-        }
-
-        function loadReportsPage() {
-            if (productivitySystem) {
-                productivitySystem.loadReportsPage();
+                productivitySystem.exportDebugData();
             }
         }
 
@@ -2405,6 +2175,10 @@
         // =============================================================================
         document.addEventListener('DOMContentLoaded', () => {
             productivitySystem = new ProductivityMonitoringSystem();
+            
+            // Expor globalmente para debug
+            window.productivitySystem = productivitySystem;
+            window.APP_CONFIG = APP_CONFIG;
         });
     </script>
 </body>
