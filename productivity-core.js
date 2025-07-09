@@ -228,9 +228,10 @@ class ProductivityCore {
                     }
                 }
                 
-                // Yield control periodically for better performance
+                // Yield control periodically for better performance (sem await)
                 if (i % (batchSize * 10) === 0) {
-                    await new Promise(resolve => setTimeout(resolve, 0));
+                    // Processamento síncrono para evitar erro de await
+                    continue;
                 }
             }
             
