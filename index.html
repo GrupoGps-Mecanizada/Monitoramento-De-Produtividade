@@ -672,12 +672,6 @@
                 <div class="nav-tab" onclick="switchTab('rules')">
                     <span>⚙️ Regras de Produtividade</span>
                 </div>
-                <div class="nav-tab" onclick="switchTab('alerts')">
-                    <span>🚨 Alertas</span>
-                </div>
-                <div class="nav-tab" onclick="switchTab('reports')">
-                    <span>📋 Relatórios</span>
-                </div>
                 <div class="nav-tab" onclick="switchTab('settings')">
                     <span>🔧 Configurações</span>
                 </div>
@@ -841,54 +835,6 @@
                 </div>
             </div>
 
-            <!-- Alertas Tab -->
-            <div id="alerts-tab" class="tab-content">
-                <div class="glass-panel">
-                    <div style="padding: 2rem;">
-                        <h2 style="margin-bottom: 2rem; color: #2c3e50; display: flex; align-items: center; gap: 0.5rem;">
-                            🚨 Sistema de Alertas
-                        </h2>
-                        
-                        <div style="text-align: center; color: #7f8c8d; padding: 4rem 2rem;">
-                            <div style="font-size: 3rem; margin-bottom: 1rem;">🔔</div>
-                            <h3 style="margin-bottom: 1rem; color: #5a6c7d;">Sistema de Alertas em Desenvolvimento</h3>
-                            <p>Os alertas serão carregados dinamicamente do GitHub quando disponíveis.</p>
-                            
-                            <div style="margin-top: 2rem;">
-                                <button class="btn" onclick="loadAlertsPage()">
-                                    <span>🔄</span>
-                                    Verificar Alertas
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Relatórios Tab -->
-            <div id="reports-tab" class="tab-content">
-                <div class="glass-panel">
-                    <div style="padding: 2rem;">
-                        <h2 style="margin-bottom: 2rem; color: #2c3e50; display: flex; align-items: center; gap: 0.5rem;">
-                            📈 Relatórios e Análises
-                        </h2>
-                        
-                        <div style="text-align: center; color: #7f8c8d; padding: 4rem 2rem;">
-                            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
-                            <h3 style="margin-bottom: 1rem; color: #5a6c7d;">Relatórios em Desenvolvimento</h3>
-                            <p>Os relatórios serão carregados dinamicamente do GitHub quando disponíveis.</p>
-                            
-                            <div style="margin-top: 2rem;">
-                                <button class="btn" onclick="loadReportsPage()">
-                                    <span>🔄</span>
-                                    Verificar Relatórios
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Configurações Tab -->
             <div id="settings-tab" class="tab-content">
                 <div class="glass-panel" style="padding: 2rem;">
@@ -1020,16 +966,6 @@
             if (productivitySystem && productivitySystem.rules) {
                 productivitySystem.rules.exportRules();
             }
-        }
-
-        function loadAlertsPage() {
-            window.open('https://grupogps-mecanizada.github.io/Monitoramento-De-Produtividade/alerts.html', '_blank');
-            showNotification('Página de alertas aberta em nova aba', 'success');
-        }
-
-        function loadReportsPage() {
-            window.open('https://grupogps-mecanizada.github.io/Productivity-Reports/reports.html', '_blank');
-            showNotification('Página de relatórios aberta em nova aba', 'success');
         }
 
         function showNotification(message, type = 'info') {
