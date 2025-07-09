@@ -1,5 +1,5 @@
 // =============================================================================
-// PRODUCTIVITY SYSTEM MODULE - Sistema Principal Ultra Otimizado v2.0
+// PRODUCTIVITY SYSTEM MODULE - Sistema Principal Corrigido e Simplificado v2.1
 // =============================================================================
 
 class ProductivitySystem {
@@ -21,279 +21,275 @@ class ProductivitySystem {
         this.currentViewWindow = null;
         this.lastDataHash = '';
         
-        // Otimizações de performance
+        // Configuração de filtros baseada nos dados reais
+        this.filterConfig = {
+            groups: [
+                { key: 'alta-pressao', name: 'Alta Pressão', icon: '🔴' },
+                { key: 'baixa-pressao', name: 'Baixa Pressão', icon: '🔵' },
+                { key: 'auto-vacuo', name: 'Auto Vácuo', icon: '🟣' },
+                { key: 'hiper-vacuo', name: 'Hiper Vácuo', icon: '⚫' },
+                { key: 'caminhoes', name: 'Caminhões', icon: '🚛' }
+            ],
+            status: [
+                { key: 'running', name: 'Operando', color: '#27ae60' },
+                { key: 'stopped', name: 'Parado', color: '#f39c12' },
+                { key: 'off', name: 'Desligado', color: '#95a5a6' },
+                { key: 'maintenance', name: 'Manutenção', color: '#e67e22' },
+                { key: 'on', name: 'Ligado', color: '#3498db' }
+            ],
+            appointments: [
+                { key: 'documentacao', name: 'Documentação', color: '#27ae60' },
+                { key: 'preparacao', name: 'Preparação', color: '#9b59b6' },
+                { key: 'manutencao', name: 'Manutenção', color: '#e67e22' },
+                { key: 'bloqueio', name: 'Bloqueio', color: '#e74c3c' },
+                { key: 'aguardando', name: 'Aguardando', color: '#3498db' },
+                { key: 'refeicao', name: 'Refeição', color: '#27ae60' }
+            ]
+        };
+        
+        // Navegação por equipamento
+        this.currentEquipmentIndex = 0;
+        this.equipmentList = [];
+        
+        // Otimizações de performance simplificadas
         this.performanceConfig = {
-            virtualScrolling: true,
-            maxItemsRendered: 1000,
-            debounceInterval: 100,
-            lazyLoadThreshold: 500,
-            groupSeparatorEnabled: true,
-            cacheTimeout: 300000 // 5 minutos
+            maxItemsRendered: 2000,
+            debounceInterval: 200,
+            cacheTimeout: 300000
         };
         
-        // Sistema de separação visual
-        this.equipmentSeparators = new Map();
-        this.lastEquipmentProcessed = null;
-        
-        // Cache otimizado
-        this.processingCache = new Map();
-        this.renderCache = new Map();
-        
-        // Estatísticas de performance
-        this.performanceStats = {
-            conflictsResolved: 0,
-            duplicatesRemoved: 0,
-            originalRecords: 0,
-            finalRecords: 0,
-            renderTime: 0,
-            cacheHits: 0,
-            cacheMisses: 0
-        };
-
-        // Estado de filtros avançados
+        // Estado de filtros simplificado
         this.filterState = {
             equipment: '',
             groups: new Set(),
             status: new Set(),
             appointments: new Set(),
             period: 'week',
-            startDate: null,
-            endDate: null,
-            startTime: null,
-            endTime: null,
             isActive: false
         };
 
-        this.initializeOptimizedSystem();
+        this.initializeSystem();
     }
 
     // =============================================================================
-    // INICIALIZAÇÃO ULTRA OTIMIZADA
+    // INICIALIZAÇÃO SIMPLIFICADA
     // =============================================================================
-    async initializeOptimizedSystem() {
+    async initializeSystem() {
         try {
-            this.core.addDebugLog('Iniciando sistema otimizado v2.0');
+            this.core.addDebugLog('Iniciando sistema de produtividade v2.1');
             
-            // Performance monitoring
-            const startTime = performance.now();
+            this.setupEventListeners();
+            this.initializeRulesInterface(); // CORRIGIDO: função própria
+            this.initializeSettingsInterface(); // CORRIGIDO: função própria
+            this.updateSyncStatus('loading', 'Carregando dados...');
             
-            this.setupOptimizedEventListeners();
-            this.initializeRulesSystem();
-            this.updateSyncStatus('loading', 'Inicializando sistema ultra otimizado...');
+            await this.initGitHubSync();
             
-            await this.initOptimizedGitHubSync();
-            
-            const initTime = performance.now() - startTime;
-            this.core.addDebugLog(`Sistema inicializado em ${initTime.toFixed(2)}ms`);
-            
-            // Show performance notification
-            this.showNotification(`Sistema otimizado carregado em ${initTime.toFixed(0)}ms`, 'success');
+            this.core.addDebugLog('Sistema inicializado com sucesso');
             
         } catch (error) {
-            this.core.addDebugLog(`Erro na inicialização otimizada: ${error.message}`, 'error');
+            this.core.addDebugLog(`Erro na inicialização: ${error.message}`, 'error');
             this.showNotification('Erro na inicialização do sistema', 'error');
         }
     }
 
-    setupOptimizedEventListeners() {
-        // Filtros com debouncing otimizado
+    setupEventListeners() {
+        // Filtros com debouncing
         const equipmentFilter = document.getElementById('equipmentFilter');
         if (equipmentFilter) {
             equipmentFilter.addEventListener('change', this.core.debounce(() => {
-                this.applyOptimizedFilters();
+                this.applyFilters();
             }, this.performanceConfig.debounceInterval));
         }
 
         const periodFilter = document.getElementById('periodFilter');
         if (periodFilter) {
             periodFilter.addEventListener('change', () => {
-                this.handleOptimizedPeriodChange();
+                this.handlePeriodChange();
             });
         }
 
-        // Date filters with optimized debouncing
-        ['startDate', 'endDate', 'startTime', 'endTime'].forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.addEventListener('change', this.core.debounce(() => {
-                    this.applyOptimizedFilters();
-                }, 300));
-            }
+        // Filtros de chip
+        this.setupFilterChips();
+        
+        // Navegação por equipamento
+        this.setupEquipmentNavigation();
+    }
+
+    setupFilterChips() {
+        // Setup group filter chips
+        document.querySelectorAll('#groupFilters .filter-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                this.toggleFilterChip(chip, this.filterState.groups);
+                this.applyFilters();
+            });
         });
 
-        // Intersection Observer para lazy loading
-        this.setupIntersectionObserver();
+        // Setup status filter chips
+        document.querySelectorAll('#statusFilters .filter-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                this.toggleFilterChip(chip, this.filterState.status);
+                this.applyFilters();
+            });
+        });
+
+        // Setup appointment filter chips
+        document.querySelectorAll('#appointmentFilters .filter-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                this.toggleFilterChip(chip, this.filterState.appointments);
+                this.applyFilters();
+            });
+        });
+    }
+
+    setupEquipmentNavigation() {
+        // Adicionar botões de navegação na interface
+        const timelineHeader = document.querySelector('.timeline-header');
+        if (timelineHeader) {
+            const navButtons = document.createElement('div');
+            navButtons.className = 'equipment-navigation';
+            navButtons.innerHTML = `
+                <button id="prevEquipment" class="nav-btn" title="Equipamento Anterior">
+                    ⬅️ Anterior
+                </button>
+                <span id="currentEquipmentInfo" class="equipment-info">
+                    -- / --
+                </span>
+                <button id="nextEquipment" class="nav-btn" title="Próximo Equipamento">
+                    Próximo ➡️
+                </button>
+                <button id="resetView" class="nav-btn" title="Ver Todos">
+                    🏠 Todos
+                </button>
+            `;
+            timelineHeader.appendChild(navButtons);
+
+            // Event listeners para navegação
+            document.getElementById('prevEquipment')?.addEventListener('click', () => {
+                this.navigateToEquipment(-1);
+            });
+
+            document.getElementById('nextEquipment')?.addEventListener('click', () => {
+                this.navigateToEquipment(1);
+            });
+
+            document.getElementById('resetView')?.addEventListener('click', () => {
+                this.resetEquipmentView();
+            });
+        }
+    }
+
+    toggleFilterChip(chip, filterSet) {
+        const value = chip.dataset.group || chip.dataset.status || chip.dataset.apont;
         
-        // Resize observer para timeline responsiva
-        this.setupResizeObserver();
+        if (filterSet.has(value)) {
+            filterSet.delete(value);
+            chip.classList.remove('active');
+        } else {
+            filterSet.add(value);
+            chip.classList.add('active');
+        }
+        
+        this.updateFilterState();
     }
 
-    setupIntersectionObserver() {
-        if (!('IntersectionObserver' in window)) return;
-
-        this.intersectionObserver = new IntersectionObserver(
-            (entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        this.loadTimelineContent();
-                    }
-                });
-            },
-            {
-                threshold: 0.1,
-                rootMargin: '50px'
-            }
+    updateFilterState() {
+        this.filterState.isActive = !!(
+            this.filterState.equipment ||
+            this.filterState.groups.size > 0 ||
+            this.filterState.status.size > 0 ||
+            this.filterState.appointments.size > 0
         );
-
-        const timelineContainer = document.getElementById('timeline');
-        if (timelineContainer) {
-            this.intersectionObserver.observe(timelineContainer);
-        }
-    }
-
-    setupResizeObserver() {
-        if (!('ResizeObserver' in window)) return;
-
-        this.resizeObserver = new ResizeObserver(
-            this.core.debounce(() => {
-                if (this.timeline) {
-                    this.timeline.redraw();
-                }
-            }, 250)
-        );
-
-        const timelineContainer = document.getElementById('timeline');
-        if (timelineContainer) {
-            this.resizeObserver.observe(timelineContainer);
-        }
     }
 
     // =============================================================================
-    // SISTEMA DE REGRAS OTIMIZADO
+    // INTERFACE DE REGRAS SIMPLIFICADA - CORRIGIDO
     // =============================================================================
-    initializeRulesSystem() {
+    initializeRulesInterface() {
         const rulesInterface = document.getElementById('rulesInterface');
-        const settingsInterface = document.getElementById('settingsInterface');
-        
         if (rulesInterface) {
-            this.renderOptimizedRulesInterface(rulesInterface);
-        }
-        
-        if (settingsInterface) {
-            this.renderOptimizedSettingsInterface(settingsInterface);
+            this.renderRulesInterface(rulesInterface);
         }
     }
 
-    renderOptimizedRulesInterface(container) {
+    renderRulesInterface(container) {
         const rulesConfig = this.rules.getRulesConfig();
         
         container.innerHTML = `
-            <div class="rules-interface-optimized">
-                <div class="rules-wizard">
-                    <div class="wizard-header">
-                        <h3>🎯 Assistente de Regras de Produtividade</h3>
-                        <p>Configure regras inteligentes de forma simples e intuitiva</p>
+            <div class="rules-interface">
+                <div class="rules-header">
+                    <h3>⚙️ Regras de Produtividade</h3>
+                    <p>Configure como diferentes atividades afetam a produtividade</p>
+                </div>
+                
+                <div class="rules-tabs">
+                    <button class="rule-tab active" data-tab="status">Status de Equipamentos</button>
+                    <button class="rule-tab" data-tab="appointments">Apontamentos</button>
+                    <button class="rule-tab" data-tab="settings">Configurações</button>
+                </div>
+                
+                <div class="rules-content">
+                    <div class="tab-panel active" id="status-panel">
+                        <h4>Classificação de Status</h4>
+                        <div class="rules-grid" id="statusRulesGrid">
+                            <!-- Será preenchido dinamicamente -->
+                        </div>
                     </div>
                     
-                    <div class="wizard-content">
-                        <div class="rule-category-tabs">
-                            <button class="rule-tab active" data-category="status">🔄 Status de Equipamentos</button>
-                            <button class="rule-tab" data-category="appointments">📋 Apontamentos</button>
-                            <button class="rule-tab" data-category="groups">👥 Grupos Específicos</button>
-                            <button class="rule-tab" data-category="advanced">⚙️ Configurações Avançadas</button>
+                    <div class="tab-panel" id="appointments-panel">
+                        <h4>Classificação de Apontamentos</h4>
+                        <div class="rules-grid" id="appointmentRulesGrid">
+                            <!-- Será preenchido dinamicamente -->
                         </div>
-                        
-                        <div class="rule-content-area">
-                            <div class="rule-section active" id="status-rules">
-                                <div class="section-header">
-                                    <h4>Classificação de Status de Telemetria</h4>
-                                    <p>Defina como cada status do equipamento afeta a produtividade</p>
-                                </div>
-                                <div class="rules-grid" id="statusRulesGrid"></div>
-                            </div>
-                            
-                            <div class="rule-section" id="appointments-rules">
-                                <div class="section-header">
-                                    <h4>Classificação de Apontamentos</h4>
-                                    <p>Configure como diferentes tipos de apontamentos impactam a produtividade</p>
-                                </div>
-                                <div class="rules-grid" id="appointmentsRulesGrid"></div>
-                            </div>
-                            
-                            <div class="rule-section" id="groups-rules">
-                                <div class="section-header">
-                                    <h4>Regras por Grupo de Equipamentos</h4>
-                                    <p>Definições específicas que sobrescrevem regras gerais</p>
-                                </div>
-                                <div class="groups-container" id="groupsRulesContainer"></div>
-                            </div>
-                            
-                            <div class="rule-section" id="advanced-rules">
-                                <div class="section-header">
-                                    <h4>Configurações Avançadas</h4>
-                                    <p>Parâmetros técnicos do sistema de regras</p>
-                                </div>
-                                <div class="advanced-settings" id="advancedRulesSettings"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="wizard-actions">
-                            <div class="actions-left">
-                                <button class="btn secondary" onclick="productivitySystem.resetRulesToDefault()">
-                                    🔄 Restaurar Padrões
-                                </button>
-                                <button class="btn secondary" onclick="productivitySystem.exportRules()">
-                                    📤 Exportar Regras
-                                </button>
-                            </div>
-                            <div class="actions-right">
-                                <button class="btn success" onclick="productivitySystem.saveRulesToGitHub()">
-                                    💾 Salvar Regras
-                                </button>
-                                <button class="btn" onclick="productivitySystem.testRules()">
-                                    🧪 Testar Regras
-                                </button>
+                    </div>
+                    
+                    <div class="tab-panel" id="settings-panel">
+                        <h4>Configurações Gerais</h4>
+                        <div class="settings-grid">
+                            <div class="setting-item">
+                                <label>Resolução de Conflitos:</label>
+                                <select id="conflictResolution">
+                                    <option value="priority">Por Prioridade</option>
+                                    <option value="latest">Mais Recente</option>
+                                    <option value="longest">Maior Duração</option>
+                                </select>
                             </div>
                         </div>
                     </div>
                 </div>
+                
+                <div class="rules-actions">
+                    <button class="btn secondary" onclick="productivitySystem.resetRules()">
+                        Restaurar Padrões
+                    </button>
+                    <button class="btn primary" onclick="productivitySystem.saveRules()">
+                        Salvar Regras
+                    </button>
+                </div>
             </div>
             
             <style>
-                .rules-interface-optimized {
-                    width: 100%;
-                    max-width: 1200px;
-                    margin: 0 auto;
-                }
-                
-                .rules-wizard {
+                .rules-interface {
                     background: rgba(255, 255, 255, 0.95);
-                    border-radius: 16px;
-                    overflow: hidden;
-                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                    border-radius: 12px;
+                    padding: 1.5rem;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
                 }
                 
-                .wizard-header {
-                    background: linear-gradient(135deg, #667eea, #764ba2);
-                    color: white;
-                    padding: 2rem;
+                .rules-header {
                     text-align: center;
+                    margin-bottom: 2rem;
                 }
                 
-                .wizard-header h3 {
-                    font-size: 1.5rem;
+                .rules-header h3 {
+                    color: #2c3e50;
                     margin-bottom: 0.5rem;
                 }
                 
-                .wizard-header p {
-                    opacity: 0.9;
-                    font-size: 1rem;
-                }
-                
-                .rule-category-tabs {
+                .rules-tabs {
                     display: flex;
-                    background: rgba(255, 255, 255, 0.8);
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+                    border-bottom: 2px solid #ecf0f1;
+                    margin-bottom: 1.5rem;
                 }
                 
                 .rule-tab {
@@ -303,148 +299,86 @@ class ProductivitySystem {
                     background: transparent;
                     cursor: pointer;
                     font-weight: 600;
-                    color: #5a6c7d;
+                    color: #7f8c8d;
                     transition: all 0.3s ease;
-                    border-bottom: 3px solid transparent;
                 }
                 
                 .rule-tab.active {
                     color: #667eea;
-                    border-bottom-color: #667eea;
-                    background: rgba(102, 126, 234, 0.1);
+                    border-bottom: 2px solid #667eea;
                 }
                 
-                .rule-tab:hover:not(.active) {
-                    background: rgba(255, 255, 255, 0.6);
-                    color: #2c3e50;
-                }
-                
-                .rule-content-area {
-                    padding: 2rem;
-                    min-height: 400px;
-                }
-                
-                .rule-section {
+                .tab-panel {
                     display: none;
                 }
                 
-                .rule-section.active {
+                .tab-panel.active {
                     display: block;
-                }
-                
-                .section-header {
-                    margin-bottom: 2rem;
-                }
-                
-                .section-header h4 {
-                    color: #2c3e50;
-                    font-size: 1.2rem;
-                    margin-bottom: 0.5rem;
-                }
-                
-                .section-header p {
-                    color: #5a6c7d;
-                    font-size: 0.95rem;
                 }
                 
                 .rules-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
                     gap: 1rem;
-                    margin-bottom: 2rem;
+                    margin-bottom: 1.5rem;
                 }
                 
-                .rule-item-optimized {
+                .rule-item {
                     display: flex;
-                    align-items: center;
                     justify-content: space-between;
+                    align-items: center;
                     padding: 1rem;
                     background: rgba(255, 255, 255, 0.8);
-                    border: 2px solid rgba(255, 255, 255, 0.3);
-                    border-radius: 12px;
+                    border: 2px solid #ecf0f1;
+                    border-radius: 8px;
                     transition: all 0.3s ease;
                 }
                 
-                .rule-item-optimized:hover {
+                .rule-item:hover {
                     border-color: #667eea;
-                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
                 }
                 
                 .rule-name {
                     font-weight: 600;
                     color: #2c3e50;
-                    flex: 1;
                 }
                 
-                .rule-selector {
-                    padding: 0.5rem 1rem;
-                    border: 2px solid rgba(255, 255, 255, 0.3);
-                    border-radius: 8px;
+                .rule-select {
+                    padding: 0.5rem;
+                    border: 1px solid #bdc3c7;
+                    border-radius: 4px;
                     background: white;
-                    font-weight: 600;
-                    min-width: 120px;
                 }
                 
-                .rule-selector.productive {
-                    border-color: #27ae60;
-                    color: #27ae60;
-                }
-                
-                .rule-selector.non-productive {
-                    border-color: #e74c3c;
-                    color: #e74c3c;
-                }
-                
-                .rule-selector.neutral {
-                    border-color: #95a5a6;
-                    color: #95a5a6;
-                }
-                
-                .wizard-actions {
+                .rules-actions {
                     display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 1.5rem 2rem;
-                    background: rgba(255, 255, 255, 0.5);
-                    border-top: 1px solid rgba(255, 255, 255, 0.3);
-                }
-                
-                .actions-left,
-                .actions-right {
-                    display: flex;
+                    justify-content: center;
                     gap: 1rem;
+                    margin-top: 2rem;
                 }
                 
                 .btn {
                     padding: 0.75rem 1.5rem;
                     border: none;
-                    border-radius: 8px;
+                    border-radius: 6px;
                     cursor: pointer;
                     font-weight: 600;
                     transition: all 0.3s ease;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
                 }
                 
-                .btn.success {
-                    background: linear-gradient(135deg, #27ae60, #2ecc71);
+                .btn.primary {
+                    background: linear-gradient(135deg, #667eea, #764ba2);
                     color: white;
                 }
                 
                 .btn.secondary {
-                    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-                    color: white;
-                }
-                
-                .btn:not(.secondary):not(.success) {
-                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    background: #95a5a6;
                     color: white;
                 }
                 
                 .btn:hover {
                     transform: translateY(-2px);
-                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
                 }
             </style>
         `;
@@ -452,44 +386,32 @@ class ProductivitySystem {
         // Setup tab switching
         container.querySelectorAll('.rule-tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                this.switchRuleTab(tab.dataset.category);
+                this.switchRuleTab(tab.dataset.tab);
             });
         });
         
         // Load current rules
-        this.loadCurrentRulesIntoInterface();
+        this.loadRulesData();
     }
 
-    switchRuleTab(category) {
+    switchRuleTab(tabName) {
         // Update tabs
         document.querySelectorAll('.rule-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.category === category);
+            tab.classList.toggle('active', tab.dataset.tab === tabName);
         });
         
-        // Update sections
-        document.querySelectorAll('.rule-section').forEach(section => {
-            section.classList.toggle('active', section.id === `${category}-rules`);
+        // Update panels
+        document.querySelectorAll('.tab-panel').forEach(panel => {
+            panel.classList.toggle('active', panel.id === `${tabName}-panel`);
         });
-        
-        // Load category-specific content
-        this.loadRuleCategoryContent(category);
     }
 
-    loadCurrentRulesIntoInterface() {
+    loadRulesData() {
         const rulesConfig = this.rules.getRulesConfig();
         if (!rulesConfig) return;
         
-        // Load status rules
-        this.loadStatusRules(rulesConfig.telemetryRules);
-        
-        // Load appointment rules
-        this.loadAppointmentRules(rulesConfig.appointmentRules);
-        
-        // Load group rules
-        this.loadGroupRules(rulesConfig.groupSpecificRules);
-        
-        // Load advanced settings
-        this.loadAdvancedSettings(rulesConfig.globalSettings);
+        this.loadStatusRules(rulesConfig.telemetryRules || {});
+        this.loadAppointmentRules(rulesConfig.appointmentRules || {});
     }
 
     loadStatusRules(statusRules) {
@@ -498,26 +420,23 @@ class ProductivitySystem {
         
         container.innerHTML = '';
         
-        const allStatuses = ['running', 'on', 'stopped', 'off', 'maintenance', 'out_of_plant', 'not_appropriated', 'no_data', 'secondary_motor_on'];
-        
-        allStatuses.forEach(status => {
-            const currentRule = statusRules[status] || 'neutral';
+        this.filterConfig.status.forEach(status => {
+            const currentRule = statusRules[status.key] || 'neutral';
             
             const ruleItem = document.createElement('div');
-            ruleItem.className = 'rule-item-optimized';
+            ruleItem.className = 'rule-item';
             ruleItem.innerHTML = `
-                <span class="rule-name">${this.getStatusDisplayName(status)}</span>
-                <select class="rule-selector ${currentRule}" data-type="status" data-key="${status}">
+                <span class="rule-name">${status.name}</span>
+                <select class="rule-select" data-type="status" data-key="${status.key}">
                     <option value="productive" ${currentRule === 'productive' ? 'selected' : ''}>Produtivo</option>
                     <option value="non-productive" ${currentRule === 'non-productive' ? 'selected' : ''}>Não Produtivo</option>
                     <option value="neutral" ${currentRule === 'neutral' ? 'selected' : ''}>Neutro</option>
                 </select>
             `;
             
-            const selector = ruleItem.querySelector('.rule-selector');
-            selector.addEventListener('change', (e) => {
-                this.updateRule('status', status, e.target.value);
-                e.target.className = `rule-selector ${e.target.value}`;
+            const select = ruleItem.querySelector('.rule-select');
+            select.addEventListener('change', (e) => {
+                this.updateRule('status', status.key, e.target.value);
             });
             
             container.appendChild(ruleItem);
@@ -525,50 +444,32 @@ class ProductivitySystem {
     }
 
     loadAppointmentRules(appointmentRules) {
-        const container = document.getElementById('appointmentsRulesGrid');
+        const container = document.getElementById('appointmentRulesGrid');
         if (!container) return;
         
         container.innerHTML = '';
         
-        const allAppointments = ['Documentação', 'Preparação', 'Abastecimento', 'Descarregamento', 'Manutenção', 'Bloqueio', 'Aguardando', 'Refeição Motorista'];
-        
-        allAppointments.forEach(appointment => {
-            const currentRule = appointmentRules[appointment] || 'neutral';
+        this.filterConfig.appointments.forEach(appointment => {
+            const currentRule = appointmentRules[appointment.key] || 'neutral';
             
             const ruleItem = document.createElement('div');
-            ruleItem.className = 'rule-item-optimized';
+            ruleItem.className = 'rule-item';
             ruleItem.innerHTML = `
-                <span class="rule-name">${appointment}</span>
-                <select class="rule-selector ${currentRule}" data-type="appointment" data-key="${appointment}">
+                <span class="rule-name">${appointment.name}</span>
+                <select class="rule-select" data-type="appointment" data-key="${appointment.key}">
                     <option value="productive" ${currentRule === 'productive' ? 'selected' : ''}>Produtivo</option>
                     <option value="non-productive" ${currentRule === 'non-productive' ? 'selected' : ''}>Não Produtivo</option>
                     <option value="neutral" ${currentRule === 'neutral' ? 'selected' : ''}>Neutro</option>
                 </select>
             `;
             
-            const selector = ruleItem.querySelector('.rule-selector');
-            selector.addEventListener('change', (e) => {
-                this.updateRule('appointment', appointment, e.target.value);
-                e.target.className = `rule-selector ${e.target.value}`;
+            const select = ruleItem.querySelector('.rule-select');
+            select.addEventListener('change', (e) => {
+                this.updateRule('appointment', appointment.key, e.target.value);
             });
             
             container.appendChild(ruleItem);
         });
-    }
-
-    getStatusDisplayName(status) {
-        const displayNames = {
-            'running': 'Rodando',
-            'on': 'Motor Ligado',
-            'stopped': 'Parado',
-            'off': 'Motor Desligado',
-            'maintenance': 'Manutenção',
-            'out_of_plant': 'Fora da Planta',
-            'not_appropriated': 'Não Apropriado',
-            'no_data': 'Sem Dados',
-            'secondary_motor_on': 'Motor Secundário Ligado'
-        };
-        return displayNames[status] || status;
     }
 
     updateRule(type, key, value) {
@@ -576,637 +477,281 @@ class ProductivitySystem {
         this.showNotification(`Regra atualizada: ${key} = ${value}`, 'success');
     }
 
-    async saveRulesToGitHub() {
-        try {
-            this.showNotification('Salvando regras no GitHub...', 'info');
-            
-            const rulesConfig = this.rules.getRulesConfig();
-            const rulesJson = JSON.stringify(rulesConfig, null, 2);
-            
-            // Simular salvamento no GitHub (implementar API real)
-            await this.uploadToGitHub('productivity-rules.json', rulesJson);
-            
-            this.rules.saveRules();
-            this.showNotification('Regras salvas com sucesso no GitHub!', 'success');
-            
-        } catch (error) {
-            this.core.addDebugLog(`Erro ao salvar regras: ${error.message}`, 'error');
-            this.showNotification('Erro ao salvar regras no GitHub', 'error');
-        }
+    saveRules() {
+        this.rules.saveRules();
+        this.showNotification('Regras salvas com sucesso!', 'success');
     }
 
-    async uploadToGitHub(filename, content) {
-        // Implementação real da API do GitHub
-        // Por enquanto simular delay
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                console.log(`Simulando upload de ${filename} para GitHub`);
-                resolve(true);
-            }, 1000);
-        });
-    }
-
-    testRules() {
-        const rulesConfig = this.rules.getRulesConfig();
-        const testResults = this.runRulesTest(rulesConfig);
-        
-        this.showTestResults(testResults);
-    }
-
-    runRulesTest(rulesConfig) {
-        // Teste básico das regras
-        const testCases = [
-            { type: 'status', value: 'running', expected: 'productive' },
-            { type: 'status', value: 'maintenance', expected: 'non-productive' },
-            { type: 'appointment', value: 'Documentação', expected: 'productive' },
-            { type: 'appointment', value: 'Bloqueio', expected: 'non-productive' }
-        ];
-        
-        const results = testCases.map(test => {
-            const rules = test.type === 'status' ? rulesConfig.telemetryRules : rulesConfig.appointmentRules;
-            const actual = rules[test.value] || 'neutral';
-            
-            return {
-                ...test,
-                actual: actual,
-                passed: actual === test.expected
-            };
-        });
-        
-        return {
-            total: results.length,
-            passed: results.filter(r => r.passed).length,
-            failed: results.filter(r => !r.passed).length,
-            results: results
-        };
-    }
-
-    showTestResults(testResults) {
-        const message = `Teste de Regras: ${testResults.passed}/${testResults.total} passaram`;
-        const type = testResults.failed === 0 ? 'success' : 'warning';
-        
-        this.showNotification(message, type);
-        
-        // Log detalhado
-        testResults.results.forEach(result => {
-            const status = result.passed ? '✅' : '❌';
-            console.log(`${status} ${result.type}[${result.value}]: esperado=${result.expected}, atual=${result.actual}`);
-        });
-    }
-
-    resetRulesToDefault() {
-        if (confirm('Restaurar todas as regras para os valores padrão? Esta ação não pode ser desfeita.')) {
+    resetRules() {
+        if (confirm('Restaurar todas as regras para os valores padrão?')) {
             this.rules.resetToDefaults();
-            this.loadCurrentRulesIntoInterface();
+            this.loadRulesData();
             this.showNotification('Regras restauradas para padrão', 'success');
         }
     }
 
-    exportRules() {
-        this.rules.exportRules();
+    // =============================================================================
+    // INTERFACE DE CONFIGURAÇÕES SIMPLIFICADA - CORRIGIDO
+    // =============================================================================
+    initializeSettingsInterface() {
+        const settingsInterface = document.getElementById('settingsInterface');
+        if (settingsInterface) {
+            this.renderSettingsInterface(settingsInterface);
+        }
     }
 
-    // =============================================================================
-    // CONFIGURAÇÕES FUNCIONAIS
-    // =============================================================================
-    renderOptimizedSettingsInterface(container) {
+    renderSettingsInterface(container) {
         container.innerHTML = `
-            <div class="settings-interface-optimized">
-                <div class="settings-wizard">
-                    <div class="wizard-header">
-                        <h3>🔧 Configurações Avançadas do Sistema</h3>
-                        <p>Configure parâmetros operacionais e otimizações de performance</p>
-                    </div>
-                    
-                    <div class="settings-sections">
-                        <div class="settings-section">
-                            <h4>⚡ Performance e Sincronização</h4>
-                            <div class="settings-grid">
-                                <div class="setting-group">
-                                    <label>Intervalo de Auto-Sync</label>
-                                    <select id="setting-autoSyncInterval">
-                                        <option value="0">Desabilitado</option>
-                                        <option value="300000">5 minutos</option>
-                                        <option value="600000">10 minutos</option>
-                                        <option value="900000">15 minutos</option>
-                                        <option value="1800000">30 minutos</option>
-                                    </select>
-                                    <small>Frequência de sincronização automática com GitHub</small>
-                                </div>
-                                
-                                <div class="setting-group">
-                                    <label>Max Itens Timeline</label>
-                                    <select id="setting-maxItems">
-                                        <option value="500">500 itens</option>
-                                        <option value="1000">1000 itens</option>
-                                        <option value="2000">2000 itens</option>
-                                        <option value="5000">5000 itens</option>
-                                    </select>
-                                    <small>Máximo de itens renderizados na timeline</small>
-                                </div>
-                                
-                                <div class="setting-group">
-                                    <label>Cache Timeout</label>
-                                    <select id="setting-cacheTimeout">
-                                        <option value="300000">5 minutos</option>
-                                        <option value="600000">10 minutos</option>
-                                        <option value="1800000">30 minutos</option>
-                                        <option value="3600000">1 hora</option>
-                                    </select>
-                                    <small>Tempo de vida do cache em memória</small>
-                                </div>
-                            </div>
+            <div class="settings-interface">
+                <div class="settings-header">
+                    <h3>🔧 Configurações do Sistema</h3>
+                    <p>Ajuste parâmetros operacionais do sistema</p>
+                </div>
+                
+                <div class="settings-grid">
+                    <div class="setting-section">
+                        <h4>🔄 Sincronização</h4>
+                        <div class="setting-item">
+                            <label>Intervalo de Auto-Sync:</label>
+                            <select id="autoSyncInterval">
+                                <option value="0">Desabilitado</option>
+                                <option value="300000">5 minutos</option>
+                                <option value="600000" selected>10 minutos</option>
+                                <option value="1800000">30 minutos</option>
+                            </select>
                         </div>
                         
-                        <div class="settings-section">
-                            <h4>🔄 Resolução de Conflitos</h4>
-                            <div class="settings-grid">
-                                <div class="setting-group">
-                                    <label>Modo de Resolução</label>
-                                    <select id="setting-conflictResolution">
-                                        <option value="priority">Por Prioridade (Recomendado)</option>
-                                        <option value="latest">Mais Recente</option>
-                                        <option value="longest">Maior Duração</option>
-                                        <option value="merge">Mesclar Dados</option>
-                                    </select>
-                                    <small>Como resolver conflitos entre dados de diferentes fontes</small>
-                                </div>
-                                
-                                <div class="setting-group">
-                                    <label>Tolerância de Gap</label>
-                                    <select id="setting-gapTolerance">
-                                        <option value="30">30 segundos</option>
-                                        <option value="60">60 segundos</option>
-                                        <option value="120">2 minutos</option>
-                                        <option value="300">5 minutos</option>
-                                    </select>
-                                    <small>Tolerância para lacunas entre registros consecutivos</small>
-                                </div>
-                                
-                                <div class="setting-group">
-                                    <label>Limiar de Confiança</label>
-                                    <select id="setting-confidenceThreshold">
-                                        <option value="0.6">60% (Baixo)</option>
-                                        <option value="0.8">80% (Médio)</option>
-                                        <option value="0.9">90% (Alto)</option>
-                                        <option value="0.95">95% (Muito Alto)</option>
-                                    </select>
-                                    <small>Nível mínimo de confiança para aceitar dados</small>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="settings-section">
-                            <h4>👁️ Interface e Visualização</h4>
-                            <div class="settings-grid">
-                                <div class="setting-group">
-                                    <label>Separadores de Equipamento</label>
-                                    <select id="setting-equipmentSeparators">
-                                        <option value="true">Habilitado</option>
-                                        <option value="false">Desabilitado</option>
-                                    </select>
-                                    <small>Mostrar linhas separadoras entre equipamentos na timeline</small>
-                                </div>
-                                
-                                <div class="setting-group">
-                                    <label>Scroll Virtual</label>
-                                    <select id="setting-virtualScrolling">
-                                        <option value="true">Habilitado</option>
-                                        <option value="false">Desabilitado</option>
-                                    </select>
-                                    <small>Otimização para grandes volumes de dados</small>
-                                </div>
-                                
-                                <div class="setting-group">
-                                    <label>Tema da Timeline</label>
-                                    <select id="setting-timelineTheme">
-                                        <option value="modern">Moderno (Padrão)</option>
-                                        <option value="classic">Clássico</option>
-                                        <option value="dark">Escuro</option>
-                                        <option value="high-contrast">Alto Contraste</option>
-                                    </select>
-                                    <small>Esquema visual da timeline</small>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="settings-section">
-                            <h4>📊 Analytics e Relatórios</h4>
-                            <div class="settings-grid">
-                                <div class="setting-group">
-                                    <label>Frequência de Análise</label>
-                                    <select id="setting-analyticsFrequency">
-                                        <option value="real-time">Tempo Real</option>
-                                        <option value="5min">A cada 5 minutos</option>
-                                        <option value="15min">A cada 15 minutos</option>
-                                        <option value="30min">A cada 30 minutos</option>
-                                    </select>
-                                    <small>Frequência de recálculo das métricas de produtividade</small>
-                                </div>
-                                
-                                <div class="setting-group">
-                                    <label>Histórico de Métricas</label>
-                                    <select id="setting-metricsHistory">
-                                        <option value="7">7 dias</option>
-                                        <option value="30">30 dias</option>
-                                        <option value="90">90 dias</option>
-                                        <option value="365">1 ano</option>
-                                    </select>
-                                    <small>Período de retenção de dados históricos</small>
-                                </div>
-                                
-                                <div class="setting-group">
-                                    <label>Export Automático</label>
-                                    <select id="setting-autoExport">
-                                        <option value="false">Desabilitado</option>
-                                        <option value="daily">Diário</option>
-                                        <option value="weekly">Semanal</option>
-                                        <option value="monthly">Mensal</option>
-                                    </select>
-                                    <small>Geração automática de relatórios</small>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="settings-section">
-                            <h4>🚨 Alertas e Notificações</h4>
-                            <div class="settings-grid">
-                                <div class="setting-group">
-                                    <label>Alertas de Performance</label>
-                                    <select id="setting-performanceAlerts">
-                                        <option value="true">Habilitado</option>
-                                        <option value="false">Desabilitado</option>
-                                    </select>
-                                    <small>Notificações quando performance está baixa</small>
-                                </div>
-                                
-                                <div class="setting-group">
-                                    <label>Limiar Produtividade</label>
-                                    <select id="setting-productivityThreshold">
-                                        <option value="60">60%</option>
-                                        <option value="70">70%</option>
-                                        <option value="80">80%</option>
-                                        <option value="90">90%</option>
-                                    </select>
-                                    <small>Limite abaixo do qual alertas são gerados</small>
-                                </div>
-                                
-                                <div class="setting-group">
-                                    <label>Timeout de Inatividade</label>
-                                    <select id="setting-inactivityTimeout">
-                                        <option value="3600000">1 hora</option>
-                                        <option value="7200000">2 horas</option>
-                                        <option value="21600000">6 horas</option>
-                                        <option value="86400000">24 horas</option>
-                                    </select>
-                                    <small>Tempo antes de alertar sobre equipamento inativo</small>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="settings-section">
-                            <h4>📈 Estatísticas do Sistema</h4>
-                            <div class="stats-grid">
-                                <div class="stat-card">
-                                    <div class="stat-value" id="stat-cacheHits">--</div>
-                                    <div class="stat-label">Cache Hits</div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-value" id="stat-cacheMisses">--</div>
-                                    <div class="stat-label">Cache Misses</div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-value" id="stat-avgRenderTime">--ms</div>
-                                    <div class="stat-label">Tempo Médio Render</div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-value" id="stat-memoryUsage">--MB</div>
-                                    <div class="stat-label">Uso de Memória</div>
-                                </div>
-                            </div>
+                        <div class="setting-item">
+                            <label>Resolução de Conflitos:</label>
+                            <select id="conflictResolution">
+                                <option value="priority" selected>Por Prioridade</option>
+                                <option value="latest">Mais Recente</option>
+                                <option value="longest">Maior Duração</option>
+                            </select>
                         </div>
                     </div>
                     
-                    <div class="wizard-actions">
-                        <div class="actions-left">
-                            <button class="btn secondary" onclick="productivitySystem.resetSettingsToDefault()">
-                                🔄 Restaurar Padrões
-                            </button>
-                            <button class="btn secondary" onclick="productivitySystem.exportSettings()">
-                                📤 Exportar Config
-                            </button>
-                            <button class="btn secondary" onclick="productivitySystem.clearCache()">
-                                🗑️ Limpar Cache
-                            </button>
+                    <div class="setting-section">
+                        <h4>📊 Performance</h4>
+                        <div class="setting-item">
+                            <label>Máximo de Itens na Timeline:</label>
+                            <select id="maxItems">
+                                <option value="1000">1000 itens</option>
+                                <option value="2000" selected>2000 itens</option>
+                                <option value="5000">5000 itens</option>
+                            </select>
                         </div>
-                        <div class="actions-right">
-                            <button class="btn success" onclick="productivitySystem.saveSettings()">
-                                💾 Salvar Configurações
-                            </button>
-                            <button class="btn" onclick="productivitySystem.testPerformance()">
-                                🏃 Teste de Performance
-                            </button>
+                        
+                        <div class="setting-item">
+                            <label>Cache Timeout:</label>
+                            <select id="cacheTimeout">
+                                <option value="300000" selected>5 minutos</option>
+                                <option value="600000">10 minutos</option>
+                                <option value="1800000">30 minutos</option>
+                            </select>
                         </div>
                     </div>
+                    
+                    <div class="setting-section">
+                        <h4>📈 Estatísticas</h4>
+                        <div class="stats-display">
+                            <div class="stat-item">
+                                <span class="stat-label">Equipamentos:</span>
+                                <span class="stat-value" id="equipmentCount">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Itens Timeline:</span>
+                                <span class="stat-value" id="timelineItems">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Cache Hits:</span>
+                                <span class="stat-value" id="cacheHits">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-actions">
+                    <button class="btn secondary" onclick="productivitySystem.resetSettings()">
+                        Restaurar Padrões
+                    </button>
+                    <button class="btn secondary" onclick="productivitySystem.clearCache()">
+                        Limpar Cache
+                    </button>
+                    <button class="btn primary" onclick="productivitySystem.saveSettings()">
+                        Salvar Configurações
+                    </button>
                 </div>
             </div>
             
             <style>
-                .settings-interface-optimized {
-                    width: 100%;
-                    max-width: 1200px;
-                    margin: 0 auto;
-                }
-                
-                .settings-wizard {
+                .settings-interface {
                     background: rgba(255, 255, 255, 0.95);
-                    border-radius: 16px;
-                    overflow: hidden;
-                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-                }
-                
-                .settings-sections {
-                    padding: 2rem;
-                }
-                
-                .settings-section {
-                    margin-bottom: 3rem;
-                    padding: 1.5rem;
-                    background: rgba(255, 255, 255, 0.8);
                     border-radius: 12px;
-                    border: 1px solid rgba(255, 255, 255, 0.3);
+                    padding: 1.5rem;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
                 }
                 
-                .settings-section h4 {
-                    color: #2c3e50;
-                    font-size: 1.1rem;
-                    margin-bottom: 1.5rem;
-                    padding-bottom: 0.5rem;
-                    border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+                .settings-header {
+                    text-align: center;
+                    margin-bottom: 2rem;
                 }
                 
                 .settings-grid {
                     display: grid;
                     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                    gap: 1.5rem;
+                    gap: 2rem;
+                    margin-bottom: 2rem;
                 }
                 
-                .setting-group {
+                .setting-section {
+                    background: rgba(255, 255, 255, 0.8);
+                    padding: 1.5rem;
+                    border-radius: 8px;
+                    border: 2px solid #ecf0f1;
+                }
+                
+                .setting-section h4 {
+                    color: #2c3e50;
+                    margin-bottom: 1rem;
+                    padding-bottom: 0.5rem;
+                    border-bottom: 1px solid #ecf0f1;
+                }
+                
+                .setting-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 1rem;
+                    gap: 1rem;
+                }
+                
+                .setting-item label {
+                    font-weight: 600;
+                    color: #2c3e50;
+                    flex: 1;
+                }
+                
+                .setting-item select {
+                    padding: 0.5rem;
+                    border: 1px solid #bdc3c7;
+                    border-radius: 4px;
+                    background: white;
+                    min-width: 150px;
+                }
+                
+                .stats-display {
                     display: flex;
                     flex-direction: column;
                     gap: 0.5rem;
                 }
                 
-                .setting-group label {
-                    font-weight: 600;
-                    color: #2c3e50;
-                    font-size: 0.9rem;
-                }
-                
-                .setting-group select {
-                    padding: 0.75rem;
-                    border: 2px solid rgba(255, 255, 255, 0.3);
-                    border-radius: 8px;
-                    background: white;
-                    font-size: 0.85rem;
-                    transition: all 0.3s ease;
-                }
-                
-                .setting-group select:focus {
-                    border-color: #667eea;
-                    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-                    outline: none;
-                }
-                
-                .setting-group small {
-                    color: #5a6c7d;
-                    font-size: 0.8rem;
-                    margin-top: 0.2rem;
-                }
-                
-                .stats-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-                    gap: 1rem;
-                }
-                
-                .stat-card {
-                    text-align: center;
-                    padding: 1rem;
+                .stat-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 0.5rem;
                     background: rgba(255, 255, 255, 0.6);
-                    border-radius: 8px;
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                }
-                
-                .stat-value {
-                    font-size: 1.5rem;
-                    font-weight: 800;
-                    color: #667eea;
-                    margin-bottom: 0.3rem;
+                    border-radius: 4px;
                 }
                 
                 .stat-label {
-                    font-size: 0.8rem;
-                    color: #5a6c7d;
                     font-weight: 600;
+                    color: #5a6c7d;
+                }
+                
+                .stat-value {
+                    font-weight: 800;
+                    color: #667eea;
+                }
+                
+                .settings-actions {
+                    display: flex;
+                    justify-content: center;
+                    gap: 1rem;
                 }
             </style>
         `;
-        
-        // Load current settings
-        this.loadCurrentSettings();
         
         // Setup event listeners
         this.setupSettingsListeners();
         
         // Update stats
-        this.updateSystemStats();
-    }
-
-    loadCurrentSettings() {
-        const config = this.core.config;
-        const performanceConfig = this.performanceConfig;
-        
-        // Load values into selects
-        this.setSelectValue('setting-autoSyncInterval', config.autoSyncInterval);
-        this.setSelectValue('setting-maxItems', performanceConfig.maxItemsRendered);
-        this.setSelectValue('setting-cacheTimeout', config.cacheTimeout);
-        this.setSelectValue('setting-conflictResolution', config.conflictResolution);
-        this.setSelectValue('setting-gapTolerance', config.gapTolerance);
-        this.setSelectValue('setting-equipmentSeparators', performanceConfig.groupSeparatorEnabled);
-        this.setSelectValue('setting-virtualScrolling', performanceConfig.virtualScrolling);
-    }
-
-    setSelectValue(id, value) {
-        const select = document.getElementById(id);
-        if (select) {
-            select.value = value.toString();
-        }
+        this.updateSettingsStats();
     }
 
     setupSettingsListeners() {
-        // Add change listeners to all setting selects
-        document.querySelectorAll('[id^="setting-"]').forEach(select => {
-            select.addEventListener('change', () => {
-                this.onSettingChanged(select.id, select.value);
-            });
+        document.getElementById('autoSyncInterval')?.addEventListener('change', (e) => {
+            this.core.updateConfig({ autoSyncInterval: parseInt(e.target.value) });
+            this.startGitHubAutoSync();
+        });
+
+        document.getElementById('conflictResolution')?.addEventListener('change', (e) => {
+            this.core.updateConfig({ conflictResolution: e.target.value });
+        });
+
+        document.getElementById('maxItems')?.addEventListener('change', (e) => {
+            this.performanceConfig.maxItemsRendered = parseInt(e.target.value);
+        });
+
+        document.getElementById('cacheTimeout')?.addEventListener('change', (e) => {
+            this.performanceConfig.cacheTimeout = parseInt(e.target.value);
         });
     }
 
-    onSettingChanged(settingId, value) {
-        const setting = settingId.replace('setting-', '');
+    updateSettingsStats() {
+        document.getElementById('equipmentCount').textContent = this.equipmentMap.size;
+        document.getElementById('timelineItems').textContent = this.items.length;
         
-        // Convert string values to appropriate types
-        let processedValue = value;
-        if (value === 'true') processedValue = true;
-        if (value === 'false') processedValue = false;
-        if (!isNaN(value) && value !== '') processedValue = parseInt(value);
-        
-        // Apply setting based on category
-        switch (setting) {
-            case 'autoSyncInterval':
-            case 'cacheTimeout':
-            case 'conflictResolution':
-            case 'gapTolerance':
-                this.core.updateConfig({ [setting]: processedValue });
-                break;
-            case 'maxItems':
-                this.performanceConfig.maxItemsRendered = processedValue;
-                break;
-            case 'equipmentSeparators':
-                this.performanceConfig.groupSeparatorEnabled = processedValue;
-                break;
-            case 'virtualScrolling':
-                this.performanceConfig.virtualScrolling = processedValue;
-                break;
-        }
-        
-        this.core.addDebugLog(`Setting updated: ${setting} = ${processedValue}`);
+        const cacheStats = this.core.getCacheStats();
+        document.getElementById('cacheHits').textContent = cacheStats.valid || 0;
     }
 
     saveSettings() {
-        try {
-            // Save to localStorage
-            localStorage.setItem('productivity_performance_config', JSON.stringify(this.performanceConfig));
-            
-            // Restart auto-sync with new interval
-            this.startOptimizedGitHubAutoSync();
-            
-            this.showNotification('Configurações salvas com sucesso!', 'success');
-            
-        } catch (error) {
-            this.core.addDebugLog(`Erro ao salvar configurações: ${error.message}`, 'error');
-            this.showNotification('Erro ao salvar configurações', 'error');
-        }
+        localStorage.setItem('productivity_performance_config', JSON.stringify(this.performanceConfig));
+        this.showNotification('Configurações salvas!', 'success');
     }
 
-    resetSettingsToDefault() {
-        if (confirm('Restaurar todas as configurações para os valores padrão?')) {
+    resetSettings() {
+        if (confirm('Restaurar configurações padrão?')) {
             this.performanceConfig = {
-                virtualScrolling: true,
-                maxItemsRendered: 1000,
-                debounceInterval: 100,
-                lazyLoadThreshold: 500,
-                groupSeparatorEnabled: true,
+                maxItemsRendered: 2000,
+                debounceInterval: 200,
                 cacheTimeout: 300000
             };
-            
             this.core.updateConfig({
                 autoSyncInterval: 600000,
-                conflictResolution: 'priority',
-                gapTolerance: 60,
-                cacheTimeout: 300000
+                conflictResolution: 'priority'
             });
-            
-            this.loadCurrentSettings();
-            this.showNotification('Configurações restauradas para padrão', 'success');
+            this.showNotification('Configurações restauradas', 'success');
         }
     }
 
     clearCache() {
-        if (confirm('Limpar todo o cache? Isso pode afetar temporariamente a performance.')) {
-            this.core.clearCache();
-            this.processingCache.clear();
-            this.renderCache.clear();
-            
-            this.performanceStats.cacheHits = 0;
-            this.performanceStats.cacheMisses = 0;
-            
-            this.updateSystemStats();
-            this.showNotification('Cache limpo com sucesso', 'success');
-        }
-    }
-
-    testPerformance() {
-        this.showNotification('Executando teste de performance...', 'info');
-        
-        const startTime = performance.now();
-        
-        // Simulate heavy operations
-        setTimeout(() => {
-            const endTime = performance.now();
-            const duration = endTime - startTime;
-            
-            this.showNotification(`Teste concluído em ${duration.toFixed(0)}ms`, 'success');
-            this.updateSystemStats();
-        }, 1000);
-    }
-
-    updateSystemStats() {
-        document.getElementById('stat-cacheHits').textContent = this.performanceStats.cacheHits || 0;
-        document.getElementById('stat-cacheMisses').textContent = this.performanceStats.cacheMisses || 0;
-        document.getElementById('stat-avgRenderTime').textContent = `${this.performanceStats.renderTime || 0}ms`;
-        
-        // Memory usage
-        if (performance.memory) {
-            const memoryMB = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
-            document.getElementById('stat-memoryUsage').textContent = `${memoryMB}MB`;
-        } else {
-            document.getElementById('stat-memoryUsage').textContent = 'N/A';
-        }
-    }
-
-    exportSettings() {
-        const allSettings = {
-            core: this.core.config,
-            performance: this.performanceConfig,
-            exportedAt: new Date().toISOString()
-        };
-        
-        const dataStr = JSON.stringify(allSettings, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `productivity-settings-${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-        
-        URL.revokeObjectURL(url);
-        this.showNotification('Configurações exportadas', 'success');
+        this.core.clearCache();
+        this.showNotification('Cache limpo', 'success');
+        this.updateSettingsStats();
     }
 
     // =============================================================================
-    // SINCRONIZAÇÃO ULTRA OTIMIZADA
+    // SINCRONIZAÇÃO COM GITHUB SIMPLIFICADA
     // =============================================================================
-    async initOptimizedGitHubSync() {
-        await this.syncOptimizedFromGitHub();
-        this.startOptimizedGitHubAutoSync();
+    async initGitHubSync() {
+        await this.syncFromGitHub();
+        this.startGitHubAutoSync();
     }
 
-    async syncOptimizedFromGitHub() {
+    async syncFromGitHub() {
         if (this.isUpdating) return;
 
         this.isUpdating = true;
-        this.updateSyncStatus('loading', 'Sincronizando dados otimizados...');
-        
-        const syncStart = performance.now();
+        this.updateSyncStatus('loading', 'Sincronizando dados...');
         
         try {
-            // Parallel fetching for maximum performance
+            // Fetch both files in parallel
             const [csvResult, jsonResult] = await Promise.allSettled([
-                this.core.measureAsyncOperation('fetchCSV', () => this.fetchOptimizedCSVFromGitHub()),
-                this.core.measureAsyncOperation('fetchJSON', () => this.fetchOptimizedJSONFromGitHub())
+                this.fetchCSVFromGitHub(),
+                this.fetchJSONFromGitHub()
             ]);
 
             let successCount = 0;
@@ -1221,9 +766,6 @@ class ProductivitySystem {
                     this.csvData = newCsvData;
                     this.csvDataHash = csvHash;
                     newDataDetected = true;
-                    this.performanceStats.cacheMisses++;
-                } else {
-                    this.performanceStats.cacheHits++;
                 }
                 successCount++;
             }
@@ -1237,19 +779,14 @@ class ProductivitySystem {
                     this.jsonData = newJsonData;
                     this.lastDataHash = jsonHash;
                     newDataDetected = true;
-                    this.performanceStats.cacheMisses++;
-                } else {
-                    this.performanceStats.cacheHits++;
                 }
                 successCount++;
             }
 
             if (successCount > 0) {
                 if (newDataDetected) {
-                    await this.core.measureAsyncOperation('processData', () => this.processOptimizedData());
-                    
-                    const syncTime = performance.now() - syncStart;
-                    this.showNotification(`Dados atualizados em ${syncTime.toFixed(0)}ms`, 'success');
+                    await this.processData();
+                    this.showNotification('Dados atualizados com sucesso!', 'success');
                 }
                 this.updateSyncStatus('success', 'Dados sincronizados');
             } else {
@@ -1263,29 +800,14 @@ class ProductivitySystem {
         } finally {
             this.isUpdating = false;
             this.updateLastUpdateTime();
-            this.updateSystemStats();
         }
     }
 
-    async fetchOptimizedCSVFromGitHub() {
+    async fetchCSVFromGitHub() {
         const config = this.core.githubConfig.csvRepo;
         
         try {
-            // Use cached response if available
-            const cacheKey = `csv_fetch_${config.path}`;
-            const cached = this.core.getCache(cacheKey);
-            if (cached) {
-                this.performanceStats.cacheHits++;
-                return { success: true, data: cached };
-            }
-            
-            const response = await fetch(config.apiUrl, {
-                headers: {
-                    'Accept': 'application/vnd.github.v3+json',
-                },
-                cache: 'no-cache'
-            });
-            
+            const response = await fetch(config.apiUrl);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const apiData = await response.json();
@@ -1293,20 +815,14 @@ class ProductivitySystem {
             
             let csvText = atob(apiData.content.replace(/\n/g, ''));
             
-            // Enhanced encoding detection and conversion
+            // Try to handle encoding
             try {
                 csvText = decodeURIComponent(escape(csvText));
             } catch (e) {
-                // Fallback for different encodings
-                this.core.addDebugLog('Usando encoding UTF-8 original', 'info');
+                this.core.addDebugLog('Usando encoding original', 'info');
             }
             
             const parsedData = this.core.parseCSV(csvText);
-            
-            // Cache the processed data
-            this.core.setCache(cacheKey, parsedData, this.performanceConfig.cacheTimeout);
-            this.performanceStats.cacheMisses++;
-            
             return { success: true, data: parsedData };
             
         } catch (error) {
@@ -1315,25 +831,11 @@ class ProductivitySystem {
         }
     }
 
-    async fetchOptimizedJSONFromGitHub() {
+    async fetchJSONFromGitHub() {
         const config = this.core.githubConfig.jsonRepo;
         
         try {
-            // Use cached response if available
-            const cacheKey = `json_fetch_${config.path}`;
-            const cached = this.core.getCache(cacheKey);
-            if (cached) {
-                this.performanceStats.cacheHits++;
-                return { success: true, data: cached };
-            }
-            
-            const response = await fetch(config.apiUrl, {
-                headers: {
-                    'Accept': 'application/vnd.github.v3+json',
-                },
-                cache: 'no-cache'
-            });
-            
+            const response = await fetch(config.apiUrl);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const apiData = await response.json();
@@ -1341,7 +843,6 @@ class ProductivitySystem {
             
             let jsonText = atob(apiData.content.replace(/\n/g, ''));
             
-            // Enhanced encoding for JSON
             try {
                 jsonText = decodeURIComponent(escape(jsonText));
             } catch (e) {
@@ -1349,11 +850,6 @@ class ProductivitySystem {
             }
             
             const records = this.core.parseJSON(jsonText);
-            
-            // Cache the processed data
-            this.core.setCache(cacheKey, records, this.performanceConfig.cacheTimeout);
-            this.performanceStats.cacheMisses++;
-            
             return { success: true, data: records };
             
         } catch (error) {
@@ -1362,101 +858,36 @@ class ProductivitySystem {
         }
     }
 
-    startOptimizedGitHubAutoSync() {
+    startGitHubAutoSync() {
         if (this.autoSyncInterval) {
             clearInterval(this.autoSyncInterval);
         }
 
-        if (this.core.config.autoSyncInterval > 0) {
+        const interval = this.core.config.autoSyncInterval;
+        if (interval > 0) {
             this.autoSyncInterval = setInterval(async () => {
                 if (!this.isUpdating) {
-                    await this.syncOptimizedFromGitHub();
+                    await this.syncFromGitHub();
                 }
-            }, this.core.config.autoSyncInterval);
+            }, interval);
             
-            this.core.addDebugLog(`Auto-sync configurado para ${this.core.config.autoSyncInterval/60000} minutos`);
+            this.core.addDebugLog(`Auto-sync configurado para ${interval/60000} minutos`);
         }
     }
 
     // =============================================================================
-    // PROCESSAMENTO ULTRA OTIMIZADO
+    // PROCESSAMENTO DE DADOS SIMPLIFICADO
     // =============================================================================
-    async processOptimizedData() {
+    async processData() {
         if (this.csvData.length === 0 && this.jsonData.length === 0) return;
 
-        const processStart = performance.now();
+        this.core.addDebugLog('Processando dados...');
 
-        // Reset stats
-        this.performanceStats = {
-            ...this.performanceStats,
-            conflictsResolved: 0,
-            duplicatesRemoved: 0,
-            originalRecords: this.jsonData.length + this.csvData.length,
-            finalRecords: 0
-        };
+        // Reset equipment map
+        this.equipmentMap.clear();
 
-        // Use cached processing if available
-        const dataHash = this.core.generateHash({ csv: this.csvData, json: this.jsonData });
-        const cacheKey = `processed_data_${dataHash}`;
-        const cachedProcessed = this.core.getCache(cacheKey);
-        
-        if (cachedProcessed) {
-            this.equipmentMap = cachedProcessed.equipmentMap;
-            this.performanceStats = { ...this.performanceStats, ...cachedProcessed.stats };
-            this.performanceStats.cacheHits++;
-            
-            this.core.addDebugLog('Usando dados processados em cache', 'info');
-        } else {
-            // Process fresh data
-            this.equipmentMap.clear();
-            this.unifyOptimizedEquipmentData();
-            
-            // Cache processed results
-            this.core.setCache(cacheKey, {
-                equipmentMap: this.equipmentMap,
-                stats: this.performanceStats
-            }, this.performanceConfig.cacheTimeout);
-            
-            this.performanceStats.cacheMisses++;
-        }
-        
-        // Create optimized groups and items
-        this.createOptimizedGroups();
-        this.createOptimizedTimelineItems();
-
-        // Initialize optimized timeline
-        await this.ensureOptimizedTimelineInitialization();
-
-        // Update analytics and interface
-        this.updateOptimizedAnalytics();
-        this.updateOptimizedInterface();
-
-        const processTime = performance.now() - processStart;
-        this.performanceStats.renderTime = processTime;
-        this.core.addDebugLog(`Processamento otimizado concluído em ${processTime.toFixed(2)}ms`);
-    }
-
-    unifyOptimizedEquipmentData() {
-        // Process CSV with batching for large datasets
-        const csvBatchSize = 100;
-        for (let i = 0; i < this.csvData.length; i += csvBatchSize) {
-            const batch = this.csvData.slice(i, i + csvBatchSize);
-            this.processCsvBatch(batch);
-        }
-
-        // Process JSON with batching
-        const jsonBatchSize = 200;
-        for (let i = 0; i < this.jsonData.length; i += jsonBatchSize) {
-            const batch = this.jsonData.slice(i, i + jsonBatchSize);
-            this.processJsonBatch(batch);
-        }
-
-        // Post-process for optimizations
-        this.optimizeEquipmentData();
-    }
-
-    processCsvBatch(batch) {
-        batch.forEach((item) => {
+        // Process CSV data (apontamentos)
+        this.csvData.forEach(item => {
             const equipName = this.core.normalizeEquipmentName(item.Vaga || item.Placa);
             if (!this.equipmentMap.has(equipName)) {
                 this.equipmentMap.set(equipName, {
@@ -1464,17 +895,14 @@ class ProductivitySystem {
                     originalName: item.Vaga || item.Placa,
                     apontamentos: [],
                     status: [],
-                    group: this.determineEquipmentGroup(equipName),
-                    lastActivity: null,
-                    isActive: false
+                    group: this.determineEquipmentGroup(equipName)
                 });
             }
             this.equipmentMap.get(equipName).apontamentos.push(item);
         });
-    }
 
-    processJsonBatch(batch) {
-        batch.forEach((item) => {
+        // Process JSON data (status)
+        this.jsonData.forEach(item => {
             const equipName = this.core.normalizeEquipmentName(item.vacancy_name);
             if (!this.equipmentMap.has(equipName)) {
                 this.equipmentMap.set(equipName, {
@@ -1482,234 +910,84 @@ class ProductivitySystem {
                     originalName: item.vacancy_name,
                     apontamentos: [],
                     status: [],
-                    group: this.determineEquipmentGroup(equipName),
-                    lastActivity: null,
-                    isActive: false
+                    group: this.determineEquipmentGroup(equipName)
                 });
             }
             this.equipmentMap.get(equipName).status.push(item);
         });
-    }
 
-    optimizeEquipmentData() {
-        for (const [equipName, data] of this.equipmentMap) {
-            // Sort by date (optimized)
-            data.apontamentos.sort((a, b) => {
-                const dateA = this.core.parseDate(a['Data Inicial']);
-                const dateB = this.core.parseDate(b['Data Inicial']);
-                return (dateA ? dateA.getTime() : 0) - (dateB ? dateB.getTime() : 0);
-            });
-            
-            // Sort and optimize status data
-            data.status = this.optimizeStatusData(data.status);
-            
-            // Determine equipment activity
-            data.lastActivity = this.getLastActivity(data);
-            data.isActive = this.isEquipmentActive(data);
-        }
-    }
+        // Update equipment list for navigation
+        this.equipmentList = Array.from(this.equipmentMap.keys()).sort();
 
-    optimizeStatusData(statusData) {
-        if (statusData.length <= 1) return statusData;
+        // Create timeline
+        this.createGroups();
+        this.createTimelineItems();
+        await this.ensureTimelineInitialization();
 
-        // Sort by time
-        const sorted = statusData.sort((a, b) => {
-            const dateA = this.core.parseDate(a.start);
-            const dateB = this.core.parseDate(b.start);
-            return (dateA ? dateA.getTime() : 0) - (dateB ? dateB.getTime() : 0);
-        });
+        // Update interface
+        this.updateInterface();
+        this.updateSettingsStats();
 
-        // Remove exact duplicates
-        const unique = this.removeDuplicates(sorted);
-        this.performanceStats.duplicatesRemoved += sorted.length - unique.length;
-
-        // Resolve overlaps with optimized algorithm
-        const resolved = this.resolveOptimizedConflicts(unique);
-        this.performanceStats.conflictsResolved += unique.length - resolved.length;
-
-        return resolved;
-    }
-
-    removeDuplicates(statusList) {
-        const seen = new Set();
-        return statusList.filter(status => {
-            const key = `${status.start}-${status.end}-${status.status}`;
-            if (seen.has(key)) {
-                return false;
-            }
-            seen.add(key);
-            return true;
-        });
-    }
-
-    resolveOptimizedConflicts(statusList) {
-        if (statusList.length <= 1) return statusList;
-
-        const resolved = [];
-        const pending = [...statusList];
-        
-        while (pending.length > 0) {
-            const current = pending.shift();
-            const currentStart = new Date(current.start);
-            const currentEnd = new Date(current.end);
-            
-            // Find overlapping items
-            const overlapping = pending.filter(item => {
-                const itemStart = new Date(item.start);
-                const itemEnd = new Date(item.end);
-                return itemStart < currentEnd && itemEnd > currentStart;
-            });
-            
-            if (overlapping.length === 0) {
-                resolved.push(current);
-                continue;
-            }
-            
-            // Resolve based on configuration
-            const winner = this.selectWinnerByStrategy([current, ...overlapping]);
-            
-            // Remove overlapping items from pending
-            overlapping.forEach(item => {
-                const index = pending.indexOf(item);
-                if (index > -1) pending.splice(index, 1);
-            });
-            
-            resolved.push(winner);
-        }
-        
-        return resolved.sort((a, b) => new Date(a.start) - new Date(b.start));
-    }
-
-    selectWinnerByStrategy(conflictingItems) {
-        const strategy = this.core.config.conflictResolution;
-        
-        switch (strategy) {
-            case 'priority':
-                return conflictingItems.reduce((winner, item) => {
-                    const winnerPriority = this.core.statusPriority[winner.status] || 0;
-                    const itemPriority = this.core.statusPriority[item.status] || 0;
-                    return itemPriority > winnerPriority ? item : winner;
-                });
-                
-            case 'latest':
-                return conflictingItems.reduce((latest, item) => {
-                    return new Date(item.start) > new Date(latest.start) ? item : latest;
-                });
-                
-            case 'longest':
-                return conflictingItems.reduce((longest, item) => {
-                    const longestDuration = new Date(longest.end) - new Date(longest.start);
-                    const itemDuration = new Date(item.end) - new Date(item.start);
-                    return itemDuration > longestDuration ? item : longest;
-                });
-                
-            default:
-                return conflictingItems[0];
-        }
+        this.core.addDebugLog(`Processamento concluído: ${this.equipmentMap.size} equipamentos`);
     }
 
     determineEquipmentGroup(equipName) {
         const name = equipName.toLowerCase();
-        if (name.includes('alta pressão') || name.includes('alta pressao')) return 'alta-pressao';
-        if (name.includes('baixa pressão') || name.includes('baixa pressao')) return 'baixa-pressao';
-        if (name.includes('vácuo') || name.includes('vacuo')) return 'vacuo';
-        if (name.includes('caminhão') || name.includes('caminhao')) return 'caminhoes';
-        if (name.includes('escavadeira')) return 'escavadeiras';
+        if (name.includes('alta') && name.includes('pressao')) return 'alta-pressao';
+        if (name.includes('baixa') && name.includes('pressao')) return 'baixa-pressao';
+        if (name.includes('auto') && name.includes('vacuo')) return 'auto-vacuo';
+        if (name.includes('hiper') && name.includes('vacuo')) return 'hiper-vacuo';
+        if (name.includes('caminhao') || name.includes('caminhão')) return 'caminhoes';
         return 'outros';
     }
 
-    getLastActivity(equipmentData) {
-        let lastDate = null;
-        
-        // Check apontamentos
-        equipmentData.apontamentos.forEach(apont => {
-            const date = this.core.parseDate(apont['Data Final']);
-            if (date && (!lastDate || date > lastDate)) {
-                lastDate = date;
-            }
-        });
-        
-        // Check status
-        equipmentData.status.forEach(status => {
-            const date = this.core.parseDate(status.end);
-            if (date && (!lastDate || date > lastDate)) {
-                lastDate = date;
-            }
-        });
-        
-        return lastDate;
-    }
-
-    isEquipmentActive(equipmentData) {
-        const lastActivity = equipmentData.lastActivity;
-        if (!lastActivity) return false;
-        
-        const hoursSinceActivity = (Date.now() - lastActivity.getTime()) / (1000 * 60 * 60);
-        return hoursSinceActivity < 24; // Active if activity within 24 hours
-    }
-
     // =============================================================================
-    // TIMELINE ULTRA OTIMIZADA COM SEPARADORES
+    // CRIAÇÃO DA TIMELINE SIMPLIFICADA
     // =============================================================================
-    createOptimizedGroups() {
+    createGroups() {
         this.groups.clear();
-        this.equipmentSeparators.clear();
         
         let groupId = 0;
         const sortedEquipments = Array.from(this.equipmentMap.entries())
-            .sort(([nameA], [nameB]) => {
+            .sort(([nameA, dataA], [nameB, dataB]) => {
                 // Group by type first, then alphabetically
-                const groupA = this.equipmentMap.get(nameA).group;
-                const groupB = this.equipmentMap.get(nameB).group;
-                
-                if (groupA !== groupB) {
-                    return groupA.localeCompare(groupB);
+                if (dataA.group !== dataB.group) {
+                    return dataA.group.localeCompare(dataB.group);
                 }
                 return nameA.localeCompare(nameB);
             });
         
-        let currentGroup = null;
-        
         for (const [equipName, data] of sortedEquipments) {
             if (data.apontamentos.length > 0 || data.status.length > 0) {
                 const displayName = this.core.getDisplayName(equipName);
-                
-                // Add separator if group changed
-                if (this.performanceConfig.groupSeparatorEnabled && currentGroup !== data.group) {
-                    if (currentGroup !== null) {
-                        this.equipmentSeparators.set(groupId * 2, true);
-                    }
-                    currentGroup = data.group;
-                }
-                
-                // Activity indicator
-                const activityIcon = data.isActive ? '🟢' : '🔴';
                 const groupIcon = this.getGroupIcon(data.group);
                 
+                // Apontamentos group
                 this.groups.add({
                     id: `${equipName}_apont`,
                     content: `
-                        <div class="equipment-group-label" data-equipment-separator="${this.equipmentSeparators.has(groupId * 2)}">
-                            <div class="equipment-name">${activityIcon} ${groupIcon} ${displayName}</div>
+                        <div class="equipment-label">
+                            <div class="equipment-name">${groupIcon} ${displayName}</div>
                             <div class="equipment-type">📊 Apontamentos</div>
                         </div>
                     `,
                     order: groupId * 2,
-                    className: currentGroup !== this.lastEquipmentProcessed ? 'group-separator' : ''
+                    className: 'group-apontamentos'
                 });
                 
+                // Status group
                 this.groups.add({
                     id: `${equipName}_status`,
                     content: `
-                        <div class="equipment-group-label">
-                            <div class="equipment-name">${activityIcon} ${groupIcon} ${displayName}</div>
+                        <div class="equipment-label">
+                            <div class="equipment-name">${groupIcon} ${displayName}</div>
                             <div class="equipment-type">🔄 Status</div>
                         </div>
                     `,
-                    order: groupId * 2 + 1
+                    order: groupId * 2 + 1,
+                    className: 'group-status'
                 });
                 
-                this.lastEquipmentProcessed = currentGroup;
                 groupId++;
             }
         }
@@ -1718,189 +996,128 @@ class ProductivitySystem {
     getGroupIcon(group) {
         const icons = {
             'alta-pressao': '🔴',
-            'baixa-pressao': '🔵',
-            'vacuo': '⚪',
+            'baixa-pressao': '🔵', 
+            'auto-vacuo': '🟣',
+            'hiper-vacuo': '⚫',
             'caminhoes': '🚛',
-            'escavadeiras': '🚜',
             'outros': '⚙️'
         };
         return icons[group] || '📋';
     }
 
-    createOptimizedTimelineItems() {
+    createTimelineItems() {
         this.items.clear();
         let itemId = 0;
-        let itemsCreated = 0;
-        const maxItems = this.performanceConfig.maxItemsRendered;
 
         for (const [equipName, data] of this.equipmentMap) {
-            if (itemsCreated >= maxItems) {
-                this.core.addDebugLog(`Limite de ${maxItems} itens atingido`, 'warning');
-                break;
-            }
-
-            // Process apontamentos with optimization
-            const apontamentos = this.filterAndOptimizeApontamentos(data.apontamentos);
-            apontamentos.forEach(apont => {
-                if (itemsCreated >= maxItems) return;
-                
+            // Process apontamentos
+            data.apontamentos.forEach(apont => {
                 const start = this.core.parseDate(apont['Data Inicial']);
                 const end = this.core.parseDate(apont['Data Final']);
                 
                 if (start && end && start < end) {
                     const category = apont['Categoria Demora'] || 'Outros';
-                    const className = this.core.apontColors[category] || 'apont-aguardando';
+                    const className = this.getApontamentClass(category);
                     
                     this.items.add({
                         id: `apont_${itemId++}`,
                         group: `${equipName}_apont`,
-                        content: this.optimizeItemContent(category, 'apont'),
+                        content: this.truncateContent(category),
                         start: start,
                         end: end,
                         className: className,
-                        title: this.createOptimizedApontTooltip(apont, equipName),
-                        type: 'range',
-                        style: this.getOptimizedItemStyle(category, 'apont')
+                        title: this.createApontTooltip(apont, equipName),
+                        type: 'range'
                     });
-                    itemsCreated++;
                 }
             });
 
-            // Process status with optimization
-            const statusData = this.filterAndOptimizeStatus(data.status);
-            statusData.forEach((status) => {
-                if (itemsCreated >= maxItems) return;
-                
+            // Process status
+            data.status.forEach(status => {
                 const start = this.core.parseDate(status.start);
                 const end = this.core.parseDate(status.end);
                 
                 if (start && end && start < end) {
                     const statusCode = status.status || 'unknown';
-                    const className = this.core.statusColors[statusCode] || 'status-not_appropriated';
+                    const className = this.getStatusClass(statusCode);
                     
                     this.items.add({
                         id: `status_${itemId++}`,
                         group: `${equipName}_status`,
-                        content: this.optimizeItemContent(status.status_title || statusCode, 'status'),
+                        content: this.truncateContent(status.status_title || statusCode),
                         start: start,
                         end: end,
                         className: className,
-                        title: this.createOptimizedStatusTooltip(status, equipName),
-                        type: 'range',
-                        style: this.getOptimizedItemStyle(statusCode, 'status')
+                        title: this.createStatusTooltip(status, equipName),
+                        type: 'range'
                     });
-                    itemsCreated++;
                 }
             });
         }
 
-        this.performanceStats.finalRecords = this.items.length;
-        this.core.addDebugLog(`Timeline otimizada criada: ${itemsCreated} itens`);
+        this.core.addDebugLog(`Timeline criada: ${this.items.length} itens`);
     }
 
-    filterAndOptimizeApontamentos(apontamentos) {
-        // Filter by current filters if active
-        if (!this.filterState.isActive) return apontamentos;
-        
-        return apontamentos.filter(apont => {
-            // Apply time filters
-            if (this.filterState.startTime || this.filterState.endTime) {
-                const start = this.core.parseDate(apont['Data Inicial']);
-                if (start) {
-                    const timeStr = start.toTimeString().slice(0, 5);
-                    if (this.filterState.startTime && timeStr < this.filterState.startTime) return false;
-                    if (this.filterState.endTime && timeStr > this.filterState.endTime) return false;
-                }
-            }
-            
-            // Apply appointment filters
-            if (this.filterState.appointments.size > 0) {
-                const category = apont['Categoria Demora']?.toLowerCase();
-                return Array.from(this.filterState.appointments).some(filter => 
-                    category?.includes(filter)
-                );
-            }
-            
-            return true;
-        });
+    getApontamentClass(category) {
+        const categoryLower = category.toLowerCase();
+        if (categoryLower.includes('documentacao')) return 'apont-documentacao';
+        if (categoryLower.includes('preparacao')) return 'apont-preparacao';
+        if (categoryLower.includes('manutencao')) return 'apont-manutencao';
+        if (categoryLower.includes('bloqueio')) return 'apont-bloqueio';
+        if (categoryLower.includes('aguardando')) return 'apont-aguardando';
+        if (categoryLower.includes('refeicao')) return 'apont-refeicao';
+        return 'apont-outros';
     }
 
-    filterAndOptimizeStatus(statusData) {
-        // Filter by current filters if active
-        if (!this.filterState.isActive) return statusData;
-        
-        return statusData.filter(status => {
-            // Apply status filters
-            if (this.filterState.status.size > 0) {
-                return this.filterState.status.has(status.status);
-            }
-            
-            return true;
-        });
+    getStatusClass(status) {
+        const statusMapping = {
+            'running': 'status-running',
+            'on': 'status-on',
+            'stopped': 'status-stopped',
+            'off': 'status-off',
+            'maintenance': 'status-maintenance',
+            'out_of_plant': 'status-out_of_plant',
+            'not_appropriated': 'status-not_appropriated',
+            'no_data': 'status-no_data',
+            'secondary_motor_on': 'status-secondary_motor_on'
+        };
+        return statusMapping[status] || 'status-not_appropriated';
     }
 
-    optimizeItemContent(content, type) {
-        // Truncate and optimize content for performance
-        const maxLength = type === 'apont' ? 15 : 20;
-        return this.core.truncateText(content, maxLength);
+    truncateContent(content) {
+        if (!content) return '';
+        return content.length > 15 ? content.substring(0, 12) + '...' : content;
     }
 
-    getOptimizedItemStyle(key, type) {
-        // Return optimized inline styles for better performance
-        if (type === 'status') {
-            const colors = {
-                'running': '#27ae60',
-                'stopped': '#f1c40f',
-                'off': '#95a5a6',
-                'maintenance': '#e67e22'
-            };
-            return `background: ${colors[key] || '#95a5a6'}; border-radius: 4px;`;
-        }
-        return 'border-radius: 4px;';
-    }
-
-    // =============================================================================
-    // TOOLTIPS OTIMIZADOS
-    // =============================================================================
-    createOptimizedApontTooltip(apont, equipName) {
-        const shortEquipName = this.core.truncateText(equipName, 20);
+    createApontTooltip(apont, equipName) {
         const category = apont['Categoria Demora'] || 'N/A';
         const duration = apont['Tempo Indisponível (HH:MM)'] || 'N/A';
-        
-        return `📊 ${shortEquipName}\n${category}\n⏱️ ${duration}\n📅 ${this.core.formatDateTime(apont['Data Inicial'])}`;
+        return `📊 ${equipName}\n${category}\n⏱️ ${duration}\n📅 ${this.core.formatDateTime(apont['Data Inicial'])}`;
     }
 
-    createOptimizedStatusTooltip(status, equipName) {
-        const shortEquipName = this.core.truncateText(equipName, 20);
+    createStatusTooltip(status, equipName) {
         const statusTitle = status.status_title || status.status;
         const totalHours = parseFloat(status.total_time || 0);
-        
-        return `🔄 ${shortEquipName}\n${statusTitle}\n⏱️ ${this.core.formatDuration(totalHours)}\n📅 ${this.core.formatDateTime(status.start)}`;
+        return `🔄 ${equipName}\n${statusTitle}\n⏱️ ${this.core.formatDuration(totalHours)}\n📅 ${this.core.formatDateTime(status.start)}`;
     }
 
     // =============================================================================
-    // TIMELINE INITIALIZATION ULTRA OTIMIZADA
+    // INICIALIZAÇÃO DA TIMELINE
     // =============================================================================
-    async ensureOptimizedTimelineInitialization() {
+    async ensureTimelineInitialization() {
         if (this.items.length === 0) {
             this.showTimelineEmptyState();
             return;
         }
 
-        const renderStart = performance.now();
-
         if (this.timeline) {
-            this.updateOptimizedTimelineData();
+            this.updateTimelineData();
         } else {
-            this.initOptimizedTimeline();
+            this.initTimeline();
         }
-
-        const renderTime = performance.now() - renderStart;
-        this.performanceStats.renderTime = renderTime;
-        this.core.addDebugLog(`Timeline renderizada em ${renderTime.toFixed(2)}ms`);
     }
 
-    initOptimizedTimeline() {
+    initTimeline() {
         const container = document.getElementById('timeline');
         if (!container) return;
 
@@ -1910,18 +1127,14 @@ class ProductivitySystem {
             orientation: 'top',
             stack: true,
             showCurrentTime: true,
-            zoomMin: this.core.constants.MIN_ZOOM,
-            zoomMax: this.core.constants.MAX_ZOOM,
+            zoomMin: 1000 * 60 * 10, // 10 minutes
+            zoomMax: 1000 * 60 * 60 * 24 * 30, // 30 days
             editable: false,
             selectable: true,
-            
-            // Performance optimizations
-            sampling: this.performanceConfig.virtualScrolling,
             maxHeight: 600,
             verticalScroll: true,
             horizontalScroll: true,
             
-            // Enhanced formatting
             format: {
                 minorLabels: {
                     minute: 'HH:mm',
@@ -1939,17 +1152,13 @@ class ProductivitySystem {
                 }
             },
             
-            // Localization
-            locale: 'pt-BR',
-            
-            // Optimized rendering
-            throttleRedraw: this.performanceConfig.debounceInterval
+            locale: 'pt-BR'
         };
 
         try {
             this.timeline = new vis.Timeline(container, this.items, this.groups, options);
 
-            // Enhanced event listeners
+            // Event listeners
             this.timeline.on('rangechanged', this.core.debounce((properties) => {
                 this.currentViewWindow = properties;
                 this.updateTimeRangeDisplay(properties.start, properties.end);
@@ -1959,14 +1168,14 @@ class ProductivitySystem {
                 this.handleTimelineSelection(properties);
             });
 
-            // Auto-fit with delay for performance
+            // Auto-fit with delay
             setTimeout(() => {
                 if (this.timeline) {
                     this.timeline.fit();
                 }
             }, 100);
 
-            this.core.addDebugLog('Timeline otimizada inicializada com sucesso');
+            this.core.addDebugLog('Timeline inicializada com sucesso');
 
         } catch (error) {
             this.core.addDebugLog(`Erro na timeline: ${error.message}`, 'error');
@@ -1974,22 +1183,20 @@ class ProductivitySystem {
         }
     }
 
-    updateOptimizedTimelineData() {
+    updateTimelineData() {
         if (!this.timeline) return;
 
         try {
-            // Use optimized data update
             this.timeline.setData({
                 items: this.items,
                 groups: this.groups
             });
 
-            // Restore view window if available
             if (this.currentViewWindow) {
                 setTimeout(() => {
                     if (this.timeline) {
                         this.timeline.setWindow(this.currentViewWindow.start, this.currentViewWindow.end, {
-                            animation: false // Disable animation for performance
+                            animation: false
                         });
                     }
                 }, 50);
@@ -1999,7 +1206,7 @@ class ProductivitySystem {
 
         } catch (error) {
             this.core.addDebugLog(`Erro ao atualizar timeline: ${error.message}`, 'error');
-            this.initOptimizedTimeline();
+            this.initTimeline();
         }
     }
 
@@ -2007,32 +1214,9 @@ class ProductivitySystem {
         if (properties.items && properties.items.length > 0) {
             const selectedItem = this.items.get(properties.items[0]);
             if (selectedItem) {
-                this.showItemDetails(selectedItem);
+                this.core.addDebugLog(`Item selecionado: ${selectedItem.content}`);
             }
         }
-    }
-
-    showItemDetails(item) {
-        // Show enhanced item details in a modal or sidebar
-        const details = {
-            type: item.id.startsWith('apont_') ? 'Apontamento' : 'Status',
-            content: item.content,
-            start: this.core.formatDateTime(item.start),
-            end: this.core.formatDateTime(item.end),
-            duration: this.calculateDuration(item.start, item.end),
-            equipment: item.group.replace(/_apont$|_status$/, ''),
-            className: item.className
-        };
-
-        this.core.addDebugLog(`Item selecionado: ${details.type} - ${details.content}`);
-        
-        // Future: Show in sidebar or modal
-        console.log('Detalhes do item:', details);
-    }
-
-    calculateDuration(start, end) {
-        const duration = (new Date(end) - new Date(start)) / (1000 * 60 * 60);
-        return this.core.formatDuration(duration);
     }
 
     updateTimeRangeDisplay(start, end) {
@@ -2045,79 +1229,104 @@ class ProductivitySystem {
     }
 
     // =============================================================================
-    // SISTEMA DE FILTROS ULTRA OTIMIZADO
+    // NAVEGAÇÃO POR EQUIPAMENTO - NOVA FUNCIONALIDADE
     // =============================================================================
-    applyOptimizedFilters() {
-        if (!this.timeline) return;
+    navigateToEquipment(direction) {
+        if (this.equipmentList.length === 0) return;
 
-        const filterStart = performance.now();
+        this.currentEquipmentIndex += direction;
         
-        // Update filter state
-        this.updateFilterState();
-        
-        // Apply filters with caching
-        const cacheKey = `filtered_data_${this.generateFilterHash()}`;
-        const cached = this.renderCache.get(cacheKey);
-        
-        if (cached) {
-            this.applyFilteredData(cached);
-            this.performanceStats.cacheHits++;
-        } else {
-            const filteredData = this.calculateFilteredData();
-            this.renderCache.set(cacheKey, filteredData);
-            this.applyFilteredData(filteredData);
-            this.performanceStats.cacheMisses++;
+        if (this.currentEquipmentIndex < 0) {
+            this.currentEquipmentIndex = this.equipmentList.length - 1;
+        } else if (this.currentEquipmentIndex >= this.equipmentList.length) {
+            this.currentEquipmentIndex = 0;
         }
 
-        const filterTime = performance.now() - filterStart;
-        this.core.addDebugLog(`Filtros aplicados em ${filterTime.toFixed(2)}ms`);
-        
-        // Update statistics
-        this.updateFilterStatistics();
+        const equipment = this.equipmentList[this.currentEquipmentIndex];
+        this.focusOnEquipment(equipment);
     }
 
-    updateFilterState() {
-        this.filterState = {
-            equipment: document.getElementById('equipmentFilter')?.value || '',
-            groups: new Set(Array.from(document.querySelectorAll('#groupFilters .filter-chip.active')).map(chip => chip.dataset.group)),
-            status: new Set(Array.from(document.querySelectorAll('#statusFilters .filter-chip.active')).map(chip => chip.dataset.status)),
-            appointments: new Set(Array.from(document.querySelectorAll('#appointmentFilters .filter-chip.active')).map(chip => chip.dataset.apont)),
-            period: document.getElementById('periodFilter')?.value || 'week',
-            startDate: document.getElementById('startDate')?.value || null,
-            endDate: document.getElementById('endDate')?.value || null,
-            startTime: document.getElementById('startTime')?.value || null,
-            endTime: document.getElementById('endTime')?.value || null,
-            isActive: this.hasActiveFilters()
-        };
-    }
+    focusOnEquipment(equipmentName) {
+        if (!this.timeline) return;
 
-    hasActiveFilters() {
-        return !!(
-            this.filterState.equipment ||
-            this.filterState.groups.size > 0 ||
-            this.filterState.status.size > 0 ||
-            this.filterState.appointments.size > 0 ||
-            this.filterState.startTime ||
-            this.filterState.endTime ||
-            (this.filterState.period === 'custom' && (this.filterState.startDate || this.filterState.endDate))
+        // Filter timeline to show only this equipment
+        const equipmentItems = this.items.get().filter(item => 
+            item.group.startsWith(equipmentName)
         );
+
+        const equipmentGroups = this.groups.get().filter(group => 
+            group.id.startsWith(equipmentName)
+        );
+
+        if (equipmentItems.length > 0) {
+            // Update timeline with filtered data
+            this.timeline.setData({
+                items: new vis.DataSet(equipmentItems),
+                groups: new vis.DataSet(equipmentGroups)
+            });
+
+            // Fit to equipment data
+            setTimeout(() => {
+                if (this.timeline) {
+                    this.timeline.fit();
+                }
+            }, 100);
+
+            // Update navigation info
+            this.updateNavigationInfo(equipmentName);
+            
+            this.showNotification(`Focando em: ${this.core.getDisplayName(equipmentName)}`, 'info');
+        }
     }
 
-    generateFilterHash() {
-        return this.core.generateHash(this.filterState);
+    resetEquipmentView() {
+        if (!this.timeline) return;
+
+        // Reset to show all equipment
+        this.timeline.setData({
+            items: this.items,
+            groups: this.groups
+        });
+
+        setTimeout(() => {
+            if (this.timeline) {
+                this.timeline.fit();
+            }
+        }, 100);
+
+        this.currentEquipmentIndex = 0;
+        this.updateNavigationInfo();
+        this.showNotification('Visualizando todos os equipamentos', 'info');
     }
 
-    calculateFilteredData() {
+    updateNavigationInfo(currentEquipment = null) {
+        const infoElement = document.getElementById('currentEquipmentInfo');
+        if (infoElement) {
+            if (currentEquipment) {
+                const displayName = this.core.getDisplayName(currentEquipment);
+                infoElement.textContent = `${this.currentEquipmentIndex + 1} / ${this.equipmentList.length} - ${displayName}`;
+            } else {
+                infoElement.textContent = `Todos (${this.equipmentList.length} equipamentos)`;
+            }
+        }
+    }
+
+    // =============================================================================
+    // SISTEMA DE FILTROS SIMPLIFICADO
+    // =============================================================================
+    applyFilters() {
+        if (!this.timeline) return;
+
+        this.updateFilterState();
+
         let filteredItems = [];
         let filteredGroups = new Set();
-        let visibleEquipments = new Set();
 
         for (const item of this.items.get()) {
-            if (this.passesOptimizedFilters(item)) {
+            if (this.passesFilters(item)) {
                 filteredItems.push(item);
                 const equipment = item.group.replace(/_apont$|_status$/, '');
                 filteredGroups.add(equipment);
-                visibleEquipments.add(equipment);
             }
         }
 
@@ -2130,14 +1339,16 @@ class ProductivitySystem {
             }
         }
 
-        return {
-            items: filteredItems,
-            groups: visibleGroupsArray,
-            equipmentCount: visibleEquipments.size
-        };
+        this.timeline.setData({
+            items: new vis.DataSet(filteredItems),
+            groups: new vis.DataSet(visibleGroupsArray)
+        });
+
+        // Update statistics
+        this.updateFilterStatistics(filteredItems.length, filteredGroups.size);
     }
 
-    passesOptimizedFilters(item) {
+    passesFilters(item) {
         // Equipment filter
         if (this.filterState.equipment) {
             const itemEquipment = item.group.replace(/_apont$|_status$/, '');
@@ -2166,40 +1377,15 @@ class ProductivitySystem {
             if (!hasMatchingAppoint) return false;
         }
 
-        // Time range filters
-        if (this.filterState.startTime || this.filterState.endTime) {
-            const itemTime = new Date(item.start).toTimeString().slice(0, 5);
-            if (this.filterState.startTime && itemTime < this.filterState.startTime) return false;
-            if (this.filterState.endTime && itemTime > this.filterState.endTime) return false;
-        }
-
-        // Custom date range
-        if (this.filterState.period === 'custom') {
-            if (this.filterState.startDate && item.start < new Date(this.filterState.startDate)) return false;
-            if (this.filterState.endDate && item.start > new Date(this.filterState.endDate)) return false;
-        }
-
         return true;
     }
 
-    applyFilteredData(filteredData) {
-        this.timeline.setData({
-            items: new vis.DataSet(filteredData.items),
-            groups: new vis.DataSet(filteredData.groups)
-        });
+    updateFilterStatistics(itemsCount, equipmentsCount) {
+        document.getElementById('visibleItems').textContent = `${itemsCount} itens visíveis`;
+        document.getElementById('visibleEquipments').textContent = `${equipmentsCount} equipamentos`;
     }
 
-    updateFilterStatistics() {
-        const visibleItems = this.timeline.itemsData.length;
-        const visibleEquipments = new Set(
-            this.timeline.itemsData.get().map(item => item.group.replace(/_apont$|_status$/, ''))
-        ).size;
-
-        document.getElementById('visibleItems').textContent = `${visibleItems} itens visíveis`;
-        document.getElementById('visibleEquipments').textContent = `${visibleEquipments} equipamentos`;
-    }
-
-    handleOptimizedPeriodChange() {
+    handlePeriodChange() {
         const period = document.getElementById('periodFilter')?.value || 'week';
         const customDateSection = document.getElementById('customDateSection');
         
@@ -2234,90 +1420,43 @@ class ProductivitySystem {
                         return;
                 }
 
-                this.timeline.setWindow(start, end, { animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+                this.timeline.setWindow(start, end, { animation: { duration: 500 } });
                 this.updateTimeRangeDisplay(start, end);
             }
         }
         
-        // Apply filters after period change
-        this.applyOptimizedFilters();
+        this.applyFilters();
     }
 
     // =============================================================================
-    // INTERFACE E ESTATÍSTICAS OTIMIZADAS
+    // INTERFACE E NOTIFICAÇÕES
     // =============================================================================
-    updateOptimizedInterface() {
-        const totalApont = Array.from(this.equipmentMap.values())
-            .reduce((sum, data) => sum + data.apontamentos.length, 0);
-        const totalStatus = Array.from(this.equipmentMap.values())
-            .reduce((sum, data) => sum + data.status.length, 0);
-        const activeEquipments = Array.from(this.equipmentMap.values())
-            .filter(data => data.isActive).length;
-
-        // Update counters with animation
-        this.animateCounter('equipmentCount', this.equipmentMap.size);
-        this.animateCounter('conflictsResolved', this.performanceStats.conflictsResolved);
+    updateInterface() {
+        // Update equipment filter dropdown
+        this.updateEquipmentFilter();
         
-        // Update status indicators
-        this.updateElement('visibleItems', this.items.length);
-        this.updateElement('visibleEquipments', this.equipmentMap.size);
+        // Update counters
+        document.getElementById('visibleItems').textContent = this.items.length;
+        document.getElementById('visibleEquipments').textContent = this.equipmentMap.size;
 
-        // Update sync time
+        // Update last update time
         this.updateLastUpdateTime();
-
-        // Update equipment filter
-        this.updateOptimizedFilters();
-        
-        // Update system stats
-        this.updateSystemStats();
     }
 
-    animateCounter(elementId, targetValue) {
-        const element = document.getElementById(elementId);
-        if (!element) return;
-
-        const currentValue = parseInt(element.textContent) || 0;
-        const increment = Math.ceil((targetValue - currentValue) / 20);
-        
-        if (increment === 0) {
-            element.textContent = targetValue;
-            return;
-        }
-
-        const timer = setInterval(() => {
-            const current = parseInt(element.textContent) || 0;
-            const next = current + increment;
-            
-            if ((increment > 0 && next >= targetValue) || (increment < 0 && next <= targetValue)) {
-                element.textContent = targetValue;
-                clearInterval(timer);
-            } else {
-                element.textContent = next;
-            }
-        }, 50);
-    }
-
-    updateElement(id, value) {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = value;
-        }
-    }
-
-    updateOptimizedFilters() {
+    updateEquipmentFilter() {
         const equipmentSelect = document.getElementById('equipmentFilter');
         if (!equipmentSelect) return;
 
         const currentValue = equipmentSelect.value;
         equipmentSelect.innerHTML = '<option value="">Todos os equipamentos</option>';
 
-        // Group equipment by type for better organization
+        // Group equipment by type
         const groupedEquipment = {};
         for (const [equipName, data] of this.equipmentMap) {
             if (!groupedEquipment[data.group]) {
                 groupedEquipment[data.group] = [];
             }
-            groupedEquipment[data.group].push({ name: equipName, data: data });
+            groupedEquipment[data.group].push(equipName);
         }
 
         // Add options grouped by type
@@ -2325,17 +1464,13 @@ class ProductivitySystem {
             const optgroup = document.createElement('optgroup');
             optgroup.label = this.getGroupDisplayName(group);
             
-            groupedEquipment[group]
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .forEach(({ name, data }) => {
-                    const option = document.createElement('option');
-                    option.value = name;
-                    const displayName = this.core.getDisplayName(name);
-                    const statusIcon = data.isActive ? '🟢' : '🔴';
-                    option.textContent = `${statusIcon} ${displayName}`;
-                    if (name === currentValue) option.selected = true;
-                    optgroup.appendChild(option);
-                });
+            groupedEquipment[group].sort().forEach(equipName => {
+                const option = document.createElement('option');
+                option.value = equipName;
+                option.textContent = this.core.getDisplayName(equipName);
+                if (equipName === currentValue) option.selected = true;
+                optgroup.appendChild(option);
+            });
             
             equipmentSelect.appendChild(optgroup);
         });
@@ -2345,92 +1480,14 @@ class ProductivitySystem {
         const names = {
             'alta-pressao': '🔴 Alta Pressão',
             'baixa-pressao': '🔵 Baixa Pressão',
-            'vacuo': '⚪ Vácuo',
+            'auto-vacuo': '🟣 Auto Vácuo',
+            'hiper-vacuo': '⚫ Hiper Vácuo',
             'caminhoes': '🚛 Caminhões',
-            'escavadeiras': '🚜 Escavadeiras',
             'outros': '⚙️ Outros'
         };
         return names[group] || group;
     }
 
-    updateOptimizedAnalytics() {
-        if (this.equipmentMap.size === 0) return;
-
-        const rulesConfig = this.rules.getRulesConfig();
-        if (!rulesConfig) return;
-
-        // Execute analysis with performance measurement
-        const analysis = this.core.measureOperation('analyzeProductivity', () => 
-            this.analytics.analyzeProductivity(this.equipmentMap, rulesConfig)
-        );
-        
-        // Update dashboard if analytics tab is active
-        const activeTab = document.querySelector('.tab-content.active');
-        if (activeTab && activeTab.id === 'productivity-tab') {
-            this.analytics.updateDashboard();
-        }
-    }
-
-    // =============================================================================
-    // ESTADOS DA TIMELINE
-    // =============================================================================
-    showTimelineEmptyState() {
-        const container = document.getElementById('timeline');
-        if (container) {
-            container.innerHTML = `
-                <div class="loading-state">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
-                    <div style="font-size: 1.1rem; font-weight: 600;">Nenhum dado disponível</div>
-                    <div style="font-size: 0.9rem; margin-top: 0.5rem; color: #7f8c8d;">
-                        Aguardando sincronização de dados do GitHub...
-                    </div>
-                    <button onclick="productivitySystem.syncOptimizedFromGitHub()" 
-                            style="margin-top: 1rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                        🔄 Tentar Novamente
-                    </button>
-                </div>
-            `;
-        }
-    }
-
-    showTimelineErrorState(error) {
-        const container = document.getElementById('timeline');
-        if (container) {
-            container.innerHTML = `
-                <div class="loading-state">
-                    <div style="font-size: 3rem; margin-bottom: 1rem; color: #e74c3c;">⚠️</div>
-                    <div style="color: #e74c3c; font-weight: 600;">Erro ao carregar timeline</div>
-                    <div style="font-size: 0.9rem; margin-top: 0.5rem; color: #7f8c8d; max-width: 400px; text-align: center;">
-                        ${error}
-                    </div>
-                    <div style="margin-top: 1rem; display: flex; gap: 1rem; justify-content: center;">
-                        <button onclick="productivitySystem.syncOptimizedFromGitHub()" 
-                                style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                            🔄 Tentar Novamente
-                        </button>
-                        <button onclick="productivitySystem.core.exportDebugLog()" 
-                                style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #95a5a6, #7f8c8d); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                            📋 Relatório de Erro
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-    }
-
-    loadTimelineContent() {
-        if (this.items.length === 0) {
-            this.core.addDebugLog('Lazy loading: Nenhum conteúdo para carregar');
-            return;
-        }
-
-        this.core.addDebugLog('Lazy loading: Carregando conteúdo da timeline');
-        this.ensureOptimizedTimelineInitialization();
-    }
-
-    // =============================================================================
-    // NOTIFICAÇÕES E FEEDBACK
-    // =============================================================================
     updateSyncStatus(status, message) {
         const dot = document.getElementById('syncDot');
         const statusText = document.getElementById('syncStatus');
@@ -2465,7 +1522,6 @@ class ProductivitySystem {
         
         document.body.appendChild(notification);
         
-        // Auto-remove with slide out animation
         setTimeout(() => {
             notification.style.animation = 'slideOutRight 0.3s ease-in';
             setTimeout(() => {
@@ -2487,71 +1543,72 @@ class ProductivitySystem {
     }
 
     // =============================================================================
-    // UTILITY FUNCTIONS
+    // ESTADOS DA TIMELINE
     // =============================================================================
-    exportOptimizedDebugData() {
-        const debugData = {
-            version: '2.0.0',
-            timestamp: new Date().toISOString(),
-            performanceStats: this.performanceStats,
-            performanceConfig: this.performanceConfig,
-            filterState: this.filterState,
-            equipmentCount: this.equipmentMap.size,
-            itemsCount: this.items.length,
-            groupsCount: this.groups.length,
-            cacheStats: {
-                processingCache: this.processingCache.size,
-                renderCache: this.renderCache.size,
-                coreCache: this.core.getCacheStats()
-            },
-            systemInfo: {
-                userAgent: navigator.userAgent,
-                memory: performance.memory ? {
-                    used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
-                    total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024),
-                    limit: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024)
-                } : null,
-                connection: navigator.connection ? {
-                    effectiveType: navigator.connection.effectiveType,
-                    downlink: navigator.connection.downlink
-                } : null
-            }
-        };
-        
-        const dataStr = JSON.stringify(debugData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `productivity-debug-optimized-${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-        
-        URL.revokeObjectURL(url);
-        this.showNotification('Dados de debug otimizados exportados', 'success');
+    showTimelineEmptyState() {
+        const container = document.getElementById('timeline');
+        if (container) {
+            container.innerHTML = `
+                <div class="loading-state">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                    <div style="font-size: 1.1rem; font-weight: 600;">Nenhum dado disponível</div>
+                    <div style="font-size: 0.9rem; margin-top: 0.5rem; color: #7f8c8d;">
+                        Aguardando sincronização de dados do GitHub...
+                    </div>
+                    <button onclick="productivitySystem.syncFromGitHub()" 
+                            style="margin-top: 1rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        🔄 Tentar Novamente
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    showTimelineErrorState(error) {
+        const container = document.getElementById('timeline');
+        if (container) {
+            container.innerHTML = `
+                <div class="loading-state">
+                    <div style="font-size: 3rem; margin-bottom: 1rem; color: #e74c3c;">⚠️</div>
+                    <div style="color: #e74c3c; font-weight: 600;">Erro ao carregar timeline</div>
+                    <div style="font-size: 0.9rem; margin-top: 0.5rem; color: #7f8c8d; max-width: 400px; text-align: center;">
+                        ${error}
+                    </div>
+                    <button onclick="productivitySystem.syncFromGitHub()" 
+                            style="margin-top: 1rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        🔄 Tentar Novamente
+                    </button>
+                </div>
+            `;
+        }
     }
 
     // =============================================================================
-    // CLEANUP E DESTRUCTOR OTIMIZADO
+    // MÉTODOS PÚBLICOS
+    // =============================================================================
+    async manualSync() {
+        await this.syncFromGitHub();
+    }
+
+    getSystemStatus() {
+        return {
+            isUpdating: this.isUpdating,
+            equipmentCount: this.equipmentMap.size,
+            itemsCount: this.items.length,
+            lastUpdate: this.lastDataHash ? new Date() : null
+        };
+    }
+
+    // =============================================================================
+    // CLEANUP E DESTRUCTOR
     // =============================================================================
     destroy() {
-        this.core.addDebugLog('Iniciando destruição do sistema otimizado');
+        this.core.addDebugLog('Destruindo sistema de produtividade');
         
         // Stop intervals
         if (this.autoSyncInterval) {
             clearInterval(this.autoSyncInterval);
             this.autoSyncInterval = null;
-        }
-        
-        // Destroy observers
-        if (this.intersectionObserver) {
-            this.intersectionObserver.disconnect();
-            this.intersectionObserver = null;
-        }
-        
-        if (this.resizeObserver) {
-            this.resizeObserver.disconnect();
-            this.resizeObserver = null;
         }
         
         // Destroy timeline
@@ -2568,11 +1625,6 @@ class ProductivitySystem {
         this.items.clear();
         this.groups.clear();
         this.equipmentMap.clear();
-        this.equipmentSeparators.clear();
-        
-        // Clear caches
-        this.processingCache.clear();
-        this.renderCache.clear();
         
         // Destroy modules
         if (this.analytics) {
@@ -2590,106 +1642,17 @@ class ProductivitySystem {
             this.core = null;
         }
         
-        // Final cleanup
-        this.csvData = [];
-        this.jsonData = [];
-        this.isUpdating = false;
-        this.currentViewWindow = null;
-        this.lastDataHash = '';
-        this.csvDataHash = '';
-        
-        console.log('Sistema de Produtividade Otimizado v2.0 destruído com sucesso');
-    }
-
-    // =============================================================================
-    // MÉTODOS PÚBLICOS PARA INTERFACE
-    // =============================================================================
-    async manualSync() {
-        await this.syncOptimizedFromGitHub();
-    }
-
-    getSystemStatus() {
-        return {
-            isUpdating: this.isUpdating,
-            equipmentCount: this.equipmentMap.size,
-            itemsCount: this.items.length,
-            lastUpdate: this.lastDataHash ? new Date() : null,
-            performance: this.performanceStats,
-            cacheStats: {
-                hits: this.performanceStats.cacheHits,
-                misses: this.performanceStats.cacheMisses,
-                hitRate: this.performanceStats.cacheHits + this.performanceStats.cacheMisses > 0 ? 
-                    (this.performanceStats.cacheHits / (this.performanceStats.cacheHits + this.performanceStats.cacheMisses) * 100).toFixed(1) + '%' : '0%'
-            }
-        };
-    }
-
-    getFilteredDataStats() {
-        if (!this.timeline) return null;
-        
-        const visibleItems = this.timeline.itemsData.length;
-        const totalItems = this.items.length;
-        const filterEfficiency = totalItems > 0 ? ((visibleItems / totalItems) * 100).toFixed(1) + '%' : '0%';
-        
-        return {
-            visibleItems,
-            totalItems,
-            filterEfficiency,
-            hasActiveFilters: this.filterState.isActive
-        };
-    }
-
-    // Performance testing method
-    async runPerformanceTest() {
-        this.core.addDebugLog('Iniciando teste de performance completo');
-        
-        const results = {
-            dataProcessing: 0,
-            timelineRendering: 0,
-            filterApplication: 0,
-            memoryUsage: null
-        };
-        
-        // Test data processing
-        const processingStart = performance.now();
-        await this.processOptimizedData();
-        results.dataProcessing = performance.now() - processingStart;
-        
-        // Test timeline rendering
-        const renderingStart = performance.now();
-        this.initOptimizedTimeline();
-        results.timelineRendering = performance.now() - renderingStart;
-        
-        // Test filter application
-        const filterStart = performance.now();
-        this.applyOptimizedFilters();
-        results.filterApplication = performance.now() - filterStart;
-        
-        // Test memory usage
-        if (performance.memory) {
-            results.memoryUsage = {
-                used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
-                total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024)
-            };
-        }
-        
-        this.core.addDebugLog(`Teste de performance concluído: 
-            Processamento: ${results.dataProcessing.toFixed(2)}ms
-            Renderização: ${results.timelineRendering.toFixed(2)}ms  
-            Filtros: ${results.filterApplication.toFixed(2)}ms
-            Memória: ${results.memoryUsage ? results.memoryUsage.used + 'MB' : 'N/A'}`);
-        
-        return results;
+        console.log('Sistema de Produtividade destruído com sucesso');
     }
 }
 
 // =============================================================================
-// EXPORTAÇÃO E INICIALIZAÇÃO GLOBAL
+// EXPORTAÇÃO E FUNÇÕES GLOBAIS
 // =============================================================================
 if (typeof window !== 'undefined') {
     window.ProductivitySystem = ProductivitySystem;
     
-    // Global helper functions for better performance
+    // Global helper function for clearing filters
     window.clearAllFilters = function() {
         if (window.productivitySystem) {
             // Reset all filter chips
@@ -2700,23 +1663,21 @@ if (typeof window !== 'undefined') {
             // Reset form inputs
             document.getElementById('equipmentFilter').value = '';
             document.getElementById('periodFilter').value = 'week';
-            document.getElementById('startDate').value = '';
-            document.getElementById('endDate').value = '';
-            document.getElementById('startTime').value = '';
-            document.getElementById('endTime').value = '';
             
-            // Hide custom date section
-            document.getElementById('customDateSection').style.display = 'none';
+            // Reset filter state
+            window.productivitySystem.filterState = {
+                equipment: '',
+                groups: new Set(),
+                status: new Set(),
+                appointments: new Set(),
+                period: 'week',
+                isActive: false
+            };
             
             // Apply empty filters
-            window.productivitySystem.applyOptimizedFilters();
+            window.productivitySystem.applyFilters();
             
             window.productivitySystem.showNotification('Todos os filtros removidos', 'success');
         }
     };
-    
-    // Performance monitoring
-    if (typeof performance !== 'undefined' && performance.mark) {
-        performance.mark('productivity-system-script-loaded');
-    }
 }
