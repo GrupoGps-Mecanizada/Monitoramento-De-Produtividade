@@ -20,7 +20,6 @@
             color: #2c3e50;
             line-height: 1.6;
             min-height: 100vh;
-            overflow-x: hidden;
         }
 
         .app-container {
@@ -28,10 +27,9 @@
             display: flex;
             flex-direction: column;
             backdrop-filter: blur(10px);
-            width: 100vw;
         }
 
-        /* Header Otimizado */
+        /* Header Optimizado */
         .header {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
@@ -44,7 +42,6 @@
         }
 
         .header-content {
-            width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -120,7 +117,6 @@
         }
 
         .nav-tabs-container {
-            width: 100%;
             display: flex;
             gap: 0;
             overflow-x: auto;
@@ -172,28 +168,56 @@
             background: rgba(255, 255, 255, 0.6);
         }
 
-        /* Main Content - Full Width */
+        /* Main Content - CORRIGIDO: Sem margin-right */
         .main-content {
             flex: 1;
             padding: 1.5rem;
-            width: 100vw;
             min-height: calc(100vh - 140px);
         }
 
         .tab-content {
             display: none;
-            width: 100%;
         }
 
         .tab-content.active {
             display: block;
         }
 
-        /* Filtros Inteligentes Retráteis */
+        /* NOVO: Botão de Filtros Flutuante */
+        .filter-toggle-btn {
+            position: fixed;
+            top: 160px;
+            right: 20px;
+            z-index: 999;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .filter-toggle-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .filter-toggle-btn.active {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        /* CORRIGIDO: Filtros Inteligentes - Layout Melhorado */
         .smart-filters {
             position: fixed;
-            top: 140px;
-            right: 1rem;
+            top: 220px;
+            right: 20px;
             z-index: 500;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
@@ -201,56 +225,23 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border: 1px solid rgba(255, 255, 255, 0.3);
-            max-height: 80vh;
+            max-height: 70vh;
             overflow-y: auto;
+            transform: translateX(100%);
+            opacity: 0;
+            visibility: hidden;
         }
 
-        .smart-filters.collapsed {
-            width: 60px;
-            height: 60px;
-            overflow: hidden;
-        }
-
-        .smart-filters.expanded {
-            width: 380px;
-            max-width: calc(100vw - 2rem);
-        }
-
-        .filter-toggle {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            z-index: 10;
-        }
-
-        .filter-toggle:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        .smart-filters.visible {
+            transform: translateX(0);
+            opacity: 1;
+            visibility: visible;
+            width: 350px;
+            max-width: calc(100vw - 40px);
         }
 
         .filters-content {
-            padding: 60px 20px 20px;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.3s ease;
-        }
-
-        .smart-filters.expanded .filters-content {
-            opacity: 1;
-            transform: translateY(0);
+            padding: 1.5rem;
         }
 
         .filter-section {
@@ -291,24 +282,28 @@
         }
 
         .filter-chip {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 0.3rem 0.8rem;
+            background: rgba(255, 255, 255, 0.8);
+            color: #5a6c7d;
+            padding: 0.4rem 0.8rem;
             border-radius: 15px;
             font-size: 0.75rem;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
-            border: none;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            user-select: none;
         }
 
         .filter-chip:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.9);
         }
 
         .filter-chip.active {
-            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: transparent;
         }
 
         .clear-filters {
@@ -329,7 +324,12 @@
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
         }
 
-        /* Timeline Otimizada */
+        /* CORRIGIDO: Timeline Centralizada */
+        .timeline-container {
+            /* Removido margin-right que causava problemas */
+            width: 100%;
+        }
+
         .glass-panel {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
@@ -338,12 +338,6 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             margin-bottom: 1.5rem;
             overflow: hidden;
-            width: 100%;
-        }
-
-        .timeline-container {
-            overflow: hidden;
-            margin-right: 400px; /* Espaço para filtros */
         }
 
         .timeline-header {
@@ -373,6 +367,43 @@
             color: #5a6c7d;
         }
 
+        /* NOVO: Navegação por Equipamento */
+        .equipment-navigation {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 0.5rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .equipment-info {
+            font-size: 0.8rem;
+            color: #2c3e50;
+            font-weight: 600;
+            padding: 0 0.5rem;
+            min-width: 150px;
+            text-align: center;
+        }
+
         #timeline {
             height: 70vh;
             min-height: 500px;
@@ -380,37 +411,43 @@
             position: relative;
         }
 
-        /* Separadores de Equipamentos */
+        /* Equipment Labels na Timeline */
+        .equipment-label {
+            font-size: 11px;
+            line-height: 1.2;
+            padding: 2px 4px;
+        }
+
+        .equipment-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .equipment-type {
+            font-size: 10px;
+            color: #7f8c8d;
+            margin-top: 1px;
+        }
+
+        /* Separadores de Equipamentos na Timeline */
         .vis-labelset .vis-label {
             border-right: 2px solid rgba(255, 255, 255, 0.3) !important;
             background-color: rgba(255, 255, 255, 0.95) !important;
             color: #2c3e50 !important;
             font-weight: 600 !important;
-            font-size: 12px !important;
+            font-size: 11px !important;
             position: relative !important;
         }
 
-        .vis-labelset .vis-label[data-equipment-separator="true"] {
+        .vis-labelset .vis-label.group-separator {
             border-top: 3px solid #667eea !important;
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)) !important;
         }
 
-        .vis-labelset .vis-label::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            opacity: 0.7;
-        }
-
-        /* Timeline Performance Optimization */
+        /* Timeline Otimizada */
         .vis-timeline {
             border: none !important;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-            will-change: transform !important;
         }
 
         .vis-panel.vis-bottom {
@@ -430,8 +467,6 @@
             font-weight: 600 !important;
             font-size: 11px !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
-            will-change: transform !important;
-            transition: none !important; /* Remove transitions para performance */
         }
 
         .vis-item.vis-selected {
@@ -440,28 +475,27 @@
             transform: scale(1.02) !important;
         }
 
-        /* Cores da Timeline - Status Otimizadas */
-        .vis-item.status-running { background: linear-gradient(135deg, #27ae60, #2ecc71) !important; border-color: #219a52 !important; }
-        .vis-item.status-stopped { background: linear-gradient(135deg, #f1c40f, #f39c12) !important; border-color: #d4ac0d !important; }
-        .vis-item.status-off { background: linear-gradient(135deg, #95a5a6, #7f8c8d) !important; border-color: #6c7b7d !important; }
-        .vis-item.status-maintenance { background: linear-gradient(135deg, #e67e22, #d35400) !important; border-color: #bf4e00 !important; }
-        .vis-item.status-out_of_plant { background: linear-gradient(135deg, #8b4513, #7a3c11) !important; border-color: #6a320e !important; }
-        .vis-item.status-not_appropriated { background: linear-gradient(135deg, #95a5a6, #7f8c8d) !important; border-color: #6c7b7d !important; }
-        .vis-item.status-no_data { background: linear-gradient(135deg, #2c3e50, #1a252f) !important; border-color: #141e28 !important; }
-        .vis-item.status-on { background: linear-gradient(135deg, #3498db, #2980b9) !important; border-color: #2471a3 !important; }
-        .vis-item.status-secondary_motor_on { background: linear-gradient(135deg, #9b59b6, #8e44ad) !important; border-color: #7d3c98 !important; }
+        /* CORRIGIDAS: Cores da Timeline - Status */
+        .vis-item.status-running { background: #27ae60 !important; border-color: #219a52 !important; }
+        .vis-item.status-stopped { background: #f39c12 !important; border-color: #d4ac0d !important; }
+        .vis-item.status-off { background: #95a5a6 !important; border-color: #7f8c8d !important; }
+        .vis-item.status-maintenance { background: #e67e22 !important; border-color: #bf4e00 !important; }
+        .vis-item.status-out_of_plant { background: #8b4513 !important; border-color: #7a3c11 !important; }
+        .vis-item.status-not_appropriated { background: #95a5a6 !important; border-color: #7f8c8d !important; }
+        .vis-item.status-no_data { background: #2c3e50 !important; border-color: #1a252f !important; }
+        .vis-item.status-on { background: #3498db !important; border-color: #2980b9 !important; }
+        .vis-item.status-secondary_motor_on { background: #9b59b6 !important; border-color: #8e44ad !important; }
 
-        /* Cores da Timeline - Apontamentos Otimizadas */
-        .vis-item.apont-abastecimento { background: linear-gradient(135deg, #3498db, #2980b9) !important; border-color: #2471a3 !important; }
-        .vis-item.apont-bloqueio { background: linear-gradient(135deg, #e74c3c, #c0392b) !important; border-color: #a93226 !important; }
-        .vis-item.apont-descarregamento { background: linear-gradient(135deg, #f39c12, #e67e22) !important; border-color: #d68910 !important; }
-        .vis-item.apont-documentacao { background: linear-gradient(135deg, #27ae60, #2ecc71) !important; border-color: #239b56 !important; }
-        .vis-item.apont-preparacao { background: linear-gradient(135deg, #9b59b6, #8e44ad) !important; border-color: #7d3c98 !important; }
-        .vis-item.apont-manutencao { background: linear-gradient(135deg, #e67e22, #d35400) !important; border-color: #bf4e00 !important; }
-        .vis-item.apont-refeicao { background: linear-gradient(135deg, #27ae60, #2ecc71) !important; border-color: #239b56 !important; }
-        .vis-item.apont-aguardando { background: linear-gradient(135deg, #3498db, #2980b9) !important; border-color: #2471a3 !important; }
+        /* CORRIGIDAS: Cores da Timeline - Apontamentos */
+        .vis-item.apont-documentacao { background: #27ae60 !important; border-color: #239b56 !important; }
+        .vis-item.apont-preparacao { background: #9b59b6 !important; border-color: #7d3c98 !important; }
+        .vis-item.apont-manutencao { background: #e67e22 !important; border-color: #bf4e00 !important; }
+        .vis-item.apont-bloqueio { background: #e74c3c !important; border-color: #a93226 !important; }
+        .vis-item.apont-aguardando { background: #3498db !important; border-color: #2471a3 !important; }
+        .vis-item.apont-refeicao { background: #27ae60 !important; border-color: #239b56 !important; }
+        .vis-item.apont-outros { background: #95a5a6 !important; border-color: #7f8c8d !important; }
 
-        /* Loading States Otimizados */
+        /* Loading States */
         .loading-state {
             display: flex;
             flex-direction: column;
@@ -486,7 +520,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Notification System Otimizado */
+        /* Notification System */
         .notification {
             position: fixed;
             top: 160px;
@@ -513,7 +547,7 @@
             to { transform: translateX(0); opacity: 1; }
         }
 
-        /* Footer Otimizado */
+        /* Footer */
         .footer {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
@@ -529,12 +563,8 @@
             color: #2c3e50;
         }
 
-        /* Responsive Otimizado */
+        /* Responsive */
         @media (max-width: 1200px) {
-            .timeline-container {
-                margin-right: 0;
-            }
-            
             .smart-filters {
                 position: relative;
                 top: auto;
@@ -542,11 +572,13 @@
                 margin-bottom: 1rem;
                 width: 100% !important;
                 max-width: none !important;
+                transform: none !important;
+                opacity: 1 !important;
+                visibility: visible !important;
             }
             
-            .smart-filters.collapsed {
-                width: 100% !important;
-                height: auto !important;
+            .filter-toggle-btn {
+                display: none;
             }
         }
 
@@ -584,28 +616,15 @@
                 align-items: flex-start;
                 gap: 0.5rem;
             }
-        }
 
-        /* Performance Optimizations */
-        .vis-timeline .vis-panel {
-            will-change: transform;
-        }
+            .equipment-navigation {
+                flex-direction: column;
+                gap: 0.3rem;
+            }
 
-        .vis-timeline .vis-itemset {
-            will-change: transform;
-        }
-
-        .vis-timeline .vis-item {
-            contain: layout style paint;
-        }
-
-        /* Accessibility */
-        .filter-toggle:focus,
-        .filter-input:focus,
-        .filter-chip:focus,
-        .clear-filters:focus {
-            outline: 2px solid #667eea;
-            outline-offset: 2px;
+            .equipment-info {
+                min-width: auto;
+            }
         }
 
         /* Utility Classes */
@@ -660,12 +679,13 @@
             </div>
         </nav>
 
-        <!-- Filtros Inteligentes Retráteis -->
-        <div class="smart-filters collapsed" id="smartFilters">
-            <button class="filter-toggle" onclick="toggleFilters()" title="Filtros Inteligentes">
-                <span id="filterToggleIcon">⚡</span>
-            </button>
-            
+        <!-- NOVO: Botão de Toggle dos Filtros -->
+        <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilters()">
+            ⚡
+        </button>
+
+        <!-- CORRIGIDO: Filtros Inteligentes Otimizados -->
+        <div class="smart-filters" id="smartFilters">
             <div class="filters-content">
                 <div class="filter-section">
                     <label class="filter-label">Equipamento</label>
@@ -677,21 +697,22 @@
                 <div class="filter-section">
                     <label class="filter-label">Grupo de Equipamento</label>
                     <div class="filter-chips" id="groupFilters">
-                        <button class="filter-chip" data-group="alta-pressao">Alta Pressão</button>
-                        <button class="filter-chip" data-group="baixa-pressao">Baixa Pressão</button>
-                        <button class="filter-chip" data-group="vacuo">Vácuo</button>
-                        <button class="filter-chip" data-group="caminhoes">Caminhões</button>
-                        <button class="filter-chip" data-group="escavadeiras">Escavadeiras</button>
+                        <button class="filter-chip" data-group="alta-pressao">🔴 Alta Pressão</button>
+                        <button class="filter-chip" data-group="baixa-pressao">🔵 Baixa Pressão</button>
+                        <button class="filter-chip" data-group="auto-vacuo">🟣 Auto Vácuo</button>
+                        <button class="filter-chip" data-group="hiper-vacuo">⚫ Hiper Vácuo</button>
+                        <button class="filter-chip" data-group="caminhoes">🚛 Caminhões</button>
                     </div>
                 </div>
 
                 <div class="filter-section">
                     <label class="filter-label">Status</label>
                     <div class="filter-chips" id="statusFilters">
-                        <button class="filter-chip" data-status="running">Rodando</button>
+                        <button class="filter-chip" data-status="running">Operando</button>
                         <button class="filter-chip" data-status="stopped">Parado</button>
                         <button class="filter-chip" data-status="maintenance">Manutenção</button>
                         <button class="filter-chip" data-status="off">Desligado</button>
+                        <button class="filter-chip" data-status="on">Ligado</button>
                     </div>
                 </div>
 
@@ -703,6 +724,7 @@
                         <button class="filter-chip" data-apont="manutencao">Manutenção</button>
                         <button class="filter-chip" data-apont="bloqueio">Bloqueio</button>
                         <button class="filter-chip" data-apont="aguardando">Aguardando</button>
+                        <button class="filter-chip" data-apont="refeicao">Refeição</button>
                     </div>
                 </div>
 
@@ -726,16 +748,8 @@
                     <input type="datetime-local" class="filter-input" id="endDate" />
                 </div>
 
-                <div class="filter-section">
-                    <label class="filter-label">Horário Específico</label>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <input type="time" class="filter-input" id="startTime" placeholder="Início" style="flex: 1;">
-                        <input type="time" class="filter-input" id="endTime" placeholder="Fim" style="flex: 1;">
-                    </div>
-                </div>
-
                 <button class="clear-filters" onclick="clearAllFilters()">
-                    Limpar Filtros
+                    🗑️ Limpar Filtros
                 </button>
             </div>
         </div>
@@ -755,6 +769,7 @@
                             <span id="visibleEquipments">0 equipamentos</span>
                             <span id="timeRange">Período: --</span>
                         </div>
+                        <!-- NOVO: Navegação por Equipamento será adicionada dinamicamente -->
                     </div>
                     
                     <div id="timeline">
@@ -766,7 +781,7 @@
                 </div>
             </div>
 
-            <!-- Nova Aba: Regras Simplificadas -->
+            <!-- Aba: Regras -->
             <div id="rules-tab" class="tab-content">
                 <div class="glass-panel">
                     <div style="padding: 2rem;">
@@ -782,7 +797,7 @@
                 </div>
             </div>
 
-            <!-- Configurações Funcionais -->
+            <!-- Configurações -->
             <div id="settings-tab" class="tab-content">
                 <div class="glass-panel">
                     <div style="padding: 2rem;">
@@ -801,331 +816,84 @@
 
         <!-- Footer -->
         <footer class="footer">
-            <p>Desenvolvido por <strong>Warlison Abreu</strong> | © 2025 GrupoGPS - Sistema Otimizado v2.0</p>
+            <p>Desenvolvido por <strong>Warlison Abreu</strong> | © 2025 GrupoGPS - Sistema Otimizado v2.1</p>
         </footer>
     </div>
 
-    <!-- Scripts Modulares Otimizados -->
+    <!-- Scripts Modulares -->
     <script src="productivity-core.js"></script>
     <script src="productivity-analytics.js"></script>
     <script src="productivity-rules.js"></script>
     <script src="productivity-system.js"></script>
 
     <script>
-        // Sistema Global Otimizado
+        // Sistema Global
         let productivitySystem = null;
-        let filtersExpanded = false;
-        let activeFilters = {
-            equipment: '',
-            groups: new Set(),
-            status: new Set(),
-            appointments: new Set(),
-            period: 'week',
-            startDate: null,
-            endDate: null,
-            startTime: null,
-            endTime: null
-        };
-
-        // Debounced functions para performance
-        const debouncedApplyFilters = debounce(applySmartFilters, 300);
-        const debouncedUpdateTimeline = debounce(updateTimelineView, 200);
+        let filtersVisible = false;
 
         // =============================================================================
-        // SISTEMA DE FILTROS INTELIGENTES
+        // SISTEMA DE FILTROS FLUTUANTES - NOVO
         // =============================================================================
         function toggleFilters() {
             const filtersElement = document.getElementById('smartFilters');
-            const toggleIcon = document.getElementById('filterToggleIcon');
+            const toggleBtn = document.getElementById('filterToggleBtn');
             
-            filtersExpanded = !filtersExpanded;
+            filtersVisible = !filtersVisible;
             
-            if (filtersExpanded) {
-                filtersElement.classList.add('expanded');
-                filtersElement.classList.remove('collapsed');
-                toggleIcon.textContent = '✕';
+            if (filtersVisible) {
+                filtersElement.classList.add('visible');
+                toggleBtn.classList.add('active');
+                toggleBtn.textContent = '✕';
             } else {
-                filtersElement.classList.add('collapsed');
-                filtersElement.classList.remove('expanded');
-                toggleIcon.textContent = '⚡';
+                filtersElement.classList.remove('visible');
+                toggleBtn.classList.remove('active');
+                toggleBtn.textContent = '⚡';
             }
         }
 
-        function setupSmartFilters() {
-            // Equipment filter
-            document.getElementById('equipmentFilter')?.addEventListener('change', (e) => {
-                activeFilters.equipment = e.target.value;
-                debouncedApplyFilters();
-            });
-
-            // Group filters
-            document.querySelectorAll('#groupFilters .filter-chip').forEach(chip => {
-                chip.addEventListener('click', (e) => {
-                    const group = e.target.dataset.group;
-                    toggleFilterChip(e.target, activeFilters.groups, group);
-                    debouncedApplyFilters();
-                });
-            });
-
-            // Status filters
-            document.querySelectorAll('#statusFilters .filter-chip').forEach(chip => {
-                chip.addEventListener('click', (e) => {
-                    const status = e.target.dataset.status;
-                    toggleFilterChip(e.target, activeFilters.status, status);
-                    debouncedApplyFilters();
-                });
-            });
-
-            // Appointment filters
-            document.querySelectorAll('#appointmentFilters .filter-chip').forEach(chip => {
-                chip.addEventListener('click', (e) => {
-                    const apont = e.target.dataset.apont;
-                    toggleFilterChip(e.target, activeFilters.appointments, apont);
-                    debouncedApplyFilters();
-                });
-            });
-
-            // Period filter
-            document.getElementById('periodFilter')?.addEventListener('change', (e) => {
-                activeFilters.period = e.target.value;
-                handlePeriodChange();
-                debouncedApplyFilters();
-            });
-
-            // Custom date filters
-            document.getElementById('startDate')?.addEventListener('change', (e) => {
-                activeFilters.startDate = e.target.value;
-                debouncedApplyFilters();
-            });
-
-            document.getElementById('endDate')?.addEventListener('change', (e) => {
-                activeFilters.endDate = e.target.value;
-                debouncedApplyFilters();
-            });
-
-            // Time filters
-            document.getElementById('startTime')?.addEventListener('change', (e) => {
-                activeFilters.startTime = e.target.value;
-                debouncedApplyFilters();
-            });
-
-            document.getElementById('endTime')?.addEventListener('change', (e) => {
-                activeFilters.endTime = e.target.value;
-                debouncedApplyFilters();
-            });
-        }
-
-        function toggleFilterChip(chipElement, filterSet, value) {
-            if (filterSet.has(value)) {
-                filterSet.delete(value);
-                chipElement.classList.remove('active');
-            } else {
-                filterSet.add(value);
-                chipElement.classList.add('active');
-            }
-        }
-
-        function applySmartFilters() {
-            if (!productivitySystem || !productivitySystem.timeline) return;
-
-            let filteredItems = [];
-            let filteredGroups = new Set();
-            let visibleEquipments = new Set();
-
-            for (const item of productivitySystem.items.get()) {
-                if (passesFilters(item)) {
-                    filteredItems.push(item);
-                    const equipment = item.group.replace(/_apont$|_status$/, '');
-                    filteredGroups.add(equipment);
-                    visibleEquipments.add(equipment);
-                }
-            }
-
-            // Update timeline with filtered data
-            const visibleGroupsArray = [];
-            for (const group of productivitySystem.groups.get()) {
-                const equipment = group.id.replace(/_apont$|_status$/, '');
-                if (filteredGroups.has(equipment) || activeFilters.equipment === '' && activeFilters.groups.size === 0) {
-                    visibleGroupsArray.push(group);
-                }
-            }
-
-            productivitySystem.timeline.setData({
-                items: new vis.DataSet(filteredItems),
-                groups: new vis.DataSet(visibleGroupsArray)
-            });
-
-            // Update statistics
-            updateFilterStatistics(filteredItems.length, visibleEquipments.size);
-        }
-
-        function passesFilters(item) {
-            // Equipment filter
-            if (activeFilters.equipment) {
-                const itemEquipment = item.group.replace(/_apont$|_status$/, '');
-                if (itemEquipment !== activeFilters.equipment) return false;
-            }
-
-            // Group filters
-            if (activeFilters.groups.size > 0) {
-                const equipmentGroup = determineEquipmentGroup(item.group);
-                if (!activeFilters.groups.has(equipmentGroup)) return false;
-            }
-
-            // Status filters
-            if (activeFilters.status.size > 0 && item.className) {
-                const hasMatchingStatus = Array.from(activeFilters.status).some(status => 
-                    item.className.includes(`status-${status}`)
-                );
-                if (!hasMatchingStatus && item.className.includes('status-')) return false;
-            }
-
-            // Appointment filters
-            if (activeFilters.appointments.size > 0 && item.className) {
-                const hasMatchingAppoint = Array.from(activeFilters.appointments).some(apont => 
-                    item.className.includes(`apont-${apont}`)
-                );
-                if (!hasMatchingAppoint && item.className.includes('apont-')) return false;
-            }
-
-            // Time range filters
-            if (activeFilters.startTime || activeFilters.endTime) {
-                const itemTime = new Date(item.start).toTimeString().slice(0, 5);
-                if (activeFilters.startTime && itemTime < activeFilters.startTime) return false;
-                if (activeFilters.endTime && itemTime > activeFilters.endTime) return false;
-            }
-
-            // Custom date range
-            if (activeFilters.period === 'custom') {
-                if (activeFilters.startDate && item.start < new Date(activeFilters.startDate)) return false;
-                if (activeFilters.endDate && item.start > new Date(activeFilters.endDate)) return false;
-            }
-
-            return true;
-        }
-
-        function determineEquipmentGroup(equipmentName) {
-            const name = equipmentName.toLowerCase();
-            if (name.includes('alta pressão') || name.includes('alta pressao')) return 'alta-pressao';
-            if (name.includes('baixa pressão') || name.includes('baixa pressao')) return 'baixa-pressao';
-            if (name.includes('vácuo') || name.includes('vacuo')) return 'vacuo';
-            if (name.includes('caminhão') || name.includes('caminhao')) return 'caminhoes';
-            if (name.includes('escavadeira')) return 'escavadeiras';
-            return 'outros';
-        }
-
-        function clearAllFilters() {
-            activeFilters = {
-                equipment: '',
-                groups: new Set(),
-                status: new Set(),
-                appointments: new Set(),
-                period: 'week',
-                startDate: null,
-                endDate: null,
-                startTime: null,
-                endTime: null
-            };
-
-            // Reset UI
-            document.getElementById('equipmentFilter').value = '';
-            document.getElementById('periodFilter').value = 'week';
-            document.getElementById('startDate').value = '';
-            document.getElementById('endDate').value = '';
-            document.getElementById('startTime').value = '';
-            document.getElementById('endTime').value = '';
-
-            // Remove active chips
-            document.querySelectorAll('.filter-chip.active').forEach(chip => {
-                chip.classList.remove('active');
-            });
-
-            // Hide custom date section
-            document.getElementById('customDateSection').style.display = 'none';
-
-            // Reapply filters (which will show all data)
-            applySmartFilters();
-        }
-
-        function handlePeriodChange() {
-            const period = activeFilters.period;
-            const customDateSection = document.getElementById('customDateSection');
+        // Fechar filtros ao clicar fora
+        document.addEventListener('click', (e) => {
+            const filtersElement = document.getElementById('smartFilters');
+            const toggleBtn = document.getElementById('filterToggleBtn');
             
-            if (period === 'custom') {
-                customDateSection.style.display = 'block';
-            } else {
-                customDateSection.style.display = 'none';
-                
-                if (productivitySystem && productivitySystem.timeline) {
-                    const now = new Date();
-                    let start, end;
-
-                    switch (period) {
-                        case 'today':
-                            start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                            end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-                            break;
-                        case 'yesterday':
-                            end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                            start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-                            break;
-                        case 'week':
-                            end = now;
-                            start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                            break;
-                        case 'month':
-                            end = now;
-                            start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                            break;
-                        default:
-                            productivitySystem.timeline.fit();
-                            return;
-                    }
-
-                    productivitySystem.timeline.setWindow(start, end);
-                    updateTimeRangeDisplay(start, end);
-                }
+            if (filtersVisible && 
+                !filtersElement.contains(e.target) && 
+                !toggleBtn.contains(e.target)) {
+                toggleFilters();
             }
-        }
-
-        function updateFilterStatistics(itemsCount, equipmentsCount) {
-            document.getElementById('visibleItems').textContent = `${itemsCount} itens visíveis`;
-            document.getElementById('visibleEquipments').textContent = `${equipmentsCount} equipamentos`;
-        }
-
-        function updateTimeRangeDisplay(start, end) {
-            const timeRange = document.getElementById('timeRange');
-            if (timeRange && start && end) {
-                const startStr = start.toLocaleDateString('pt-BR');
-                const endStr = end.toLocaleDateString('pt-BR');
-                timeRange.textContent = `Período: ${startStr} - ${endStr}`;
-            }
-        }
+        });
 
         // =============================================================================
         // FUNÇÕES GLOBAIS DE INTERFACE
         // =============================================================================
         function switchTab(tabName) {
+            // Update tabs
             document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
-            event.target.classList.add('active');
+            // Find and activate the clicked tab
+            const clickedTab = Array.from(document.querySelectorAll('.nav-tab')).find(tab => 
+                tab.onclick && tab.onclick.toString().includes(tabName)
+            );
+            if (clickedTab) {
+                clickedTab.classList.add('active');
+            }
+            
             const targetTab = document.getElementById(`${tabName}-tab`);
             if (targetTab) {
                 targetTab.classList.add('active');
             }
         }
 
-        function updateTimelineView() {
-            if (productivitySystem && productivitySystem.timeline) {
-                productivitySystem.timeline.redraw();
-            }
-        }
-
         function showNotification(message, type = 'info') {
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
-            notification.textContent = message;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>${getNotificationIcon(type)}</span>
+                    <span>${message}</span>
+                </div>
+            `;
             
             document.body.appendChild(notification);
             
@@ -1135,16 +903,18 @@
             }, 4000);
         }
 
-        function debounce(func, delay) {
-            let timeoutId;
-            return function (...args) {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(() => func.apply(this, args), delay);
+        function getNotificationIcon(type) {
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
             };
+            return icons[type] || 'ℹ️';
         }
 
         // =============================================================================
-        // INICIALIZAÇÃO OTIMIZADA
+        // INICIALIZAÇÃO CORRIGIDA
         // =============================================================================
         document.addEventListener('DOMContentLoaded', () => {
             // Verificar se todos os módulos estão carregados
@@ -1153,26 +923,27 @@
                 typeof ProductivityRules !== 'undefined' && 
                 typeof ProductivitySystem !== 'undefined') {
                 
-                // Inicializar sistema
-                productivitySystem = new ProductivitySystem();
-                
-                // Setup filtros inteligentes
-                setupSmartFilters();
-                
-                // Otimizações de performance
-                if ('requestIdleCallback' in window) {
-                    requestIdleCallback(() => {
-                        console.log('Sistema de Produtividade Otimizado v2.0 iniciado com sucesso!');
-                    });
-                } else {
-                    setTimeout(() => {
-                        console.log('Sistema de Produtividade Otimizado v2.0 iniciado com sucesso!');
-                    }, 100);
+                try {
+                    // Inicializar sistema
+                    productivitySystem = new ProductivitySystem();
+                    
+                    console.log('Sistema de Produtividade v2.1 iniciado com sucesso!');
+                    
+                } catch (error) {
+                    console.error('Erro na inicialização:', error);
+                    showNotification('Erro na inicialização do sistema', 'error');
                 }
                 
             } else {
                 console.error('Erro: Nem todos os módulos foram carregados corretamente');
                 showNotification('Erro no carregamento dos módulos do sistema', 'error');
+                
+                // Log detalhado dos módulos
+                console.log('Módulos disponíveis:');
+                console.log('ProductivityCore:', typeof ProductivityCore);
+                console.log('ProductivityAnalytics:', typeof ProductivityAnalytics); 
+                console.log('ProductivityRules:', typeof ProductivityRules);
+                console.log('ProductivitySystem:', typeof ProductivitySystem);
             }
         });
 
@@ -1193,6 +964,30 @@
             if (productivitySystem) {
                 productivitySystem.destroy();
             }
+        });
+
+        // Responsive filter handling
+        window.addEventListener('resize', () => {
+            const isWideScreen = window.innerWidth > 1200;
+            const filtersElement = document.getElementById('smartFilters');
+            const toggleBtn = document.getElementById('filterToggleBtn');
+            
+            if (isWideScreen) {
+                // Em telas grandes, manter filtros flutuantes
+                if (toggleBtn) toggleBtn.style.display = 'flex';
+            } else {
+                // Em telas pequenas, manter filtros sempre visíveis
+                if (filtersElement) {
+                    filtersElement.classList.add('visible');
+                }
+                if (toggleBtn) toggleBtn.style.display = 'none';
+                filtersVisible = true;
+            }
+        });
+
+        // Trigger resize event on load to set initial state
+        window.addEventListener('load', () => {
+            window.dispatchEvent(new Event('resize'));
         });
     </script>
 </body>
