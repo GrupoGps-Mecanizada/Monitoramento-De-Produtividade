@@ -7,6 +7,32 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css" />
     <style>
+        /*
+        =========================================================================
+        SISTEMA DE MONITORAMENTO GAUSS FLEET - CORES OFICIAIS
+        =========================================================================
+        Verde Escuro (#00b050): Motor Ligado
+        Verde Claro (#92d050): Motor Secundário Ligado  
+        Vermelho (#ff0000): Motor Desligado
+        Amarelo Escuro (#e6c300): Parado Ligado - Contraste otimizado
+        Laranja (#ffc000): Em Manutenção
+        Marrom (#c65911): Fora da Planta
+        Cinza Claro (#d9d9d9): Indisponível / Sem Apropriação
+        Azul (#0070c0): Troca de Turno
+        Roxo (#7030a0): Fora do Regime / Vaga Disponível
+        Preto (#000000): Sem Dados de Bordo
+        Azul Escuro (#002060): Parada Apontada
+        Azul Claro (#00b0f0): Chave Geral Desligada
+        
+        FUNCIONALIDADES:
+        - Tooltip nativo do vis.js com followMouse: true (funcionalidade original)
+        - Console limpo (apenas warnings e errors)
+        - Informações completas nos tooltips
+        - Performance otimizada
+        - Compatibilidade total com vis.js
+        =========================================================================
+        */
+
         * {
             margin: 0;
             padding: 0;
@@ -342,42 +368,59 @@
             font-weight: 600;
         }
 
-        /* Cores da Timeline - Status baseadas na imagem */
-        .vis-item.status-running { 
-            background-color: #27ae60 !important; 
-            border-color: #219a52 !important; 
+        /* Cores da Timeline - Status GAUSS FLEET (Cores Exatas) */
+        .vis-item.status-motor_ligado { 
+            background-color: #00b050 !important; 
+            border-color: #008f40 !important; 
         }
-        .vis-item.status-stopped { 
-            background-color: #f1c40f !important; 
-            border-color: #d4ac0d !important; 
+        .vis-item.status-motor_secundario_ligado { 
+            background-color: #92d050 !important; 
+            border-color: #7bb83f !important; 
         }
-        .vis-item.status-off { 
-            background-color: #95a5a6 !important; 
-            border-color: #7f8c8d !important; 
+        .vis-item.status-motor_desligado { 
+            background-color: #ff0000 !important; 
+            border-color: #cc0000 !important; 
         }
-        .vis-item.status-maintenance { 
-            background-color: #e67e22 !important; 
-            border-color: #d35400 !important; 
+        .vis-item.status-parado_ligado { 
+            background-color: #e6c300 !important; 
+            border-color: #b8a000 !important; 
+            color: #2c3e50 !important;
         }
-        .vis-item.status-out_of_plant { 
-            background-color: #8b4513 !important; 
-            border-color: #7a3c11 !important; 
+        .vis-item.status-em_manutencao { 
+            background-color: #ffc000 !important; 
+            border-color: #cc9900 !important; 
         }
-        .vis-item.status-not_appropriated { 
-            background-color: #95a5a6 !important; 
-            border-color: #7f8c8d !important; 
+        .vis-item.status-fora_da_planta { 
+            background-color: #c65911 !important; 
+            border-color: #a04508 !important; 
         }
-        .vis-item.status-no_data { 
-            background-color: #2c3e50 !important; 
-            border-color: #1a252f !important; 
+        .vis-item.status-indisponivel_sem_apropriacao { 
+            background-color: #d9d9d9 !important; 
+            border-color: #bfbfbf !important; 
         }
-        .vis-item.status-on { 
-            background-color: #3498db !important; 
-            border-color: #2980b9 !important; 
+        .vis-item.status-troca_de_turno { 
+            background-color: #0070c0 !important; 
+            border-color: #005499 !important; 
         }
-        .vis-item.status-secondary_motor_on { 
-            background-color: #9b59b6 !important; 
-            border-color: #8e44ad !important; 
+        .vis-item.status-fora_do_regime { 
+            background-color: #7030a0 !important; 
+            border-color: #5c2680 !important; 
+        }
+        .vis-item.status-sem_dados_de_bordo { 
+            background-color: #000000 !important; 
+            border-color: #333333 !important; 
+        }
+        .vis-item.status-parada_apontada { 
+            background-color: #002060 !important; 
+            border-color: #001a4d !important; 
+        }
+        .vis-item.status-vaga_disponivel { 
+            background-color: #7030a0 !important; 
+            border-color: #5c2680 !important; 
+        }
+        .vis-item.status-chave_geral_desligada { 
+            background-color: #00b0f0 !important; 
+            border-color: #0090cc !important; 
         }
 
         /* Cores da Timeline - Apontamentos */
@@ -414,10 +457,34 @@
             border-color: #2980b9 !important; 
         }
 
+        /* Apontamentos com fundo claro - texto escuro */
+        .vis-item.apont-descarregamento {
+            color: #2c3e50 !important;
+            text-shadow: 0 1px 1px rgba(255,255,255,0.3) !important;
+        }
+
         /* Timeline Visual Improvements */
         .vis-timeline {
             border: none !important;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+        }
+
+        /* Tooltip nativo do vis.js - ESTILIZAÇÃO SIMPLES */
+        .vis-tooltip {
+            background: rgba(44, 62, 80, 0.95) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+            font-size: 12px !important;
+            line-height: 1.4 !important;
+            padding: 12px 16px !important;
+            max-width: 350px !important;
+            min-width: 280px !important;
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            z-index: 10000 !important;
         }
 
         .vis-panel.vis-bottom {
@@ -444,6 +511,13 @@
             font-weight: 600 !important;
             font-size: 12px !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
+        }
+
+        /* Texto especial para blocos amarelos - melhor contraste */
+        .vis-item.status-parado_ligado {
+            color: #2c3e50 !important;
+            text-shadow: 0 1px 1px rgba(255,255,255,0.3) !important;
         }
 
         .vis-item.vis-selected {
@@ -491,7 +565,7 @@
             color: #2c3e50;
         }
 
-        /* Responsive */
+        /* Responsivo para tooltips */
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
@@ -524,6 +598,13 @@
 
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .vis-tooltip {
+                max-width: 300px !important;
+                min-width: 250px !important;
+                font-size: 11px !important;
+                padding: 10px 12px !important;
             }
         }
 
@@ -600,6 +681,7 @@
             grid-template-columns: 1fr 1fr;
         }
 
+        /* Responsivo geral */
         @media (max-width: 768px) {
             .two-columns {
                 grid-template-columns: 1fr;
@@ -788,9 +870,9 @@
                         </div>
                         
                         <div>
-                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">🔄 JSON (Status)</h4>
+                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">🔄 CSV (Timeline - Gauss Fleet)</h4>
                             <p style="color: #7f8c8d;">Banco-De-Dados/Timeline</p>
-                            <p style="font-size: 0.9rem; color: #95a5a6;">latest-fleet-data.json</p>
+                            <p style="font-size: 0.9rem; color: #95a5a6;">captured-data.csv</p>
                         </div>
                         
                         <div>
@@ -841,7 +923,7 @@
         // CONFIGURAÇÃO CENTRALIZADA
         // =============================================================================
         const APP_CONFIG = {
-            // URLs dos repositórios - ATUALIZADOS
+            // URLs dos repositórios - ATUALIZADOS PARA CSV
             repositories: {
                 csv: {
                     owner: 'GrupoGps-Mecanizada',
@@ -849,11 +931,11 @@
                     path: 'Apontamentos/apontamentos-atuais.csv',
                     apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Banco-De-Dados/contents/Apontamentos/apontamentos-atuais.csv'
                 },
-                json: {
+                timeline: {
                     owner: 'GrupoGps-Mecanizada',
                     repo: 'Banco-De-Dados',
-                    path: 'Timeline/latest-fleet-data.json',
-                    apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Banco-De-Dados/contents/Timeline/latest-fleet-data.json'
+                    path: 'Timeline/captured-data.csv',
+                    apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Banco-De-Dados/contents/Timeline/captured-data.csv'
                 }
             },
             
@@ -876,33 +958,41 @@
                 fitDelay: 500
             },
             
-            // Prioridades de status
+            // Prioridades de status - GAUSS FLEET ORDER
             statusPriority: {
-                'maintenance': 10,
-                'out_of_plant': 9,
-                'secondary_motor_on': 8,
-                'on': 7,
-                'running': 7,
-                'stopped': 6,
-                'off': 5,
-                'not_appropriated': 4,
-                'no_data': 3
+                'Em manutenção': 15,
+                'Fora da Planta': 14,
+                'Chave Geral Desligada': 13,
+                'Vaga Disponível': 12,
+                'Parada Apontada': 11,
+                'Motor Ligado': 10,
+                'Motor Secundário Ligado': 9,
+                'Parado Ligado': 8,
+                'Troca de Turno': 7,
+                'Motor Desligado': 6,
+                'Fora do Regime': 5,
+                'Indisponível / Sem Apropriação': 4,
+                'Sem dados de bordo': 3
             },
             
-            // Cores dos status
-            statusColors: {
-                'running': 'status-running',
-                'on': 'status-on',
-                'stopped': 'status-stopped',
-                'off': 'status-off',
-                'maintenance': 'status-maintenance',
-                'out_of_plant': 'status-out_of_plant',
-                'not_appropriated': 'status-not_appropriated',
-                'no_data': 'status-no_data',
-                'secondary_motor_on': 'status-secondary_motor_on'
+            // Mapeamento de status para classes CSS - GAUSS FLEET EXATO
+            statusMapping: {
+                'Motor Ligado': 'status-motor_ligado',
+                'Motor Secundário Ligado': 'status-motor_secundario_ligado',
+                'Motor Desligado': 'status-motor_desligado',
+                'Parado Ligado': 'status-parado_ligado',
+                'Em manutenção': 'status-em_manutencao',
+                'Fora da Planta': 'status-fora_da_planta',
+                'Indisponível / Sem Apropriação': 'status-indisponivel_sem_apropriacao',
+                'Troca de Turno': 'status-troca_de_turno',
+                'Fora do Regime': 'status-fora_do_regime',
+                'Sem dados de bordo': 'status-sem_dados_de_bordo',
+                'Parada Apontada': 'status-parada_apontada',
+                'Vaga Disponível': 'status-vaga_disponivel',
+                'Chave Geral Desligada': 'status-chave_geral_desligada'
             },
             
-            // Cores dos apontamentos
+            // Cores dos apontamentos - MANTENDO AS MESMAS
             apontColors: {
                 'Abastecimento': 'apont-abastecimento',
                 'Bloqueio': 'apont-bloqueio',
@@ -932,7 +1022,6 @@
             set(key, data, ttl = APP_CONFIG.system.cacheTimeout) {
                 this.cache.set(key, data);
                 this.timestamps.set(key, Date.now() + ttl);
-                this.log(`Cache SET: ${key} (TTL: ${ttl}ms)`);
             }
 
             get(key) {
@@ -942,11 +1031,9 @@
                 if (Date.now() > timestamp) {
                     this.cache.delete(key);
                     this.timestamps.delete(key);
-                    this.log(`Cache EXPIRED: ${key}`);
                     return null;
                 }
 
-                this.log(`Cache HIT: ${key}`);
                 return this.cache.get(key);
             }
 
@@ -957,13 +1044,6 @@
             clear() {
                 this.cache.clear();
                 this.timestamps.clear();
-                this.log('Cache CLEARED');
-            }
-
-            log(message) {
-                if (window.productivitySystem) {
-                    window.productivitySystem.logger.debug(`[Cache] ${message}`);
-                }
             }
         }
 
@@ -974,7 +1054,7 @@
             constructor() {
                 this.logs = [];
                 this.levels = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
-                this.currentLevel = this.levels.INFO;
+                this.currentLevel = this.levels.WARN; // Só mostrar avisos e erros
             }
 
             debug(message) { this.log('DEBUG', message); }
@@ -1027,6 +1107,177 @@
         }
 
         // =============================================================================
+        // SISTEMA DE TOOLTIP OTIMIZADO
+        // =============================================================================
+        class TooltipManager {
+            constructor() {
+                this.customTooltip = null;
+                this.isVisible = false;
+                this.hideTimeout = null;
+                this.mouseX = 0;
+                this.mouseY = 0;
+                this.currentContent = '';
+                this.lastUpdateTime = 0;
+                
+                this.createTooltip();
+            }
+
+            createTooltip() {
+                // Remover tooltip existente se houver
+                const existing = document.getElementById('customTooltip');
+                if (existing) {
+                    existing.remove();
+                }
+
+                this.customTooltip = document.createElement('div');
+                this.customTooltip.id = 'customTooltip';
+                this.customTooltip.className = 'custom-tooltip';
+                this.customTooltip.style.cssText = `
+                    position: fixed !important;
+                    background: rgba(44, 62, 80, 0.95) !important;
+                    color: white !important;
+                    border: none !important;
+                    border-radius: 8px !important;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+                    font-size: 12px !important;
+                    line-height: 1.4 !important;
+                    padding: 12px 16px !important;
+                    max-width: 350px !important;
+                    min-width: 280px !important;
+                    white-space: normal !important;
+                    word-wrap: break-word !important;
+                    z-index: 999999 !important;
+                    pointer-events: none !important;
+                    transition: opacity 0.15s ease, transform 0.15s ease !important;
+                    opacity: 0;
+                    transform: scale(0.95);
+                    backdrop-filter: blur(10px) !important;
+                    display: none;
+                `;
+                
+                document.body.appendChild(this.customTooltip);
+            }
+
+            show(content, x, y) {
+                if (!this.customTooltip) {
+                    this.createTooltip();
+                }
+
+                // Evitar updates desnecessários
+                if (this.currentContent === content && this.isVisible) {
+                    return;
+                }
+
+                // Throttle updates para performance
+                const now = Date.now();
+                if (now - this.lastUpdateTime < 100) {
+                    return;
+                }
+                this.lastUpdateTime = now;
+
+                if (this.hideTimeout) {
+                    clearTimeout(this.hideTimeout);
+                    this.hideTimeout = null;
+                }
+
+                this.currentContent = content;
+                this.customTooltip.innerHTML = content;
+                this.position(x, y);
+                
+                if (!this.isVisible) {
+                    this.customTooltip.style.display = 'block';
+                    this.customTooltip.style.opacity = '1';
+                    this.customTooltip.style.transform = 'scale(1)';
+                    this.isVisible = true;
+                }
+            }
+
+            hide() {
+                if (!this.isVisible || !this.customTooltip) return;
+                
+                this.hideTimeout = setTimeout(() => {
+                    if (this.customTooltip) {
+                        this.customTooltip.style.opacity = '0';
+                        this.customTooltip.style.transform = 'scale(0.95)';
+                        setTimeout(() => {
+                            if (this.customTooltip) {
+                                this.customTooltip.style.display = 'none';
+                            }
+                        }, 150);
+                    }
+                    this.isVisible = false;
+                    this.currentContent = '';
+                }, 100);
+            }
+
+            position(x, y) {
+                if (!this.customTooltip) return;
+
+                const tooltip = this.customTooltip;
+                
+                // Forçar display temporariamente para medir
+                const wasHidden = tooltip.style.display === 'none';
+                if (wasHidden) {
+                    tooltip.style.display = 'block';
+                    tooltip.style.opacity = '0';
+                }
+
+                const rect = tooltip.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                let finalX = x + 15;
+                let finalY = y - rect.height / 2;
+
+                // Ajustar horizontalmente
+                if (finalX + rect.width > viewportWidth - 20) {
+                    finalX = x - rect.width - 15;
+                }
+
+                // Ajustar verticalmente
+                if (finalY < 20) {
+                    finalY = 20;
+                } else if (finalY + rect.height > viewportHeight - 20) {
+                    finalY = viewportHeight - rect.height - 20;
+                }
+
+                tooltip.style.left = `${Math.max(0, finalX)}px`;
+                tooltip.style.top = `${Math.max(0, finalY)}px`;
+
+                // Restaurar estado original se estava escondido
+                if (wasHidden) {
+                    tooltip.style.display = 'none';
+                    tooltip.style.opacity = '';
+                }
+            }
+
+            updatePosition(x, y) {
+                this.mouseX = x;
+                this.mouseY = y;
+                if (this.isVisible) {
+                    // Throttle position updates
+                    const now = Date.now();
+                    if (now - this.lastUpdateTime < 50) { // 20fps para posicionamento
+                        return;
+                    }
+                    this.position(x, y);
+                }
+            }
+
+            destroy() {
+                if (this.hideTimeout) {
+                    clearTimeout(this.hideTimeout);
+                }
+                if (this.customTooltip) {
+                    this.customTooltip.remove();
+                    this.customTooltip = null;
+                }
+                this.isVisible = false;
+            }
+        }
+
+        // =============================================================================
         // GERENCIADOR DE DADOS
         // =============================================================================
         class DataManager {
@@ -1043,11 +1294,8 @@
 
                 // Verificar cache primeiro
                 if (this.cache.has(cacheKey)) {
-                    this.logger.info(`Usando dados em cache para ${type}`);
                     return { success: true, data: this.cache.get(cacheKey), fromCache: true };
                 }
-
-                this.logger.info(`Buscando ${type} de ${config.owner}/${config.repo}...`);
 
                 try {
                     const response = await this.fetchWithRetry(config.apiUrl);
@@ -1068,16 +1316,11 @@
                     try {
                         content = decodeURIComponent(escape(content));
                     } catch (error) {
-                        this.logger.warn('Mantendo conteúdo original - falha na decodificação UTF-8');
+                        // Manter conteúdo original se falhar decodificação
                     }
 
-                    let parsedData;
-                    if (type === 'csv') {
-                        parsedData = this.parseCSV(content);
-                    } else {
-                        const jsonData = JSON.parse(content);
-                        parsedData = jsonData.records || jsonData;
-                    }
+                    // SEMPRE PROCESSAR COMO CSV AGORA
+                    const parsedData = this.parseCSV(content, type);
 
                     if (!Array.isArray(parsedData)) {
                         throw new Error('Dados não estão em formato de array');
@@ -1091,8 +1334,6 @@
                     // Cache dos dados
                     this.cache.set(cacheKey, parsedData);
 
-                    this.logger.info(`${type.toUpperCase()} carregado: ${parsedData.length} registros ${hasChanged ? '(NOVOS)' : '(SEM MUDANÇAS)'}`);
-                    
                     return { 
                         success: true, 
                         data: parsedData, 
@@ -1113,7 +1354,6 @@
                         if (response.ok) return response;
                         
                         if (i < attempts - 1) {
-                            this.logger.warn(`Tentativa ${i + 1} falhou, tentando novamente em ${APP_CONFIG.system.retryDelay}ms...`);
                             await this.delay(APP_CONFIG.system.retryDelay * (i + 1));
                         } else {
                             throw new Error(`Falha após ${attempts} tentativas`);
@@ -1125,7 +1365,7 @@
                 }
             }
 
-            parseCSV(csvText) {
+            parseCSV(csvText, type) {
                 const lines = csvText.trim().split('\n').filter(line => line.trim());
                 if (lines.length < 2) return [];
 
@@ -1143,12 +1383,88 @@
                         row[header] = values[index] ? values[index].replace(/"/g, '').trim() : '';
                     });
                     
-                    if (row['Data Inicial'] && row['Data Final']) {
-                        data.push(row);
+                    // CONVERSÃO ESPECÍFICA PARA TIMELINE CSV
+                    if (type === 'timeline') {
+                        // Mapear estrutura do novo CSV para o formato esperado
+                        const convertedRow = {
+                            vacancy_name: row['VAGA'] || '',
+                            equipment_code: row['EQUIPAMENTO'] || '',
+                            status: this.normalizeStatus(row['STATUS']),
+                            status_title: row['STATUS'] || '',
+                            start: this.convertDateTime(row['ENTRADA']),
+                            end: this.convertDateTime(row['SAIDA']),
+                            total_time: parseFloat(row['TEMPO TOTAL'] || 0)
+                        };
+                        
+                        // Validar dados essenciais
+                        if (convertedRow.vacancy_name && convertedRow.start && convertedRow.end) {
+                            data.push(convertedRow);
+                        }
+                    } else {
+                        // CSV de apontamentos (estrutura original)
+                        if (row['Data Inicial'] && row['Data Final']) {
+                            data.push(row);
+                        }
                     }
                 }
                 
                 return data;
+            }
+
+            normalizeStatus(status) {
+                if (!status) return 'indisponivel_sem_apropriacao';
+                
+                // Normalizar texto para comparação (remover acentos e espaços extra)
+                const normalizedStatus = status.trim()
+                    .replace(/ã/g, 'a')
+                    .replace(/ç/g, 'c')
+                    .replace(/ú/g, 'u')
+                    .replace(/é/g, 'e')
+                    .replace(/\s+/g, ' ');
+                
+                // Mapeamento de status para códigos padronizados GAUSS FLEET
+                const statusMap = {
+                    'Motor Ligado': 'motor_ligado',
+                    'Motor Secundário Ligado': 'motor_secundario_ligado',
+                    'Motor Secundario Ligado': 'motor_secundario_ligado', // sem acento
+                    'Motor Desligado': 'motor_desligado',
+                    'Parado Ligado': 'parado_ligado',
+                    'Em manutenção': 'em_manutencao',
+                    'Em manutencao': 'em_manutencao', // sem acento
+                    'Fora da Planta': 'fora_da_planta',
+                    'Indisponível / Sem Apropriação': 'indisponivel_sem_apropriacao',
+                    'Indisponivel / Sem Apropriacao': 'indisponivel_sem_apropriacao', // sem acento
+                    'Troca de Turno': 'troca_de_turno',
+                    'Fora do Regime': 'fora_do_regime',
+                    'Sem dados de bordo': 'sem_dados_de_bordo',
+                    'Parada Apontada': 'parada_apontada',
+                    'Vaga Disponível': 'vaga_disponivel',
+                    'Vaga Disponivel': 'vaga_disponivel', // sem acento
+                    'Chave Geral Desligada': 'chave_geral_desligada'
+                };
+                
+                return statusMap[normalizedStatus] || statusMap[status] || 'indisponivel_sem_apropriacao';
+            }
+
+            convertDateTime(dateTimeStr) {
+                if (!dateTimeStr) return null;
+                
+                try {
+                    // Formato esperado: "2025-07-19 00:00" ou "2025-07-19 00:00:36"
+                    if (dateTimeStr.includes('-') && dateTimeStr.includes(' ')) {
+                        return dateTimeStr; // Já está no formato correto
+                    }
+                    
+                    // Caso seja só data, adicionar horário
+                    if (dateTimeStr.includes('-') && !dateTimeStr.includes(' ')) {
+                        return `${dateTimeStr} 00:00:00`;
+                    }
+                    
+                    return dateTimeStr;
+                } catch (error) {
+                    // Retornar string original se falhar conversão
+                    return null;
+                }
             }
 
             parseCSVLine(line, delimiter) {
@@ -1199,7 +1515,6 @@
             resolveStatusConflicts(statusList, equipmentName) {
                 if (!statusList || statusList.length === 0) return [];
 
-                this.logger.debug(`Resolvendo conflitos para ${equipmentName}: ${statusList.length} registros`);
                 this.stats.originalRecords += statusList.length;
 
                 // Pipeline de resolução
@@ -1210,7 +1525,6 @@
                 resolved = this.fillSmallGaps(resolved, equipmentName);
 
                 this.stats.finalRecords += resolved.length;
-                this.logger.debug(`${equipmentName}: ${statusList.length} → ${resolved.length} registros`);
 
                 return resolved;
             }
@@ -1218,7 +1532,7 @@
             removeDuplicates(statusList) {
                 const seen = new Set();
                 const unique = statusList.filter(status => {
-                    const key = `${status.start}-${status.end}-${status.status}-${status.vacancy_code}`;
+                    const key = `${status.start}-${status.end}-${status.status}-${status.vacancy_name}`;
                     if (seen.has(key)) {
                         this.stats.duplicatesRemoved++;
                         return false;
@@ -1250,7 +1564,6 @@
 
                     if (statusStart < currentEnd) {
                         this.stats.conflictsResolved++;
-                        this.logger.debug(`Conflito: ${current.status} vs ${status.status} em ${equipmentName}`);
 
                         const resolution = this.resolveConflict(current, status);
                         current = this.applyResolution(current, status, resolution);
@@ -1265,8 +1578,25 @@
             }
 
             resolveConflict(status1, status2) {
-                const priority1 = APP_CONFIG.statusPriority[status1.status] || 0;
-                const priority2 = APP_CONFIG.statusPriority[status2.status] || 0;
+                // Usar as prioridades da GAUSS FLEET
+                const statusPriorities = {
+                    'Em manutenção': 15,
+                    'Fora da Planta': 14,
+                    'Chave Geral Desligada': 13,
+                    'Vaga Disponível': 12,
+                    'Parada Apontada': 11,
+                    'Motor Ligado': 10,
+                    'Motor Secundário Ligado': 9,
+                    'Parado Ligado': 8,
+                    'Troca de Turno': 7,
+                    'Motor Desligado': 6,
+                    'Fora do Regime': 5,
+                    'Indisponível / Sem Apropriação': 4,
+                    'Sem dados de bordo': 3
+                };
+                
+                const priority1 = statusPriorities[status1.status_title] || 0;
+                const priority2 = statusPriorities[status2.status_title] || 0;
 
                 switch (APP_CONFIG.system.conflictResolution) {
                     case 'priority':
@@ -1338,7 +1668,7 @@
                         if (gapSeconds > 0 && gapSeconds <= APP_CONFIG.system.gapTolerance) {
                             filled.push({
                                 ...statusList[i],
-                                status: 'off',
+                                status: 'motor_desligado',
                                 status_title: 'Motor Desligado',
                                 start: statusList[i].end,
                                 end: statusList[i + 1].start,
@@ -1367,7 +1697,7 @@
         }
 
         // =============================================================================
-        // GERENCIADOR DE TIMELINE
+        // GERENCIADOR DE TIMELINE CORRIGIDO
         // =============================================================================
         class TimelineManager {
             constructor(logger) {
@@ -1377,6 +1707,7 @@
                 this.groups = new vis.DataSet();
                 this.currentViewWindow = null;
                 this.debounceTimers = new Map();
+                this.tooltipManager = new TooltipManager();
             }
 
             initTimeline() {
@@ -1392,7 +1723,6 @@
                 }
 
                 container.innerHTML = '';
-                this.logger.info(`Inicializando timeline com ${this.items.length} itens`);
 
                 const options = {
                     orientation: 'top',
@@ -1425,7 +1755,6 @@
                     setTimeout(() => {
                         if (this.timeline) {
                             this.timeline.fit();
-                            this.logger.info('Timeline renderizada com sucesso');
                         }
                     }, APP_CONFIG.performance.fitDelay);
 
@@ -1577,7 +1906,7 @@
             }
 
             async initSystem() {
-                this.logger.info('Iniciando Monitoramento De Produtividade - GrupoGPS');
+                this.logger.info('Iniciando sistema...');
                 this.updateSyncStatus('loading', 'Inicializando sistema...');
                 
                 this.setupEventListeners();
@@ -1613,12 +1942,11 @@
 
                 this.isUpdating = true;
                 this.updateSyncStatus('loading', 'Sincronizando dados...');
-                this.logger.info('Iniciando sincronização com GitHub');
 
                 try {
-                    const [csvResult, jsonResult] = await Promise.allSettled([
+                    const [csvResult, timelineResult] = await Promise.allSettled([
                         this.dataManager.fetchFromGitHub('csv'),
-                        this.dataManager.fetchFromGitHub('json')
+                        this.dataManager.fetchFromGitHub('timeline')
                     ]);
 
                     let hasNewData = false;
@@ -1632,9 +1960,9 @@
                         successCount++;
                     }
 
-                    // Processar resultado JSON
-                    if (jsonResult.status === 'fulfilled' && jsonResult.value.success) {
-                        if (jsonResult.value.hasChanged || !jsonResult.value.fromCache) {
+                    // Processar resultado Timeline
+                    if (timelineResult.status === 'fulfilled' && timelineResult.value.success) {
+                        if (timelineResult.value.hasChanged || !timelineResult.value.fromCache) {
                             hasNewData = true;
                         }
                         successCount++;
@@ -1645,11 +1973,9 @@
                             // Processar apenas se houver dados novos
                             await this.processData(
                                 csvResult.value?.data || [],
-                                jsonResult.value?.data || []
+                                timelineResult.value?.data || []
                             );
                             this.showNotification('Dados atualizados com sucesso', 'success');
-                        } else {
-                            this.logger.info('Nenhum dado novo detectado');
                         }
                         
                         this.updateSyncStatus('success', 'Dados sincronizados');
@@ -1668,15 +1994,14 @@
                 }
             }
 
-            async processData(csvData, jsonData) {
-                this.logger.info('Iniciando processamento de dados');
+            async processData(csvData, timelineData) {
                 this.conflictResolver.resetStats();
 
                 // Limpar dados anteriores
                 this.equipmentMap.clear();
 
                 // Unificar dados de equipamentos
-                this.unifyEquipmentData(csvData, jsonData);
+                this.unifyEquipmentData(csvData, timelineData);
 
                 // Criar grupos e itens da timeline
                 const { groups, items } = this.createTimelineData();
@@ -1686,11 +2011,9 @@
 
                 // Atualizar interface
                 this.updateInterface();
-                
-                this.logger.info('Processamento de dados concluído');
             }
 
-            unifyEquipmentData(csvData, jsonData) {
+            unifyEquipmentData(csvData, timelineData) {
                 // Processar apontamentos CSV
                 csvData.forEach((item) => {
                     const equipName = this.normalizeEquipmentName(item.Vaga || item.Placa);
@@ -1705,8 +2028,8 @@
                     this.equipmentMap.get(equipName).apontamentos.push(item);
                 });
 
-                // Processar status JSON
-                jsonData.forEach((item) => {
+                // Processar timeline CSV
+                timelineData.forEach((item) => {
                     const equipName = this.normalizeEquipmentName(item.vacancy_name);
                     if (!this.equipmentMap.has(equipName)) {
                         this.equipmentMap.set(equipName, {
@@ -1792,13 +2115,14 @@
                                 const end = this.parseDate(status.end);
                                 
                                 if (start && end && start < end) {
-                                    const statusCode = status.status || 'unknown';
-                                    const className = APP_CONFIG.statusColors[statusCode] || 'status-not_appropriated';
+                                    const statusTitle = status.status_title || 'Desconhecido';
+                                    const statusCode = this.normalizeStatus(statusTitle);
+                                    const className = `status-${statusCode}`;
                                     
                                     items.push({
                                         id: `status_${itemId++}`,
                                         group: `${equipName}_status`,
-                                        content: this.truncateText(status.status_title || statusCode, 25),
+                                        content: this.truncateText(statusTitle, 25),
                                         start: start,
                                         end: end,
                                         className: className,
@@ -1814,6 +2138,41 @@
                 }
 
                 return { groups, items };
+            }
+
+            normalizeStatus(status) {
+                if (!status) return 'indisponivel_sem_apropriacao';
+                
+                // Normalizar texto para comparação (remover acentos e espaços extra)
+                const normalizedStatus = status.trim()
+                    .replace(/ã/g, 'a')
+                    .replace(/ç/g, 'c')
+                    .replace(/ú/g, 'u')
+                    .replace(/é/g, 'e')
+                    .replace(/\s+/g, ' ');
+                
+                // Mapeamento de status para códigos padronizados GAUSS FLEET
+                const statusMap = {
+                    'Motor Ligado': 'motor_ligado',
+                    'Motor Secundário Ligado': 'motor_secundario_ligado',
+                    'Motor Secundario Ligado': 'motor_secundario_ligado', // sem acento
+                    'Motor Desligado': 'motor_desligado',
+                    'Parado Ligado': 'parado_ligado',
+                    'Em manutenção': 'em_manutencao',
+                    'Em manutencao': 'em_manutencao', // sem acento
+                    'Fora da Planta': 'fora_da_planta',
+                    'Indisponível / Sem Apropriação': 'indisponivel_sem_apropriacao',
+                    'Indisponivel / Sem Apropriacao': 'indisponivel_sem_apropriacao', // sem acento
+                    'Troca de Turno': 'troca_de_turno',
+                    'Fora do Regime': 'fora_do_regime',
+                    'Sem dados de bordo': 'sem_dados_de_bordo',
+                    'Parada Apontada': 'parada_apontada',
+                    'Vaga Disponível': 'vaga_disponivel',
+                    'Vaga Disponivel': 'vaga_disponivel', // sem acento
+                    'Chave Geral Desligada': 'chave_geral_desligada'
+                };
+                
+                return statusMap[normalizedStatus] || statusMap[status] || 'indisponivel_sem_apropriacao';
             }
 
             // Métodos auxiliares
@@ -1885,18 +2244,34 @@
                     }
                 };
 
-                const shortEquipName = equipName.length > 25 ? equipName.substring(0, 25) + '...' : equipName;
+                const displayEquipName = this.getDisplayName(equipName);
                 const category = apont['Categoria Demora'] || 'N/A';
-                const shortCategory = category.length > 30 ? category.substring(0, 30) + '...' : category;
 
                 return `
-                    <div style="font-size: 12px; line-height: 1.3; max-width: 280px; word-wrap: break-word;">
-                        <div style="font-weight: 700; margin-bottom: 6px; color: #fff; font-size: 11px;">📊 Apontamento Manual</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Equipamento:</strong><br>${shortEquipName}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Categoria:</strong> ${shortCategory}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Início:</strong><br>${formatDateTime(apont['Data Inicial'])}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Fim:</strong><br>${formatDateTime(apont['Data Final'])}</div>
-                        <div style="font-size: 11px;"><strong>Duração:</strong> ${apont['Tempo Indisponível (HH:MM)'] || 'N/A'}</div>
+                    <div style="font-size: 13px; line-height: 1.4; color: #ffffff; min-width: 260px;">
+                        <div style="font-weight: 700; margin-bottom: 8px; color: #ffffff; font-size: 12px; text-align: center; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">
+                            📊 Apontamento Manual
+                        </div>
+                        <div style="margin-bottom: 6px; font-size: 12px;">
+                            <strong style="color: #3498db;">Equipamento:</strong><br>
+                            <span style="color: #ffffff; margin-left: 8px;">${displayEquipName}</span>
+                        </div>
+                        <div style="margin-bottom: 6px; font-size: 12px;">
+                            <strong style="color: #3498db;">Categoria:</strong> 
+                            <span style="color: #ffffff;">${category}</span>
+                        </div>
+                        <div style="margin-bottom: 6px; font-size: 12px;">
+                            <strong style="color: #3498db;">Início:</strong><br>
+                            <span style="color: #ffffff; margin-left: 8px;">${formatDateTime(apont['Data Inicial'])}</span>
+                        </div>
+                        <div style="margin-bottom: 6px; font-size: 12px;">
+                            <strong style="color: #3498db;">Fim:</strong><br>
+                            <span style="color: #ffffff; margin-left: 8px;">${formatDateTime(apont['Data Final'])}</span>
+                        </div>
+                        <div style="margin-bottom: 6px; font-size: 12px;">
+                            <strong style="color: #3498db;">Duração:</strong> 
+                            <span style="color: #ffffff; font-weight: 600;">${apont['Tempo Indisponível (HH:MM)'] || 'N/A'}</span>
+                        </div>
                     </div>
                 `;
             }
@@ -1928,29 +2303,47 @@
                     }
                 };
                 
-                const shortEquipName = equipName.length > 25 ? equipName.substring(0, 25) + '...' : equipName;
+                const displayEquipName = this.getDisplayName(equipName);
                 const statusTitle = (status.status_title || status.status);
-                const shortStatusTitle = statusTitle.length > 30 ? statusTitle.substring(0, 30) + '...' : statusTitle;
                 
                 let tooltipContent = `
-                    <div style="font-size: 12px; line-height: 1.3; max-width: 280px; word-wrap: break-word;">
-                        <div style="font-weight: 700; margin-bottom: 6px; color: #fff; font-size: 11px;">
-                            🔄 Status ${isGapFilled ? '(Gap)' : 'Auto'}
+                    <div style="font-size: 13px; line-height: 1.4; color: #ffffff; min-width: 260px;">
+                        <div style="font-weight: 700; margin-bottom: 8px; color: #ffffff; font-size: 12px; text-align: center; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">
+                            🔄 Status ${isGapFilled ? '(Gap Preenchido)' : 'Automático'}
                         </div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Equipamento:</strong><br>${shortEquipName}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Status:</strong> ${shortStatusTitle}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Início:</strong><br>${formatDateTime(status.start)}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Fim:</strong><br>${formatDateTime(status.end)}</div>
-                        <div style="margin-bottom: 3px; font-size: 11px;"><strong>Duração:</strong> ${formatHours(totalHours)}</div>`;
+                        <div style="margin-bottom: 6px; font-size: 12px;">
+                            <strong style="color: #3498db;">Equipamento:</strong><br>
+                            <span style="color: #ffffff; margin-left: 8px;">${displayEquipName}</span>
+                        </div>
+                        <div style="margin-bottom: 6px; font-size: 12px;">
+                            <strong style="color: #3498db;">Status:</strong> 
+                            <span style="color: #ffffff;">${statusTitle}</span>
+                        </div>
+                        <div style="margin-bottom: 6px; font-size: 12px;">
+                            <strong style="color: #3498db;">Início:</strong><br>
+                            <span style="color: #ffffff; margin-left: 8px;">${formatDateTime(status.start)}</span>
+                        </div>
+                        <div style="margin-bottom: 6px; font-size: 12px;">
+                            <strong style="color: #3498db;">Fim:</strong><br>
+                            <span style="color: #ffffff; margin-left: 8px;">${formatDateTime(status.end)}</span>
+                        </div>
+                        <div style="margin-bottom: 6px; font-size: 12px;">
+                            <strong style="color: #3498db;">Duração:</strong> 
+                            <span style="color: #ffffff; font-weight: 600;">${formatHours(totalHours)}</span>
+                        </div>`;
                 
                 if (count > 1) {
                     tooltipContent += `
-                        <div style="margin-bottom: 3px; color: #90EE90; font-size: 10px;"><strong>✅ Consolidado:</strong> ${count}x</div>`;
+                        <div style="margin-bottom: 4px; color: #2ecc71; font-size: 11px; background: rgba(46, 204, 113, 0.1); padding: 2px 6px; border-radius: 3px;">
+                            <strong>✅ Registros Consolidados:</strong> ${count}x
+                        </div>`;
                 }
 
                 if (isGapFilled) {
                     tooltipContent += `
-                        <div style="color: #FFB347; font-size: 10px;"><strong>⚠️ Gap Preenchido</strong></div>`;
+                        <div style="color: #f39c12; font-size: 11px; background: rgba(243, 156, 18, 0.1); padding: 2px 6px; border-radius: 3px;">
+                            <strong>⚠️ Gap Automaticamente Preenchido</strong>
+                        </div>`;
                 }
                 
                 tooltipContent += `</div>`;
@@ -2041,11 +2434,8 @@
                 }
 
                 if (APP_CONFIG.system.autoSyncInterval > 0) {
-                    this.logger.info(`Auto-sync configurado para ${APP_CONFIG.system.autoSyncInterval / 60000} minutos`);
-                    
                     this.autoSyncInterval = setInterval(async () => {
                         if (!this.isUpdating) {
-                            this.logger.info('Executando auto-sync...');
                             await this.syncFromGitHub();
                         }
                     }, APP_CONFIG.system.autoSyncInterval);
@@ -2113,7 +2503,6 @@
                 APP_CONFIG.system.gapTolerance = gapTolerance;
                 
                 this.startAutoSync();
-                this.logger.info(`Configurações atualizadas: ${conflictResolution} mode, ${gapTolerance}s tolerance`);
                 this.showNotification(`Configurações salvas! Auto-sync: ${autoSyncInterval > 0 ? `${autoSyncInterval/60000}min` : 'desabilitado'}`, 'success');
             }
 
@@ -2171,7 +2560,7 @@
         }
 
         // =============================================================================
-        // INICIALIZAÇÃO
+        // INICIALIZAÇÃO - SISTEMA SIMPLES
         // =============================================================================
         document.addEventListener('DOMContentLoaded', () => {
             productivitySystem = new ProductivityMonitoringSystem();
