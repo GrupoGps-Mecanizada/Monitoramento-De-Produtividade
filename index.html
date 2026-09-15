@@ -1,2574 +1,594 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoramento De Produtividade - GrupoGPS</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css" />
-    <style>
-        /*
-        =========================================================================
-        SISTEMA DE MONITORAMENTO GAUSS FLEET - CORES OFICIAIS
-        =========================================================================
-        Verde Escuro (#00b050): Motor Ligado
-        Verde Claro (#92d050): Motor Secundário Ligado  
-        Vermelho (#ff0000): Motor Desligado
-        Amarelo Escuro (#e6c300): Parado Ligado - Contraste otimizado
-        Laranja (#ffc000): Em Manutenção
-        Marrom (#c65911): Fora da Planta
-        Cinza Claro (#d9d9d9): Indisponível / Sem Apropriação
-        Azul (#0070c0): Troca de Turno
-        Roxo (#7030a0): Fora do Regime / Vaga Disponível
-        Preto (#000000): Sem Dados de Bordo
-        Azul Escuro (#002060): Parada Apontada
-        Azul Claro (#00b0f0): Chave Geral Desligada
-        
-        FUNCIONALIDADES:
-        - Tooltip nativo do vis.js com followMouse: true (funcionalidade original)
-        - Console limpo (apenas warnings e errors)
-        - Informações completas nos tooltips
-        - Performance otimizada
-        - Compatibilidade total com vis.js
-        =========================================================================
-        */
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #2c3e50;
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-
-        .app-container {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            backdrop-filter: blur(10px);
-        }
-
-        /* Header Sofisticado */
-        .header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 1.5rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-
-        .header-content {
-            max-width: 1600px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .header-brand h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .header-controls {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-
-        .sync-indicator {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            background: rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50px;
-            font-size: 0.9rem;
-            color: #5a6c7d;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .last-update-info {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-        }
-
-        .sync-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        .sync-dot.success { background: #27ae60; }
-        .sync-dot.error { background: #e74c3c; }
-        .sync-dot.loading { background: #f39c12; }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.1); }
-        }
-
-        /* Navigation Tabs - Simplificada */
-        .nav-tabs {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 0 2rem;
-        }
-
-        .nav-tabs-container {
-            max-width: 1600px;
-            margin: 0 auto;
-            display: flex;
-            gap: 0;
-        }
-
-        .nav-tab {
-            padding: 1.2rem 2rem;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            font-weight: 600;
-            color: #7f8c8d;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            user-select: none;
-            position: relative;
-            background: transparent;
-        }
-
-        .nav-tab::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            border-radius: 8px 8px 0 0;
-        }
-
-        .nav-tab.active {
-            color: #fff;
-            border-bottom-color: transparent;
-        }
-
-        .nav-tab.active::before {
-            opacity: 1;
-        }
-
-        .nav-tab > span {
-            position: relative;
-            z-index: 1;
-        }
-
-        .nav-tab:hover:not(.active) {
-            color: #2c3e50;
-            background: rgba(255, 255, 255, 0.6);
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            padding: 2rem;
-            max-width: 1600px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        /* Cards e Painéis */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
-            overflow: hidden;
-        }
-
-        .timeline-controls {
-            padding: 2rem;
-        }
-
-        .controls-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            align-items: end;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.8rem;
-        }
-
-        .control-group label {
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 0.95rem;
-        }
-
-        select, input[type="datetime-local"] {
-            padding: 1rem;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 12px;
-            font-size: 0.95rem;
-            background: rgba(255, 255, 255, 0.8);
-            transition: all 0.3s ease;
-            color: #2c3e50;
-        }
-
-        select:focus, input[type="datetime-local"]:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-            background: rgba(255, 255, 255, 0.95);
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            font-size: 0.95rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn.secondary {
-            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-        }
-
-        .btn.success {
-            background: linear-gradient(135deg, #27ae60, #2ecc71);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Timeline Container */
-        .timeline-container {
-            overflow: hidden;
-        }
-
-        .timeline-header {
-            padding: 2rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.5);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .timeline-title {
-            font-weight: 700;
-            color: #2c3e50;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 1.2rem;
-        }
-
-        #timeline {
-            height: 600px;
-            background: rgba(255, 255, 255, 0.8);
-            position: relative;
-        }
-
-        /* Stats Panel */
-        .stats-panel {
-            padding: 2rem;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 2rem;
-        }
-
-        .stat-card {
-            text-align: center;
-            padding: 2rem;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.8);
-        }
-
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .stat-label {
-            font-size: 1rem;
-            color: #5a6c7d;
-            margin-top: 0.5rem;
-            font-weight: 600;
-        }
-
-        /* Cores da Timeline - Status GAUSS FLEET (Cores Exatas) */
-        .vis-item.status-motor_ligado { 
-            background-color: #00b050 !important; 
-            border-color: #008f40 !important; 
-        }
-        .vis-item.status-motor_secundario_ligado { 
-            background-color: #92d050 !important; 
-            border-color: #7bb83f !important; 
-        }
-        .vis-item.status-motor_desligado { 
-            background-color: #ff0000 !important; 
-            border-color: #cc0000 !important; 
-        }
-        .vis-item.status-parado_ligado { 
-            background-color: #e6c300 !important; 
-            border-color: #b8a000 !important; 
-            color: #2c3e50 !important;
-        }
-        .vis-item.status-em_manutencao { 
-            background-color: #ffc000 !important; 
-            border-color: #cc9900 !important; 
-        }
-        .vis-item.status-fora_da_planta { 
-            background-color: #c65911 !important; 
-            border-color: #a04508 !important; 
-        }
-        .vis-item.status-indisponivel_sem_apropriacao { 
-            background-color: #d9d9d9 !important; 
-            border-color: #bfbfbf !important; 
-        }
-        .vis-item.status-troca_de_turno { 
-            background-color: #0070c0 !important; 
-            border-color: #005499 !important; 
-        }
-        .vis-item.status-fora_do_regime { 
-            background-color: #7030a0 !important; 
-            border-color: #5c2680 !important; 
-        }
-        .vis-item.status-sem_dados_de_bordo { 
-            background-color: #000000 !important; 
-            border-color: #333333 !important; 
-        }
-        .vis-item.status-parada_apontada { 
-            background-color: #002060 !important; 
-            border-color: #001a4d !important; 
-        }
-        .vis-item.status-vaga_disponivel { 
-            background-color: #7030a0 !important; 
-            border-color: #5c2680 !important; 
-        }
-        .vis-item.status-chave_geral_desligada { 
-            background-color: #00b0f0 !important; 
-            border-color: #0090cc !important; 
-        }
-
-        /* Cores da Timeline - Apontamentos */
-        .vis-item.apont-abastecimento { 
-            background-color: #3498db !important; 
-            border-color: #2980b9 !important; 
-        }
-        .vis-item.apont-bloqueio { 
-            background-color: #e74c3c !important; 
-            border-color: #c0392b !important; 
-        }
-        .vis-item.apont-descarregamento { 
-            background-color: #f39c12 !important; 
-            border-color: #e67e22 !important; 
-        }
-        .vis-item.apont-documentacao { 
-            background-color: #27ae60 !important; 
-            border-color: #219a52 !important; 
-        }
-        .vis-item.apont-preparacao { 
-            background-color: #9b59b6 !important; 
-            border-color: #8e44ad !important; 
-        }
-        .vis-item.apont-manutencao { 
-            background-color: #e67e22 !important; 
-            border-color: #d35400 !important; 
-        }
-        .vis-item.apont-refeicao { 
-            background-color: #27ae60 !important; 
-            border-color: #219a52 !important; 
-        }
-        .vis-item.apont-aguardando { 
-            background-color: #3498db !important; 
-            border-color: #2980b9 !important; 
-        }
-
-        /* Apontamentos com fundo claro - texto escuro */
-        .vis-item.apont-descarregamento {
-            color: #2c3e50 !important;
-            text-shadow: 0 1px 1px rgba(255,255,255,0.3) !important;
-        }
-
-        /* Timeline Visual Improvements */
-        .vis-timeline {
-            border: none !important;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-        }
-
-        /* Tooltip nativo do vis.js - ESTILIZAÇÃO SIMPLES */
-        .vis-tooltip {
-            background: rgba(44, 62, 80, 0.95) !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 8px !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-            font-size: 12px !important;
-            line-height: 1.4 !important;
-            padding: 12px 16px !important;
-            max-width: 350px !important;
-            min-width: 280px !important;
-            white-space: normal !important;
-            word-wrap: break-word !important;
-            z-index: 10000 !important;
-        }
-
-        .vis-panel.vis-bottom {
-            border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
-        }
-
-        .vis-labelset .vis-label {
-            border-right: 1px solid rgba(255, 255, 255, 0.2) !important;
-            background-color: rgba(255, 255, 255, 0.9) !important;
-            color: #2c3e50 !important;
-            font-weight: 600 !important;
-            font-size: 13px !important;
-        }
-
-        .vis-time-axis .vis-text {
-            color: #5a6c7d !important;
-            font-weight: 600 !important;
-        }
-
-        .vis-item {
-            border-radius: 6px !important;
-            border-width: 2px !important;
-            color: white !important;
-            font-weight: 600 !important;
-            font-size: 12px !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
-        }
-
-        /* Texto especial para blocos amarelos - melhor contraste */
-        .vis-item.status-parado_ligado {
-            color: #2c3e50 !important;
-            text-shadow: 0 1px 1px rgba(255,255,255,0.3) !important;
-        }
-
-        .vis-item.vis-selected {
-            border-width: 3px !important;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.25) !important;
-        }
-
-        /* Loading States */
-        .loading-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 400px;
-            color: #5a6c7d;
-        }
-
-        .loading-spinner {
-            width: 3rem;
-            height: 3rem;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Footer */
-        .footer {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 2rem;
-            text-align: center;
-            color: #5a6c7d;
-            font-size: 0.9rem;
-        }
-
-        .footer strong {
-            color: #2c3e50;
-        }
-
-        /* Responsivo para tooltips */
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .header-brand h1 {
-                font-size: 1.5rem;
-            }
-
-            .main-content {
-                padding: 1rem;
-            }
-
-            .nav-tabs-container {
-                flex-wrap: wrap;
-                gap: 0;
-            }
-
-            .nav-tab {
-                flex: 1;
-                text-align: center;
-                min-width: 120px;
-                padding: 1rem;
-            }
-
-            .controls-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .vis-tooltip {
-                max-width: 300px !important;
-                min-width: 250px !important;
-                font-size: 11px !important;
-                padding: 10px 12px !important;
-            }
-        }
-
-        /* Notificações */
-        .notification {
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            z-index: 10000;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            color: white;
-            font-weight: 600;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            animation: slideInRight 0.3s ease-out;
-            max-width: 400px;
-            backdrop-filter: blur(20px);
-        }
-
-        .notification.success { background: linear-gradient(135deg, #27ae60, #2ecc71); }
-        .notification.error { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-        .notification.warning { background: linear-gradient(135deg, #f39c12, #e67e22); }
-        .notification.info { background: linear-gradient(135deg, #3498db, #2980b9); }
-
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        @keyframes slideOutRight {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-
-        /* Debug Panel */
-        .debug-panel {
-            background: rgba(0, 0, 0, 0.9);
-            color: #00ff00;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            padding: 1rem;
-            max-height: 200px;
-            overflow-y: auto;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-
-        /* Seção de configurações expandida */
-        .config-section {
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .config-section h3 {
-            color: #2c3e50;
-            margin-bottom: 1.5rem;
-            font-size: 1.3rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .config-grid {
-            display: grid;
-            gap: 2rem;
-            max-width: 800px;
-        }
-
-        .two-columns {
-            grid-template-columns: 1fr 1fr;
-        }
-
-        /* Responsivo geral */
-        @media (max-width: 768px) {
-            .two-columns {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timeline Motor + Apontamentos — GrupoGPS</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%231f3864%22/><rect x=%2222%22 y=%2242%22 width=%2222%22 height=%2216%22 rx=%223%22 fill=%22%2338a169%22/><rect x=%2250%22 y=%2230%22 width=%2228%22 height=%2216%22 rx=%223%22 fill=%22%23e53e3e%22/><rect x=%2222%22 y=%2264%22 width=%2256%22 height=%2210%22 rx=%223%22 fill=%22%239b2c2c%22/></svg>">
+
+<script src="https://unpkg.com/vis-timeline@7.7.3/standalone/umd/vis-timeline-graph2d.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/vis-timeline@7.7.3/styles/vis-timeline-graph2d.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; font-family: 'Inter','Segoe UI',sans-serif; background: #f0f2f6; color: #1a202c; font-size: 13px; }
+
+  .app-header {
+    background: linear-gradient(135deg,#1f3864 0%,#16305a 100%);
+    padding: .65rem 1.6rem; display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,.25);
+  }
+  .brand strong { font-size: .92rem; font-weight: 800; color: #fff; display: block; text-transform: uppercase; letter-spacing: .04em; }
+  .brand span { font-size: .68rem; color: #90adc4; font-weight: 500; }
+  .status-text { font-size: .68rem; color: #90adc4; font-weight: 600; }
+
+  .filtros {
+    background: #fff; border-bottom: 1px solid #dde3ec; padding: .6rem 1.6rem;
+    display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;
+  }
+  .filtro-grupo { display: flex; flex-direction: column; gap: 2px; }
+  .filtro-grupo label { font-size: .63rem; font-weight: 700; color: #718096; text-transform: uppercase; letter-spacing: .03em; }
+  .filtro-grupo input[type="datetime-local"] {
+    padding: .32rem .5rem; border-radius: 5px; border: 1.5px solid #dde3ec; font-family: inherit; font-size: .72rem; font-weight: 600; color: #1a202c;
+  }
+  .filtro-sep { flex: 1; }
+
+  .filtro-btn {
+    padding: .38rem .8rem; border-radius: 5px; border: 1.5px solid #dde3ec; background: #fff;
+    font-size: .72rem; font-weight: 700; color: #1a202c; cursor: pointer; font-family: inherit;
+  }
+  .filtro-btn:hover { background: #f7fafc; }
+
+  .dropdown-wrap { position: relative; }
+  .dropdown-panel {
+    position: absolute; top: calc(100% + 4px); left: 0; z-index: 50;
+    background: #fff; border: 1px solid #dde3ec; border-radius: 7px; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    padding: .5rem; min-width: 220px; max-height: 320px; overflow-y: auto;
+  }
+  .dropdown-panel label { display: flex; align-items: center; gap: .4rem; font-size: .74rem; font-weight: 600; padding: .25rem .3rem; border-radius: 4px; cursor: pointer; }
+  .dropdown-panel label:hover { background: #f7fafc; }
+  .dropdown-panel hr { border: none; border-top: 1px solid #e2e8f0; margin: .3rem 0; }
+
+  .segmented { display: flex; border: 1.5px solid #dde3ec; border-radius: 6px; overflow: hidden; }
+  .seg-btn {
+    padding: .38rem .8rem; border: none; background: #fff; font-size: .7rem; font-weight: 700;
+    color: #4a5568; cursor: pointer; font-family: inherit; border-right: 1px solid #dde3ec;
+  }
+  .seg-btn:last-child { border-right: none; }
+  .seg-btn.active { background: #1f3864; color: #fff; }
+
+  .refresh-btn {
+    background: #276749; color: #fff; border: none; padding: .42rem 1rem; border-radius: 5px;
+    font-size: .72rem; font-weight: 700; cursor: pointer; font-family: inherit; height: 30px;
+  }
+  .refresh-btn:hover { background: #2f7a54; }
+
+  .legenda {
+    display: flex; flex-wrap: wrap; gap: .9rem; background: #fff; border-bottom: 1px solid #dde3ec;
+    padding: .55rem 1.6rem;
+  }
+  .leg-item { display: flex; align-items: center; gap: .35rem; font-size: .7rem; font-weight: 600; color: #4a5568; }
+  .leg-dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
+
+  .main { padding: 1.1rem 1.6rem 2rem; }
+  #timeline { background: #fff; border: 1px solid #e2e8f0; border-radius: 7px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+
+  .empty-state { text-align: center; padding: 4rem 2rem; color: #a0aec0; }
+
+  /* EXPERIMENTAL: coluna "VAGA" mesclada (estilo Excel) sobreposta ao início da
+     coluna de rótulos do vis-timeline - ver função sincronizarColunaVaga(). Se não
+     ficar bom, é só restaurar automation/dashboard/index.backup-estavel.html. */
+  .vis-panel.vis-left { min-width: 210px !important; }
+  .vis-labelset .vis-label { border-bottom: 1px solid #edf1f5; }
+  .vis-labelset .vis-label .vis-inner { padding: 4px 10px 4px 96px; }
+  .vis-itemset .vis-group { border-bottom: 1px solid #edf1f5; }
+
+  #colVaga { position: absolute; top: 0; left: 0; width: 88px; height: 100%; z-index: 4; pointer-events: none; }
+  .vaga-box {
+    position: absolute; left: 0; width: 88px; box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    background: #fff; border-right: 2px solid #dde3ec; border-top: 2px solid #dde3ec;
+    font-weight: 700; font-size: 11px; color: #1a202c; white-space: nowrap;
+  }
+
+  .lbl-row { display: flex; flex-direction: column; gap: 2px; }
+  .grp-title { font-weight: 700; font-size: 11px; color: #1a202c; white-space: nowrap; line-height: 1.2; }
+  .track-label {
+    font-size: 8px; font-weight: 700; color: #a0aec0; white-space: nowrap; line-height: 1.2;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+
+  .vis-labelset .vis-label.par-1,
+  .vis-itemset .vis-group.par-1 { background: #fff; }
+  .vis-labelset .vis-label.par-2,
+  .vis-itemset .vis-group.par-2 { background: #f7f9fb; }
+  .vis-labelset .vis-label.par-first { border-top: 2px solid #dde3ec; }
+  .vis-itemset .vis-group.par-first { border-top: 2px solid #dde3ec; }
+
+  /* status */
+  .vis-item.status-ligado { background: #1a5c1a; border-color: #124412; }
+  .vis-item.status-secundario { background: #38a169; border-color: #276749; }
+  .vis-item.status-desligado { background: #e53e3e; border-color: #9c0006; }
+  .vis-item.status-parado-ligado { background: #d4ac00; border-color: #967b00; }
+  .vis-item.status-manutencao { background: #f97316; border-color: #c05621; }
+  .vis-item.status-fora-planta { background: #8B4513; border-color: #603010; }
+  .vis-item.status-sem-apropriacao { background: #a0aec0; border-color: #718096; }
+  .vis-item.status-troca-turno { background: #00bcd4; border-color: #00838f; }
+  .vis-item.status-fora-regime { background: #c0c0c0; border-color: #909090; }
+  .vis-item.status-sem-dados { background: #1a202c; border-color: #000; }
+  .vis-item.status-parada-apontada { background: #1a3a5c; border-color: #0f2438; }
+  .vis-item.status-vaga-disponivel { background: #9b59b6; border-color: #6c3483; }
+  .vis-item.status-outro { background: #cbd5e0; border-color: #a0aec0; }
+
+  /* apontamentos (demoras) - track própria */
+  .vis-item.apont-item { background: #9b2c2c; border-color: #63171b; }
+
+  .vis-item { color: #fff; font-size: 10px; border-width: 1.5px; border-radius: 2px; border-color: #fff !important; }
+  .vis-item .vis-item-content { padding: 3px 4px; }
+
+  /* tooltip claro */
+  .vis-tooltip {
+    background: #ffffff !important;
+    color: #1a202c !important;
+    border: 1px solid #dde3ec !important;
+    border-radius: 8px !important;
+    box-shadow: 0 6px 24px rgba(0,0,0,.15) !important;
+    padding: 10px 14px !important;
+    font-family: 'Inter','Segoe UI',sans-serif !important;
+    max-width: min(300px, 88vw) !important;
+    white-space: normal !important;
+  }
+
+  /* ---------- responsivo (celular) ---------- */
+  @media (max-width: 720px) {
+    html, body { font-size: 12px; }
+
+    .app-header { flex-direction: column; align-items: flex-start; gap: .25rem; padding: .6rem 1rem; }
+    .brand span { display: none; }
+
+    .filtros { flex-direction: column; align-items: stretch; padding: .6rem 1rem; gap: .55rem; }
+    .filtro-sep { display: none; }
+    .dropdown-wrap { width: 100%; }
+    .filtro-btn { width: 100%; }
+    .dropdown-panel { left: 0; right: 0; width: auto; }
+
+    .segmented { width: 100%; }
+    .seg-btn { flex: 1; padding: .5rem .3rem; font-size: .68rem; }
+
+    .refresh-btn { width: 100%; height: 38px; }
+
+    .filtro-grupo input[type="datetime-local"] { width: 100%; padding: .5rem; font-size: .78rem; }
+
+    .legenda { padding: .5rem 1rem; gap: .55rem .7rem; }
+    .leg-item { font-size: .64rem; }
+
+    .main { padding: .7rem .6rem 1.2rem; }
+
+    /* toques maiores no painel de vagas, mais fácil de acertar com o dedo */
+    .dropdown-panel label { padding: .5rem .4rem; font-size: .8rem; }
+  }
+</style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-content">
-                <div class="header-brand">
-                    <h1>🚛 Monitoramento De Produtividade - GrupoGPS</h1>
-                </div>
-                
-                <div class="header-controls">
-                    <div class="sync-indicator">
-                        <div class="sync-dot loading" id="syncDot"></div>
-                        <span id="syncStatus">Aguardando dados...</span>
-                    </div>
-                    
-                    <div class="last-update-info">
-                        <span style="font-size: 0.85rem; color: #5a6c7d;">Última atualização:</span>
-                        <span id="lastUpdateTime" style="font-weight: 600; color: #2c3e50;">--:--</span>
-                    </div>
-                </div>
-            </div>
-        </header>
 
-        <!-- Navigation Tabs - Apenas Timeline e Configurações -->
-        <nav class="nav-tabs">
-            <div class="nav-tabs-container">
-                <div class="nav-tab active" onclick="switchTab('timeline')">
-                    <span>📊 Timeline</span>
-                </div>
-                <div class="nav-tab" onclick="switchTab('settings')">
-                    <span>⚙️ Configurações</span>
-                </div>
-            </div>
-        </nav>
+<header class="app-header">
+  <div class="brand">
+    <strong>Timeline Motor + Apontamentos</strong>
+    <span>GrupoGPS — Alta Pressão / Auto Vácuo / Hiper Vácuo</span>
+  </div>
+  <span class="status-text" id="lastUpdate"></span>
+</header>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Timeline Tab (Principal) -->
-            <div id="timeline-tab" class="tab-content active">
-                <!-- Controles simplificados -->
-                <div class="glass-panel timeline-controls">
-                    <div class="controls-grid">
-                        <div class="control-group">
-                            <label>Equipamento:</label>
-                            <select id="equipmentFilter">
-                                <option value="">Todos os equipamentos</option>
-                            </select>
-                        </div>
-                        
-                        <div class="control-group">
-                            <label>Período:</label>
-                            <select id="periodFilter">
-                                <option value="all">Todos os dados</option>
-                                <option value="today">Hoje</option>
-                                <option value="yesterday">Ontem</option>
-                                <option value="week" selected>Última semana</option>
-                                <option value="month">Último mês</option>
-                                <option value="custom">Personalizado</option>
-                            </select>
-                        </div>
-                        
-                        <div class="control-group" id="customDateGroup" style="display: none;">
-                            <label>Data Inicial:</label>
-                            <input type="datetime-local" id="startDate" />
-                        </div>
-                        
-                        <div class="control-group" id="customDateGroup2" style="display: none;">
-                            <label>Data Final:</label>
-                            <input type="datetime-local" id="endDate" />
-                        </div>
-                    </div>
-                </div>
+<div class="filtros">
+  <div class="filtro-grupo">
+    <label>Início</label>
+    <input type="datetime-local" id="inicioFiltro">
+  </div>
+  <div class="filtro-grupo">
+    <label>Fim</label>
+    <input type="datetime-local" id="fimFiltro">
+  </div>
 
-                <!-- Timeline Container -->
-                <div class="glass-panel timeline-container">
-                    <div class="timeline-header">
-                        <div class="timeline-title">
-                            <span>📈</span>
-                            Apontamentos e Status por Equipamento
-                        </div>
-                        <div id="timelineStats">
-                            <span id="visibleItems">0 itens visíveis</span>
-                        </div>
-                    </div>
-                    
-                    <div id="timeline">
-                        <div class="loading-state">
-                            <div class="loading-spinner"></div>
-                            <div>Carregando dados do GitHub...</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  <div class="filtro-grupo dropdown-wrap">
+    <label>&nbsp;</label>
+    <button class="filtro-btn" id="btnVagas">Vagas ▾</button>
+    <div class="dropdown-panel" id="painelVagas" style="display:none"></div>
+  </div>
 
-            <!-- Configurações Tab (Expandida) -->
-            <div id="settings-tab" class="tab-content">
-                <!-- Configurações do Sistema -->
-                <div class="glass-panel config-section">
-                    <h3>⚙️ Configurações do Sistema</h3>
-                    <div class="config-grid two-columns">
-                        <div class="control-group">
-                            <label>Intervalo de Auto-Sync:</label>
-                            <select id="autoSyncInterval">
-                                <option value="300000">5 minutos</option>
-                                <option value="600000" selected>10 minutos</option>
-                                <option value="900000">15 minutos</option>
-                                <option value="1800000">30 minutos</option>
-                                <option value="0">Desabilitado</option>
-                            </select>
-                        </div>
-                        
-                        <div class="control-group">
-                            <label>Modo de Resolução de Conflitos:</label>
-                            <select id="conflictResolution">
-                                <option value="priority" selected>Por Prioridade (Recomendado)</option>
-                                <option value="latest">Mais Recente</option>
-                                <option value="longest">Maior Duração</option>
-                            </select>
-                        </div>
-                        
-                        <div class="control-group">
-                            <label>Tolerância de Gap (segundos):</label>
-                            <select id="gapTolerance">
-                                <option value="30">30 segundos</option>
-                                <option value="60" selected>60 segundos</option>
-                                <option value="120">2 minutos</option>
-                                <option value="300">5 minutos</option>
-                            </select>
-                        </div>
-                        
-                        <div class="control-group">
-                            <button class="btn" onclick="saveSettings()">
-                                <span>💾</span>
-                                Salvar Configurações
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Estatísticas do Sistema -->
-                <div class="glass-panel config-section">
-                    <h3>📊 Estatísticas do Sistema</h3>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-value" id="apontCount">0</div>
-                            <div class="stat-label">Apontamentos</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="statusCount">0</div>
-                            <div class="stat-label">Status</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="equipmentCount">0</div>
-                            <div class="stat-label">Equipamentos</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="lastUpdate">--:--</div>
-                            <div class="stat-label">Última Atualização</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="conflictsResolved">0</div>
-                            <div class="stat-label">Conflitos Resolvidos</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="duplicatesRemoved">0</div>
-                            <div class="stat-label">Duplicatas Removidas</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Fontes de Dados -->
-                <div class="glass-panel config-section">
-                    <h3>📁 Fontes de Dados</h3>
-                    <div class="config-grid">
-                        <div>
-                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">📊 CSV (Apontamentos)</h4>
-                            <p style="color: #7f8c8d;">Banco-De-Dados/Apontamentos</p>
-                            <p style="font-size: 0.9rem; color: #95a5a6;">apontamentos-atuais.csv</p>
-                        </div>
-                        
-                        <div>
-                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">🔄 CSV (Timeline - Gauss Fleet)</h4>
-                            <p style="color: #7f8c8d;">Banco-De-Dados/Timeline</p>
-                            <p style="font-size: 0.9rem; color: #95a5a6;">captured-data.csv</p>
-                        </div>
-                        
-                        <div>
-                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">⏰ Sincronização</h4>
-                            <p style="color: #7f8c8d;">Automática via GitHub API</p>
-                            <p style="font-size: 0.9rem; color: #95a5a6;">Próxima atualização: <span id="nextUpdate">--:--</span></p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Debug e Diagnóstico -->
-                <div class="glass-panel config-section">
-                    <h3>🔧 Debug e Diagnóstico</h3>
-                    <div class="config-grid">
-                        <div>
-                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">📊 Estatísticas de Processamento</h4>
-                            <div id="debugStats" style="font-family: monospace; background: #f8f9fa; padding: 1rem; border-radius: 8px;">
-                                Aguardando dados...
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <h4 style="color: #5a6c7d; margin-bottom: 1rem;">🔍 Log de Sistema</h4>
-                            <div id="debugLog" class="debug-panel">
-                                Sistema inicializando...
-                            </div>
-                        </div>
-                        
-                        <div style="grid-column: 1 / -1;">
-                            <button class="btn" onclick="exportDebugData()">
-                                <span>📁</span>
-                                Exportar Dados de Debug
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <!-- Footer -->
-        <footer class="footer">
-            <p>Desenvolvido por <strong>Warlison Abreu</strong> | © 2025 GrupoGPS - Todos os direitos reservados</p>
-        </footer>
+  <div class="filtro-grupo">
+    <label>Exibir</label>
+    <div class="segmented" id="segModo">
+      <button class="seg-btn active" data-modo="tudo">Tudo</button>
+      <button class="seg-btn" data-modo="apont">Só Apontamentos</button>
+      <button class="seg-btn" data-modo="status">Só Status</button>
     </div>
-
-    <script>
-        // =============================================================================
-        // CONFIGURAÇÃO CENTRALIZADA
-        // =============================================================================
-        const APP_CONFIG = {
-            // URLs dos repositórios - ATUALIZADOS PARA CSV
-            repositories: {
-                csv: {
-                    owner: 'GrupoGps-Mecanizada',
-                    repo: 'Banco-De-Dados',
-                    path: 'Apontamentos/apontamentos-atuais.csv',
-                    apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Banco-De-Dados/contents/Apontamentos/apontamentos-atuais.csv'
-                },
-                timeline: {
-                    owner: 'GrupoGps-Mecanizada',
-                    repo: 'Banco-De-Dados',
-                    path: 'Timeline/captured-data.csv',
-                    apiUrl: 'https://api.github.com/repos/GrupoGps-Mecanizada/Banco-De-Dados/contents/Timeline/captured-data.csv'
-                }
-            },
-            
-            // Configurações de sistema
-            system: {
-                autoSyncInterval: 600000, // 10 minutos
-                conflictResolution: 'priority',
-                gapTolerance: 60,
-                cacheTimeout: 300000, // 5 minutos
-                retryAttempts: 3,
-                retryDelay: 2000,
-                maxLogEntries: 100,
-                batchSize: 100
-            },
-            
-            // Configurações de performance
-            performance: {
-                debounceDelay: 300,
-                renderDelay: 200,
-                fitDelay: 500
-            },
-            
-            // Prioridades de status - GAUSS FLEET ORDER
-            statusPriority: {
-                'Em manutenção': 15,
-                'Fora da Planta': 14,
-                'Chave Geral Desligada': 13,
-                'Vaga Disponível': 12,
-                'Parada Apontada': 11,
-                'Motor Ligado': 10,
-                'Motor Secundário Ligado': 9,
-                'Parado Ligado': 8,
-                'Troca de Turno': 7,
-                'Motor Desligado': 6,
-                'Fora do Regime': 5,
-                'Indisponível / Sem Apropriação': 4,
-                'Sem dados de bordo': 3
-            },
-            
-            // Mapeamento de status para classes CSS - GAUSS FLEET EXATO
-            statusMapping: {
-                'Motor Ligado': 'status-motor_ligado',
-                'Motor Secundário Ligado': 'status-motor_secundario_ligado',
-                'Motor Desligado': 'status-motor_desligado',
-                'Parado Ligado': 'status-parado_ligado',
-                'Em manutenção': 'status-em_manutencao',
-                'Fora da Planta': 'status-fora_da_planta',
-                'Indisponível / Sem Apropriação': 'status-indisponivel_sem_apropriacao',
-                'Troca de Turno': 'status-troca_de_turno',
-                'Fora do Regime': 'status-fora_do_regime',
-                'Sem dados de bordo': 'status-sem_dados_de_bordo',
-                'Parada Apontada': 'status-parada_apontada',
-                'Vaga Disponível': 'status-vaga_disponivel',
-                'Chave Geral Desligada': 'status-chave_geral_desligada'
-            },
-            
-            // Cores dos apontamentos - MANTENDO AS MESMAS
-            apontColors: {
-                'Abastecimento': 'apont-abastecimento',
-                'Bloqueio': 'apont-bloqueio',
-                'Descarregamento': 'apont-descarregamento',
-                'Documentação': 'apont-documentacao',
-                'Preparação': 'apont-preparacao',
-                'Pequenas manutenções': 'apont-manutencao',
-                'Manutenção': 'apont-manutencao',
-                'Refeição Motorista': 'apont-refeicao',
-                'Aguardando': 'apont-aguardando',
-                'Aguardando Área': 'apont-aguardando',
-                'Aguardando semáforo/cancela': 'apont-aguardando',
-                'Aguardando carreta bascular': 'apont-aguardando',
-                'Troca de Equipamento': 'apont-manutencao'
-            }
-        };
-
-        // =============================================================================
-        // SISTEMA DE CACHE INTELIGENTE
-        // =============================================================================
-        class CacheManager {
-            constructor() {
-                this.cache = new Map();
-                this.timestamps = new Map();
-            }
-
-            set(key, data, ttl = APP_CONFIG.system.cacheTimeout) {
-                this.cache.set(key, data);
-                this.timestamps.set(key, Date.now() + ttl);
-            }
-
-            get(key) {
-                if (!this.cache.has(key)) return null;
-
-                const timestamp = this.timestamps.get(key);
-                if (Date.now() > timestamp) {
-                    this.cache.delete(key);
-                    this.timestamps.delete(key);
-                    return null;
-                }
-
-                return this.cache.get(key);
-            }
-
-            has(key) {
-                return this.get(key) !== null;
-            }
-
-            clear() {
-                this.cache.clear();
-                this.timestamps.clear();
-            }
-        }
-
-        // =============================================================================
-        // SISTEMA DE LOG MELHORADO
-        // =============================================================================
-        class Logger {
-            constructor() {
-                this.logs = [];
-                this.levels = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
-                this.currentLevel = this.levels.WARN; // Só mostrar avisos e erros
-            }
-
-            debug(message) { this.log('DEBUG', message); }
-            info(message) { this.log('INFO', message); }
-            warn(message) { this.log('WARN', message); }
-            error(message) { this.log('ERROR', message); }
-
-            log(level, message) {
-                if (this.levels[level] < this.currentLevel) return;
-
-                const timestamp = new Date().toLocaleTimeString();
-                const logEntry = {
-                    timestamp,
-                    level,
-                    message,
-                    fullMessage: `[${timestamp}] ${level}: ${message}`
-                };
-
-                this.logs.push(logEntry);
-                console.log(logEntry.fullMessage);
-
-                // Manter apenas os últimos logs
-                if (this.logs.length > APP_CONFIG.system.maxLogEntries) {
-                    this.logs.shift();
-                }
-
-                this.updateDebugPanel();
-            }
-
-            updateDebugPanel() {
-                const debugLogElement = document.getElementById('debugLog');
-                if (debugLogElement) {
-                    const recentLogs = this.logs.slice(-20).map(log => log.fullMessage);
-                    debugLogElement.innerHTML = recentLogs.join('\n');
-                    debugLogElement.scrollTop = debugLogElement.scrollHeight;
-                }
-            }
-
-            getLogs() {
-                return this.logs;
-            }
-
-            exportLogs() {
-                return {
-                    logs: this.logs,
-                    exportedAt: new Date().toISOString(),
-                    totalLogs: this.logs.length
-                };
-            }
-        }
-
-        // =============================================================================
-        // SISTEMA DE TOOLTIP OTIMIZADO
-        // =============================================================================
-        class TooltipManager {
-            constructor() {
-                this.customTooltip = null;
-                this.isVisible = false;
-                this.hideTimeout = null;
-                this.mouseX = 0;
-                this.mouseY = 0;
-                this.currentContent = '';
-                this.lastUpdateTime = 0;
-                
-                this.createTooltip();
-            }
-
-            createTooltip() {
-                // Remover tooltip existente se houver
-                const existing = document.getElementById('customTooltip');
-                if (existing) {
-                    existing.remove();
-                }
-
-                this.customTooltip = document.createElement('div');
-                this.customTooltip.id = 'customTooltip';
-                this.customTooltip.className = 'custom-tooltip';
-                this.customTooltip.style.cssText = `
-                    position: fixed !important;
-                    background: rgba(44, 62, 80, 0.95) !important;
-                    color: white !important;
-                    border: none !important;
-                    border-radius: 8px !important;
-                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-                    font-size: 12px !important;
-                    line-height: 1.4 !important;
-                    padding: 12px 16px !important;
-                    max-width: 350px !important;
-                    min-width: 280px !important;
-                    white-space: normal !important;
-                    word-wrap: break-word !important;
-                    z-index: 999999 !important;
-                    pointer-events: none !important;
-                    transition: opacity 0.15s ease, transform 0.15s ease !important;
-                    opacity: 0;
-                    transform: scale(0.95);
-                    backdrop-filter: blur(10px) !important;
-                    display: none;
-                `;
-                
-                document.body.appendChild(this.customTooltip);
-            }
-
-            show(content, x, y) {
-                if (!this.customTooltip) {
-                    this.createTooltip();
-                }
-
-                // Evitar updates desnecessários
-                if (this.currentContent === content && this.isVisible) {
-                    return;
-                }
-
-                // Throttle updates para performance
-                const now = Date.now();
-                if (now - this.lastUpdateTime < 100) {
-                    return;
-                }
-                this.lastUpdateTime = now;
-
-                if (this.hideTimeout) {
-                    clearTimeout(this.hideTimeout);
-                    this.hideTimeout = null;
-                }
-
-                this.currentContent = content;
-                this.customTooltip.innerHTML = content;
-                this.position(x, y);
-                
-                if (!this.isVisible) {
-                    this.customTooltip.style.display = 'block';
-                    this.customTooltip.style.opacity = '1';
-                    this.customTooltip.style.transform = 'scale(1)';
-                    this.isVisible = true;
-                }
-            }
-
-            hide() {
-                if (!this.isVisible || !this.customTooltip) return;
-                
-                this.hideTimeout = setTimeout(() => {
-                    if (this.customTooltip) {
-                        this.customTooltip.style.opacity = '0';
-                        this.customTooltip.style.transform = 'scale(0.95)';
-                        setTimeout(() => {
-                            if (this.customTooltip) {
-                                this.customTooltip.style.display = 'none';
-                            }
-                        }, 150);
-                    }
-                    this.isVisible = false;
-                    this.currentContent = '';
-                }, 100);
-            }
-
-            position(x, y) {
-                if (!this.customTooltip) return;
-
-                const tooltip = this.customTooltip;
-                
-                // Forçar display temporariamente para medir
-                const wasHidden = tooltip.style.display === 'none';
-                if (wasHidden) {
-                    tooltip.style.display = 'block';
-                    tooltip.style.opacity = '0';
-                }
-
-                const rect = tooltip.getBoundingClientRect();
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-                
-                let finalX = x + 15;
-                let finalY = y - rect.height / 2;
-
-                // Ajustar horizontalmente
-                if (finalX + rect.width > viewportWidth - 20) {
-                    finalX = x - rect.width - 15;
-                }
-
-                // Ajustar verticalmente
-                if (finalY < 20) {
-                    finalY = 20;
-                } else if (finalY + rect.height > viewportHeight - 20) {
-                    finalY = viewportHeight - rect.height - 20;
-                }
-
-                tooltip.style.left = `${Math.max(0, finalX)}px`;
-                tooltip.style.top = `${Math.max(0, finalY)}px`;
-
-                // Restaurar estado original se estava escondido
-                if (wasHidden) {
-                    tooltip.style.display = 'none';
-                    tooltip.style.opacity = '';
-                }
-            }
-
-            updatePosition(x, y) {
-                this.mouseX = x;
-                this.mouseY = y;
-                if (this.isVisible) {
-                    // Throttle position updates
-                    const now = Date.now();
-                    if (now - this.lastUpdateTime < 50) { // 20fps para posicionamento
-                        return;
-                    }
-                    this.position(x, y);
-                }
-            }
-
-            destroy() {
-                if (this.hideTimeout) {
-                    clearTimeout(this.hideTimeout);
-                }
-                if (this.customTooltip) {
-                    this.customTooltip.remove();
-                    this.customTooltip = null;
-                }
-                this.isVisible = false;
-            }
-        }
-
-        // =============================================================================
-        // GERENCIADOR DE DADOS
-        // =============================================================================
-        class DataManager {
-            constructor(cache, logger) {
-                this.cache = cache;
-                this.logger = logger;
-                this.isLoading = false;
-                this.lastHashes = new Map();
-            }
-
-            async fetchFromGitHub(type) {
-                const config = APP_CONFIG.repositories[type];
-                const cacheKey = `github_${type}`;
-
-                // Verificar cache primeiro
-                if (this.cache.has(cacheKey)) {
-                    return { success: true, data: this.cache.get(cacheKey), fromCache: true };
-                }
-
-                try {
-                    const response = await this.fetchWithRetry(config.apiUrl);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-
-                    const apiData = await response.json();
-                    
-                    if (apiData.type !== 'file') {
-                        throw new Error('Não é um arquivo válido');
-                    }
-
-                    let content = atob(apiData.content.replace(/\n/g, ''));
-                    
-                    // Tentar decodificar UTF-8
-                    try {
-                        content = decodeURIComponent(escape(content));
-                    } catch (error) {
-                        // Manter conteúdo original se falhar decodificação
-                    }
-
-                    // SEMPRE PROCESSAR COMO CSV AGORA
-                    const parsedData = this.parseCSV(content, type);
-
-                    if (!Array.isArray(parsedData)) {
-                        throw new Error('Dados não estão em formato de array');
-                    }
-
-                    // Verificar se os dados mudaram
-                    const dataHash = this.generateHash(parsedData);
-                    const hasChanged = this.lastHashes.get(type) !== dataHash;
-                    this.lastHashes.set(type, dataHash);
-
-                    // Cache dos dados
-                    this.cache.set(cacheKey, parsedData);
-
-                    return { 
-                        success: true, 
-                        data: parsedData, 
-                        hasChanged,
-                        fromCache: false 
-                    };
-
-                } catch (error) {
-                    this.logger.error(`Erro ao buscar ${type}: ${error.message}`);
-                    return { success: false, data: [], error: error.message, hasChanged: false };
-                }
-            }
-
-            async fetchWithRetry(url, attempts = APP_CONFIG.system.retryAttempts) {
-                for (let i = 0; i < attempts; i++) {
-                    try {
-                        const response = await fetch(url);
-                        if (response.ok) return response;
-                        
-                        if (i < attempts - 1) {
-                            await this.delay(APP_CONFIG.system.retryDelay * (i + 1));
-                        } else {
-                            throw new Error(`Falha após ${attempts} tentativas`);
-                        }
-                    } catch (error) {
-                        if (i === attempts - 1) throw error;
-                        await this.delay(APP_CONFIG.system.retryDelay * (i + 1));
-                    }
-                }
-            }
-
-            parseCSV(csvText, type) {
-                const lines = csvText.trim().split('\n').filter(line => line.trim());
-                if (lines.length < 2) return [];
-
-                const delimiter = lines[0].includes(';') ? ';' : ',';
-                const headers = lines[0].split(delimiter).map(h => h.replace(/"/g, '').trim());
-                
-                const data = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-                    
-                    const values = this.parseCSVLine(line, delimiter);
-                    const row = {};
-                    headers.forEach((header, index) => {
-                        row[header] = values[index] ? values[index].replace(/"/g, '').trim() : '';
-                    });
-                    
-                    // CONVERSÃO ESPECÍFICA PARA TIMELINE CSV
-                    if (type === 'timeline') {
-                        // Mapear estrutura do novo CSV para o formato esperado
-                        const convertedRow = {
-                            vacancy_name: row['VAGA'] || '',
-                            equipment_code: row['EQUIPAMENTO'] || '',
-                            status: this.normalizeStatus(row['STATUS']),
-                            status_title: row['STATUS'] || '',
-                            start: this.convertDateTime(row['ENTRADA']),
-                            end: this.convertDateTime(row['SAIDA']),
-                            total_time: parseFloat(row['TEMPO TOTAL'] || 0)
-                        };
-                        
-                        // Validar dados essenciais
-                        if (convertedRow.vacancy_name && convertedRow.start && convertedRow.end) {
-                            data.push(convertedRow);
-                        }
-                    } else {
-                        // CSV de apontamentos (estrutura original)
-                        if (row['Data Inicial'] && row['Data Final']) {
-                            data.push(row);
-                        }
-                    }
-                }
-                
-                return data;
-            }
-
-            normalizeStatus(status) {
-                if (!status) return 'indisponivel_sem_apropriacao';
-                
-                // Normalizar texto para comparação (remover acentos e espaços extra)
-                const normalizedStatus = status.trim()
-                    .replace(/ã/g, 'a')
-                    .replace(/ç/g, 'c')
-                    .replace(/ú/g, 'u')
-                    .replace(/é/g, 'e')
-                    .replace(/\s+/g, ' ');
-                
-                // Mapeamento de status para códigos padronizados GAUSS FLEET
-                const statusMap = {
-                    'Motor Ligado': 'motor_ligado',
-                    'Motor Secundário Ligado': 'motor_secundario_ligado',
-                    'Motor Secundario Ligado': 'motor_secundario_ligado', // sem acento
-                    'Motor Desligado': 'motor_desligado',
-                    'Parado Ligado': 'parado_ligado',
-                    'Em manutenção': 'em_manutencao',
-                    'Em manutencao': 'em_manutencao', // sem acento
-                    'Fora da Planta': 'fora_da_planta',
-                    'Indisponível / Sem Apropriação': 'indisponivel_sem_apropriacao',
-                    'Indisponivel / Sem Apropriacao': 'indisponivel_sem_apropriacao', // sem acento
-                    'Troca de Turno': 'troca_de_turno',
-                    'Fora do Regime': 'fora_do_regime',
-                    'Sem dados de bordo': 'sem_dados_de_bordo',
-                    'Parada Apontada': 'parada_apontada',
-                    'Vaga Disponível': 'vaga_disponivel',
-                    'Vaga Disponivel': 'vaga_disponivel', // sem acento
-                    'Chave Geral Desligada': 'chave_geral_desligada'
-                };
-                
-                return statusMap[normalizedStatus] || statusMap[status] || 'indisponivel_sem_apropriacao';
-            }
-
-            convertDateTime(dateTimeStr) {
-                if (!dateTimeStr) return null;
-                
-                try {
-                    // Formato esperado: "2025-07-19 00:00" ou "2025-07-19 00:00:36"
-                    if (dateTimeStr.includes('-') && dateTimeStr.includes(' ')) {
-                        return dateTimeStr; // Já está no formato correto
-                    }
-                    
-                    // Caso seja só data, adicionar horário
-                    if (dateTimeStr.includes('-') && !dateTimeStr.includes(' ')) {
-                        return `${dateTimeStr} 00:00:00`;
-                    }
-                    
-                    return dateTimeStr;
-                } catch (error) {
-                    // Retornar string original se falhar conversão
-                    return null;
-                }
-            }
-
-            parseCSVLine(line, delimiter) {
-                const values = [];
-                let current = '';
-                let inQuotes = false;
-                
-                for (let i = 0; i < line.length; i++) {
-                    const char = line[i];
-                    
-                    if (char === '"') {
-                        inQuotes = !inQuotes;
-                    } else if (char === delimiter && !inQuotes) {
-                        values.push(current.trim());
-                        current = '';
-                    } else {
-                        current += char;
-                    }
-                }
-                values.push(current.trim());
-                
-                return values;
-            }
-
-            generateHash(data) {
-                return btoa(JSON.stringify(data)).slice(0, 32);
-            }
-
-            delay(ms) {
-                return new Promise(resolve => setTimeout(resolve, ms));
-            }
-        }
-
-        // =============================================================================
-        // RESOLVEDOR DE CONFLITOS
-        // =============================================================================
-        class ConflictResolver {
-            constructor(logger) {
-                this.logger = logger;
-                this.stats = {
-                    conflictsResolved: 0,
-                    duplicatesRemoved: 0,
-                    originalRecords: 0,
-                    finalRecords: 0
-                };
-            }
-
-            resolveStatusConflicts(statusList, equipmentName) {
-                if (!statusList || statusList.length === 0) return [];
-
-                this.stats.originalRecords += statusList.length;
-
-                // Pipeline de resolução
-                let resolved = this.removeDuplicates(statusList);
-                resolved = this.sortByTime(resolved);
-                resolved = this.resolveOverlaps(resolved, equipmentName);
-                resolved = this.consolidateConsecutive(resolved, equipmentName);
-                resolved = this.fillSmallGaps(resolved, equipmentName);
-
-                this.stats.finalRecords += resolved.length;
-
-                return resolved;
-            }
-
-            removeDuplicates(statusList) {
-                const seen = new Set();
-                const unique = statusList.filter(status => {
-                    const key = `${status.start}-${status.end}-${status.status}-${status.vacancy_name}`;
-                    if (seen.has(key)) {
-                        this.stats.duplicatesRemoved++;
-                        return false;
-                    }
-                    seen.add(key);
-                    return true;
-                });
-                return unique;
-            }
-
-            sortByTime(statusList) {
-                return statusList.sort((a, b) => new Date(a.start) - new Date(b.start));
-            }
-
-            resolveOverlaps(statusList, equipmentName) {
-                if (statusList.length <= 1) return statusList;
-
-                const resolved = [];
-                let current = null;
-
-                for (const status of statusList) {
-                    if (!current) {
-                        current = { ...status };
-                        continue;
-                    }
-
-                    const currentEnd = new Date(current.end);
-                    const statusStart = new Date(status.start);
-
-                    if (statusStart < currentEnd) {
-                        this.stats.conflictsResolved++;
-
-                        const resolution = this.resolveConflict(current, status);
-                        current = this.applyResolution(current, status, resolution);
-                    } else {
-                        resolved.push(current);
-                        current = { ...status };
-                    }
-                }
-
-                if (current) resolved.push(current);
-                return resolved;
-            }
-
-            resolveConflict(status1, status2) {
-                // Usar as prioridades da GAUSS FLEET
-                const statusPriorities = {
-                    'Em manutenção': 15,
-                    'Fora da Planta': 14,
-                    'Chave Geral Desligada': 13,
-                    'Vaga Disponível': 12,
-                    'Parada Apontada': 11,
-                    'Motor Ligado': 10,
-                    'Motor Secundário Ligado': 9,
-                    'Parado Ligado': 8,
-                    'Troca de Turno': 7,
-                    'Motor Desligado': 6,
-                    'Fora do Regime': 5,
-                    'Indisponível / Sem Apropriação': 4,
-                    'Sem dados de bordo': 3
-                };
-                
-                const priority1 = statusPriorities[status1.status_title] || 0;
-                const priority2 = statusPriorities[status2.status_title] || 0;
-
-                switch (APP_CONFIG.system.conflictResolution) {
-                    case 'priority':
-                        return priority1 >= priority2 ? 'keep_first' : 'use_second';
-                    case 'latest':
-                        return 'use_second';
-                    case 'longest':
-                        const duration1 = new Date(status1.end) - new Date(status1.start);
-                        const duration2 = new Date(status2.end) - new Date(status2.start);
-                        return duration1 >= duration2 ? 'keep_first' : 'use_second';
-                    default:
-                        return 'use_second';
-                }
-            }
-
-            applyResolution(current, newStatus, resolution) {
-                if (resolution === 'keep_first') {
-                    return { ...current, end: Math.max(current.end, newStatus.end) };
-                } else {
-                    return { ...newStatus };
-                }
-            }
-
-            consolidateConsecutive(statusList, equipmentName) {
-                if (statusList.length <= 1) return statusList;
-
-                const consolidated = [];
-                let current = null;
-
-                for (const status of statusList) {
-                    if (!current) {
-                        current = { ...status };
-                        continue;
-                    }
-
-                    const currentEnd = new Date(current.end);
-                    const statusStart = new Date(status.start);
-                    const gapSeconds = (statusStart - currentEnd) / 1000;
-
-                    if (current.status === status.status && 
-                        Math.abs(gapSeconds) <= APP_CONFIG.system.gapTolerance) {
-                        
-                        current.end = status.end;
-                        current.total_time = (parseFloat(current.total_time) || 0) + (parseFloat(status.total_time) || 0);
-                        current.consolidated_count = (current.consolidated_count || 1) + 1;
-                    } else {
-                        consolidated.push(current);
-                        current = { ...status };
-                    }
-                }
-
-                if (current) consolidated.push(current);
-                return consolidated;
-            }
-
-            fillSmallGaps(statusList, equipmentName) {
-                if (statusList.length <= 1) return statusList;
-
-                const filled = [];
-                
-                for (let i = 0; i < statusList.length; i++) {
-                    filled.push(statusList[i]);
-                    
-                    if (i < statusList.length - 1) {
-                        const currentEnd = new Date(statusList[i].end);
-                        const nextStart = new Date(statusList[i + 1].start);
-                        const gapSeconds = (nextStart - currentEnd) / 1000;
-                        
-                        if (gapSeconds > 0 && gapSeconds <= APP_CONFIG.system.gapTolerance) {
-                            filled.push({
-                                ...statusList[i],
-                                status: 'motor_desligado',
-                                status_title: 'Motor Desligado',
-                                start: statusList[i].end,
-                                end: statusList[i + 1].start,
-                                total_time: gapSeconds / 3600,
-                                gap_filled: true
-                            });
-                        }
-                    }
-                }
-
-                return filled;
-            }
-
-            getStats() {
-                return { ...this.stats };
-            }
-
-            resetStats() {
-                this.stats = {
-                    conflictsResolved: 0,
-                    duplicatesRemoved: 0,
-                    originalRecords: 0,
-                    finalRecords: 0
-                };
-            }
-        }
-
-        // =============================================================================
-        // GERENCIADOR DE TIMELINE CORRIGIDO
-        // =============================================================================
-        class TimelineManager {
-            constructor(logger) {
-                this.logger = logger;
-                this.timeline = null;
-                this.items = new vis.DataSet();
-                this.groups = new vis.DataSet();
-                this.currentViewWindow = null;
-                this.debounceTimers = new Map();
-                this.tooltipManager = new TooltipManager();
-            }
-
-            initTimeline() {
-                const container = document.getElementById('timeline');
-                if (!container) {
-                    this.logger.error('Container da timeline não encontrado');
-                    return false;
-                }
-
-                if (this.items.length === 0) {
-                    container.innerHTML = '<div class="loading-state"><div>Aguardando dados...</div></div>';
-                    return false;
-                }
-
-                container.innerHTML = '';
-
-                const options = {
-                    orientation: 'top',
-                    stack: true,
-                    showCurrentTime: true,
-                    zoomMin: 1000 * 60 * 10,
-                    zoomMax: 1000 * 60 * 60 * 24 * 30,
-                    editable: false,
-                    multiselect: false,
-                    selectable: true,
-                    tooltip: { followMouse: true, overflowMethod: 'flip' },
-                    format: {
-                        minorLabels: { minute: 'HH:mm', hour: 'HH:mm', day: 'DD/MM', month: 'MMM', year: 'YYYY' },
-                        majorLabels: { minute: 'ddd DD/MM', hour: 'ddd DD/MM', day: 'MMMM YYYY', month: 'YYYY', year: '' }
-                    },
-                    margin: { item: { horizontal: 2, vertical: 1 } },
-                    height: '100%',
-                    maxHeight: 600,
-                    verticalScroll: true,
-                    horizontalScroll: true
-                };
-
-                try {
-                    this.timeline = new vis.Timeline(container, this.items, this.groups, options);
-                    
-                    this.timeline.on('rangechanged', (properties) => {
-                        this.currentViewWindow = properties;
-                    });
-
-                    setTimeout(() => {
-                        if (this.timeline) {
-                            this.timeline.fit();
-                        }
-                    }, APP_CONFIG.performance.fitDelay);
-
-                    return true;
-                } catch (error) {
-                    this.logger.error(`Erro ao inicializar timeline: ${error.message}`);
-                    container.innerHTML = `
-                        <div class="loading-state">
-                            <div style="color: #e74c3c;">Erro ao carregar timeline</div>
-                            <div style="font-size: 0.9rem; margin-top: 0.5rem;">${error.message}</div>
-                        </div>
-                    `;
-                    return false;
-                }
-            }
-
-            updateData(items, groups) {
-                this.items.clear();
-                this.groups.clear();
-                
-                if (items.length > 0) {
-                    this.items.add(items);
-                }
-                if (groups.length > 0) {
-                    this.groups.add(groups);
-                }
-
-                if (this.timeline) {
-                    this.timeline.setData({ items: this.items, groups: this.groups });
-                    
-                    if (this.currentViewWindow) {
-                        setTimeout(() => {
-                            this.timeline.setWindow(this.currentViewWindow.start, this.currentViewWindow.end);
-                        }, APP_CONFIG.performance.renderDelay);
-                    }
-                } else {
-                    this.initTimeline();
-                }
-            }
-
-            applyFilters(equipmentFilter, periodFilter, startDate, endDate) {
-                if (!this.timeline) return;
-
-                let filteredItems = [];
-                
-                for (const item of this.items.get()) {
-                    let include = true;
-                    
-                    if (equipmentFilter) {
-                        const itemEquipment = item.group.replace(/_apont$|_status$/, '');
-                        if (itemEquipment !== equipmentFilter) include = false;
-                    }
-                    
-                    if (periodFilter === 'custom') {
-                        if (startDate && item.start < new Date(startDate)) include = false;
-                        if (endDate && item.start > new Date(endDate)) include = false;
-                    }
-                    
-                    if (include) filteredItems.push(item);
-                }
-                
-                const visibleEquipments = new Set();
-                filteredItems.forEach(item => {
-                    const equipment = item.group.replace(/_apont$|_status$/, '');
-                    visibleEquipments.add(equipment);
-                });
-                
-                const visibleGroups = [];
-                for (const group of this.groups.get()) {
-                    const equipment = group.id.replace(/_apont$|_status$/, '');
-                    if (!equipmentFilter || visibleEquipments.has(equipment)) {
-                        visibleGroups.push(group);
-                    }
-                }
-                
-                this.timeline.setData({
-                    items: new vis.DataSet(filteredItems),
-                    groups: new vis.DataSet(visibleGroups)
-                });
-                
-                this.updateVisibleItemsCount(filteredItems.length);
-            }
-
-            setPeriodWindow(period) {
-                if (!this.timeline) return;
-
-                const now = new Date();
-                let start, end;
-
-                switch (period) {
-                    case 'today':
-                        start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                        end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-                        break;
-                    case 'yesterday':
-                        end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                        start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-                        break;
-                    case 'week':
-                        end = now;
-                        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                        break;
-                    case 'month':
-                        end = now;
-                        start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                        break;
-                    default:
-                        this.timeline.fit();
-                        return;
-                }
-
-                this.timeline.setWindow(start, end);
-            }
-
-            updateVisibleItemsCount(count) {
-                const element = document.getElementById('visibleItems');
-                if (element) {
-                    element.textContent = `${count} itens visíveis`;
-                }
-            }
-
-            debounceAction(key, action, delay = APP_CONFIG.performance.debounceDelay) {
-                if (this.debounceTimers.has(key)) {
-                    clearTimeout(this.debounceTimers.get(key));
-                }
-                this.debounceTimers.set(key, setTimeout(action, delay));
-            }
-        }
-
-        // =============================================================================
-        // CLASSE PRINCIPAL REFINADA
-        // =============================================================================
-        class ProductivityMonitoringSystem {
-            constructor() {
-                // Componentes do sistema
-                this.cache = new CacheManager();
-                this.logger = new Logger();
-                this.dataManager = new DataManager(this.cache, this.logger);
-                this.conflictResolver = new ConflictResolver(this.logger);
-                this.timelineManager = new TimelineManager(this.logger);
-                
-                // Estado do sistema
-                this.equipmentMap = new Map();
-                this.isUpdating = false;
-                this.autoSyncInterval = null;
-                this.startTime = new Date();
-                
-                this.initSystem();
-            }
-
-            async initSystem() {
-                this.logger.info('Iniciando sistema...');
-                this.updateSyncStatus('loading', 'Inicializando sistema...');
-                
-                this.setupEventListeners();
-                this.updateSystemInfo();
-                this.updateLastUpdateTime();
-                
-                // Iniciar sincronização
-                await this.syncFromGitHub();
-                this.startAutoSync();
-            }
-
-            setupEventListeners() {
-                // Filtros com debounce
-                document.getElementById('equipmentFilter').addEventListener('change', () => {
-                    this.timelineManager.debounceAction('equipment', () => this.applyFilters());
-                });
-
-                document.getElementById('periodFilter').addEventListener('change', () => {
-                    this.handlePeriodChange();
-                });
-
-                document.getElementById('startDate').addEventListener('change', () => {
-                    this.timelineManager.debounceAction('startDate', () => this.applyFilters(), 500);
-                });
-
-                document.getElementById('endDate').addEventListener('change', () => {
-                    this.timelineManager.debounceAction('endDate', () => this.applyFilters(), 500);
-                });
-            }
-
-            async syncFromGitHub() {
-                if (this.isUpdating) return;
-
-                this.isUpdating = true;
-                this.updateSyncStatus('loading', 'Sincronizando dados...');
-
-                try {
-                    const [csvResult, timelineResult] = await Promise.allSettled([
-                        this.dataManager.fetchFromGitHub('csv'),
-                        this.dataManager.fetchFromGitHub('timeline')
-                    ]);
-
-                    let hasNewData = false;
-                    let successCount = 0;
-
-                    // Processar resultado CSV
-                    if (csvResult.status === 'fulfilled' && csvResult.value.success) {
-                        if (csvResult.value.hasChanged || !csvResult.value.fromCache) {
-                            hasNewData = true;
-                        }
-                        successCount++;
-                    }
-
-                    // Processar resultado Timeline
-                    if (timelineResult.status === 'fulfilled' && timelineResult.value.success) {
-                        if (timelineResult.value.hasChanged || !timelineResult.value.fromCache) {
-                            hasNewData = true;
-                        }
-                        successCount++;
-                    }
-
-                    if (successCount > 0) {
-                        if (hasNewData) {
-                            // Processar apenas se houver dados novos
-                            await this.processData(
-                                csvResult.value?.data || [],
-                                timelineResult.value?.data || []
-                            );
-                            this.showNotification('Dados atualizados com sucesso', 'success');
-                        }
-                        
-                        this.updateSyncStatus('success', 'Dados sincronizados');
-                        this.updateLastUpdateTime();
-                    } else {
-                        this.updateSyncStatus('error', 'Falha na sincronização');
-                        this.showNotification('Erro na sincronização', 'error');
-                    }
-
-                } catch (error) {
-                    this.logger.error(`Erro na sincronização: ${error.message}`);
-                    this.updateSyncStatus('error', 'Erro na sincronização');
-                    this.showNotification(`Erro na sincronização: ${error.message}`, 'error');
-                } finally {
-                    this.isUpdating = false;
-                }
-            }
-
-            async processData(csvData, timelineData) {
-                this.conflictResolver.resetStats();
-
-                // Limpar dados anteriores
-                this.equipmentMap.clear();
-
-                // Unificar dados de equipamentos
-                this.unifyEquipmentData(csvData, timelineData);
-
-                // Criar grupos e itens da timeline
-                const { groups, items } = this.createTimelineData();
-
-                // Atualizar timeline
-                this.timelineManager.updateData(items, groups);
-
-                // Atualizar interface
-                this.updateInterface();
-            }
-
-            unifyEquipmentData(csvData, timelineData) {
-                // Processar apontamentos CSV
-                csvData.forEach((item) => {
-                    const equipName = this.normalizeEquipmentName(item.Vaga || item.Placa);
-                    if (!this.equipmentMap.has(equipName)) {
-                        this.equipmentMap.set(equipName, {
-                            name: equipName,
-                            originalName: item.Vaga || item.Placa,
-                            apontamentos: [],
-                            status: []
-                        });
-                    }
-                    this.equipmentMap.get(equipName).apontamentos.push(item);
-                });
-
-                // Processar timeline CSV
-                timelineData.forEach((item) => {
-                    const equipName = this.normalizeEquipmentName(item.vacancy_name);
-                    if (!this.equipmentMap.has(equipName)) {
-                        this.equipmentMap.set(equipName, {
-                            name: equipName,
-                            originalName: item.vacancy_name,
-                            apontamentos: [],
-                            status: []
-                        });
-                    }
-                    this.equipmentMap.get(equipName).status.push(item);
-                });
-
-                // Ordenar dados
-                for (const [equipName, data] of this.equipmentMap) {
-                    data.apontamentos.sort((a, b) => {
-                        const dateA = this.parseDate(a['Data Inicial']);
-                        const dateB = this.parseDate(b['Data Inicial']);
-                        return (dateA || 0) - (dateB || 0);
-                    });
-                    
-                    data.status.sort((a, b) => {
-                        const dateA = this.parseDate(a.start);
-                        const dateB = this.parseDate(b.start);
-                        return (dateA || 0) - (dateB || 0);
-                    });
-                }
-            }
-
-            createTimelineData() {
-                const groups = [];
-                const items = [];
-                let itemId = 0;
-                let groupId = 0;
-
-                const sortedEquipments = Array.from(this.equipmentMap.entries())
-                    .sort(([nameA], [nameB]) => nameA.localeCompare(nameB));
-
-                for (const [equipName, data] of sortedEquipments) {
-                    if (data.apontamentos.length > 0 || data.status.length > 0) {
-                        const displayName = this.getDisplayName(equipName);
-                        
-                        // Criar grupos
-                        groups.push({
-                            id: `${equipName}_apont`,
-                            content: `<div style="font-weight: 600; color: #2c3e50; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #7f8c8d;">📊 Apontamentos</div>`,
-                            order: groupId * 2
-                        });
-                        
-                        groups.push({
-                            id: `${equipName}_status`,
-                            content: `<div style="font-weight: 600; color: #2c3e50; font-size: 13px;">${displayName}</div><div style="font-size: 11px; color: #7f8c8d;">🔄 Status</div>`,
-                            order: groupId * 2 + 1
-                        });
-
-                        // Processar apontamentos
-                        data.apontamentos.forEach(apont => {
-                            const start = this.parseDate(apont['Data Inicial']);
-                            const end = this.parseDate(apont['Data Final']);
-                            
-                            if (start && end && start < end) {
-                                const category = apont['Categoria Demora'] || 'Outros';
-                                const className = APP_CONFIG.apontColors[category] || 'apont-aguardando';
-                                
-                                items.push({
-                                    id: `apont_${itemId++}`,
-                                    group: `${equipName}_apont`,
-                                    content: this.truncateText(category, 20),
-                                    start: start,
-                                    end: end,
-                                    className: className,
-                                    title: this.createApontTooltip(apont, equipName),
-                                    type: 'range'
-                                });
-                            }
-                        });
-
-                        // Processar status com resolução de conflitos
-                        if (data.status.length > 0) {
-                            const resolvedStatus = this.conflictResolver.resolveStatusConflicts(data.status, equipName);
-                            
-                            resolvedStatus.forEach((status) => {
-                                const start = this.parseDate(status.start);
-                                const end = this.parseDate(status.end);
-                                
-                                if (start && end && start < end) {
-                                    const statusTitle = status.status_title || 'Desconhecido';
-                                    const statusCode = this.normalizeStatus(statusTitle);
-                                    const className = `status-${statusCode}`;
-                                    
-                                    items.push({
-                                        id: `status_${itemId++}`,
-                                        group: `${equipName}_status`,
-                                        content: this.truncateText(statusTitle, 25),
-                                        start: start,
-                                        end: end,
-                                        className: className,
-                                        title: this.createStatusTooltip(status, equipName),
-                                        type: 'range'
-                                    });
-                                }
-                            });
-                        }
-                        
-                        groupId++;
-                    }
-                }
-
-                return { groups, items };
-            }
-
-            normalizeStatus(status) {
-                if (!status) return 'indisponivel_sem_apropriacao';
-                
-                // Normalizar texto para comparação (remover acentos e espaços extra)
-                const normalizedStatus = status.trim()
-                    .replace(/ã/g, 'a')
-                    .replace(/ç/g, 'c')
-                    .replace(/ú/g, 'u')
-                    .replace(/é/g, 'e')
-                    .replace(/\s+/g, ' ');
-                
-                // Mapeamento de status para códigos padronizados GAUSS FLEET
-                const statusMap = {
-                    'Motor Ligado': 'motor_ligado',
-                    'Motor Secundário Ligado': 'motor_secundario_ligado',
-                    'Motor Secundario Ligado': 'motor_secundario_ligado', // sem acento
-                    'Motor Desligado': 'motor_desligado',
-                    'Parado Ligado': 'parado_ligado',
-                    'Em manutenção': 'em_manutencao',
-                    'Em manutencao': 'em_manutencao', // sem acento
-                    'Fora da Planta': 'fora_da_planta',
-                    'Indisponível / Sem Apropriação': 'indisponivel_sem_apropriacao',
-                    'Indisponivel / Sem Apropriacao': 'indisponivel_sem_apropriacao', // sem acento
-                    'Troca de Turno': 'troca_de_turno',
-                    'Fora do Regime': 'fora_do_regime',
-                    'Sem dados de bordo': 'sem_dados_de_bordo',
-                    'Parada Apontada': 'parada_apontada',
-                    'Vaga Disponível': 'vaga_disponivel',
-                    'Vaga Disponivel': 'vaga_disponivel', // sem acento
-                    'Chave Geral Desligada': 'chave_geral_desligada'
-                };
-                
-                return statusMap[normalizedStatus] || statusMap[status] || 'indisponivel_sem_apropriacao';
-            }
-
-            // Métodos auxiliares
-            normalizeEquipmentName(name) {
-                if (!name) return 'Equipamento Desconhecido';
-                
-                let normalizedName = name.toUpperCase().trim();
-                normalizedName = normalizedName.replace(/\s+/g, ' ');
-                
-                normalizedName = normalizedName
-                    .replace(/\s*-\s*GPS\s*-\s*/g, ' - GPS - ')
-                    .replace(/\s*-\s*(\d+)\s*HS\s*$/i, ' - $1HS')
-                    .replace(/\s*-\s*(\d+)\s*H\s*$/i, ' - $1HS')
-                    .replace(/CAMINHÃO/g, 'CAMINHAO')
-                    .replace(/VÁCUO/g, 'VACUO')
-                    .replace(/PRESSÃO/g, 'PRESSAO')
-                    .trim();
-                
-                return normalizedName;
-            }
-
-            getDisplayName(equipName) {
-                return equipName
-                    .replace(/CAMINHAO/g, 'CAMINHÃO')
-                    .replace(/VACUO/g, 'VÁCUO') 
-                    .replace(/PRESSAO/g, 'PRESSÃO')
-                    .replace(/\s+/g, ' ')
-                    .trim();
-            }
-
-            parseDate(dateStr) {
-                if (!dateStr) return null;
-                
-                try {
-                    if (dateStr.includes('/')) {
-                        const [datePart, timePart = '00:00:00'] = dateStr.split(' ');
-                        const [day, month, year] = datePart.split('/');
-                        
-                        if (!day || !month || !year) return null;
-                        
-                        return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`);
-                    } else if (dateStr.includes('-')) {
-                        return new Date(dateStr.replace(' ', 'T'));
-                    }
-                    
-                    return null;
-                } catch (error) {
-                    return null;
-                }
-            }
-
-            truncateText(text, maxLength) {
-                if (!text) return '';
-                return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
-            }
-
-            createApontTooltip(apont, equipName) {
-                const formatDateTime = (dateStr) => {
-                    try {
-                        if (dateStr.includes('/')) {
-                            const [datePart, timePart = ''] = dateStr.split(' ');
-                            const [day, month, year] = datePart.split('/');
-                            const time = timePart || '';
-                            return `${day}-${month}-${year} ${time}`.trim();
-                        }
-                        return dateStr;
-                    } catch {
-                        return dateStr;
-                    }
-                };
-
-                const displayEquipName = this.getDisplayName(equipName);
-                const category = apont['Categoria Demora'] || 'N/A';
-
-                return `
-                    <div style="font-size: 13px; line-height: 1.4; color: #ffffff; min-width: 260px;">
-                        <div style="font-weight: 700; margin-bottom: 8px; color: #ffffff; font-size: 12px; text-align: center; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">
-                            📊 Apontamento Manual
-                        </div>
-                        <div style="margin-bottom: 6px; font-size: 12px;">
-                            <strong style="color: #3498db;">Equipamento:</strong><br>
-                            <span style="color: #ffffff; margin-left: 8px;">${displayEquipName}</span>
-                        </div>
-                        <div style="margin-bottom: 6px; font-size: 12px;">
-                            <strong style="color: #3498db;">Categoria:</strong> 
-                            <span style="color: #ffffff;">${category}</span>
-                        </div>
-                        <div style="margin-bottom: 6px; font-size: 12px;">
-                            <strong style="color: #3498db;">Início:</strong><br>
-                            <span style="color: #ffffff; margin-left: 8px;">${formatDateTime(apont['Data Inicial'])}</span>
-                        </div>
-                        <div style="margin-bottom: 6px; font-size: 12px;">
-                            <strong style="color: #3498db;">Fim:</strong><br>
-                            <span style="color: #ffffff; margin-left: 8px;">${formatDateTime(apont['Data Final'])}</span>
-                        </div>
-                        <div style="margin-bottom: 6px; font-size: 12px;">
-                            <strong style="color: #3498db;">Duração:</strong> 
-                            <span style="color: #ffffff; font-weight: 600;">${apont['Tempo Indisponível (HH:MM)'] || 'N/A'}</span>
-                        </div>
-                    </div>
-                `;
-            }
-
-            createStatusTooltip(status, equipName) {
-                const totalHours = parseFloat(status.total_time || 0);
-                const count = status.consolidated_count || 1;
-                const isGapFilled = status.gap_filled || false;
-                
-                const formatHours = (hours) => {
-                    const h = Math.floor(hours);
-                    const m = Math.round((hours - h) * 60);
-                    if (h === 0) return `${m}min`;
-                    if (m === 0) return `${h}h`;
-                    return `${h}h ${m}min`;
-                };
-
-                const formatDateTime = (dateStr) => {
-                    try {
-                        const date = new Date(dateStr);
-                        const day = date.getDate().toString().padStart(2, '0');
-                        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                        const year = date.getFullYear();
-                        const hours = date.getHours().toString().padStart(2, '0');
-                        const minutes = date.getMinutes().toString().padStart(2, '0');
-                        return `${day}-${month}-${year} ${hours}:${minutes}`;
-                    } catch {
-                        return dateStr;
-                    }
-                };
-                
-                const displayEquipName = this.getDisplayName(equipName);
-                const statusTitle = (status.status_title || status.status);
-                
-                let tooltipContent = `
-                    <div style="font-size: 13px; line-height: 1.4; color: #ffffff; min-width: 260px;">
-                        <div style="font-weight: 700; margin-bottom: 8px; color: #ffffff; font-size: 12px; text-align: center; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">
-                            🔄 Status ${isGapFilled ? '(Gap Preenchido)' : 'Automático'}
-                        </div>
-                        <div style="margin-bottom: 6px; font-size: 12px;">
-                            <strong style="color: #3498db;">Equipamento:</strong><br>
-                            <span style="color: #ffffff; margin-left: 8px;">${displayEquipName}</span>
-                        </div>
-                        <div style="margin-bottom: 6px; font-size: 12px;">
-                            <strong style="color: #3498db;">Status:</strong> 
-                            <span style="color: #ffffff;">${statusTitle}</span>
-                        </div>
-                        <div style="margin-bottom: 6px; font-size: 12px;">
-                            <strong style="color: #3498db;">Início:</strong><br>
-                            <span style="color: #ffffff; margin-left: 8px;">${formatDateTime(status.start)}</span>
-                        </div>
-                        <div style="margin-bottom: 6px; font-size: 12px;">
-                            <strong style="color: #3498db;">Fim:</strong><br>
-                            <span style="color: #ffffff; margin-left: 8px;">${formatDateTime(status.end)}</span>
-                        </div>
-                        <div style="margin-bottom: 6px; font-size: 12px;">
-                            <strong style="color: #3498db;">Duração:</strong> 
-                            <span style="color: #ffffff; font-weight: 600;">${formatHours(totalHours)}</span>
-                        </div>`;
-                
-                if (count > 1) {
-                    tooltipContent += `
-                        <div style="margin-bottom: 4px; color: #2ecc71; font-size: 11px; background: rgba(46, 204, 113, 0.1); padding: 2px 6px; border-radius: 3px;">
-                            <strong>✅ Registros Consolidados:</strong> ${count}x
-                        </div>`;
-                }
-
-                if (isGapFilled) {
-                    tooltipContent += `
-                        <div style="color: #f39c12; font-size: 11px; background: rgba(243, 156, 18, 0.1); padding: 2px 6px; border-radius: 3px;">
-                            <strong>⚠️ Gap Automaticamente Preenchido</strong>
-                        </div>`;
-                }
-                
-                tooltipContent += `</div>`;
-                
-                return tooltipContent;
-            }
-
-            handlePeriodChange() {
-                const period = document.getElementById('periodFilter').value;
-                const customGroup = document.getElementById('customDateGroup');
-                const customGroup2 = document.getElementById('customDateGroup2');
-                
-                if (period === 'custom') {
-                    customGroup.style.display = 'block';
-                    customGroup2.style.display = 'block';
-                    return;
-                } else {
-                    customGroup.style.display = 'none';
-                    customGroup2.style.display = 'none';
-                }
-
-                this.timelineManager.setPeriodWindow(period);
-            }
-
-            applyFilters() {
-                if (this.isUpdating) return;
-
-                const equipmentFilter = document.getElementById('equipmentFilter').value;
-                const period = document.getElementById('periodFilter').value;
-                const startDate = document.getElementById('startDate').value;
-                const endDate = document.getElementById('endDate').value;
-                
-                this.timelineManager.applyFilters(equipmentFilter, period, startDate, endDate);
-            }
-
-            updateInterface() {
-                const totalApont = Array.from(this.equipmentMap.values())
-                    .reduce((sum, data) => sum + data.apontamentos.length, 0);
-                const totalStatus = Array.from(this.equipmentMap.values())
-                    .reduce((sum, data) => sum + data.status.length, 0);
-                const stats = this.conflictResolver.getStats();
-
-                // Atualizar estatísticas
-                document.getElementById('apontCount').textContent = totalApont;
-                document.getElementById('statusCount').textContent = totalStatus;
-                document.getElementById('equipmentCount').textContent = this.equipmentMap.size;
-                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('pt-BR');
-                document.getElementById('conflictsResolved').textContent = stats.conflictsResolved;
-                document.getElementById('duplicatesRemoved').textContent = stats.duplicatesRemoved;
-
-                // Atualizar filtros
-                this.updateFilters();
-                this.updateNextSyncTime();
-                this.updateDebugStats(stats);
-            }
-
-            updateFilters() {
-                const equipmentSelect = document.getElementById('equipmentFilter');
-                const currentValue = equipmentSelect.value;
-                equipmentSelect.innerHTML = '<option value="">Todos os equipamentos</option>';
-
-                Array.from(this.equipmentMap.keys()).sort().forEach(equipName => {
-                    const option = document.createElement('option');
-                    option.value = equipName;
-                    option.textContent = this.getDisplayName(equipName);
-                    if (equipName === currentValue) option.selected = true;
-                    equipmentSelect.appendChild(option);
-                });
-            }
-
-            updateDebugStats(stats) {
-                const debugStatsElement = document.getElementById('debugStats');
-                if (debugStatsElement) {
-                    debugStatsElement.innerHTML = `
-                        Registros Originais: ${stats.originalRecords}<br>
-                        Registros Finais: ${stats.finalRecords}<br>
-                        Conflitos Resolvidos: ${stats.conflictsResolved}<br>
-                        Duplicatas Removidas: ${stats.duplicatesRemoved}<br>
-                        Taxa de Limpeza: ${stats.originalRecords > 0 ? 
-                            ((stats.originalRecords - stats.finalRecords) / stats.originalRecords * 100).toFixed(1) : 0}%
-                    `;
-                }
-            }
-
-            startAutoSync() {
-                if (this.autoSyncInterval) {
-                    clearInterval(this.autoSyncInterval);
-                }
-
-                if (APP_CONFIG.system.autoSyncInterval > 0) {
-                    this.autoSyncInterval = setInterval(async () => {
-                        if (!this.isUpdating) {
-                            await this.syncFromGitHub();
-                        }
-                    }, APP_CONFIG.system.autoSyncInterval);
-
-                    this.updateNextSyncTime();
-                }
-            }
-
-            updateNextSyncTime() {
-                if (APP_CONFIG.system.autoSyncInterval > 0) {
-                    const nextUpdate = new Date(Date.now() + APP_CONFIG.system.autoSyncInterval);
-                    const nextUpdateElement = document.getElementById('nextUpdate');
-                    if (nextUpdateElement) {
-                        nextUpdateElement.textContent = nextUpdate.toLocaleTimeString('pt-BR');
-                    }
-                }
-            }
-
-            updateSyncStatus(status, message) {
-                const dot = document.getElementById('syncDot');
-                const statusText = document.getElementById('syncStatus');
-                
-                if (dot) dot.className = `sync-dot ${status}`;
-                if (statusText) statusText.textContent = message;
-            }
-
-            updateSystemInfo() {
-                this.updateLastUpdateTime();
-                setInterval(() => {
-                    this.updateNextSyncTime();
-                }, 60000);
-            }
-
-            updateLastUpdateTime() {
-                const lastUpdateTimeElement = document.getElementById('lastUpdateTime');
-                if (lastUpdateTimeElement) {
-                    lastUpdateTimeElement.textContent = new Date().toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                }
-            }
-
-            showNotification(message, type = 'info') {
-                const notification = document.createElement('div');
-                notification.className = `notification ${type}`;
-                notification.textContent = message;
-                
-                document.body.appendChild(notification);
-                
-                setTimeout(() => {
-                    notification.style.animation = 'slideOutRight 0.3s ease-in';
-                    setTimeout(() => notification.remove(), 300);
-                }, 4000);
-            }
-
-            // Métodos para configurações
-            saveSettings() {
-                const autoSyncInterval = parseInt(document.getElementById('autoSyncInterval').value);
-                const conflictResolution = document.getElementById('conflictResolution').value;
-                const gapTolerance = parseInt(document.getElementById('gapTolerance').value);
-                
-                APP_CONFIG.system.autoSyncInterval = autoSyncInterval;
-                APP_CONFIG.system.conflictResolution = conflictResolution;
-                APP_CONFIG.system.gapTolerance = gapTolerance;
-                
-                this.startAutoSync();
-                this.showNotification(`Configurações salvas! Auto-sync: ${autoSyncInterval > 0 ? `${autoSyncInterval/60000}min` : 'desabilitado'}`, 'success');
-            }
-
-            exportDebugData() {
-                const debugData = {
-                    logs: this.logger.exportLogs(),
-                    stats: this.conflictResolver.getStats(),
-                    config: APP_CONFIG,
-                    equipmentCount: this.equipmentMap.size,
-                    systemInfo: {
-                        startTime: this.startTime,
-                        uptime: Date.now() - this.startTime.getTime(),
-                        userAgent: navigator.userAgent
-                    },
-                    timestamp: new Date().toISOString()
-                };
-                
-                const dataStr = JSON.stringify(debugData, null, 2);
-                const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(dataBlob);
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `productivity-debug-${new Date().toISOString().split('T')[0]}.json`;
-                a.click();
-                
-                URL.revokeObjectURL(url);
-                this.showNotification('Dados de debug exportados', 'success');
-            }
-        }
-
-        // =============================================================================
-        // FUNÇÕES GLOBAIS DE INTERFACE
-        // =============================================================================
-        let productivitySystem = null;
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            event.target.classList.add('active');
-            document.getElementById(`${tabName}-tab`).classList.add('active');
-        }
-
-        function saveSettings() {
-            if (productivitySystem) {
-                productivitySystem.saveSettings();
-            }
-        }
-
-        function exportDebugData() {
-            if (productivitySystem) {
-                productivitySystem.exportDebugData();
-            }
-        }
-
-        // =============================================================================
-        // INICIALIZAÇÃO - SISTEMA SIMPLES
-        // =============================================================================
-        document.addEventListener('DOMContentLoaded', () => {
-            productivitySystem = new ProductivityMonitoringSystem();
-            
-            // Expor globalmente para debug
-            window.productivitySystem = productivitySystem;
-            window.APP_CONFIG = APP_CONFIG;
-        });
-    </script>
+  </div>
+
+  <div class="filtro-sep"></div>
+  <button class="refresh-btn" id="btnRefresh">Atualizar agora</button>
+</div>
+
+<div class="legenda">
+  <div class="leg-item"><div class="leg-dot" style="background:#1a5c1a"></div>Motor Ligado</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#38a169"></div>Motor Secundário Ligado</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#e53e3e"></div>Motor Desligado</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#d4ac00"></div>Parado Ligado</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Em Manutenção</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#8B4513"></div>Fora da Planta</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#a0aec0"></div>Sem Apropriação</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#1a3a5c"></div>Parada Apontada</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#9b2c2c"></div>Apontamento (Demora)</div>
+</div>
+
+<div class="main">
+  <div id="timeline"></div>
+  <div class="empty-state" id="emptyState" style="display:none">Carregando dados do Supabase...</div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://mfsyrsegkvjmefcdaegh.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_rw878qLgcmUdixI8QsejBA_lSXYAsIv';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const REFRESH_MS = 60000; // atualiza sozinho a cada 1 min
+
+// mesma lista de vagas do automation/config.js (sem SERVITEC/TROCA)
+const VAGAS_CONHECIDAS = [
+  'ALTA PRESSÃO - GPS - 01 - 24 HS','ALTA PRESSÃO - GPS - 02','ALTA PRESSÃO - GPS - 03',
+  'ALTA PRESSÃO - GPS - 04','ALTA PRESSÃO - GPS - 05','ALTA PRESSÃO - GPS - 06',
+  'ALTA PRESSÃO - GPS - 07 - 16 HS','ALTA PRESSÃO - GPS - 08 - 24 HS','ALTA PRESSÃO - GPS - 09',
+  'ALTA PRESSÃO - GPS - 10','AUTO VÁCUO - GPS - 01 - 24 HS','AUTO VÁCUO - GPS - 02',
+  'AUTO VÁCUO - GPS - 03','AUTO VÁCUO - GPS - 04','AUTO VÁCUO - GPS - 05','AUTO VÁCUO - GPS - 06',
+  'AUTO VÁCUO - GPS - 07 - 16 HS','AUTO VÁCUO - GPS - 08 - 24 HS','HIPER VÁCUO - GPS - 01',
+  'HIPER VÁCUO - GPS - 02','HIPER VÁCUO - GPS - 03',
+];
+
+/* Mesmas regras de cor da legenda GAUSS FLEET (referência: relatorio-produtividade.html) */
+const STATUS_CLASS = [
+  [/motor secund[aá]rio/i, 'status-secundario'],
+  [/motor ligado/i,        'status-ligado'],
+  [/motor desligado/i,     'status-desligado'],
+  [/parado ligado/i,       'status-parado-ligado'],
+  [/manuten[cç][aã]o/i,    'status-manutencao'],
+  [/fora da planta/i,      'status-fora-planta'],
+  [/sem apropria|indispon[ií]vel/i, 'status-sem-apropriacao'],
+  [/troca de turno/i,      'status-troca-turno'],
+  [/fora do regime/i,      'status-fora-regime'],
+  [/sem dados/i,           'status-sem-dados'],
+  [/parada apontada/i,     'status-parada-apontada'],
+  [/vaga dispon[ií]vel/i,  'status-vaga-disponivel'],
+];
+function statusClass(label) {
+  for (const [re, cls] of STATUS_CLASS) if (re.test(label || '')) return cls;
+  return 'status-outro';
+}
+
+function normVaga(v) {
+  return (v || '')
+    .toUpperCase()
+    .replace(/[ÁÀÂÃ]/g, 'A')
+    .replace(/[ÉÈÊ]/g, 'E')
+    .replace(/[ÍÌÎ]/g, 'I')
+    .replace(/[ÓÒÔÕ]/g, 'O')
+    .replace(/[ÚÙÛÜ]/g, 'U')
+    .replace(/Ç/g, 'C')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function abrevVaga(nome) {
+  return (nome || '')
+    .replace(/ALTA\s+PRESS[ÃA]O\s*-\s*GPS\s*-\s*/i, 'AP-')
+    .replace(/AUTO\s+V[ÁA]CUO\s*-\s*GPS\s*-\s*/i, 'AV-')
+    .replace(/HIPER\s+V[ÁA]CUO\s*-\s*GPS\s*-\s*/i, 'HP-')
+    .replace(/\s*-\s*24\s*HS/i, ' (24H)')
+    .replace(/\s*-\s*16\s*HS/i, ' (16H)')
+    .trim();
+}
+
+function truncar(txt, max) {
+  if (!txt) return '';
+  return txt.length > max ? txt.slice(0, max - 1) + '…' : txt;
+}
+
+function fmtDataHora(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtHoras(h) {
+  const horas = Math.floor(h);
+  const min = Math.round((h - horas) * 60);
+  if (horas === 0) return `${min}min`;
+  if (min === 0) return `${horas}h`;
+  return `${horas}h ${min}min`;
+}
+
+function tooltipStatus(r) {
+  return `
+    <div style="font-size:12.5px;line-height:1.5;width:min(260px,78vw);">
+      <div style="font-weight:700;text-align:center;background:#f0f2f6;padding:3px 8px;border-radius:4px;margin-bottom:6px;">Status Automático</div>
+      <div><strong style="color:#1f3864;">Equipamento:</strong> ${r.vaga_nome}</div>
+      <div><strong style="color:#1f3864;">Status:</strong> ${r.status_label}</div>
+      <div><strong style="color:#1f3864;">Início:</strong> ${fmtDataHora(r.inicio)}</div>
+      <div><strong style="color:#1f3864;">Fim:</strong> ${fmtDataHora(r.fim)}</div>
+      <div><strong style="color:#1f3864;">Duração:</strong> ${fmtHoras(r.tempo_total_horas || 0)}</div>
+    </div>`;
+}
+
+function tooltipApontamento(r) {
+  return `
+    <div style="font-size:12.5px;line-height:1.5;width:min(260px,78vw);">
+      <div style="font-weight:700;text-align:center;background:#f0f2f6;padding:3px 8px;border-radius:4px;margin-bottom:6px;">Apontamento</div>
+      <div><strong style="color:#1f3864;">Equipamento:</strong> ${r.vaga}</div>
+      <div><strong style="color:#1f3864;">Placa:</strong> ${r.placa}</div>
+      <div><strong style="color:#1f3864;">Categoria:</strong> ${r.categoria_demora}</div>
+      <div><strong style="color:#1f3864;">Início:</strong> ${fmtDataHora(r.inicio)}</div>
+      <div><strong style="color:#1f3864;">Fim:</strong> ${fmtDataHora(r.fim)}</div>
+      <div><strong style="color:#1f3864;">Duração:</strong> ${r.tempo_indisponivel || '—'}</div>
+      <div><strong style="color:#1f3864;">Justificativa:</strong> ${r.justificativa || '—'}</div>
+    </div>`;
+}
+
+let timeline = null;
+const groupsDS = new vis.DataSet([]);
+const itemsDS = new vis.DataSet([]);
+
+// dados brutos da última busca no Supabase, para poder re-filtrar sem rebuscar
+let ultimoStatusRows = [];
+let ultimoApontRows = [];
+
+function initTimeline() {
+  const container = document.getElementById('timeline');
+  const options = {
+    stack: false,
+    horizontalScroll: true,
+    zoomKey: 'ctrlKey',
+    zoomMin: 1000 * 60 * 5,           // não deixa dar zoom além de 5 min
+    zoomMax: 1000 * 60 * 60 * 24 * 3, // nem afastar além de 3 dias
+    orientation: 'top',
+    margin: { item: { horizontal: 2, vertical: 2 } },
+    height: window.innerWidth < 720 ? '72vh' : '650px',
+    showCurrentTime: true,
+    tooltip: { followMouse: true },
+  };
+  timeline = new vis.Timeline(container, itemsDS, groupsDS, options);
+}
+
+/* ---------- filtro de vagas (dropdown com checkboxes) ---------- */
+const vagasSelecionadas = new Set(VAGAS_CONHECIDAS.map(normVaga));
+
+function montarPainelVagas() {
+  const painel = document.getElementById('painelVagas');
+  let html = `<label><input type="checkbox" id="vagaTodas" checked> <strong>Todas</strong></label><hr>`;
+  for (const nome of VAGAS_CONHECIDAS) {
+    html += `<label><input type="checkbox" class="vaga-check" value="${normVaga(nome)}" checked> ${abrevVaga(nome)}</label>`;
+  }
+  painel.innerHTML = html;
+
+  document.getElementById('vagaTodas').addEventListener('change', (e) => {
+    document.querySelectorAll('.vaga-check').forEach((cb) => (cb.checked = e.target.checked));
+    atualizarSelecaoVagas();
+  });
+  document.querySelectorAll('.vaga-check').forEach((cb) => cb.addEventListener('change', atualizarSelecaoVagas));
+}
+
+function atualizarSelecaoVagas() {
+  vagasSelecionadas.clear();
+  document.querySelectorAll('.vaga-check:checked').forEach((cb) => vagasSelecionadas.add(cb.value));
+  renderTimeline();
+}
+
+document.getElementById('btnVagas').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const painel = document.getElementById('painelVagas');
+  painel.style.display = painel.style.display === 'none' ? 'block' : 'none';
+});
+document.addEventListener('click', () => (document.getElementById('painelVagas').style.display = 'none'));
+document.getElementById('painelVagas').addEventListener('click', (e) => e.stopPropagation());
+
+/* ---------- filtro de modo (tudo / só apontamentos / só status) ---------- */
+let modoExibicao = 'tudo';
+document.getElementById('segModo').addEventListener('click', (e) => {
+  const btn = e.target.closest('.seg-btn');
+  if (!btn) return;
+  document.querySelectorAll('.seg-btn').forEach((b) => b.classList.remove('active'));
+  btn.classList.add('active');
+  modoExibicao = btn.dataset.modo;
+  renderTimeline();
+});
+
+/* ---------- busca no Supabase ---------- */
+async function buscarDados() {
+  document.getElementById('emptyState').style.display = 'block';
+  document.getElementById('emptyState').textContent = 'Carregando dados do Supabase...';
+
+  const inicio = document.getElementById('inicioFiltro').value.replace('T', ' ') + ':00';
+  const fim = document.getElementById('fimFiltro').value.replace('T', ' ') + ':00';
+
+  const [{ data: statusRows, error: err1 }, { data: apontRows, error: err2 }] = await Promise.all([
+    db.from('timeline_motor_vaga').select('*').gte('inicio', inicio).lte('inicio', fim),
+    db.from('demoras_categorizadas').select('*').gte('inicio', inicio).lte('inicio', fim),
+  ]);
+
+  if (err1 || err2) {
+    document.getElementById('emptyState').textContent = 'Erro ao buscar dados: ' + (err1 || err2).message;
+    return;
+  }
+
+  ultimoStatusRows = statusRows || [];
+  ultimoApontRows = apontRows || [];
+  document.getElementById('lastUpdate').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR');
+
+  renderTimeline();
+}
+
+/* ---------- monta grupos/itens a partir dos dados já buscados + filtros ativos ---------- */
+function renderTimeline() {
+  const vagaOrder = new Map(); // normVaga -> índice
+  function ensureVaga(nome) {
+    const key = normVaga(nome);
+    if (!vagaOrder.has(key)) vagaOrder.set(key, { key, nome, idx: vagaOrder.size });
+    return vagaOrder.get(key);
+  }
+
+  const mostrarStatus = modoExibicao === 'tudo' || modoExibicao === 'status';
+  const mostrarApont = modoExibicao === 'tudo' || modoExibicao === 'apont';
+
+  const items = [];
+  let itemId = 1;
+
+  if (mostrarStatus) {
+    for (const r of ultimoStatusRows) {
+      const key = normVaga(r.vaga_nome);
+      if (!vagasSelecionadas.has(key)) continue;
+      const v = ensureVaga(r.vaga_nome);
+      items.push({
+        id: itemId++,
+        group: v.key + '__status',
+        start: r.inicio,
+        end: r.fim,
+        type: 'range',
+        content: truncar(r.status_label, 22),
+        className: statusClass(r.status_label),
+        title: tooltipStatus(r),
+      });
+    }
+  }
+
+  if (mostrarApont) {
+    for (const r of ultimoApontRows) {
+      const key = normVaga(r.vaga);
+      if (!vagasSelecionadas.has(key)) continue;
+      const v = ensureVaga(r.vaga);
+      const fimApont = r.fim || new Date(new Date(r.inicio).getTime() + 5 * 60000).toISOString();
+      items.push({
+        id: itemId++,
+        group: v.key + '__apont',
+        start: r.inicio,
+        end: fimApont,
+        type: 'range',
+        content: truncar(r.categoria_demora, 18),
+        className: 'apont-item',
+        title: tooltipApontamento(r),
+      });
+    }
+  }
+
+  // par-first/par-1/par-2: fundo compartilhado entre as 2 linhas de cada equipamento.
+  // O nome da vaga NÃO entra mais no rótulo do vis-timeline - vira uma caixa própria
+  // na coluna #colVaga, sincronizada em cima dessas linhas (ver sincronizarColunaVaga).
+  const vagaList = Array.from(vagaOrder.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+  const groups = [];
+  for (const v of vagaList) {
+    if (mostrarStatus) {
+      groups.push({
+        id: v.key + '__status',
+        order: v.idx * 2,
+        className: 'par-1 par-first',
+        content: `<div class="lbl-row"><div class="track-label">Telemetria</div></div>`,
+      });
+    }
+    if (mostrarApont) {
+      groups.push({
+        id: v.key + '__apont',
+        order: v.idx * 2 + 1,
+        className: mostrarStatus ? 'par-2' : 'par-1 par-first',
+        content: `<div class="lbl-row"><div class="track-label">Apontamentos</div></div>`,
+      });
+    }
+  }
+
+  groupsDS.clear(); groupsDS.add(groups);
+  itemsDS.clear(); itemsDS.add(items);
+
+  // vis-timeline recém criado com DataSet vazio às vezes não redesenha sozinho
+  // quando os dados chegam depois - forçar via setGroups/setItems.
+  timeline.setGroups(groupsDS);
+  timeline.setItems(itemsDS);
+
+  const inicio = document.getElementById('inicioFiltro').value;
+  const fim = document.getElementById('fimFiltro').value;
+  if (inicio && fim) timeline.setWindow(inicio, fim);
+
+  document.getElementById('emptyState').style.display = groups.length ? 'none' : 'block';
+  if (!groups.length) document.getElementById('emptyState').textContent = 'Nenhum dado encontrado para esse período/filtro.';
+
+  const linhasPorVaga = mostrarStatus && mostrarApont ? 2 : 1;
+  requestAnimationFrame(() => requestAnimationFrame(() => sincronizarColunaVaga(vagaList, linhasPorVaga)));
+}
+
+/* ---------- EXPERIMENTAL: coluna "VAGA" mesclada, estilo Excel ----------
+   O vis-timeline não faz rowspan, então medimos a altura real de cada linha
+   renderizada (.vis-label) e desenhamos por cima uma caixa cobrindo o par
+   inteiro. Roda depois de cada redraw (2x requestAnimationFrame pra garantir
+   que o vis-timeline já terminou de desenhar). Se ficar instável, remover
+   essa função + a chamada acima resolve, o resto do arquivo continua igual. */
+function sincronizarColunaVaga(vagaList, linhasPorVaga) {
+  const labelset = document.querySelector('#timeline .vis-labelset');
+  if (!labelset) return;
+
+  let overlay = labelset.querySelector('#colVaga');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'colVaga';
+    labelset.appendChild(overlay);
+  }
+  overlay.innerHTML = '';
+
+  const linhas = Array.from(labelset.children).filter((el) => el.classList.contains('vis-label'));
+
+  for (let i = 0; i < vagaList.length; i++) {
+    const inicioIdx = i * linhasPorVaga;
+    const primeira = linhas[inicioIdx];
+    const ultima = linhas[inicioIdx + linhasPorVaga - 1];
+    if (!primeira || !ultima) continue;
+
+    const top = primeira.offsetTop;
+    const height = ultima.offsetTop + ultima.offsetHeight - top;
+
+    const box = document.createElement('div');
+    box.className = 'vaga-box';
+    box.style.top = top + 'px';
+    box.style.height = height + 'px';
+    box.textContent = abrevVaga(vagaList[i].nome);
+    overlay.appendChild(box);
+  }
+}
+
+function localDateTimeStr(d) {
+  const tzOffsetMs = d.getTimezoneOffset() * 60000;
+  return new Date(d - tzOffsetMs).toISOString().slice(0, 16);
+}
+
+const agora = new Date();
+const inicioHoje = new Date(agora); inicioHoje.setHours(0, 0, 0, 0);
+const fimHoje = new Date(agora); fimHoje.setHours(23, 59, 0, 0);
+document.getElementById('inicioFiltro').value = localDateTimeStr(inicioHoje);
+document.getElementById('fimFiltro').value = localDateTimeStr(fimHoje);
+
+document.getElementById('btnRefresh').addEventListener('click', buscarDados);
+document.getElementById('inicioFiltro').addEventListener('change', buscarDados);
+document.getElementById('fimFiltro').addEventListener('change', buscarDados);
+
+// ajusta altura da timeline e realinha a coluna de vaga ao girar/redimensionar a tela
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    timeline.setOptions({ height: window.innerWidth < 720 ? '72vh' : '650px' });
+    renderTimeline();
+  }, 200);
+});
+
+montarPainelVagas();
+initTimeline();
+buscarDados();
+setInterval(buscarDados, REFRESH_MS);
+</script>
 </body>
 </html>
