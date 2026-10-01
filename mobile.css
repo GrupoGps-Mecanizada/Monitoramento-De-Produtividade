@@ -149,6 +149,38 @@
     transition: height .24s cubic-bezier(.2, .8, .2, 1);
   }
   .layout .painel.arrastando { transition: none; }
+  /* barra de resumo: o que aparece com a gaveta fechada (números tocáveis ou o
+     cartão do caminhão selecionado) */
+  .layout .folha-resumo { /* .layout: vence o display:none do fim do arquivo */
+    display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px;
+    padding: 0 12px 10px; touch-action: none;
+  }
+  .fr-total { border: 0; background: none; color: var(--text); font-family: inherit; font-size: 14px; padding: 6px 4px; cursor: pointer; }
+  .fr-total b { font-size: 17px; font-weight: 800; }
+  .fr-chip {
+    display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 4px 10px;
+    border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface-2);
+    color: var(--text-2); font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  }
+  .fr-chip b { color: var(--text); font-weight: 800; }
+  .fr-chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
+  .fr-chip.ativo { border-color: var(--c); background: color-mix(in srgb, var(--c) 22%, transparent); color: var(--text); }
+  .fr-card {
+    width: 100%; display: grid; grid-template-columns: 12px auto minmax(0, 1fr) auto;
+    align-items: center; gap: 0 10px; cursor: pointer;
+  }
+  .fr-pt { width: 12px; height: 12px; border-radius: 50%; background: var(--c); }
+  .fr-placa { font-size: 18px; font-weight: 800; letter-spacing: -.01em; }
+  .fr-linha { font-size: 12.5px; color: var(--text-2); line-height: 1.35; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fr-acoes { display: flex; gap: 6px; }
+  .fr-btn {
+    display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px;
+    border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text);
+    font-size: 15px; text-decoration: none; cursor: pointer;
+  }
+  /* gaveta fechada: só alça + barra; o resto fica escondido (não só cortado) */
+  .layout .painel[data-estado="fechada"] .vista { visibility: hidden; }
+
   .folha-alca { flex: none; height: 24px; display: grid; place-items: center; touch-action: none; cursor: grab; }
   .folha-alca::before { content: ''; width: 42px; height: 5px; border-radius: 3px; background: var(--border-strong); }
   .layout .painel .painel-topo { padding: 0 10px 8px; touch-action: none; }
@@ -215,4 +247,5 @@
 }
 
 .al-voltar { display: none; }
+.folha-resumo { display: none; }
 .titulo-pagina { display: none; }

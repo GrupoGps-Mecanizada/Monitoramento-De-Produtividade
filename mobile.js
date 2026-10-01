@@ -266,74 +266,157 @@
       if (typeof trocarAba === 'function') trocarAba('veiculos');
       if (typeof render === 'function') render();
     }
-    if (celular.matches) definirFolha('meio');
+    if (celular.matches) definirFolha('fechada');
     mapa.fitBounds(L.latLngBounds(c.polygon), { paddingTopLeft: [20, 20], paddingBottomRight: [20, 20 + alturaFolha()], maxZoom: 18 });
   }
 
   if (pagina === 'mapa') {
+    /* Gaveta do mapa no celular - o foco é o mapa:
+       fechada (padrão): só uma barra com o resumo da frota em números tocáveis,
+         ou o cartão do caminhão selecionado;
+       meio / cheia: lista, áreas, eventos e detalhe completo.
+       Tocar no mapa recolhe a gaveta; escolher um caminhão NÃO abre a gaveta, mostra
+       o cartão dele e centraliza no mapa. */
     const painel = $('#painel');
     const layout = $('.layout');
     const alca = document.createElement('div');
     alca.className = 'folha-alca';
     alca.setAttribute('role', 'button');
     alca.setAttribute('aria-label', 'Arrastar para ver mais ou menos da lista');
-    painel.prepend(alca);
+    const resumo = document.createElement('div');
+    resumo.className = 'folha-resumo';
+    painel.prepend(alca, resumo);
 
-    let estado = 'baixo';
+    let estado = 'fechada';
     const alturas = () => {
       const max = Math.max(260, layout.getBoundingClientRect().height - 6);
-      return { baixo: Math.min(196, max), meio: Math.round(max * 0.55), cheio: max };
+      const fechada = alca.offsetHeight + resumo.offsetHeight + 6;
+      return { fechada, meio: Math.round(max * 0.5), cheia: max };
     };
     alturaFolha = () => (celular.matches ? painel.getBoundingClientRect().height : 0);
     definirFolha = (e) => {
       if (!celular.matches) return;
       estado = e;
+      painel.dataset.estado = e;
       painel.style.setProperty('--folha-h', alturas()[e] + 'px');
     };
 
-    // arrastar pela alça ou pelo topo da lista (abas/busca); toque na alça alterna
+    /* ---- barra de resumo (o que aparece com a gaveta fechada) ---- */
+    const RESUMO = [
+      ['ligado', 'ligados', '#16a34a'], ['parado', 'parados lig.', '#ca8a04'], ['motor2', '⚙ 2º ligado', '#0891b2'],
+      ['desligado', 'desligados', '#dc2626'], ['manut', 'manutenção', '#ea580c'], ['semsinal', 'sem sinal', '#6b7280'],
+    ];
+    const idade = (iso) => {
+      if (!iso) return '';
+      const m = Math.max(0, (Date.now() - new Date(iso)) / 60000);
+      return m < 1 ? 'agora' : m < 60 ? `há ${Math.floor(m)}min` : m < 1440 ? `há ${Math.floor(m / 60)}h` : `há ${Math.floor(m / 1440)}d`;
+    };
+    function renderResumo() {
+      if (typeof S === 'undefined' || !S.snap) return;
+      const v = S.sel && S.snap.veiculos.find((x) => x.id === S.sel);
+      if (v) {
+        const cor = { 1: '#16a34a', 3: '#ca8a04', 5: '#ea580c', 9: '#ea580c', 7: '#6b7280' }[v.status_cod] ?? '#dc2626';
+        resumo.innerHTML = `<div class="fr-card" data-acao="abrir">
+            <span class="fr-pt" style="--c:${cor}"></span>
+            <b class="fr-placa">${esc(v.placa)}</b>
+            <span class="fr-linha">${esc(v.status)}${v.motor2?.status_cod === 1 ? ' · ⚙ 2º ligado' : ''} · ${idade(v.posicao_em)}<br>${esc(v.area || v.via || 'fora de cerca')}</span>
+            <span class="fr-acoes">
+              <a class="fr-btn" href="timeline.html?v=${encodeURIComponent(v.id)}&dia=${hoje()}" aria-label="Timeline de ${esc(v.placa)}">▶</a>
+              <button class="fr-btn" type="button" data-acao="fechar" aria-label="Fechar">✕</button>
+            </span></div>`;
+      } else {
+        const vs = S.snap.veiculos;
+        const n = Object.fromEntries(RESUMO.map(([k]) => [k, vs.filter(KPIS.find((x) => x.id === k).filtro).length]));
+        const area = S.filtro.area ? `<button class="fr-chip ativo" type="button" data-acao="limpar-area" style="--c:#facc15"><i></i>${esc(S.filtro.area === '__fora' ? 'Fora de área' : S.filtro.area)} ✕</button>` : '';
+        resumo.innerHTML = `<button class="fr-total" type="button" data-acao="lista"><b>${vs.length}</b> veículos</button>`
+          + RESUMO.filter(([k]) => n[k]).map(([k, rot, c]) =>
+            `<button class="fr-chip${S.filtro.kpi === k ? ' ativo' : ''}" type="button" data-kpi="${k}" style="--c:${c}"><i></i><b>${n[k]}</b> ${rot}</button>`).join('')
+          + area;
+      }
+      if (estado === 'fechada') definirFolha('fechada'); // a altura acompanha o conteúdo
+    }
+    resumo.addEventListener('click', (e) => {
+      const alvo = e.target.closest('[data-kpi], [data-acao]');
+      if (!alvo || alvo.tagName === 'A') return;
+      const acao = alvo.dataset.acao;
+      if (alvo.dataset.kpi) {
+        // toque num número = filtra a lista por ele e mostra a lista
+        S.filtro.kpi = S.filtro.kpi === alvo.dataset.kpi ? null : alvo.dataset.kpi;
+        trocarAba('veiculos');
+        render();
+        definirFolha('meio');
+      } else if (acao === 'fechar') {
+        fecharDetalhe();
+        definirFolha('fechada');
+      } else if (acao === 'limpar-area') {
+        S.filtro.area = null;
+        render();
+      } else {
+        definirFolha('meio'); // "51 veículos" ou o cartão do caminhão: abre a gaveta
+      }
+    });
+    if (typeof render === 'function') {
+      const renderOriginal = render;
+      window.render = function () { renderOriginal(); renderResumo(); };
+    }
+    setInterval(renderResumo, 30000); // "há X min" envelhece mesmo sem leitura nova
+
+    /* ---- arrastar pela alça, pela barra de resumo ou pelo topo da lista ---- */
     let ini = null;
     const inicio = (ev) => {
-      if (!celular.matches || ev.target.closest('input, button, select, a, .chip')) return;
+      if (!celular.matches || ev.target.closest('input, select, a, .chip')) return;
       ini = { y: ev.clientY, h: painel.getBoundingClientRect().height, t: performance.now(), moveu: false };
       painel.classList.add('arrastando');
-      ev.currentTarget.setPointerCapture(ev.pointerId);
     };
     const mover = (ev) => {
       if (!ini) return;
       const dy = ini.y - ev.clientY;
-      if (Math.abs(dy) > 4) ini.moveu = true;
+      if (Math.abs(dy) > 6 && !ini.moveu) { ini.moveu = true; ev.currentTarget.setPointerCapture(ev.pointerId); }
+      if (!ini.moveu) return;
       const a = alturas();
-      painel.style.setProperty('--folha-h', Math.max(a.baixo - 40, Math.min(a.cheio, ini.h + dy)) + 'px');
+      painel.style.setProperty('--folha-h', Math.max(a.fechada - 20, Math.min(a.cheia, ini.h + dy)) + 'px');
     };
     const fim = (ev) => {
       if (!ini) return;
       painel.classList.remove('arrastando');
-      const a = alturas();
-      const ordem = ['baixo', 'meio', 'cheio'];
+      const ordem = ['fechada', 'meio', 'cheia'];
       if (!ini.moveu) {
-        if (ev.currentTarget === alca) definirFolha(ordem[(ordem.indexOf(estado) + 1) % 3]);
-        else definirFolha(estado);
+        // toque sem arrastar: só a alça alterna; nos botões o clique segue normal
+        if (ev.currentTarget === alca) definirFolha(estado === 'fechada' ? 'meio' : 'fechada');
         ini = null;
         return;
       }
+      const a = alturas();
       const h = painel.getBoundingClientRect().height;
       const vel = (ini.y - ev.clientY) / Math.max(1, performance.now() - ini.t); // px/ms, + = para cima
-      let alvo = ordem.reduce((m, k) => (Math.abs(a[k] - h) < Math.abs(a[m] - h) ? k : m), 'baixo');
-      if (Math.abs(vel) > 0.6) { // gesto rápido: vai para o próximo nível na direção do gesto
+      let alvo = ordem.reduce((m, k) => (Math.abs(a[k] - h) < Math.abs(a[m] - h) ? k : m), 'fechada');
+      if (Math.abs(vel) > 0.5) {
         const i = ordem.indexOf(estado);
         alvo = ordem[Math.max(0, Math.min(2, i + (vel > 0 ? 1 : -1)))];
       }
       definirFolha(alvo);
+      painel.dataset.arrastou = '1';
+      setTimeout(() => delete painel.dataset.arrastou, 80);
       ini = null;
     };
-    for (const el of [alca, $('.painel-topo', painel)]) {
+    for (const el of [alca, resumo, $('.painel-topo', painel)]) {
       if (!el) continue;
       el.addEventListener('pointerdown', inicio);
       el.addEventListener('pointermove', mover);
       el.addEventListener('pointerup', fim);
       el.addEventListener('pointercancel', fim);
     }
+    // depois de arrastar, o clique que o navegador gera no fim não pode acionar botão
+    resumo.addEventListener('click', (e) => { if (painel.dataset.arrastou) { e.stopImmediatePropagation(); delete painel.dataset.arrastou; } }, true);
+
+    // no toque o nome da cerca abre e não fecha mais (não há "mouse saindo"): some sozinho
+    mapa.on('tooltipopen', (e) => {
+      if (celular.matches) setTimeout(() => mapa.closeTooltip(e.tooltip), 2500);
+    });
+
+    // tocar no mapa = foco no mapa: recolhe a gaveta
+    $('#mapa').addEventListener('pointerdown', () => { if (celular.matches && estado !== 'fechada') definirFolha('fechada'); });
+
     const aplicar = () => {
       if (celular.matches) definirFolha(estado);
       else painel.style.removeProperty('--folha-h');
@@ -343,14 +426,22 @@
     addEventListener('resize', () => { if (celular.matches) definirFolha(estado); });
     aplicar();
 
-    // ao abrir um veículo: gaveta no meio e o caminhão centralizado acima dela
+    // ao escolher um caminhão: cartão na barra + caminhão centralizado acima dela
     if (typeof abrirDetalhe === 'function') {
       const original = abrirDetalhe;
       window.abrirDetalhe = function (id) {
         original(id);
         if (!celular.matches) return;
-        definirFolha('meio');
-        mapa.once('moveend', () => mapa.panBy([0, alturaFolha() / 2], { animate: true }));
+        renderResumo();
+        definirFolha('fechada');
+        // zoom 18: acima do limite de agrupamento (o selecionado nunca some num cluster);
+        // centro deslocado para o caminhão ficar no meio da área visível, acima do cartão
+        const v = S.snap?.veiculos.find((x) => x.id === id);
+        if (v?.lat) {
+          const z = Math.max(mapa.getZoom(), 18);
+          const centro = mapa.project([v.lat, v.lng], z).add([0, alturas().fechada / 2]);
+          mapa.flyTo(mapa.unproject(centro, z), z, { duration: 0.8 });
+        }
       };
     }
 

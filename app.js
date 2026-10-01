@@ -140,7 +140,8 @@ function atualizarMarcadores(visiveis) {
   for (const v of S.snap.veiculos) {
     if (!v.lat || !v.lng) continue;
     // com histórico aberto, só o veículo selecionado fica no mapa
-    const mostrar = ids.has(v.id) && (!S.hist || v.id === S.sel);
+    // o selecionado aparece mesmo que o filtro atual o esconda (ex.: buscado pela busca geral)
+    const mostrar = (ids.has(v.id) || v.id === S.sel) && (!S.hist || v.id === S.sel);
     const html = iconeVeiculo(v, v.id === S.sel);
     const chave = `${v.lat},${v.lng}|${html}`;
     let reg = marcadores.get(v.id);
