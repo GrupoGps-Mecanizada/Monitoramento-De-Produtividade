@@ -598,6 +598,14 @@
     };
     barra.addEventListener('click', clique);
     opcoes.addEventListener('click', clique);
+    // ▶ com o mapa afastado (rota do dia inteiro): aproxima no caminhão; daí o Player acompanha
+    barra.addEventListener('click', (e) => {
+      if (!e.target.closest('#btnPlay')) return;
+      setTimeout(() => {
+        const p = Player.posicao?.();
+        if (Player.tocando() && p && mapa.getZoom() < 16) mapa.setView(p, 16, { animate: true });
+      }, 0);
+    });
     pilula.addEventListener('click', () => abrirOpcoes(true));
     // tocar no mapa fecha as opções (o foco é o mapa)
     $('#mapa').addEventListener('pointerdown', () => abrirOpcoes(false));
