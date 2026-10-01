@@ -458,6 +458,152 @@
     }
   }
 
+  /* ======================= Timeline no celular: player sobre o mapa =======================
+     O mapa ocupa a tela; embaixo um player (horário + situação, barra colorida arrastável,
+     ⏮ deslocamento anterior · ▶ · próximo deslocamento ⏭ · velocidade · ☰ opções) e as
+     opções (veículo, dia, acelerar paradas, seguir) numa gaveta retrátil. Apontamento,
+     resumo e tempo por área ficam no computador.
+     Os controles são os MESMOS da página (mesmos ids, já ligados ao Player): aqui eles só
+     mudam de lugar. Cada "Ver timeline" recria os controles no painel; o observador os
+     traz de volta para o player. */
+  if (pagina === 'timeline') {
+    celular.addEventListener('change', () => location.reload()); // troca de layout: monta de novo
+  }
+  if (pagina === 'timeline' && celular.matches) {
+    document.body.classList.add('tl-player');
+    const wrap = $('.tl-mapa-wrap');
+    const corpo = $('#tlCorpo');
+    const segDe = (hms) => { const [a, b, c] = hms.split(':').map(Number); return a * 3600 + b * 60 + (c || 0); };
+
+    const pilula = document.createElement('button');
+    pilula.type = 'button';
+    pilula.className = 'mp-veiculo';
+    wrap.appendChild(pilula);
+
+    const barra = document.createElement('div');
+    barra.className = 'mp-barra';
+    barra.innerHTML = `
+      <div class="mp-status" hidden><span class="mp-status-txt"></span><span class="mp-espera" data-espera-historico></span>
+        <button type="button" class="mp-escolher" data-mp="opcoes">⚙ Escolher veículo e dia</button></div>
+      <div class="mp-player" hidden>
+        <div class="mp-info"></div>
+        <div class="mp-scrub"></div>
+        <div class="mp-controles">
+          <button type="button" class="mp-btn" data-mp="ant" title="Deslocamento anterior" aria-label="Deslocamento anterior">⏮</button>
+          <span class="mp-play"></span>
+          <button type="button" class="mp-btn" data-mp="prox" title="Próximo deslocamento" aria-label="Próximo deslocamento">⏭</button>
+          <span class="mp-vel"></span>
+          <button type="button" class="mp-btn" data-mp="opcoes" title="Opções" aria-label="Opções do Player">⚙</button>
+        </div>
+      </div>`;
+    wrap.appendChild(barra);
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'mp-opcoes-backdrop';
+    document.body.appendChild(backdrop);
+
+    const opcoes = document.createElement('div');
+    opcoes.className = 'mp-opcoes';
+    opcoes.innerHTML = `
+      <div class="folha-alca" style="margin: -4px 0 8px; cursor: pointer;"></div>
+      <div class="mp-opcoes-topo"><span>Opções do Player</span><button type="button" class="mp-btn" data-mp="fechar" aria-label="Fechar">✕</button></div>
+      <div class="mp-slot-busca"></div>
+      <div class="mp-slot-checks"></div>
+      <p class="mp-nota">O mapa é o foco principal no celular. Detalhes completos e relatórios CSV ficam disponíveis no PC.</p>`;
+    document.body.appendChild(opcoes);
+
+    const abrirOpcoes = (sim) => {
+      opcoes.classList.toggle('aberta', sim);
+      backdrop.classList.toggle('aberta', sim);
+    };
+    backdrop.addEventListener('click', () => abrirOpcoes(false));
+    $('.folha-alca', opcoes)?.addEventListener('click', () => abrirOpcoes(false));
+
+    $('.mp-slot-busca', opcoes).appendChild($('.tl-topo')); // veículo, dia e "Ver timeline"
+    $('#btnCarregar')?.addEventListener('click', () => abrirOpcoes(false));
+
+    function atualizarPilula() {
+      const placa = typeof S !== 'undefined' && S.sel?.placa;
+      const sel = $('#diaSel');
+      const dia = sel?.selectedOptions?.[0]?.textContent ?? '';
+      pilula.innerHTML = placa
+        ? `<span>🚗 <b>${esc(placa)}</b> · ${esc(dia)}</span><span class="mp-tag-opt">Opções ⚙</span>`
+        : `<span> Escolher veículo</span><span class="mp-tag-opt">Opções ⚙</span>`;
+    }
+
+    // move para o player os controles que a página acabou de (re)criar
+    function trazerControles() {
+      const pares = [['#playInfo', '.mp-info'], ['#barraTempo', '.mp-scrub'], ['#barraM2', '.mp-scrub'], ['#btnPlay', '.mp-play'], ['#velPlay', '.mp-vel']];
+      let trouxe = false;
+      for (const [sel, slot] of pares) {
+        const novo = $(sel, corpo);
+        if (!novo) continue;
+        const destino = $(slot, barra);
+        if (slot !== '.mp-scrub') destino.replaceChildren(novo);
+        else { destino.querySelector(sel)?.remove(); destino.appendChild(novo); }
+        trouxe = true;
+      }
+      const play = $('#btnPlay', barra);
+      if (play && !play.dataset.observado) {
+        play.dataset.observado = '1';
+        const marcar = () => play.toggleAttribute('data-tocando', play.textContent.includes('Pausar'));
+        new MutationObserver(marcar).observe(play, { childList: true, characterData: true, subtree: true });
+        marcar();
+      }
+      const checks = ['#pularParadas', '#seguirPlay'].map((s) => $(s, corpo)?.closest('label')).filter(Boolean);
+      if (checks.length) $('.mp-slot-checks', opcoes).replaceChildren(...checks);
+      return trouxe;
+    }
+
+    function sincronizar() {
+      atualizarPilula();
+      const status = $('.mp-status', barra);
+      const player = $('.mp-player', barra);
+      if (trazerControles() || (S?.hist?.pontos?.length && $('#btnPlay', barra))) {
+        status.hidden = true;
+        player.hidden = false;
+        return;
+      }
+      // sem histórico na tela: carregando, vazio ou erro - repete a mensagem do painel
+      player.hidden = true;
+      status.hidden = false;
+      const carregando = !!$('.spin', corpo);
+      $('.mp-status-txt', barra).textContent = carregando
+        ? 'Buscando o histórico…'
+        : ($('.tl-vazio-titulo', corpo)?.textContent ?? 'Escolha um veículo') + ' ' + ($('.tl-vazio-sub', corpo)?.textContent ?? '');
+      $('.mp-espera', barra).hidden = !carregando;
+      $('.mp-escolher', barra).hidden = carregando;
+    }
+    new MutationObserver(sincronizar).observe(corpo, { childList: true });
+    $('#diaSel')?.addEventListener('change', atualizarPilula);
+    sincronizar();
+    if (!new URLSearchParams(location.search).get('v')) abrirOpcoes(true);
+
+    // ⏮ / ⏭: pula para o início do deslocamento anterior/seguinte (sem assistir parada longa)
+    function pular(direcao) {
+      const trechos = S?.hist?.trechos ?? [];
+      const agora = Player.tempo();
+      const inicios = trechos.filter((t) => t.estado === 'movimento').map((t) => segDe(t.inicio.slice(11, 19)));
+      const alvo = direcao > 0 ? inicios.find((s) => s > agora + 1) : [...inicios].reverse().find((s) => s < agora - 2);
+      if (alvo != null) Player.irPara(alvo, !Player.tocando());
+    }
+    const clique = (e) => {
+      const b = e.target.closest('[data-mp]');
+      if (!b) return;
+      const acao = b.dataset.mp;
+      if (acao === 'opcoes') abrirOpcoes(!opcoes.classList.contains('aberta'));
+      else if (acao === 'fechar') abrirOpcoes(false);
+      else if (acao === 'ant') pular(-1);
+      else if (acao === 'prox') pular(1);
+    };
+    barra.addEventListener('click', clique);
+    opcoes.addEventListener('click', clique);
+    pilula.addEventListener('click', () => abrirOpcoes(true));
+    // tocar no mapa fecha as opções (o foco é o mapa)
+    $('#mapa').addEventListener('pointerdown', () => abrirOpcoes(false));
+    setTimeout(() => { try { mapa.invalidateSize(); } catch {} }, 100);
+  }
+
   /* ======================= Alertas: detalhe por cima da lista ======================= */
   if (pagina === 'alertas') {
     const det = $('.al-detalhe');

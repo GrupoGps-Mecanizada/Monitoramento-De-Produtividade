@@ -227,6 +227,131 @@
   .resumo-grade .rc-val { font-size: 16px !important; }
   #btnCSV { padding: 6px 10px; }
 
+  /* ===== Timeline como player sobre o mapa (body.tl-player, montado pelo mobile.js) ===== */
+  body.tl-player .tl-painel { display: none !important; } /* apontamento/resumo: só no computador */
+  body.tl-player .tl-mapa-wrap { flex: 1 1 auto !important; height: auto !important; }
+  body.tl-player .play-hud, body.tl-player .mapa-info, body.tl-player .legenda-mapa { display: none !important; }
+  body.tl-player .leaflet-top.leaflet-right { top: 54px; }
+  body.tl-player #btnCSV { display: none !important; } /* exportar é coisa de computador */
+  body.tl-player .leaflet-bottom.leaflet-right { bottom: auto; top: 104px; }
+  body.tl-player .leaflet-control-attribution { font-size: 9px !important; opacity: .7; }
+
+  /* Pill no topo do mapa para identificação rápida e gatilho de opções */
+  .mp-veiculo {
+    position: absolute; z-index: 1000; top: 12px; left: 12px; max-width: calc(100% - 24px);
+    display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 16px;
+    border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 999px;
+    background: rgba(11, 18, 32, .88); color: #fff;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    font-family: inherit; font-size: 13.5px; font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .35);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .mp-veiculo:active { transform: scale(0.97); }
+  .mp-veiculo b { font-weight: 800; color: #60a5fa; }
+  .mp-veiculo .mp-tag-opt { font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 999px; }
+
+  /* Container do Player Flutuante no celular */
+  .mp-barra {
+    position: absolute; z-index: 1000; left: 10px; right: 10px; bottom: 12px;
+    padding: 12px 14px; border-radius: 22px;
+    background: rgba(11, 18, 32, .92); color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .55);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+
+  .mp-status { display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; line-height: 1.4; align-items: center; text-align: center; padding: 6px 0; }
+  .mp-status[hidden], .mp-player[hidden] { display: none; }
+  .mp-espera { font-weight: 700; color: #93c5fd; }
+  .mp-escolher {
+    align-self: center; min-height: 44px; padding: 0 20px; border: 0; border-radius: 12px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff;
+    font-family: inherit; font-size: 14px; font-weight: 700;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, .4); cursor: pointer;
+    transition: transform .15s ease;
+  }
+  .mp-escolher:active { transform: scale(0.97); }
+
+  /* Informação de tempo e status do caminhão */
+  .mp-info { min-height: 24px; font-size: 13px; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mp-info b { font-size: 20px; font-weight: 800; color: #fff; margin-right: 6px; font-variant-numeric: tabular-nums; }
+  .mp-info #playInfo { margin: 0 !important; font-size: 13px !important; color: inherit; display: inline-flex; align-items: center; gap: 4px; }
+
+  /* Barra de progresso / scrubbing da timeline */
+  .mp-scrub { padding: 8px 0 6px; }
+  .mp-scrub .barra-tempo { height: 16px !important; border-radius: 8px; overflow: visible; box-shadow: inset 0 1px 3px rgba(0,0,0,0.4); touch-action: none; background: rgba(255, 255, 255, 0.12); }
+  .mp-scrub .barra-tempo > span:first-child { border-radius: 8px 0 0 8px; }
+  .mp-scrub .cursor-play { top: -6px; bottom: -6px; width: 6px; margin-left: -3px; border-radius: 4px; background: #ffffff; box-shadow: 0 0 0 2px #0b1220, 0 0 10px rgba(255, 255, 255, .8); }
+  .mp-scrub .barra-m2 { height: 5px !important; margin-top: 5px; background: rgba(255, 255, 255, .12); border-radius: 3px; }
+
+  /* Grade de controles estilo Player de Mídia */
+  .mp-controles { display: grid; grid-template-columns: 46px 64px 46px minmax(0, 1fr) 46px; align-items: center; gap: 8px; margin-top: 6px; }
+  .mp-btn {
+    display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, .08); color: #fff; font-size: 18px; cursor: pointer;
+    transition: background .15s ease, transform .12s ease;
+  }
+  .mp-btn:active { transform: scale(0.94); background: rgba(255, 255, 255, .18); }
+  .mp-btn[data-mp="opcoes"] { background: rgba(37, 99, 235, 0.25); border-color: rgba(96, 165, 250, 0.4); color: #93c5fd; }
+
+  /* Botão Principal de Play / Pausa Flutuante */
+  .mp-play #btnPlay {
+    width: 64px !important; height: 64px !important; min-height: 0 !important; padding: 0 !important; border-radius: 50%;
+    justify-content: center; font-size: 0 !important;
+    background: linear-gradient(135deg, #2563eb, #0284c7) !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, .6) !important;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .mp-play #btnPlay:active { transform: scale(0.93); }
+  .mp-play #btnPlay::before { content: '▶'; font-size: 26px; color: #fff; margin-left: 4px; }
+  .mp-play #btnPlay[data-tocando] { animation: pulsoPlay 2s infinite; }
+  .mp-play #btnPlay[data-tocando]::before { content: '❚❚'; font-size: 22px; margin-left: 0; letter-spacing: -2px; }
+
+  @keyframes pulsoPlay {
+    0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
+    70% { box-shadow: 0 0 0 12px rgba(37, 99, 235, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+  }
+
+  .mp-vel #velPlay {
+    width: 100%; min-height: 42px !important; border-radius: 999px; padding: 0 12px !important;
+    background: rgba(255, 255, 255, .1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.15);
+    font-size: 13.5px !important; font-weight: 700; text-align: center;
+  }
+  .mp-vel #velPlay option { color: #000; }
+
+  /* Fundo escuro / Backdrop do Painel Retrátil de Opções */
+  .mp-opcoes-backdrop {
+    position: fixed; inset: 0; z-index: 1390;
+    background: rgba(8, 12, 20, 0.65); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none; transition: opacity .25s ease;
+  }
+  .mp-opcoes-backdrop.aberta { opacity: 1; pointer-events: auto; }
+
+  /* Painel Retrátil de Opções (Bottom Sheet) */
+  .mp-opcoes {
+    position: fixed; z-index: 1400; left: 0; right: 0; bottom: calc(var(--abas-h) + var(--seguro-baixo));
+    max-height: 80dvh; overflow-y: auto; padding: 12px 16px 20px;
+    background: var(--surface); color: var(--text);
+    border-radius: 24px 24px 0 0; box-shadow: 0 -10px 36px rgba(0, 0, 0, .5);
+    border-top: 1px solid var(--border);
+    transform: translateY(110%); transition: transform .28s cubic-bezier(0.16, 1, 0.3, 1); visibility: hidden;
+  }
+  .mp-opcoes.aberta { transform: translateY(0); visibility: visible; }
+  .mp-opcoes-topo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 17px; font-weight: 800; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+  .mp-opcoes-topo .mp-btn { background: var(--surface-3); color: var(--text); width: 38px; height: 38px; font-size: 16px; border: 0; }
+  .mp-opcoes .tl-topo { padding: 0 !important; border: 0 !important; }
+  .mp-slot-checks { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; padding: 10px 12px; background: var(--surface-2); border-radius: 12px; }
+  .mp-slot-checks label { font-size: 14.5px !important; min-height: 38px; display: flex; align-items: center; gap: 10px; color: var(--text); cursor: pointer; }
+  .mp-slot-checks input { width: 20px; height: 20px; accent-color: var(--brand-2); }
+  .mp-nota { margin: 14px 0 0; font-size: 12px; color: var(--text-3); text-align: center; }
+
+  /* Localização: detalhe enxuto no celular - histórico vira o ▶ da Timeline */
+  .det-acoes input[type="date"], #btnHist, #detHist { display: none !important; }
+
   /* ================= Alertas ================= */
   .al-main { display: block !important; flex: 1; min-height: 0; padding: 0 !important; }
   .al-painel { height: 100%; border: 0; border-radius: 0; box-shadow: none; }

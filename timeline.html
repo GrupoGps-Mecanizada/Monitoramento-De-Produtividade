@@ -522,7 +522,8 @@ const Player = (() => {
   document.addEventListener('keydown', (e) => {
     if (e.code === 'Space' && pts.length && !e.target.closest('input, select, textarea, button')) { e.preventDefault(); alternar(); }
   });
-  return { preparar, irPara, limpar };
+  // tempo/tocando/alternar: usados pelo player do celular (mobile.js)
+  return { preparar, irPara, limpar, alternar, tempo: () => t, tocando: () => tocando };
 })();
 
 async function iniciar() {
