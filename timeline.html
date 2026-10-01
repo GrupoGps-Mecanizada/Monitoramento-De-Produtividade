@@ -254,7 +254,7 @@ async function carregarHistorico() {
   S.hist = null; S.trechoSel = null;
   Player.limpar();
   $('#btnCSV').disabled = true;
-  $('#tlCorpo').innerHTML = '<div class="tl-vazio"><div class="spin"></div><div class="tl-vazio-titulo">Buscando historico...</div><div class="tl-vazio-sub">Se este dia ainda não está no banco, o pedido vai para o coletor (roda a cada ~5 min no GitHub) e a página mostra sozinha quando chegar.</div></div>';
+  $('#tlCorpo').innerHTML = '<div class="tl-vazio"><div class="spin"></div><div class="tl-vazio-titulo">Buscando historico...</div><div class="tl-vazio-sub">Se este dia ainda não está no banco, o pedido vai para o coletor (roda a cada ~5 min no GitHub) e a página mostra sozinha quando chegar.</div><div class="tl-vazio-sub" data-espera-historico style="font-weight:700;color:var(--text-2)"></div></div>';
   camadaRota.clearLayers(); camadaPts.clearLayers();
   $('#mapaInfo').classList.remove('vis');
   try {

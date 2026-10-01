@@ -67,18 +67,32 @@
     // tem versão antiga de hoje: mostra já, a nova chega no próximo ciclo
     if (atual?.resultado) return { ...atual.resultado, fonte: 'cache', aviso: 'atualização pedida ao coletor' };
 
-    const limite = Date.now() + ESPERA_HISTORICO_MS;
-    while (Date.now() < limite) {
-      await sleep(15000);
-      const ped = await ok(db.from('loc_pedidos').select('status, erro').eq('veiculo_id', id).eq('dia', dia)
-        .order('criado_em', { ascending: false }).limit(1).maybeSingle());
-      if (ped?.status === 'erro') throw new Error(ped.erro || 'o coletor não conseguiu buscar o histórico');
-      if (ped?.status === 'pronto') {
-        const novo = await lerHistorico(id, dia);
-        if (novo?.resultado) return novo.resultado; // fonte (gauss/incremental/cache) vem do coletor
+    // mostra o andamento em qualquer elemento [data-espera-historico] da página
+    const inicio = Date.now();
+    const andamento = (status) => {
+      const s = Math.round((Date.now() - inicio) / 1000);
+      const t = s < 60 ? `${s}s` : `${Math.floor(s / 60)}min ${String(s % 60).padStart(2, '0')}s`;
+      const etapa = status === 'processando' ? 'o coletor está buscando no GAUSS agora' : 'na fila do coletor';
+      document.querySelectorAll('[data-espera-historico]').forEach((el) => { el.textContent = `Pedido ${etapa} · ${t}`; });
+    };
+    const relogio = setInterval(() => andamento(), 1000);
+    try {
+      const limite = Date.now() + ESPERA_HISTORICO_MS;
+      while (Date.now() < limite) {
+        await sleep(6000);
+        const ped = await ok(db.from('loc_pedidos').select('status, erro').eq('veiculo_id', id).eq('dia', dia)
+          .order('criado_em', { ascending: false }).limit(1).maybeSingle());
+        andamento(ped?.status);
+        if (ped?.status === 'erro') throw new Error(ped.erro || 'o coletor não conseguiu buscar o histórico');
+        if (ped?.status === 'pronto') {
+          const novo = await lerHistorico(id, dia);
+          if (novo?.resultado) return novo.resultado; // fonte (gauss/incremental/cache) vem do coletor
+        }
       }
+      throw new Error('o coletor ainda não atendeu o pedido - confira se o workflow está rodando no GitHub Actions');
+    } finally {
+      clearInterval(relogio);
     }
-    throw new Error('o coletor ainda não atendeu o pedido - confira se o workflow está rodando no GitHub Actions');
   }
 
   async function rotear(url) {

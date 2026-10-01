@@ -452,7 +452,7 @@ async function carregarHistorico() {
   const alvo = $('#detHist');
   const btn = $('#btnHist');
   btn.disabled = true;
-  alvo.innerHTML = '<div class="vazio"><div class="vazio-titulo">Buscando histórico…</div><div class="vazio-sub">Se este dia ainda não está no banco, o pedido vai para o coletor (roda a cada ~5 min no GitHub) e aparece aqui sozinho quando chegar. Depois fica guardado.</div></div>';
+  alvo.innerHTML = '<div class="vazio"><div class="vazio-titulo">Buscando histórico…</div><div class="vazio-sub">Se este dia ainda não está no banco, o pedido vai para o coletor (roda a cada ~5 min no GitHub) e aparece aqui sozinho quando chegar. Depois fica guardado.</div><div class="vazio-sub" data-espera-historico style="font-weight:700;margin-top:6px"></div></div>';
   try {
     const r = await fetch(`/api/historico?id=${encodeURIComponent(S.sel)}&dia=${dia}`);
     const h = await r.json();
