@@ -1,0 +1,389 @@
+/* Celular + busca geral, compartilhado pelas 3 páginas (carregar com defer, depois
+   do script da página). No celular: barra de abas embaixo, lista do mapa vira gaveta
+   arrastável, detalhe dos alertas abre por cima. Em qualquer tela: busca geral
+   (veículos, cercas/ruas, eventos de hoje) pelo botão 🔍, pela tecla "/" ou Ctrl+K.
+
+   Usa funções/variáveis globais das páginas quando existem (abrirDetalhe,
+   fecharDetalhe, trocarAba, render, S, mapa - todas do app.js da Localização). */
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const celular = matchMedia('(max-width: 760px)');
+  const pagina = $('#painel') ? 'mapa' : $('.tl-main') ? 'timeline' : $('.al-main') ? 'alertas' : 'outra';
+  const pad = (n) => String(n).padStart(2, '0');
+  const hoje = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // busca sem acento e sem maiúscula; placa também sem hífen (EGC-2984 = egc2984)
+  const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+  const normPlaca = (s) => norm(s).replace(/[^A-Z0-9]/g, '');
+
+  const ICONE = {
+    mapa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>',
+    timeline: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l6-3.5-6-3.5z" fill="currentColor"/></svg>',
+    alertas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+    busca: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  };
+
+  /* ---------------- barra de abas (celular) + botão de busca no topo ---------------- */
+  const abas = document.createElement('nav');
+  abas.className = 'abas-inferiores';
+  abas.setAttribute('aria-label', 'Navegação');
+  abas.innerHTML = [
+    ['mapa', './', 'Mapa'], ['timeline', 'timeline.html', 'Timeline'], ['alertas', 'alertas.html', 'Alertas'],
+  ].map(([id, href, rot]) => `<a href="${href}" class="${pagina === id ? 'ativa' : ''}"${pagina === id ? ' aria-current="page"' : ''}>${ICONE[id]}${rot}</a>`).join('')
+    + `<button type="button" data-busca>${ICONE.busca.replace('width="18" height="18"', '')}Buscar</button>`;
+  document.body.appendChild(abas);
+
+  const direita = $('.header-right');
+  if (direita) {
+    const b = document.createElement('button');
+    b.className = 'icon-btn btn-busca-topo';
+    b.type = 'button';
+    b.title = 'Buscar veículo, área, rua ou evento ( / )';
+    b.setAttribute('aria-label', 'Buscar');
+    b.dataset.busca = '';
+    b.innerHTML = ICONE.busca;
+    direita.insertBefore(b, $('#btnTema', direita) ?? null);
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-busca]')) abrirBusca(); });
+
+  // no celular o cabeçalho mostra o nome da página, não o nome longo do sistema
+  const marca = $('.brand-text');
+  if (marca) {
+    const t = document.createElement('div'); // div: o CSS esconde os span do subtítulo
+    t.className = 'titulo-pagina';
+    t.textContent = { mapa: 'Localização', timeline: 'Timeline', alertas: 'Alertas' }[pagina] ?? '';
+    marca.appendChild(t);
+  }
+  // chip "atualizado 12:05:39 · a cada 5 min" -> no celular só "12:05"
+  const chip = $('#chipAtualizacao');
+  const txt = $('#txtAtualizacao');
+  if (chip && txt) {
+    const curto = () => {
+      const h = txt.textContent.match(/\d{2}:\d{2}/);
+      if (h) chip.dataset.curto = h[0]; else delete chip.dataset.curto;
+      chip.title = txt.textContent;
+    };
+    new MutationObserver(curto).observe(txt, { childList: true, characterData: true, subtree: true });
+    curto();
+  }
+
+  /* ---------------- busca geral ---------------- */
+  const CORES = { 1: '#16a34a', 3: '#ca8a04', 2: '#dc2626', 4: '#dc2626', 71: '#dc2626', 98: '#dc2626', 5: '#ea580c', 9: '#ea580c', 7: '#6b7280' };
+  const TIPO_CERCA = { area: 'Área', via: 'Rua / via', planta: 'Planta' };
+  let dados = null;
+  let dadosEm = 0;
+  let foco = -1;
+
+  const fundo = document.createElement('div');
+  fundo.className = 'bg-fundo';
+  fundo.hidden = true;
+  fundo.innerHTML = `<div class="bg-caixa" role="dialog" aria-modal="true" aria-label="Buscar">
+      <div class="bg-linha">${ICONE.busca}
+        <input class="bg-input" type="search" placeholder="Placa, motorista, vaga, área, rua…" autocomplete="off" enterkeyhint="search" aria-label="Buscar">
+        <button class="bg-fechar" type="button">Fechar</button></div>
+      <div class="bg-resultados" role="listbox"></div></div>`;
+  document.body.appendChild(fundo);
+  const entrada = $('.bg-input', fundo);
+  const lista = $('.bg-resultados', fundo);
+  $('.bg-fechar', fundo).onclick = fecharBusca;
+  fundo.addEventListener('click', (e) => { if (e.target === fundo) fecharBusca(); });
+
+  async function carregar() {
+    if (dados && Date.now() - dadosEm < 60000) return dados;
+    const json = (u) => fetch(u).then((r) => r.json()).catch(() => null);
+    const [snap, cercas, eventos] = await Promise.all([json('/api/estado'), json('/api/cercas'), json(`/api/eventos?dia=${hoje()}`)]);
+    dados = {
+      veiculos: (snap?.veiculos ?? []).filter((v) => !v.motor2_de),
+      cercas: Array.isArray(cercas) ? cercas : [],
+      eventos: Array.isArray(eventos) ? eventos : [],
+    };
+    dadosEm = Date.now();
+    return dados;
+  }
+
+  function lerRecentes() { try { return JSON.parse(localStorage.getItem('gps-buscas') || '[]'); } catch { return []; } }
+  function guardarRecente(t) {
+    t = t.trim();
+    if (t.length < 2) return;
+    try { localStorage.setItem('gps-buscas', JSON.stringify([t, ...lerRecentes().filter((x) => x !== t)].slice(0, 8))); } catch {}
+  }
+
+  async function abrirBusca(texto = '') {
+    fundo.hidden = false;
+    document.documentElement.style.overflow = 'hidden';
+    entrada.value = texto;
+    entrada.focus();
+    lista.innerHTML = '<div class="bg-vazio">Carregando…</div>';
+    await carregar();
+    renderBusca();
+  }
+  function fecharBusca() {
+    fundo.hidden = true;
+    document.documentElement.style.overflow = '';
+  }
+
+  const marcar = (txt, q) => {
+    const i = norm(txt).indexOf(norm(q));
+    if (!q || i < 0) return esc(txt);
+    return esc(txt.slice(0, i)) + '<mark>' + esc(txt.slice(i, i + q.length)) + '</mark>' + esc(txt.slice(i + q.length));
+  };
+  const destinoPadrao = pagina === 'timeline' ? 'timeline' : 'mapa';
+
+  function itemVeiculo(v, q) {
+    const onde = v.area || v.via || 'fora de cerca';
+    const m2 = v.motor2 ? ` · ⚙ 2º ${v.motor2.status}` : '';
+    const outro = destinoPadrao === 'mapa' ? ['timeline', 'Timeline'] : ['mapa', 'Mapa'];
+    return `<div class="bg-item" role="option" tabindex="-1" data-v="${esc(v.id)}" data-destino="${destinoPadrao}">
+      <span class="pt" style="--c:${CORES[v.status_cod] ?? '#7c3aed'}"></span>
+      <span class="tit">${marcar(v.placa, q)}${v.motor2 ? ` <small style="color:var(--text-3);font-weight:600">⚙ ${marcar(v.motor2.placa, q)}</small>` : ''}</span>
+      <span class="sub">${esc(v.status)}${esc(m2)} · ${esc(v.vaga || 'sem vaga')} · ${esc(onde)}${v.motorista ? ' · ' + esc(v.motorista) : ''}</span>
+      <span class="bg-acoes"><button class="bg-acao" type="button" data-v="${esc(v.id)}" data-destino="${outro[0]}">${outro[1]}</button></span>
+    </div>`;
+  }
+  function itemCerca(c, ocupacao, q) {
+    const n = ocupacao[c.name] ?? 0;
+    return `<div class="bg-item" role="option" tabindex="-1" data-cerca="${esc(c.name)}">
+      <span class="pt area" style="--c:${esc(c.color || '#64748b')}"></span>
+      <span class="tit">${marcar(c.name, q)}</span>
+      <span class="sub">${TIPO_CERCA[c.tipo] ?? 'Cerca'}${n ? ` · ${n} veículo${n > 1 ? 's' : ''} agora` : ''}</span>
+    </div>`;
+  }
+  function textoEvento(e) {
+    const quem = e.motor2 ? `${e.principal ?? e.placa} ⚙ motor 2º` : e.placa;
+    const o = { entrada: `entrou em ${e.area}`, saida: `saiu de ${e.area}`, status: `${e.de} → ${e.para}`, sinal_perdido: 'sem sinal', sinal_retomado: 'voltou a comunicar' }[e.tipo] ?? e.tipo;
+    return { quem, o };
+  }
+  function itemEvento(e, q) {
+    const { quem, o } = textoEvento(e);
+    const h = new Date(e.t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return `<div class="bg-item" role="option" tabindex="-1" data-v="${esc(e.principal_id ?? e.id)}" data-destino="${destinoPadrao}">
+      <span class="pt" style="--c:#94a3b8"></span>
+      <span class="tit">${marcar(quem, q)} <small style="color:var(--text-3);font-weight:600">${h}</small></span>
+      <span class="sub">${marcar(o, q)}</span>
+    </div>`;
+  }
+
+  function renderBusca() {
+    const q = entrada.value.trim();
+    const { veiculos, cercas, eventos } = dados;
+    const ocupacao = {};
+    veiculos.forEach((v) => { if (v.area) ocupacao[v.area] = (ocupacao[v.area] ?? 0) + 1; });
+    let html = '';
+
+    if (!q) {
+      const rec = lerRecentes();
+      if (rec.length) html += `<div class="bg-secao">Buscas recentes</div><div class="bg-recentes">${rec.map((r) => `<button type="button" data-recente="${esc(r)}">${esc(r)}</button>`).join('')}</div>`;
+      const ligados = veiculos.filter((v) => v.status_cod === 1 || v.status_cod === 3 || v.motor2?.status_cod === 1);
+      if (ligados.length) html += `<div class="bg-secao"><span>Ligados agora</span><span>${ligados.length}</span></div>` + ligados.slice(0, 8).map((v) => itemVeiculo(v, '')).join('');
+      const cheias = Object.entries(ocupacao).sort((a, b) => b[1] - a[1]).slice(0, 6)
+        .map(([nome]) => cercas.find((c) => c.name === nome)).filter(Boolean);
+      if (cheias.length) html += '<div class="bg-secao">Áreas com mais veículos</div>' + cheias.map((c) => itemCerca(c, ocupacao, '')).join('');
+      html += '<div class="bg-dica">Busque por placa (com ou sem hífen), motor secundário, motorista, vaga, área, rua ou evento.</div>';
+      lista.innerHTML = html;
+      foco = -1;
+      return;
+    }
+
+    const qn = norm(q);
+    const qp = normPlaca(q);
+    const pontua = (v) => {
+      const p = normPlaca(v.placa);
+      const p2 = normPlaca(v.motor2?.placa);
+      if (qp.length >= 2 && (p.startsWith(qp) || p2.startsWith(qp))) return 3;
+      if (qp.length >= 2 && (p.includes(qp) || p2.includes(qp))) return 2;
+      if (norm([v.vaga, v.motorista, v.area, v.via, v.grupo, v.status].join(' ')).includes(qn)) return 1;
+      return 0;
+    };
+    const achadosV = veiculos.map((v) => [v, pontua(v)]).filter(([, s]) => s).sort((a, b) => b[1] - a[1] || a[0].placa.localeCompare(b[0].placa)).map(([v]) => v);
+    const achadosC = cercas.filter((c) => c.polygon?.length >= 3 && norm(c.name).includes(qn))
+      .sort((a, b) => (ocupacao[b.name] ?? 0) - (ocupacao[a.name] ?? 0) || a.name.localeCompare(b.name));
+    const achadosE = eventos.filter((e) => { const { quem, o } = textoEvento(e); return norm(`${quem} ${o} ${e.area ?? ''}`).includes(qn); })
+      .sort((a, b) => b.t.localeCompare(a.t));
+
+    if (achadosV.length) html += `<div class="bg-secao"><span>Veículos</span><span>${achadosV.length}</span></div>` + achadosV.slice(0, 20).map((v) => itemVeiculo(v, q)).join('');
+    if (achadosC.length) html += `<div class="bg-secao"><span>Áreas, ruas e cercas</span><span>${achadosC.length}</span></div>` + achadosC.slice(0, 15).map((c) => itemCerca(c, ocupacao, q)).join('');
+    if (achadosE.length) html += `<div class="bg-secao"><span>Eventos de hoje</span><span>${achadosE.length}</span></div>` + achadosE.slice(0, 12).map((e) => itemEvento(e, q)).join('');
+    lista.innerHTML = html || `<div class="bg-vazio">Nada encontrado para “${esc(q)}”.</div>`;
+    foco = -1;
+  }
+
+  entrada.addEventListener('input', () => { if (dados) renderBusca(); });
+  entrada.addEventListener('keydown', (e) => {
+    const itens = [...lista.querySelectorAll('.bg-item')];
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      foco = Math.max(0, Math.min(itens.length - 1, foco + (e.key === 'ArrowDown' ? 1 : -1)));
+      itens.forEach((el, i) => el.classList.toggle('foco', i === foco));
+      itens[foco]?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      (itens[foco] ?? itens[0])?.click();
+    } else if (e.key === 'Escape') {
+      fecharBusca();
+    }
+  });
+  lista.addEventListener('click', (e) => {
+    const rec = e.target.closest('[data-recente]');
+    if (rec) { entrada.value = rec.dataset.recente; renderBusca(); return; }
+    const alvo = e.target.closest('[data-v], [data-cerca]');
+    if (!alvo) return;
+    guardarRecente(entrada.value);
+    fecharBusca();
+    if (alvo.dataset.cerca != null) irCerca(alvo.dataset.cerca);
+    else irVeiculo(alvo.dataset.v, alvo.dataset.destino);
+  });
+  document.addEventListener('keydown', (e) => {
+    const digitando = e.target.closest?.('input, textarea, select, [contenteditable]');
+    if ((e.key === '/' && !digitando) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) {
+      e.preventDefault();
+      abrirBusca();
+    }
+  });
+
+  function irVeiculo(id, destino) {
+    if (destino === 'timeline') { location.href = `timeline.html?v=${encodeURIComponent(id)}&dia=${hoje()}`; return; }
+    if (pagina === 'mapa' && typeof abrirDetalhe === 'function') { abrirDetalhe(id); return; }
+    location.href = `./#v=${encodeURIComponent(id)}`;
+  }
+  function irCerca(nome) {
+    if (pagina === 'mapa') focarCerca(nome);
+    else location.href = `./#cerca=${encodeURIComponent(nome)}`;
+  }
+
+  /* ======================= Localização: gaveta + cercas ======================= */
+  let alturaFolha = () => 0;
+  let definirFolha = () => {};
+
+  function focarCerca(nome) {
+    if (typeof S === 'undefined' || typeof mapa === 'undefined') return;
+    const c = (S.cercas ?? []).find((x) => x.name === nome);
+    if (!c) return;
+    if (S.sel && typeof fecharDetalhe === 'function') fecharDetalhe();
+    // destaque temporário do contorno
+    const destaque = L.polygon(c.polygon, { color: '#facc15', weight: 5, fill: false, className: 'cerca-achada', interactive: false }).addTo(mapa);
+    setTimeout(() => mapa.removeLayer(destaque), 7000);
+    if (S.snap?.veiculos.some((v) => v.area === nome)) {
+      S.filtro.area = nome;
+      if (typeof trocarAba === 'function') trocarAba('veiculos');
+      if (typeof render === 'function') render();
+    }
+    if (celular.matches) definirFolha('meio');
+    mapa.fitBounds(L.latLngBounds(c.polygon), { paddingTopLeft: [20, 20], paddingBottomRight: [20, 20 + alturaFolha()], maxZoom: 18 });
+  }
+
+  if (pagina === 'mapa') {
+    const painel = $('#painel');
+    const layout = $('.layout');
+    const alca = document.createElement('div');
+    alca.className = 'folha-alca';
+    alca.setAttribute('role', 'button');
+    alca.setAttribute('aria-label', 'Arrastar para ver mais ou menos da lista');
+    painel.prepend(alca);
+
+    let estado = 'baixo';
+    const alturas = () => {
+      const max = Math.max(260, layout.getBoundingClientRect().height - 6);
+      return { baixo: Math.min(196, max), meio: Math.round(max * 0.55), cheio: max };
+    };
+    alturaFolha = () => (celular.matches ? painel.getBoundingClientRect().height : 0);
+    definirFolha = (e) => {
+      if (!celular.matches) return;
+      estado = e;
+      painel.style.setProperty('--folha-h', alturas()[e] + 'px');
+    };
+
+    // arrastar pela alça ou pelo topo da lista (abas/busca); toque na alça alterna
+    let ini = null;
+    const inicio = (ev) => {
+      if (!celular.matches || ev.target.closest('input, button, select, a, .chip')) return;
+      ini = { y: ev.clientY, h: painel.getBoundingClientRect().height, t: performance.now(), moveu: false };
+      painel.classList.add('arrastando');
+      ev.currentTarget.setPointerCapture(ev.pointerId);
+    };
+    const mover = (ev) => {
+      if (!ini) return;
+      const dy = ini.y - ev.clientY;
+      if (Math.abs(dy) > 4) ini.moveu = true;
+      const a = alturas();
+      painel.style.setProperty('--folha-h', Math.max(a.baixo - 40, Math.min(a.cheio, ini.h + dy)) + 'px');
+    };
+    const fim = (ev) => {
+      if (!ini) return;
+      painel.classList.remove('arrastando');
+      const a = alturas();
+      const ordem = ['baixo', 'meio', 'cheio'];
+      if (!ini.moveu) {
+        if (ev.currentTarget === alca) definirFolha(ordem[(ordem.indexOf(estado) + 1) % 3]);
+        else definirFolha(estado);
+        ini = null;
+        return;
+      }
+      const h = painel.getBoundingClientRect().height;
+      const vel = (ini.y - ev.clientY) / Math.max(1, performance.now() - ini.t); // px/ms, + = para cima
+      let alvo = ordem.reduce((m, k) => (Math.abs(a[k] - h) < Math.abs(a[m] - h) ? k : m), 'baixo');
+      if (Math.abs(vel) > 0.6) { // gesto rápido: vai para o próximo nível na direção do gesto
+        const i = ordem.indexOf(estado);
+        alvo = ordem[Math.max(0, Math.min(2, i + (vel > 0 ? 1 : -1)))];
+      }
+      definirFolha(alvo);
+      ini = null;
+    };
+    for (const el of [alca, $('.painel-topo', painel)]) {
+      if (!el) continue;
+      el.addEventListener('pointerdown', inicio);
+      el.addEventListener('pointermove', mover);
+      el.addEventListener('pointerup', fim);
+      el.addEventListener('pointercancel', fim);
+    }
+    const aplicar = () => {
+      if (celular.matches) definirFolha(estado);
+      else painel.style.removeProperty('--folha-h');
+      try { mapa.invalidateSize(); } catch {}
+    };
+    celular.addEventListener('change', aplicar);
+    addEventListener('resize', () => { if (celular.matches) definirFolha(estado); });
+    aplicar();
+
+    // ao abrir um veículo: gaveta no meio e o caminhão centralizado acima dela
+    if (typeof abrirDetalhe === 'function') {
+      const original = abrirDetalhe;
+      window.abrirDetalhe = function (id) {
+        original(id);
+        if (!celular.matches) return;
+        definirFolha('meio');
+        mapa.once('moveend', () => mapa.panBy([0, alturaFolha() / 2], { animate: true }));
+      };
+    }
+
+    // link vindo da busca de outra página: ./#cerca=NOME
+    const cercaHash = new URLSearchParams(location.hash.slice(1)).get('cerca');
+    if (cercaHash) {
+      const espera = setInterval(() => {
+        if (typeof S !== 'undefined' && S.snap?.veiculos?.length && S.cercas?.length) {
+          clearInterval(espera);
+          setTimeout(() => focarCerca(cercaHash), 400);
+        }
+      }, 300);
+      setTimeout(() => clearInterval(espera), 20000);
+    }
+  }
+
+  /* ======================= Alertas: detalhe por cima da lista ======================= */
+  if (pagina === 'alertas') {
+    const det = $('.al-detalhe');
+    if (det) {
+      const voltar = document.createElement('button');
+      voltar.type = 'button';
+      voltar.className = 'btn btn-neutro al-voltar';
+      voltar.style.cssText = 'margin:8px 12px 0;align-self:flex-start;min-height:40px';
+      voltar.textContent = '← Voltar para a lista';
+      voltar.onclick = () => document.body.classList.remove('detalhe-aberto');
+      det.prepend(voltar);
+      $('#alCorpo')?.addEventListener('click', (e) => {
+        if (celular.matches && e.target.closest('.al-item')) document.body.classList.add('detalhe-aberto');
+      });
+    }
+  }
+
+  // o layout muda depois que a página montou o mapa: recalcula o tamanho
+  setTimeout(() => { try { mapa.invalidateSize(); } catch {} }, 300);
+})();

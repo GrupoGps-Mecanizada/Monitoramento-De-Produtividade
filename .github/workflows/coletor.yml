@@ -5,6 +5,10 @@ on:
     # a cada 5 min (o menor intervalo do GitHub; na prática o GitHub atrasa alguns minutos)
     - cron: '*/5 * * * *'
   workflow_dispatch: # botão "Run workflow" para rodar na hora
+  # roda também quando o código do coletor muda (valida a mudança na hora)
+  push:
+    branches: [main]
+    paths: ['coletor/**', '.github/workflows/coletor.yml']
 
 # nunca duas execuções ao mesmo tempo (evita requisições em dobro ao GAUSS)
 concurrency:
