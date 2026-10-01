@@ -1,594 +1,82 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Timeline Motor + Apontamentos — GrupoGPS</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%231f3864%22/><rect x=%2222%22 y=%2242%22 width=%2222%22 height=%2216%22 rx=%223%22 fill=%22%2338a169%22/><rect x=%2250%22 y=%2230%22 width=%2228%22 height=%2216%22 rx=%223%22 fill=%22%23e53e3e%22/><rect x=%2222%22 y=%2264%22 width=%2256%22 height=%2210%22 rx=%223%22 fill=%22%239b2c2c%22/></svg>">
-
-<script src="https://unpkg.com/vis-timeline@7.7.3/standalone/umd/vis-timeline-graph2d.min.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/vis-timeline@7.7.3/styles/vis-timeline-graph2d.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; font-family: 'Inter','Segoe UI',sans-serif; background: #f0f2f6; color: #1a202c; font-size: 13px; }
-
-  .app-header {
-    background: linear-gradient(135deg,#1f3864 0%,#16305a 100%);
-    padding: .65rem 1.6rem; display: flex; align-items: center; justify-content: space-between;
-    box-shadow: 0 2px 12px rgba(0,0,0,.25);
-  }
-  .brand strong { font-size: .92rem; font-weight: 800; color: #fff; display: block; text-transform: uppercase; letter-spacing: .04em; }
-  .brand span { font-size: .68rem; color: #90adc4; font-weight: 500; }
-  .status-text { font-size: .68rem; color: #90adc4; font-weight: 600; }
-
-  .filtros {
-    background: #fff; border-bottom: 1px solid #dde3ec; padding: .6rem 1.6rem;
-    display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;
-  }
-  .filtro-grupo { display: flex; flex-direction: column; gap: 2px; }
-  .filtro-grupo label { font-size: .63rem; font-weight: 700; color: #718096; text-transform: uppercase; letter-spacing: .03em; }
-  .filtro-grupo input[type="datetime-local"] {
-    padding: .32rem .5rem; border-radius: 5px; border: 1.5px solid #dde3ec; font-family: inherit; font-size: .72rem; font-weight: 600; color: #1a202c;
-  }
-  .filtro-sep { flex: 1; }
-
-  .filtro-btn {
-    padding: .38rem .8rem; border-radius: 5px; border: 1.5px solid #dde3ec; background: #fff;
-    font-size: .72rem; font-weight: 700; color: #1a202c; cursor: pointer; font-family: inherit;
-  }
-  .filtro-btn:hover { background: #f7fafc; }
-
-  .dropdown-wrap { position: relative; }
-  .dropdown-panel {
-    position: absolute; top: calc(100% + 4px); left: 0; z-index: 50;
-    background: #fff; border: 1px solid #dde3ec; border-radius: 7px; box-shadow: 0 8px 24px rgba(0,0,0,.12);
-    padding: .5rem; min-width: 220px; max-height: 320px; overflow-y: auto;
-  }
-  .dropdown-panel label { display: flex; align-items: center; gap: .4rem; font-size: .74rem; font-weight: 600; padding: .25rem .3rem; border-radius: 4px; cursor: pointer; }
-  .dropdown-panel label:hover { background: #f7fafc; }
-  .dropdown-panel hr { border: none; border-top: 1px solid #e2e8f0; margin: .3rem 0; }
-
-  .segmented { display: flex; border: 1.5px solid #dde3ec; border-radius: 6px; overflow: hidden; }
-  .seg-btn {
-    padding: .38rem .8rem; border: none; background: #fff; font-size: .7rem; font-weight: 700;
-    color: #4a5568; cursor: pointer; font-family: inherit; border-right: 1px solid #dde3ec;
-  }
-  .seg-btn:last-child { border-right: none; }
-  .seg-btn.active { background: #1f3864; color: #fff; }
-
-  .refresh-btn {
-    background: #276749; color: #fff; border: none; padding: .42rem 1rem; border-radius: 5px;
-    font-size: .72rem; font-weight: 700; cursor: pointer; font-family: inherit; height: 30px;
-  }
-  .refresh-btn:hover { background: #2f7a54; }
-
-  .legenda {
-    display: flex; flex-wrap: wrap; gap: .9rem; background: #fff; border-bottom: 1px solid #dde3ec;
-    padding: .55rem 1.6rem;
-  }
-  .leg-item { display: flex; align-items: center; gap: .35rem; font-size: .7rem; font-weight: 600; color: #4a5568; }
-  .leg-dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
-
-  .main { padding: 1.1rem 1.6rem 2rem; }
-  #timeline { background: #fff; border: 1px solid #e2e8f0; border-radius: 7px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
-
-  .empty-state { text-align: center; padding: 4rem 2rem; color: #a0aec0; }
-
-  /* EXPERIMENTAL: coluna "VAGA" mesclada (estilo Excel) sobreposta ao início da
-     coluna de rótulos do vis-timeline - ver função sincronizarColunaVaga(). Se não
-     ficar bom, é só restaurar automation/dashboard/index.backup-estavel.html. */
-  .vis-panel.vis-left { min-width: 210px !important; }
-  .vis-labelset .vis-label { border-bottom: 1px solid #edf1f5; }
-  .vis-labelset .vis-label .vis-inner { padding: 4px 10px 4px 96px; }
-  .vis-itemset .vis-group { border-bottom: 1px solid #edf1f5; }
-
-  #colVaga { position: absolute; top: 0; left: 0; width: 88px; height: 100%; z-index: 4; pointer-events: none; }
-  .vaga-box {
-    position: absolute; left: 0; width: 88px; box-sizing: border-box;
-    display: flex; align-items: center; justify-content: center; text-align: center;
-    background: #fff; border-right: 2px solid #dde3ec; border-top: 2px solid #dde3ec;
-    font-weight: 700; font-size: 11px; color: #1a202c; white-space: nowrap;
-  }
-
-  .lbl-row { display: flex; flex-direction: column; gap: 2px; }
-  .grp-title { font-weight: 700; font-size: 11px; color: #1a202c; white-space: nowrap; line-height: 1.2; }
-  .track-label {
-    font-size: 8px; font-weight: 700; color: #a0aec0; white-space: nowrap; line-height: 1.2;
-    text-transform: uppercase; letter-spacing: .04em;
-  }
-
-  .vis-labelset .vis-label.par-1,
-  .vis-itemset .vis-group.par-1 { background: #fff; }
-  .vis-labelset .vis-label.par-2,
-  .vis-itemset .vis-group.par-2 { background: #f7f9fb; }
-  .vis-labelset .vis-label.par-first { border-top: 2px solid #dde3ec; }
-  .vis-itemset .vis-group.par-first { border-top: 2px solid #dde3ec; }
-
-  /* status */
-  .vis-item.status-ligado { background: #1a5c1a; border-color: #124412; }
-  .vis-item.status-secundario { background: #38a169; border-color: #276749; }
-  .vis-item.status-desligado { background: #e53e3e; border-color: #9c0006; }
-  .vis-item.status-parado-ligado { background: #d4ac00; border-color: #967b00; }
-  .vis-item.status-manutencao { background: #f97316; border-color: #c05621; }
-  .vis-item.status-fora-planta { background: #8B4513; border-color: #603010; }
-  .vis-item.status-sem-apropriacao { background: #a0aec0; border-color: #718096; }
-  .vis-item.status-troca-turno { background: #00bcd4; border-color: #00838f; }
-  .vis-item.status-fora-regime { background: #c0c0c0; border-color: #909090; }
-  .vis-item.status-sem-dados { background: #1a202c; border-color: #000; }
-  .vis-item.status-parada-apontada { background: #1a3a5c; border-color: #0f2438; }
-  .vis-item.status-vaga-disponivel { background: #9b59b6; border-color: #6c3483; }
-  .vis-item.status-outro { background: #cbd5e0; border-color: #a0aec0; }
-
-  /* apontamentos (demoras) - track própria */
-  .vis-item.apont-item { background: #9b2c2c; border-color: #63171b; }
-
-  .vis-item { color: #fff; font-size: 10px; border-width: 1.5px; border-radius: 2px; border-color: #fff !important; }
-  .vis-item .vis-item-content { padding: 3px 4px; }
-
-  /* tooltip claro */
-  .vis-tooltip {
-    background: #ffffff !important;
-    color: #1a202c !important;
-    border: 1px solid #dde3ec !important;
-    border-radius: 8px !important;
-    box-shadow: 0 6px 24px rgba(0,0,0,.15) !important;
-    padding: 10px 14px !important;
-    font-family: 'Inter','Segoe UI',sans-serif !important;
-    max-width: min(300px, 88vw) !important;
-    white-space: normal !important;
-  }
-
-  /* ---------- responsivo (celular) ---------- */
-  @media (max-width: 720px) {
-    html, body { font-size: 12px; }
-
-    .app-header { flex-direction: column; align-items: flex-start; gap: .25rem; padding: .6rem 1rem; }
-    .brand span { display: none; }
-
-    .filtros { flex-direction: column; align-items: stretch; padding: .6rem 1rem; gap: .55rem; }
-    .filtro-sep { display: none; }
-    .dropdown-wrap { width: 100%; }
-    .filtro-btn { width: 100%; }
-    .dropdown-panel { left: 0; right: 0; width: auto; }
-
-    .segmented { width: 100%; }
-    .seg-btn { flex: 1; padding: .5rem .3rem; font-size: .68rem; }
-
-    .refresh-btn { width: 100%; height: 38px; }
-
-    .filtro-grupo input[type="datetime-local"] { width: 100%; padding: .5rem; font-size: .78rem; }
-
-    .legenda { padding: .5rem 1rem; gap: .55rem .7rem; }
-    .leg-item { font-size: .64rem; }
-
-    .main { padding: .7rem .6rem 1.2rem; }
-
-    /* toques maiores no painel de vagas, mais fácil de acertar com o dedo */
-    .dropdown-panel label { padding: .5rem .4rem; font-size: .8rem; }
-  }
-</style>
+<title>Localização — Monitoramento GrupoGPS</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%231f3864%22/><path d=%22M50 18c-13 0-23 10-23 23 0 17 23 41 23 41s23-24 23-41c0-13-10-23-23-23z%22 fill=%22%230ca30c%22/><circle cx=%2250%22 cy=%2241%22 r=%229%22 fill=%22%231f3864%22/></svg>">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
+<script src="api-supabase.js"></script>
 </head>
 <body>
-
 <header class="app-header">
-  <div class="brand">
-    <strong>Timeline Motor + Apontamentos</strong>
-    <span>GrupoGPS — Alta Pressão / Auto Vácuo / Hiper Vácuo</span>
-  </div>
-  <span class="status-text" id="lastUpdate"></span>
-</header>
-
-<div class="filtros">
-  <div class="filtro-grupo">
-    <label>Início</label>
-    <input type="datetime-local" id="inicioFiltro">
-  </div>
-  <div class="filtro-grupo">
-    <label>Fim</label>
-    <input type="datetime-local" id="fimFiltro">
-  </div>
-
-  <div class="filtro-grupo dropdown-wrap">
-    <label>&nbsp;</label>
-    <button class="filtro-btn" id="btnVagas">Vagas ▾</button>
-    <div class="dropdown-panel" id="painelVagas" style="display:none"></div>
-  </div>
-
-  <div class="filtro-grupo">
-    <label>Exibir</label>
-    <div class="segmented" id="segModo">
-      <button class="seg-btn active" data-modo="tudo">Tudo</button>
-      <button class="seg-btn" data-modo="apont">Só Apontamentos</button>
-      <button class="seg-btn" data-modo="status">Só Status</button>
+  <div class="app-header-inner">
+    <div class="brand">
+      <div class="brand-mark">GPS</div>
+      <div class="brand-text">
+        <strong>Monitoramento de Localização</strong>
+        <span>GrupoGPS · Usiminas</span>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="./" class="ativo">Localização</a>
+      <a href="timeline.html">Timeline</a>
+      <a href="alertas.html">Alertas</a>
+    </nav>
+    <div class="header-right">
+      <span class="texto-3 tnum" id="txtCarga" style="font-size:11px;font-weight:600"></span>
+      <span class="live-chip pulsando" id="chipAtualizacao"><span class="live-dot"></span><span id="txtAtualizacao">conectando…</span></span>
+      <button class="icon-btn" id="btnTema" title="Alternar tema" aria-label="Alternar tema">☾</button>
     </div>
   </div>
+</header>
 
-  <div class="filtro-sep"></div>
-  <button class="refresh-btn" id="btnRefresh">Atualizar agora</button>
-</div>
+<div id="faixaErro" class="faixa faixa-atencao" hidden></div>
+<div id="faixaPausa" class="faixa" hidden style="cursor:pointer"></div>
 
-<div class="legenda">
-  <div class="leg-item"><div class="leg-dot" style="background:#1a5c1a"></div>Motor Ligado</div>
-  <div class="leg-item"><div class="leg-dot" style="background:#38a169"></div>Motor Secundário Ligado</div>
-  <div class="leg-item"><div class="leg-dot" style="background:#e53e3e"></div>Motor Desligado</div>
-  <div class="leg-item"><div class="leg-dot" style="background:#d4ac00"></div>Parado Ligado</div>
-  <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Em Manutenção</div>
-  <div class="leg-item"><div class="leg-dot" style="background:#8B4513"></div>Fora da Planta</div>
-  <div class="leg-item"><div class="leg-dot" style="background:#a0aec0"></div>Sem Apropriação</div>
-  <div class="leg-item"><div class="leg-dot" style="background:#1a3a5c"></div>Parada Apontada</div>
-  <div class="leg-item"><div class="leg-dot" style="background:#9b2c2c"></div>Apontamento (Demora)</div>
-</div>
+<section class="kpis" id="kpis" aria-label="Resumo da frota"></section>
 
-<div class="main">
-  <div id="timeline"></div>
-  <div class="empty-state" id="emptyState" style="display:none">Carregando dados do Supabase...</div>
-</div>
+<main class="layout">
+  <aside class="painel" id="painel">
+    <!-- lista / áreas / eventos -->
+    <div id="vistaPrincipal" class="vista">
+      <div class="painel-topo">
+        <div class="segmentado" role="tablist" id="abas">
+          <button data-aba="veiculos" class="ativo">Veículos <span class="cnt" id="cntVeiculos"></span></button>
+          <button data-aba="areas">Áreas <span class="cnt" id="cntAreas"></span></button>
+          <button data-aba="eventos">Eventos <span class="cnt" id="cntEventos"></span></button>
+        </div>
+        <div class="filtros" id="filtrosVeiculos">
+          <input class="input" id="busca" type="search" placeholder="Buscar placa, vaga, área, motorista…" autocomplete="off">
+          <div class="filtro-ativo" id="filtroAtivo" hidden></div>
+        </div>
+        <div class="filtros" id="filtrosEventos" hidden>
+          <div class="linha-filtro">
+            <select class="input" id="diaEventos"></select>
+            <input class="input" id="buscaEventos" type="search" placeholder="Placa ou área…" autocomplete="off">
+          </div>
+          <div class="chips" id="tiposEventos"></div>
+        </div>
+      </div>
+      <div class="painel-corpo" id="corpo"></div>
+    </div>
 
-<script>
-const SUPABASE_URL = 'https://mfsyrsegkvjmefcdaegh.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_rw878qLgcmUdixI8QsejBA_lSXYAsIv';
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    <!-- detalhe de um veículo -->
+    <div id="vistaDetalhe" class="vista" hidden></div>
+  </aside>
 
-const REFRESH_MS = 60000; // atualiza sozinho a cada 1 min
+  <div class="mapa-wrap">
+    <div id="mapa"></div>
+    <div class="legenda-mapa" id="legenda"></div>
+  </div>
+</main>
 
-// mesma lista de vagas do automation/config.js (sem SERVITEC/TROCA)
-const VAGAS_CONHECIDAS = [
-  'ALTA PRESSÃO - GPS - 01 - 24 HS','ALTA PRESSÃO - GPS - 02','ALTA PRESSÃO - GPS - 03',
-  'ALTA PRESSÃO - GPS - 04','ALTA PRESSÃO - GPS - 05','ALTA PRESSÃO - GPS - 06',
-  'ALTA PRESSÃO - GPS - 07 - 16 HS','ALTA PRESSÃO - GPS - 08 - 24 HS','ALTA PRESSÃO - GPS - 09',
-  'ALTA PRESSÃO - GPS - 10','AUTO VÁCUO - GPS - 01 - 24 HS','AUTO VÁCUO - GPS - 02',
-  'AUTO VÁCUO - GPS - 03','AUTO VÁCUO - GPS - 04','AUTO VÁCUO - GPS - 05','AUTO VÁCUO - GPS - 06',
-  'AUTO VÁCUO - GPS - 07 - 16 HS','AUTO VÁCUO - GPS - 08 - 24 HS','HIPER VÁCUO - GPS - 01',
-  'HIPER VÁCUO - GPS - 02','HIPER VÁCUO - GPS - 03',
-];
-
-/* Mesmas regras de cor da legenda GAUSS FLEET (referência: relatorio-produtividade.html) */
-const STATUS_CLASS = [
-  [/motor secund[aá]rio/i, 'status-secundario'],
-  [/motor ligado/i,        'status-ligado'],
-  [/motor desligado/i,     'status-desligado'],
-  [/parado ligado/i,       'status-parado-ligado'],
-  [/manuten[cç][aã]o/i,    'status-manutencao'],
-  [/fora da planta/i,      'status-fora-planta'],
-  [/sem apropria|indispon[ií]vel/i, 'status-sem-apropriacao'],
-  [/troca de turno/i,      'status-troca-turno'],
-  [/fora do regime/i,      'status-fora-regime'],
-  [/sem dados/i,           'status-sem-dados'],
-  [/parada apontada/i,     'status-parada-apontada'],
-  [/vaga dispon[ií]vel/i,  'status-vaga-disponivel'],
-];
-function statusClass(label) {
-  for (const [re, cls] of STATUS_CLASS) if (re.test(label || '')) return cls;
-  return 'status-outro';
-}
-
-function normVaga(v) {
-  return (v || '')
-    .toUpperCase()
-    .replace(/[ÁÀÂÃ]/g, 'A')
-    .replace(/[ÉÈÊ]/g, 'E')
-    .replace(/[ÍÌÎ]/g, 'I')
-    .replace(/[ÓÒÔÕ]/g, 'O')
-    .replace(/[ÚÙÛÜ]/g, 'U')
-    .replace(/Ç/g, 'C')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function abrevVaga(nome) {
-  return (nome || '')
-    .replace(/ALTA\s+PRESS[ÃA]O\s*-\s*GPS\s*-\s*/i, 'AP-')
-    .replace(/AUTO\s+V[ÁA]CUO\s*-\s*GPS\s*-\s*/i, 'AV-')
-    .replace(/HIPER\s+V[ÁA]CUO\s*-\s*GPS\s*-\s*/i, 'HP-')
-    .replace(/\s*-\s*24\s*HS/i, ' (24H)')
-    .replace(/\s*-\s*16\s*HS/i, ' (16H)')
-    .trim();
-}
-
-function truncar(txt, max) {
-  if (!txt) return '';
-  return txt.length > max ? txt.slice(0, max - 1) + '…' : txt;
-}
-
-function fmtDataHora(iso) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (isNaN(d)) return iso;
-  return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-}
-
-function fmtHoras(h) {
-  const horas = Math.floor(h);
-  const min = Math.round((h - horas) * 60);
-  if (horas === 0) return `${min}min`;
-  if (min === 0) return `${horas}h`;
-  return `${horas}h ${min}min`;
-}
-
-function tooltipStatus(r) {
-  return `
-    <div style="font-size:12.5px;line-height:1.5;width:min(260px,78vw);">
-      <div style="font-weight:700;text-align:center;background:#f0f2f6;padding:3px 8px;border-radius:4px;margin-bottom:6px;">Status Automático</div>
-      <div><strong style="color:#1f3864;">Equipamento:</strong> ${r.vaga_nome}</div>
-      <div><strong style="color:#1f3864;">Status:</strong> ${r.status_label}</div>
-      <div><strong style="color:#1f3864;">Início:</strong> ${fmtDataHora(r.inicio)}</div>
-      <div><strong style="color:#1f3864;">Fim:</strong> ${fmtDataHora(r.fim)}</div>
-      <div><strong style="color:#1f3864;">Duração:</strong> ${fmtHoras(r.tempo_total_horas || 0)}</div>
-    </div>`;
-}
-
-function tooltipApontamento(r) {
-  return `
-    <div style="font-size:12.5px;line-height:1.5;width:min(260px,78vw);">
-      <div style="font-weight:700;text-align:center;background:#f0f2f6;padding:3px 8px;border-radius:4px;margin-bottom:6px;">Apontamento</div>
-      <div><strong style="color:#1f3864;">Equipamento:</strong> ${r.vaga}</div>
-      <div><strong style="color:#1f3864;">Placa:</strong> ${r.placa}</div>
-      <div><strong style="color:#1f3864;">Categoria:</strong> ${r.categoria_demora}</div>
-      <div><strong style="color:#1f3864;">Início:</strong> ${fmtDataHora(r.inicio)}</div>
-      <div><strong style="color:#1f3864;">Fim:</strong> ${fmtDataHora(r.fim)}</div>
-      <div><strong style="color:#1f3864;">Duração:</strong> ${r.tempo_indisponivel || '—'}</div>
-      <div><strong style="color:#1f3864;">Justificativa:</strong> ${r.justificativa || '—'}</div>
-    </div>`;
-}
-
-let timeline = null;
-const groupsDS = new vis.DataSet([]);
-const itemsDS = new vis.DataSet([]);
-
-// dados brutos da última busca no Supabase, para poder re-filtrar sem rebuscar
-let ultimoStatusRows = [];
-let ultimoApontRows = [];
-
-function initTimeline() {
-  const container = document.getElementById('timeline');
-  const options = {
-    stack: false,
-    horizontalScroll: true,
-    zoomKey: 'ctrlKey',
-    zoomMin: 1000 * 60 * 5,           // não deixa dar zoom além de 5 min
-    zoomMax: 1000 * 60 * 60 * 24 * 3, // nem afastar além de 3 dias
-    orientation: 'top',
-    margin: { item: { horizontal: 2, vertical: 2 } },
-    height: window.innerWidth < 720 ? '72vh' : '650px',
-    showCurrentTime: true,
-    tooltip: { followMouse: true },
-  };
-  timeline = new vis.Timeline(container, itemsDS, groupsDS, options);
-}
-
-/* ---------- filtro de vagas (dropdown com checkboxes) ---------- */
-const vagasSelecionadas = new Set(VAGAS_CONHECIDAS.map(normVaga));
-
-function montarPainelVagas() {
-  const painel = document.getElementById('painelVagas');
-  let html = `<label><input type="checkbox" id="vagaTodas" checked> <strong>Todas</strong></label><hr>`;
-  for (const nome of VAGAS_CONHECIDAS) {
-    html += `<label><input type="checkbox" class="vaga-check" value="${normVaga(nome)}" checked> ${abrevVaga(nome)}</label>`;
-  }
-  painel.innerHTML = html;
-
-  document.getElementById('vagaTodas').addEventListener('change', (e) => {
-    document.querySelectorAll('.vaga-check').forEach((cb) => (cb.checked = e.target.checked));
-    atualizarSelecaoVagas();
-  });
-  document.querySelectorAll('.vaga-check').forEach((cb) => cb.addEventListener('change', atualizarSelecaoVagas));
-}
-
-function atualizarSelecaoVagas() {
-  vagasSelecionadas.clear();
-  document.querySelectorAll('.vaga-check:checked').forEach((cb) => vagasSelecionadas.add(cb.value));
-  renderTimeline();
-}
-
-document.getElementById('btnVagas').addEventListener('click', (e) => {
-  e.stopPropagation();
-  const painel = document.getElementById('painelVagas');
-  painel.style.display = painel.style.display === 'none' ? 'block' : 'none';
-});
-document.addEventListener('click', () => (document.getElementById('painelVagas').style.display = 'none'));
-document.getElementById('painelVagas').addEventListener('click', (e) => e.stopPropagation());
-
-/* ---------- filtro de modo (tudo / só apontamentos / só status) ---------- */
-let modoExibicao = 'tudo';
-document.getElementById('segModo').addEventListener('click', (e) => {
-  const btn = e.target.closest('.seg-btn');
-  if (!btn) return;
-  document.querySelectorAll('.seg-btn').forEach((b) => b.classList.remove('active'));
-  btn.classList.add('active');
-  modoExibicao = btn.dataset.modo;
-  renderTimeline();
-});
-
-/* ---------- busca no Supabase ---------- */
-async function buscarDados() {
-  document.getElementById('emptyState').style.display = 'block';
-  document.getElementById('emptyState').textContent = 'Carregando dados do Supabase...';
-
-  const inicio = document.getElementById('inicioFiltro').value.replace('T', ' ') + ':00';
-  const fim = document.getElementById('fimFiltro').value.replace('T', ' ') + ':00';
-
-  const [{ data: statusRows, error: err1 }, { data: apontRows, error: err2 }] = await Promise.all([
-    db.from('timeline_motor_vaga').select('*').gte('inicio', inicio).lte('inicio', fim),
-    db.from('demoras_categorizadas').select('*').gte('inicio', inicio).lte('inicio', fim),
-  ]);
-
-  if (err1 || err2) {
-    document.getElementById('emptyState').textContent = 'Erro ao buscar dados: ' + (err1 || err2).message;
-    return;
-  }
-
-  ultimoStatusRows = statusRows || [];
-  ultimoApontRows = apontRows || [];
-  document.getElementById('lastUpdate').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR');
-
-  renderTimeline();
-}
-
-/* ---------- monta grupos/itens a partir dos dados já buscados + filtros ativos ---------- */
-function renderTimeline() {
-  const vagaOrder = new Map(); // normVaga -> índice
-  function ensureVaga(nome) {
-    const key = normVaga(nome);
-    if (!vagaOrder.has(key)) vagaOrder.set(key, { key, nome, idx: vagaOrder.size });
-    return vagaOrder.get(key);
-  }
-
-  const mostrarStatus = modoExibicao === 'tudo' || modoExibicao === 'status';
-  const mostrarApont = modoExibicao === 'tudo' || modoExibicao === 'apont';
-
-  const items = [];
-  let itemId = 1;
-
-  if (mostrarStatus) {
-    for (const r of ultimoStatusRows) {
-      const key = normVaga(r.vaga_nome);
-      if (!vagasSelecionadas.has(key)) continue;
-      const v = ensureVaga(r.vaga_nome);
-      items.push({
-        id: itemId++,
-        group: v.key + '__status',
-        start: r.inicio,
-        end: r.fim,
-        type: 'range',
-        content: truncar(r.status_label, 22),
-        className: statusClass(r.status_label),
-        title: tooltipStatus(r),
-      });
-    }
-  }
-
-  if (mostrarApont) {
-    for (const r of ultimoApontRows) {
-      const key = normVaga(r.vaga);
-      if (!vagasSelecionadas.has(key)) continue;
-      const v = ensureVaga(r.vaga);
-      const fimApont = r.fim || new Date(new Date(r.inicio).getTime() + 5 * 60000).toISOString();
-      items.push({
-        id: itemId++,
-        group: v.key + '__apont',
-        start: r.inicio,
-        end: fimApont,
-        type: 'range',
-        content: truncar(r.categoria_demora, 18),
-        className: 'apont-item',
-        title: tooltipApontamento(r),
-      });
-    }
-  }
-
-  // par-first/par-1/par-2: fundo compartilhado entre as 2 linhas de cada equipamento.
-  // O nome da vaga NÃO entra mais no rótulo do vis-timeline - vira uma caixa própria
-  // na coluna #colVaga, sincronizada em cima dessas linhas (ver sincronizarColunaVaga).
-  const vagaList = Array.from(vagaOrder.values()).sort((a, b) => a.nome.localeCompare(b.nome));
-  const groups = [];
-  for (const v of vagaList) {
-    if (mostrarStatus) {
-      groups.push({
-        id: v.key + '__status',
-        order: v.idx * 2,
-        className: 'par-1 par-first',
-        content: `<div class="lbl-row"><div class="track-label">Telemetria</div></div>`,
-      });
-    }
-    if (mostrarApont) {
-      groups.push({
-        id: v.key + '__apont',
-        order: v.idx * 2 + 1,
-        className: mostrarStatus ? 'par-2' : 'par-1 par-first',
-        content: `<div class="lbl-row"><div class="track-label">Apontamentos</div></div>`,
-      });
-    }
-  }
-
-  groupsDS.clear(); groupsDS.add(groups);
-  itemsDS.clear(); itemsDS.add(items);
-
-  // vis-timeline recém criado com DataSet vazio às vezes não redesenha sozinho
-  // quando os dados chegam depois - forçar via setGroups/setItems.
-  timeline.setGroups(groupsDS);
-  timeline.setItems(itemsDS);
-
-  const inicio = document.getElementById('inicioFiltro').value;
-  const fim = document.getElementById('fimFiltro').value;
-  if (inicio && fim) timeline.setWindow(inicio, fim);
-
-  document.getElementById('emptyState').style.display = groups.length ? 'none' : 'block';
-  if (!groups.length) document.getElementById('emptyState').textContent = 'Nenhum dado encontrado para esse período/filtro.';
-
-  const linhasPorVaga = mostrarStatus && mostrarApont ? 2 : 1;
-  requestAnimationFrame(() => requestAnimationFrame(() => sincronizarColunaVaga(vagaList, linhasPorVaga)));
-}
-
-/* ---------- EXPERIMENTAL: coluna "VAGA" mesclada, estilo Excel ----------
-   O vis-timeline não faz rowspan, então medimos a altura real de cada linha
-   renderizada (.vis-label) e desenhamos por cima uma caixa cobrindo o par
-   inteiro. Roda depois de cada redraw (2x requestAnimationFrame pra garantir
-   que o vis-timeline já terminou de desenhar). Se ficar instável, remover
-   essa função + a chamada acima resolve, o resto do arquivo continua igual. */
-function sincronizarColunaVaga(vagaList, linhasPorVaga) {
-  const labelset = document.querySelector('#timeline .vis-labelset');
-  if (!labelset) return;
-
-  let overlay = labelset.querySelector('#colVaga');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'colVaga';
-    labelset.appendChild(overlay);
-  }
-  overlay.innerHTML = '';
-
-  const linhas = Array.from(labelset.children).filter((el) => el.classList.contains('vis-label'));
-
-  for (let i = 0; i < vagaList.length; i++) {
-    const inicioIdx = i * linhasPorVaga;
-    const primeira = linhas[inicioIdx];
-    const ultima = linhas[inicioIdx + linhasPorVaga - 1];
-    if (!primeira || !ultima) continue;
-
-    const top = primeira.offsetTop;
-    const height = ultima.offsetTop + ultima.offsetHeight - top;
-
-    const box = document.createElement('div');
-    box.className = 'vaga-box';
-    box.style.top = top + 'px';
-    box.style.height = height + 'px';
-    box.textContent = abrevVaga(vagaList[i].nome);
-    overlay.appendChild(box);
-  }
-}
-
-function localDateTimeStr(d) {
-  const tzOffsetMs = d.getTimezoneOffset() * 60000;
-  return new Date(d - tzOffsetMs).toISOString().slice(0, 16);
-}
-
-const agora = new Date();
-const inicioHoje = new Date(agora); inicioHoje.setHours(0, 0, 0, 0);
-const fimHoje = new Date(agora); fimHoje.setHours(23, 59, 0, 0);
-document.getElementById('inicioFiltro').value = localDateTimeStr(inicioHoje);
-document.getElementById('fimFiltro').value = localDateTimeStr(fimHoje);
-
-document.getElementById('btnRefresh').addEventListener('click', buscarDados);
-document.getElementById('inicioFiltro').addEventListener('change', buscarDados);
-document.getElementById('fimFiltro').addEventListener('change', buscarDados);
-
-// ajusta altura da timeline e realinha a coluna de vaga ao girar/redimensionar a tela
-let resizeTimer = null;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
-    timeline.setOptions({ height: window.innerWidth < 720 ? '72vh' : '650px' });
-    renderTimeline();
-  }, 200);
-});
-
-montarPainelVagas();
-initTimeline();
-buscarDados();
-setInterval(buscarDados, REFRESH_MS);
-</script>
+<script src="app.js"></script>
 </body>
 </html>

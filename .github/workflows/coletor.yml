@@ -1,0 +1,38 @@
+name: Coletor de localização (GAUSS -> Supabase)
+
+on:
+  schedule:
+    # a cada 5 min (o menor intervalo do GitHub; na prática o GitHub atrasa alguns minutos)
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # botão "Run workflow" para rodar na hora
+
+# nunca duas execuções ao mesmo tempo (evita requisições em dobro ao GAUSS)
+concurrency:
+  group: coletor-localizacao
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: coletor
+    env:
+      TZ: America/Sao_Paulo
+      GAUSSFLEET_USERNAME: ${{ secrets.GAUSSFLEET_USERNAME }}
+      GAUSSFLEET_PASSWORD: ${{ secrets.GAUSSFLEET_PASSWORD }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: coletor/package-lock.json
+      - run: npm ci --omit=dev --no-audit --no-fund
+      - run: node run.js
