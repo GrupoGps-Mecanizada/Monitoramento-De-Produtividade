@@ -187,9 +187,13 @@ const KPIS = [
     sub: () => `+${S.snap?.sem_sinal_min ?? 30} min sem posição nova` },
 ];
 
+// a fileira de indicadores foi retirada da página a pedido (01/10/2026); se voltar
+// a existir um #kpis, ela é desenhada de novo
 function renderKPIs() {
+  const el = $('#kpis');
+  if (!el) return;
   const vs = S.snap.veiculos;
-  $('#kpis').innerHTML = KPIS.map((k) => {
+  el.innerHTML = KPIS.map((k) => {
     const n = vs.filter(k.filtro).length;
     const ativo = S.filtro.kpi === k.id || (k.id === 'todos' && !S.filtro.kpi);
     const sub = k.sub ? k.sub() : k.id === 'todos' ? `${vs.filter((v) => frescor(v) === 'vivo').length} com posição ao vivo` : `${Math.round((n / (vs.length || 1)) * 100)}% da frota`;
@@ -199,7 +203,7 @@ function renderKPIs() {
       <span class="kpi-sub">${sub}</span></button>`;
   }).join('');
 }
-$('#kpis').onclick = (e) => {
+if ($('#kpis')) $('#kpis').onclick = (e) => {
   const b = e.target.closest('[data-kpi]');
   if (!b) return;
   S.filtro.kpi = b.dataset.kpi === 'todos' || S.filtro.kpi === b.dataset.kpi ? null : b.dataset.kpi;
