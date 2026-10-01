@@ -13,7 +13,7 @@ coletor/run.js  ── consulta o GAUSS        loc_kv (retrato, cercas)   ◀─
 ```
 
 - **Página** (`index.html`, `timeline.html`, `alertas.html`): estática, só lê do Supabase. `api-supabase.js` atende as chamadas `/api/...` que as páginas faziam ao servidor local.
-- **Coletor** (`coletor/`): roda no GitHub Actions (`.github/workflows/coletor.yml`). Uma requisição traz a posição da frota inteira; cadastro e cercas ficam em cache; histórico só é buscado quando alguém pede e dia encerrado é baixado uma única vez.
+- **Coletor** (`coletor/`): roda no GitHub Actions (`.github/workflows/coletor.yml`), disparado pelo Supabase a cada 5 min e na hora de cada pedido de histórico (`supabase/disparo.sql`). Uma requisição traz a posição da frota inteira; cadastro e cercas ficam em cache; histórico só é buscado quando alguém pede e dia encerrado é baixado uma única vez.
 - **Banco**: `supabase/schema.sql` (tabelas `loc_*`, RLS e Realtime). A página pode ler e criar pedido de histórico; só o coletor (chave secreta) escreve.
 
 ## Configuração (uma vez)
@@ -24,7 +24,7 @@ coletor/run.js  ── consulta o GAUSS        loc_kv (retrato, cercas)   ◀─
    - `SUPABASE_URL` — `https://mfsyrsegkvjmefcdaegh.supabase.co`
    - `SUPABASE_SECRET_KEY` — chave secreta do Supabase (nunca colocar no código)
 3. **Pages:** Settings → Pages → Deploy from a branch → `main` / `(root)`.
-4. **Primeira coleta:** Actions → "Coletor de localização" → Run workflow.
+4. **Disparo:** crie um token fine-grained (só este repositório, Actions: Read and write) e rode `supabase/disparo.sql` no SQL Editor com o token na linha 12 — **sem salvar o token no arquivo**.
 
 ## Regras da frota
 
@@ -33,5 +33,5 @@ coletor/run.js  ── consulta o GAUSS        loc_kv (retrato, cercas)   ◀─
 
 ## Cuidados
 
-- O GitHub desativa workflows agendados de repositórios públicos sem atividade por 60 dias — se o mapa parar de atualizar, confira em Actions se o workflow está ativo.
+- O token do GitHub usado pelo Supabase vence na data escolhida ao criá-lo: gere outro e rode `supabase/disparo.sql` de novo (ele atualiza o Vault).
 - O cron do GitHub não é pontual: atrasos de alguns minutos são normais. A página avisa quando a última leitura passa de 15 min.
