@@ -13,8 +13,6 @@ const eslintConfig = defineConfig([
     "coletor/node_modules/**",
     "test-results/**",
     "playwright-report/**",
-    // site antigo (HTML + JS puro): sai na Tarefa 16
-    "*.js",
   ]),
 ]);
 

@@ -1,0 +1,42 @@
+name: Publicar site (GitHub Pages)
+
+# Settings > Pages > Source: "GitHub Actions" (troca feita pelo dono no dia da publicação)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      TZ: America/Sao_Paulo
+      BASE_PATH: /Monitoramento-De-Produtividade
+      # valores públicos: a chave publishable só lê e cria pedido de histórico (RLS em supabase/schema.sql)
+      NEXT_PUBLIC_SUPABASE_URL: https://mfsyrsegkvjmefcdaegh.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_rw878qLgcmUdixI8QsejBA_lSXYAsIv
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+      - id: deploy
+        uses: actions/deploy-pages@v4
