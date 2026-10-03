@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Veiculo } from "../tipos";
-import { FORA_DE_AREA, agruparPorArea, areaInicial, categoria, filtrarVeiculos, frescor, noIndicador, resumoAreas, semMotor2 } from "./veiculo";
+import { FORA_DE_AREA, agruparPorArea, areaInicial, categoria, filtrarVeiculos, frescor, noIndicador, resolverVeiculo, resumoAreas, semMotor2 } from "./veiculo";
 
 const AGORA = new Date("2026-10-01T12:00:00Z").getTime();
 const v = (o: Partial<Veiculo>): Veiculo => ({
@@ -58,5 +58,20 @@ describe("filtros e agrupamentos", () => {
     const poligonos = { PATIO: [[0, 0], [0, 1], [1, 1]] as [number, number][], OFICINA: [[2, 2], [2, 3], [3, 3]] as [number, number][] };
     expect(areaInicial(semMotor2(frota), poligonos, 30, AGORA)).toBe("PATIO");
     expect(areaInicial([], poligonos, 30, AGORA)).toBeNull();
+  });
+});
+
+describe("resolverVeiculo (links da Timeline)", () => {
+  const todos = [v({ id: "10", placa: "EOF5208" }), v({ id: "11", placa: "EOF52082", motor2_de: "10" })];
+  it("por id ou placa", () => {
+    expect(resolverVeiculo(todos, "10")?.placa).toBe("EOF5208");
+    expect(resolverVeiculo(todos, "EOF5208")?.id).toBe("10");
+  });
+  it("link antigo com o motor secundário abre o caminhão principal", () => {
+    expect(resolverVeiculo(todos, "11")?.id).toBe("10");
+    expect(resolverVeiculo(todos, "EOF52082")?.id).toBe("10");
+  });
+  it("veículo que não existe mais", () => {
+    expect(resolverVeiculo(todos, "99")).toBeNull();
   });
 });

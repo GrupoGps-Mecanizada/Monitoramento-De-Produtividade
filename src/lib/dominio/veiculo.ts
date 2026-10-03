@@ -113,3 +113,10 @@ export function areaInicial(vs: Veiculo[], poligonos: Record<string, LatLng[]>, 
   for (const v of vs) if (frescor(v, semSinalMin, agora) !== "semsinal" && poligonos[v.area]) conta.set(v.area, (conta.get(v.area) ?? 0) + 1);
   return [...conta.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 }
+
+/** Veículo de um link (?v=<id ou placa>): o motor secundário abre o caminhão principal. */
+export function resolverVeiculo(todos: Veiculo[], chave: string): Veiculo | null {
+  const sec = todos.find((x) => x.motor2_de && (x.id === chave || x.placa === chave));
+  const alvo = sec?.motor2_de ?? chave;
+  return todos.find((x) => !x.motor2_de && (x.id === alvo || x.placa === alvo)) ?? null;
+}
