@@ -26,12 +26,22 @@ export function lerCercas(c: SupabaseClient = db()): Promise<Cerca[]> {
   return cercasCache;
 }
 
-/** Eventos de um dia (opcionalmente de um veículo), do mais antigo para o mais novo. */
+// o Supabase entrega no máximo 1000 linhas por consulta: dia movimentado vem em páginas
+const PAGINA_EVENTOS = 1000;
+const MAX_EVENTOS = 5000;
+
+/** Eventos de um dia (opcionalmente de um veículo), do mais antigo para o mais novo; até 5000. */
 export async function lerEventos(dia: string, id?: string, c: SupabaseClient = db()): Promise<Evento[]> {
-  let q = c.from("loc_eventos").select("dados").eq("dia", dia);
-  if (id) q = q.eq("veiculo_id", id);
-  const linhas = (await ok(q.order("t").limit(5000))) as { dados: unknown }[];
-  return linhas.map((l) => validarEvento(l.dados));
+  const eventos: Evento[] = [];
+  for (let de = 0; de < MAX_EVENTOS; de += PAGINA_EVENTOS) {
+    let q = c.from("loc_eventos").select("dados").eq("dia", dia);
+    if (id) q = q.eq("veiculo_id", id);
+    // id desempata eventos do mesmo instante: as páginas não repetem nem pulam linhas
+    const linhas = (await ok(q.order("t").order("id").range(de, de + PAGINA_EVENTOS - 1))) as { dados: unknown }[];
+    eventos.push(...linhas.map((l) => validarEvento(l.dados)));
+    if (linhas.length < PAGINA_EVENTOS) break;
+  }
+  return eventos;
 }
 
 /** Dias com eventos (seletor de dia), do mais novo; hoje sempre aparece. */

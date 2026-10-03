@@ -105,7 +105,7 @@ export function Gaveta({
       style={{ width: px != null ? px : largura }}
       className={cx(
         // painel flutuante: afastado 8px das bordas, cantos arredondados e fundo desfocado
-        "fixed inset-y-2 left-auto right-2 z-40 m-0 h-[calc(100dvh-16px)] max-h-none max-w-[calc(100vw-16px)] overflow-hidden rounded-2xl border border-borda bg-superficie p-0 text-texto shadow-2xl backdrop:bg-slate-950/30 backdrop:backdrop-blur-[2px]",
+        "fixed inset-y-2 left-auto right-2 z-[1050] m-0 h-[calc(100dvh-16px)] max-h-none max-w-[calc(100vw-16px)] overflow-hidden rounded-2xl border border-borda bg-superficie p-0 text-texto shadow-2xl backdrop:bg-slate-950/30 backdrop:backdrop-blur-[2px]",
         !modal && "nao-imprimir",
       )}
     >
