@@ -1,0 +1,401 @@
+@import "tailwindcss";
+
+/*
+ * Identidade visual "Campo" — a mesma do SST - Mecanizada (barra superior escura, azul #1d4fa3, camadas com sombra).
+ * Tema: segue o sistema operacional; o botão de tema grava a escolha em <html data-tema>.
+ * Os tokens abaixo são cópia do SST: mudança de cor deve ser feita nos dois sistemas.
+ */
+:root {
+  color-scheme: light;
+  --fundo: #eef1f5;
+  --superficie: #ffffff;
+  --superficie-2: #f5f7fa;
+  --borda: #e1e5eb;
+  --borda-2: #c5ccd6;
+  --texto: #151922;
+  --texto-suave: #5b6473;
+  --primaria: #1d4fa3;
+  --primaria-texto: #ffffff;
+  --primaria-suave: #e4ecf8;
+  --link: #1d4fa3;
+  --anel: rgba(29, 79, 163, 0.3);
+  --perigo: #b42318;
+  --listra: rgba(20, 20, 20, 0.05);
+
+  /* barra superior */
+  --nav: #12151b;
+  --nav-texto: #eef1f6;
+  --nav-suave: #a2aab8;
+  --nav-hover: rgba(255, 255, 255, 0.08);
+  --nav-ativo: rgba(255, 255, 255, 0.14);
+  --nav-borda: #262b34;
+
+  /* elevação (camadas) */
+  --sombra-1: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.05);
+  --sombra-2: 0 4px 12px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.05);
+  --sombra-3: 0 12px 32px -8px rgba(16, 24, 40, 0.18), 0 4px 8px -4px rgba(16, 24, 40, 0.06);
+  --sombra-4: 0 24px 64px -12px rgba(16, 24, 40, 0.3);
+
+  /* status (mesma semântica de cor da planilha): fundo, texto e ponto */
+  --ok-bg: #e2f2e7;
+  --ok-tx: #16603a;
+  --ok-dot: #2f9e5f;
+  --warn-bg: #fcf0c6;
+  --warn-tx: #6b4f00;
+  --warn-dot: #d9a21b;
+  --bad-bg: #fbe0de;
+  --bad-tx: #8f1f1a;
+  --bad-dot: #d64545;
+  --na-bg: #fde5d2;
+  --na-tx: #8a3a00;
+  --na-dot: #e07b28;
+  --neu-bg: #eceeef;
+  --neu-tx: #56606a;
+  --neu-dot: #a3abb3;
+  --reg-bg: #e3ebf6;
+  --reg-tx: #2c4a6e;
+  --reg-dot: #6d8fbf;
+
+  /* gráficos: categorias em ordem fixa (validada para daltonismo) e escala sequencial azul */
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+  --serie-3: #1baf7a;
+  --serie-4: #eda100;
+  --serie-5: #e87ba4;
+  --seq-1: #cde2fb;
+  --seq-2: #9ec5f4;
+  --seq-3: #6da7ec;
+  --seq-4: #3987e5;
+  --seq-5: #256abf;
+  --seq-6: #184f95;
+  --seq-7: #0d366b;
+  --grade-grafico: #e6e9ee;
+}
+
+/* tema escuro: escolhido no botão, ou do sistema quando não houver escolha */
+:root[data-tema="escuro"] {
+  color-scheme: dark;
+  --fundo: #0d0f13;
+  --superficie: #161920;
+  --superficie-2: #1d2129;
+  --borda: #2a2f39;
+  --borda-2: #3c4350;
+  --texto: #eceef2;
+  --texto-suave: #a0a7b4;
+  --primaria: #5b8ef0;
+  --primaria-texto: #0b1220;
+  --primaria-suave: #16233c;
+  --link: #8fb1f5;
+  --anel: rgba(91, 142, 240, 0.35);
+  --perigo: #f28b82;
+  --listra: rgba(255, 255, 255, 0.05);
+  --nav: #0a0c10;
+  --nav-hover: rgba(255, 255, 255, 0.07);
+  --nav-ativo: rgba(255, 255, 255, 0.12);
+  --nav-borda: #232833;
+  --sombra-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --sombra-2: 0 4px 12px -2px rgba(0, 0, 0, 0.45);
+  --sombra-3: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+  --sombra-4: 0 24px 64px -12px rgba(0, 0, 0, 0.7);
+  --ok-bg: #15301f;
+  --ok-tx: #aee6c1;
+  --ok-dot: #3fb572;
+  --warn-bg: #3a2f08;
+  --warn-tx: #f5d97f;
+  --warn-dot: #e0b23a;
+  --bad-bg: #3d1717;
+  --bad-tx: #ffbdb8;
+  --bad-dot: #ea6060;
+  --na-bg: #3d2309;
+  --na-tx: #ffca9c;
+  --na-dot: #ec8c43;
+  --neu-bg: #222930;
+  --neu-tx: #aab4be;
+  --neu-dot: #66717c;
+  --reg-bg: #1a293b;
+  --reg-tx: #b3cae6;
+  --reg-dot: #7d9dcb;
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  --serie-3: #199e70;
+  --serie-4: #c98500;
+  --serie-5: #d55181;
+  --grade-grafico: #262b34;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    color-scheme: dark;
+    --fundo: #0d0f13;
+    --superficie: #161920;
+    --superficie-2: #1d2129;
+    --borda: #2a2f39;
+    --borda-2: #3c4350;
+    --texto: #eceef2;
+    --texto-suave: #a0a7b4;
+    --primaria: #5b8ef0;
+    --primaria-texto: #0b1220;
+    --primaria-suave: #16233c;
+    --link: #8fb1f5;
+    --anel: rgba(91, 142, 240, 0.35);
+    --perigo: #f28b82;
+    --listra: rgba(255, 255, 255, 0.05);
+    --nav: #0a0c10;
+    --nav-hover: rgba(255, 255, 255, 0.07);
+    --nav-ativo: rgba(255, 255, 255, 0.12);
+    --nav-borda: #232833;
+    --sombra-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --sombra-2: 0 4px 12px -2px rgba(0, 0, 0, 0.45);
+    --sombra-3: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+    --sombra-4: 0 24px 64px -12px rgba(0, 0, 0, 0.7);
+    --ok-bg: #15301f;
+    --ok-tx: #aee6c1;
+    --ok-dot: #3fb572;
+    --warn-bg: #3a2f08;
+    --warn-tx: #f5d97f;
+    --warn-dot: #e0b23a;
+    --bad-bg: #3d1717;
+    --bad-tx: #ffbdb8;
+    --bad-dot: #ea6060;
+    --na-bg: #3d2309;
+    --na-tx: #ffca9c;
+    --na-dot: #ec8c43;
+    --neu-bg: #222930;
+    --neu-tx: #aab4be;
+    --neu-dot: #66717c;
+    --reg-bg: #1a293b;
+    --reg-tx: #b3cae6;
+    --reg-dot: #7d9dcb;
+    --serie-1: #3987e5;
+    --serie-2: #d95926;
+    --serie-3: #199e70;
+    --serie-4: #c98500;
+    --serie-5: #d55181;
+    --grade-grafico: #262b34;
+  }
+}
+
+/* nomes antigos, mantidos para as telas existentes */
+:root {
+  --st-verde-bg: var(--ok-bg);
+  --st-verde-tx: var(--ok-tx);
+  --st-amarelo-bg: var(--warn-bg);
+  --st-amarelo-tx: var(--warn-tx);
+  --st-vermelho-bg: var(--bad-bg);
+  --st-vermelho-tx: var(--bad-tx);
+  --st-laranja-bg: var(--na-bg);
+  --st-laranja-tx: var(--na-tx);
+  --st-cinza-bg: var(--neu-bg);
+  --st-cinza-tx: var(--neu-tx);
+  --st-cinzaazul-bg: var(--reg-bg);
+  --st-cinzaazul-tx: var(--reg-tx);
+  --barra-inapto: var(--bad-dot);
+  --barra-naoaut: var(--na-dot);
+  --barra-avencer: var(--warn-dot);
+}
+
+@theme inline {
+  --color-fundo: var(--fundo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-borda: var(--borda);
+  --color-borda-2: var(--borda-2);
+  --color-texto: var(--texto);
+  --color-suave: var(--texto-suave);
+  --color-primaria: var(--primaria);
+  --color-primaria-texto: var(--primaria-texto);
+  --color-primaria-suave: var(--primaria-suave);
+  --color-link: var(--link);
+  --color-perigo: var(--perigo);
+  --color-nav: var(--nav);
+  --color-nav-texto: var(--nav-texto);
+  --color-nav-suave: var(--nav-suave);
+  --color-nav-hover: var(--nav-hover);
+  --color-nav-borda: var(--nav-borda);
+  --color-nav-ativo: var(--nav-ativo);
+  --font-sans: var(--font-inter), Arial, system-ui, sans-serif;
+  /* sem fonte monoespaçada: números e códigos usam a mesma letra, com algarismos alinhados */
+  --font-mono: var(--font-inter), Arial, system-ui, sans-serif;
+  /* cantos por tamanho: pequenos (selos) 4–6px, campos e botões 8px, cartões 12–14px, painéis 18px */
+  --radius: 8px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+  --shadow-sm: var(--sombra-1);
+  --shadow: var(--sombra-1);
+  --shadow-md: var(--sombra-2);
+  --shadow-lg: var(--sombra-3);
+  --shadow-xl: var(--sombra-3);
+  --shadow-2xl: var(--sombra-4);
+}
+
+body {
+  background: var(--fundo);
+  color: var(--texto);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.25s, color 0.25s;
+}
+
+/* barras de rolagem finas e discretas ("html *" para valer por cima do CSS da planilha Univer) */
+html * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--borda-2) transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--borda-2); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--texto-suave); border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* títulos de tela */
+h1 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* números alinhados em mono */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+/* sobretítulo em mono */
+.sobretitulo {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.st-verde { background: var(--ok-bg); color: var(--ok-tx); }
+.st-amarelo { background: var(--warn-bg); color: var(--warn-tx); }
+.st-vermelho { background: var(--bad-bg); color: var(--bad-tx); }
+.st-laranja { background: var(--na-bg); color: var(--na-tx); }
+.st-cinza { background: var(--neu-bg); color: var(--neu-tx); }
+.st-cinza-azulado { background: var(--reg-bg); color: var(--reg-tx); }
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--primaria);
+  box-shadow: 0 0 0 3px var(--anel);
+}
+:focus-visible {
+  outline: 2px solid var(--primaria);
+  outline-offset: 2px;
+}
+
+@media print {
+  nav, header, .nao-imprimir { display: none !important; }
+}
+
+@layer components {
+  .btn-pri {
+    display: inline-flex;
+    height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--radius-md);
+    background: var(--primaria);
+    padding: 0 16px;
+    font-weight: 600;
+    color: var(--primaria-texto);
+    box-shadow: var(--sombra-1), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    transition: filter 0.15s, box-shadow 0.15s, transform 0.05s;
+  }
+  .btn-pri:hover { filter: brightness(1.08); box-shadow: var(--sombra-2), inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+  .btn-pri:active { transform: translateY(1px); }
+  .btn-pri:disabled { opacity: 0.5; cursor: not-allowed; filter: none; box-shadow: none; }
+  .btn-sec {
+    display: inline-flex;
+    height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--borda);
+    background: var(--superficie);
+    padding: 0 16px;
+    font-weight: 600;
+    color: var(--texto);
+    box-shadow: var(--sombra-1);
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .btn-sec:hover { background: var(--superficie-2); border-color: var(--borda-2); text-decoration: none; }
+  .btn-sec:active { transform: translateY(1px); }
+  .btn-sec:disabled { opacity: 0.5; cursor: not-allowed; }
+  .campo-g {
+    height: 40px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--borda);
+    background: var(--superficie);
+    padding: 0 12px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--texto);
+    box-shadow: inset 0 1px 1px rgba(16, 24, 40, 0.03);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .campo-g:hover { border-color: var(--borda-2); }
+  textarea.campo-g { height: auto; padding: 8px 12px; }
+}
+
+/* números e códigos alinhados (a antiga fonte mono) */
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Monitoramento: motor secundário, trecho em movimento, altura das telas e mapa ---------- */
+:root { --motor2: #0891b2; }
+:root[data-tema="escuro"] { --motor2: #22d3ee; }
+@media (prefers-color-scheme: dark) { :root:not([data-tema="claro"]) { --motor2: #22d3ee; } }
+@theme inline { --color-motor2: var(--motor2); }
+
+.st-mov { background: color-mix(in srgb, var(--serie-1) 15%, transparent); color: var(--serie-1); }
+.st-motor2 { background: color-mix(in srgb, var(--motor2) 15%, transparent); color: var(--motor2); }
+
+/* telas de mapa ocupam o espaço entre a barra superior e (no celular) a barra inferior */
+.altura-tela { height: calc(100dvh - 56px - 64px); }
+@media (min-width: 768px) { .altura-tela { height: calc(100dvh - 62px); } }
+
+.leaflet-container { font-family: var(--font-sans); background: #1b1f27; }
+.leaflet-tooltip.rotulo-cerca { font: 600 11px var(--font-sans); }
+/* marcador do veículo: cor do status (--c), seta na direção, idade da posição */
+.mk {
+  position: absolute; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--c); color: #fff; white-space: nowrap;
+  border: 2px solid #fff; border-radius: 999px; padding: 1px 8px 1px 4px;
+  font: 700 11px/1.5 var(--font-sans);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, .45); cursor: pointer;
+}
+.mk .seta { width: 14px; height: 14px; display: grid; place-items: center; font-size: 10px; line-height: 1; }
+.mk small { font-weight: 500; opacity: .9; }
+.mk .m2 { margin-left: 3px; font-size: 11px; color: #a5f3fc; text-shadow: 0 0 3px #0e7490; }
+.mk.semsinal { opacity: .6; border-style: dashed; }
+.mk.sel { outline: 3px solid #8fb1f5; outline-offset: 1px; z-index: 1; }
+/* agrupamento de marcadores */
+.cl {
+  width: 38px; height: 38px; display: grid; place-items: center;
+  background: var(--primaria); color: #fff; border: 3px solid rgba(255, 255, 255, .85); border-radius: 50%;
+  font: 800 13px var(--font-sans); box-shadow: 0 1px 6px rgba(0, 0, 0, .45);
+}
+.cerca-achada { animation: pulsoCerca 1.2s ease-in-out 3; }
+@keyframes pulsoCerca { 50% { stroke-opacity: .25; } }
+/* caminhão do player da Timeline */
+.mk-play {
+  position: absolute; transform: translate(-50%, -50%); display: grid; place-items: center;
+  width: 34px; height: 34px; border-radius: 50%; background: var(--c, var(--serie-1));
+  border: 3px solid #fff; box-shadow: 0 0 0 2px #0b1220, 0 2px 10px rgba(0, 0, 0, .6); color: #fff; font-size: 15px;
+}
+.mk-play .seta-play { display: block; line-height: 1; transition: transform .15s linear; }
+.mk-play .m2 {
+  position: absolute; right: -9px; top: -9px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--motor2); border: 2px solid #fff; font-size: 10px; display: grid; place-items: center;
+}
