@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { montarApontamento } from "../src/lib/dominio/apontamento";
+import { montarSnapshot, processarLeitura } from "../src/lib/dominio/leitura";
 
 // Amostras do coletor antigo em JS, gravadas por coletor/scripts/gravar-amostras.mjs (Tarefa 5; o script sai do
 // repositório junto com o JS, mas fica no histórico do git). Têm dados reais e ficam fora do git: sem elas
@@ -12,6 +13,14 @@ const ler = (nome: string) => JSON.parse(readFileSync(new URL(nome, PASTA), "utf
 const json = (v: unknown) => JSON.parse(JSON.stringify(v));
 
 describe.skipIf(!arquivos.length)("paridade com o coletor em JS", () => {
+  it("leitura igual (estado e eventos)", () => {
+    const a = ler("leitura.json");
+    expect(json(processarLeitura(a.estadoAnterior, a.posicoes, a.cercas, new Date(a.agora)))).toStrictEqual(a.saida);
+  });
+  it("retrato igual", () => {
+    const a = ler("snapshot.json");
+    expect(json(montarSnapshot(a.estado, a.meta))).toStrictEqual(a.saida);
+  });
   for (const nome of arquivos.filter((n) => n.startsWith("apontamento-"))) {
     it(`apontamento igual: ${nome}`, () => {
       const a = ler(nome);
