@@ -1,15 +1,14 @@
 name: Coletor de localização (GAUSS -> Supabase)
 
-# Quem dispara a cada 5 min é o Supabase (pg_cron + pg_net, supabase/disparo.sql),
-# e também na hora de cada pedido de histórico. O "schedule" do GitHub foi retirado:
-# demorou mais de 1h para começar e atrasa/pula execuções - e junto com o Supabase
+# Quem dispara a cada 5 min é o Supabase (pg_cron + pg_net, supabase/disparo.sql), e também na hora de cada
+# pedido de histórico. O "schedule" do GitHub foi retirado: atrasa/pula execuções - e junto com o Supabase
 # rodaria em dobro.
 on:
   workflow_dispatch: # chamado pelo Supabase; também é o botão "Run workflow"
-  # roda também quando o código do coletor muda (valida a mudança na hora)
+  # roda também quando o código do coletor (ou as regras que ele usa) muda: valida a mudança na hora
   push:
     branches: [main]
-    paths: ['coletor/**', '.github/workflows/coletor.yml']
+    paths: ['coletor/**', 'src/lib/dominio/**', 'src/lib/tipos.ts', '.github/workflows/coletor.yml']
 
 # nunca duas execuções ao mesmo tempo (evita requisições em dobro ao GAUSS)
 concurrency:
@@ -21,6 +20,8 @@ permissions:
 
 jobs:
   coletar:
+    # só a main consulta o GAUSS: "Run workflow" numa branch de trabalho não roda
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     defaults:
@@ -39,5 +40,6 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: coletor/package-lock.json
+      # só supabase-js e tsx (instalação leve a cada 5 min); o tsx roda o TypeScript sem compilar
       - run: npm ci --omit=dev --no-audit --no-fund
-      - run: node run.js
+      - run: npx tsx run.ts

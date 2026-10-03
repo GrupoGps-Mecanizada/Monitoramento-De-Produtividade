@@ -1,12 +1,13 @@
 {
   "name": "monitoramento-localizacao-coletor",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "coletar": "node run.js"
+    "coletar": "tsx run.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.116.0"
+    "@supabase/supabase-js": "2.117.1",
+    "tsx": "4.23.15"
   }
 }
