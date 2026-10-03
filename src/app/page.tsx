@@ -1,3 +1,5 @@
+import { Localizacao } from "./_localizacao/localizacao";
+
 export default function Pagina() {
-  return <main className="p-8 text-suave">Monitoramento · em construção</main>;
+  return <Localizacao />;
 }
