@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Casca } from "@/components/casca";
 import { NOME_SISTEMA } from "@/lib/marca";
 
 // fontes baixadas no build e servidas pelo próprio site
@@ -22,7 +23,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <head>
         <script dangerouslySetInnerHTML={{ __html: TEMA }} />
       </head>
-      <body className="min-h-full font-sans">{children}</body>
+      <body className="min-h-full font-sans">
+        <Casca>{children}</Casca>
+      </body>
     </html>
   );
 }
