@@ -12,6 +12,16 @@ export type CategoriaVeiculo = "ligado" | "parado" | "desligado" | "manut" | "se
 export type Frescor = "vivo" | "atrasado" | "semsinal";
 export type EstadoTrecho = "movimento" | "parado_ligado" | "desligado" | "parado" | "sem_sinal";
 export type TipoCerca = "planta" | "via" | "area";
+/** Tipo de equipamento da frota (planilha "LOCAÇÃO - GPS"; src/lib/dominio/equipamentos.ts). Não confundir com
+ * CategoriaVeiculo (ligado/desligado...). */
+export type TipoEquip = "ap" | "av" | "hv" | "uv" | "pg" | "as";
+export interface Equip {
+  tipo: TipoEquip;
+  /** como a planilha escreve: "EGC-2985", "Aspirador 05" */
+  nome: string;
+  /** posição na planilha dentro do tipo (aspirador: o número) */
+  ordem: number;
+}
 
 /** Cerca (geofence) como vem do GAUSS. */
 export interface CercaGauss {
@@ -64,6 +74,8 @@ export interface Motor2Resumo {
 export interface Veiculo extends EstadoVeiculo {
   motor2?: Motor2Resumo;
   motor2_de?: string;
+  /** equipamento da frota (o motor 2º recebe o do caminhão); ausente em retrato gravado antes do filtro */
+  equip?: Equip;
 }
 
 export interface CargaGauss {
@@ -81,6 +93,8 @@ export interface Retrato {
   sem_sinal_min: number;
   gauss?: CargaGauss & { desde: string; pausadoAte: string | null };
   veiculos: Veiculo[];
+  /** placas de grupos da frota (Alta Pressão, Vácuo, Brook...) que NÃO estão na lista: equipamento novo? */
+  fora_da_lista?: string[];
 }
 
 export type TipoEvento = "entrada" | "saida" | "status" | "sinal_perdido" | "sinal_retomado";
