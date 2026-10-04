@@ -97,7 +97,7 @@ export interface Retrato {
   fora_da_lista?: string[];
 }
 
-export type TipoEvento = "entrada" | "saida" | "status" | "sinal_perdido" | "sinal_retomado";
+export type TipoEvento = "entrada" | "saida" | "status" | "sinal_perdido" | "sinal_retomado" | "abertura";
 interface EventoBase {
   t: string;
   id: string;
@@ -116,6 +116,8 @@ export type Evento = EventoBase &
     | { tipo: "status"; de: string; para: string; area: string; duracao_min: number | null }
     | { tipo: "sinal_perdido"; ultima_posicao: string | null; area: string }
     | { tipo: "sinal_retomado"; area: string; sem_sinal_min: number | null }
+    /** 1º ciclo do coletor no dia: status e área de cada equipamento (o Dia da frota parte daqui; não é alerta) */
+    | { tipo: "abertura"; status: string; area: string; sem_sinal: boolean }
   );
 
 /** Ponto da rota do GAUSS (loc_historico.pontos): t em horário local "AAAA-MM-DD HH:MM:SS". */

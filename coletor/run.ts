@@ -1,6 +1,7 @@
 // Uma execução do coletor (GitHub Actions, disparada pelo Supabase a cada 5 min e a cada pedido de histórico):
 //   1. posição da frota no GAUSS (UMA requisição para todos os veículos)
-//   2. estado + eventos -> Supabase; retrato (snapshot) para a página
+//   2. estado + eventos -> Supabase; retrato (snapshot) para a página — só a frota da Mecanizada (frota-propria.ts),
+//      e no 1º ciclo do dia a "abertura" (status e área de cada equipamento, para o Dia da frota)
 //   3. atende os pedidos de histórico que a página deixou em loc_pedidos
 //
 // Cuidado com a carga no GAUSS (ver gauss.ts): uma requisição por vez com intervalo, sessão reaproveitada
@@ -14,6 +15,7 @@ import { montarApontamento } from "../src/lib/dominio/apontamento";
 import { tipoCerca } from "../src/lib/dominio/cercas";
 import { diaLocal } from "../src/lib/dominio/formato";
 import { parearMotores } from "../src/lib/dominio/frota";
+import { aplicarFrota, eventosAbertura, eventosDaFrota, idsDaFrota, precisaAbertura } from "../src/lib/dominio/frota-propria";
 import { montarSnapshot, processarLeitura } from "../src/lib/dominio/leitura";
 import type { Cerca, EstadoVeiculo, FonteHistorico, PontoRota } from "../src/lib/tipos";
 import { verificarAmbiente } from "./config";
@@ -152,10 +154,17 @@ async function main() {
     const r = processarLeitura(estado, posicoes, cercas, agora);
     estado = r.estado;
     await kvSet("estado", estado);
-    if (r.eventos.length) {
-      await ok(db().from("loc_eventos").insert(r.eventos.map((e) => ({ dia: diaLocal(new Date(e.t)), t: e.t, tipo: e.tipo, veiculo_id: e.id, dados: e }))));
+    // só a frota da Mecanizada vai para o banco (o estado guarda todos: o pareamento do motor 2º precisa)
+    const frota = aplicarFrota(montarSnapshot(estado, { lido_em: agora.toISOString(), erro: null, intervalo_s: INTERVALO_S }));
+    const eventos = eventosDaFrota(r.eventos, idsDaFrota(frota));
+    const abrirDia = precisaAbertura(await kvGet<{ dia: string }>("abertura"), hoje);
+    if (abrirDia) eventos.push(...eventosAbertura(frota, agora.toISOString()));
+    if (eventos.length) {
+      await ok(db().from("loc_eventos").insert(eventos.map((e) => ({ dia: diaLocal(new Date(e.t)), t: e.t, tipo: e.tipo, veiculo_id: e.id, dados: e }))));
     }
-    console.log(`✅ ${posicoes.length} veículos, ${r.eventos.length} eventos`);
+    // marca a abertura só depois de gravada: se o insert falhar, o próximo ciclo tenta de novo
+    if (abrirDia) await kvSet("abertura", { dia: hoje });
+    console.log(`✅ ${posicoes.length} veículos (${frota.veiculos.filter((v) => !v.motor2_de).length} da frota), ${eventos.length} eventos${abrirDia ? " (com abertura do dia)" : ""}`);
     const atendidos = await atenderPedidos(estado, cercas, veiculos);
     if (atendidos) console.log(`✅ ${atendidos} pedido(s) de histórico`);
     await limpezaDiaria(hoje);
@@ -169,12 +178,14 @@ async function main() {
     // em caso de erro, a página continua mostrando a última leitura boa, com o aviso
     await kvSet(
       "snapshot",
-      montarSnapshot(estado, {
-        lido_em: erro ? (anterior.lido_em ?? null) : agora.toISOString(),
-        erro,
-        intervalo_s: INTERVALO_S,
-        gauss: { desde: new Date(`${hoje}T00:00:00`).toISOString(), ...carga, pausadoAte: estatisticas.pausadoAte },
-      }),
+      aplicarFrota(
+        montarSnapshot(estado, {
+          lido_em: erro ? (anterior.lido_em ?? null) : agora.toISOString(),
+          erro,
+          intervalo_s: INTERVALO_S,
+          gauss: { desde: new Date(`${hoje}T00:00:00`).toISOString(), ...carga, pausadoAte: estatisticas.pausadoAte },
+        }),
+      ),
     );
     if (existsSync(SESSAO_FILE)) await kvSet("sessao", JSON.parse(readFileSync(SESSAO_FILE, "utf-8")));
     console.log(`GAUSS nesta execução: ${estatisticas.requisicoes} requisição(ões), ${estatisticas.logins} login(s)`);

@@ -60,3 +60,10 @@ describe("validarHistorico", () => {
     expect(validarHistorico({ ...historico, trechos: [], pontos: [], resumo: null }).resumo).toBeNull();
   });
 });
+
+describe("evento de abertura do dia", () => {
+  it("é aceito", () => {
+    const e = { t: "2026-10-03T03:02:00.000Z", tipo: "abertura", id: "10", placa: "EGC2985", vaga: "", status: "Ligado", area: "PATIO", sem_sinal: false };
+    expect(validarEvento(e)).toEqual(e);
+  });
+});

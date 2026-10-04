@@ -32,7 +32,7 @@ const retrato = z.looseObject({
   veiculos: z.array(veiculo),
 });
 const cerca = z.looseObject({ name: z.string(), color: z.string(), polygon: z.array(z.tuple([z.number(), z.number()])), tipo: z.enum(["planta", "via", "area"]) });
-const evento = z.looseObject({ t: z.string(), tipo: z.enum(["entrada", "saida", "status", "sinal_perdido", "sinal_retomado"]), id: z.string(), placa: z.string() });
+const evento = z.looseObject({ t: z.string(), tipo: z.enum(["entrada", "saida", "status", "sinal_perdido", "sinal_retomado", "abertura"]), id: z.string(), placa: z.string() });
 const estado = z.enum(["movimento", "parado_ligado", "desligado", "parado", "sem_sinal"]);
 const historico = z.looseObject({
   id: z.string(),

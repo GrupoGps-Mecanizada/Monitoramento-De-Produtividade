@@ -9,9 +9,9 @@ export const GRUPOS: Record<GrupoEvento, { rotulo: string; icone: string; tom: T
   sinal: { rotulo: "Sinal", icone: "⚠", tom: "bad" },
 };
 export const TODOS_GRUPOS: GrupoEvento[] = ["entrada", "saida", "status", "sinal"];
-export const ROTULO_TIPO: Record<Evento["tipo"], string> = { entrada: "Entrada", saida: "Saída", status: "Status", sinal_perdido: "Sem sinal", sinal_retomado: "Sinal voltou" };
+export const ROTULO_TIPO: Record<Evento["tipo"], string> = { entrada: "Entrada", saida: "Saída", status: "Status", sinal_perdido: "Sem sinal", sinal_retomado: "Sinal voltou", abertura: "Início do dia" };
 
-export const grupoDoEvento = (e: Pick<Evento, "tipo">): GrupoEvento => (e.tipo === "sinal_perdido" || e.tipo === "sinal_retomado" ? "sinal" : e.tipo);
+export const grupoDoEvento = (e: Pick<Evento, "tipo">): GrupoEvento => (e.tipo === "sinal_perdido" || e.tipo === "sinal_retomado" ? "sinal" : e.tipo === "abertura" ? "status" : e.tipo);
 /** Veículo a abrir ao clicar no evento: o do motor secundário abre o caminhão principal. */
 export const veiculoDoEvento = (e: Evento) => e.principal_id ?? e.id;
 /** Chave estável do evento na lista (lido / selecionado). */
@@ -38,6 +38,8 @@ export function textoEvento(e: Evento): TextoEvento {
       return { ...base, acao: "", alvo: "sem sinal", extra: ` desde ${hora(e.ultima_posicao)}${e.area ? ` · ${e.area}` : ""}` };
     case "sinal_retomado":
       return { ...base, acao: "", alvo: "voltou a comunicar", extra: e.sem_sinal_min != null ? ` após ${fmtMin(e.sem_sinal_min)}` : "" };
+    case "abertura":
+      return { ...base, acao: "início do dia:", alvo: e.status, extra: e.area ? ` · ${e.area}` : "" };
   }
 }
 /** Texto corrido (busca, título, leitores de tela). */
