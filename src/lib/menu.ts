@@ -3,6 +3,7 @@ import type { IconeNome } from "@/components/icones";
 /** Telas do sistema (barra superior, barra inferior do celular e Ctrl K). */
 export const MENU: { href: string; rotulo: string; curto: string; icone: IconeNome }[] = [
   { href: "/", rotulo: "Localização", curto: "Mapa", icone: "mapa" },
+  { href: "/frota", rotulo: "Dia da frota", curto: "Frota", icone: "frota" },
   { href: "/timeline", rotulo: "Timeline", curto: "Timeline", icone: "timeline" },
   { href: "/alertas", rotulo: "Alertas", curto: "Alertas", icone: "alertas" },
 ];
