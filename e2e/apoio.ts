@@ -21,28 +21,35 @@ export const retrato = () => ({
   lido_em: minutosAtras(1), erro: null, intervalo_s: 300, sem_sinal_min: 30,
   gauss: { dia: hoje(), requisicoes: 42, logins: 1, erros: 0, desde: minutosAtras(600), pausadoAte: null },
   veiculos: [
-    veiculo({ id: "10", placa: "EOF5208", status: "Ligado", status_cod: 1, lat: -19.480, lng: -42.530, area: "PATIO", area_desde: minutosAtras(20),
-      motor2: { id: "11", placa: "EOF52082", status: "Ligado", status_cod: 1, status_desde: minutosAtras(5), posicao_em: minutosAtras(1), sem_sinal: false } }),
-    veiculo({ id: "11", placa: "EOF52082", status: "Ligado", status_cod: 1, lat: -19.480, lng: -42.530, area: "PATIO", motor2_de: "10" }),
-    veiculo({ id: "20", placa: "EGC2984", status: "Desligado", status_cod: 2, lat: -19.475, lng: -42.525, area: "OFICINA" }),
-    veiculo({ id: "30", placa: "DTW5E38", status: "Em manutenção", status_cod: 9, lat: -19.470, lng: -42.520, via: "RUA 1", posicao_em: minutosAtras(90) }),
+    veiculo({ id: "10", placa: "EGC2985", grupo: "CAMINHÃO ALTA PRESSÃO", vaga: "ALTA PRESSÃO - GPS - 08 - 24 HS", status: "Ligado", status_cod: 1, lat: -19.480, lng: -42.530, area: "PATIO", area_desde: minutosAtras(20),
+      motor2: { id: "11", placa: "EGC29852", status: "Ligado", status_cod: 1, status_desde: minutosAtras(5), posicao_em: minutosAtras(1), sem_sinal: false } }),
+    veiculo({ id: "11", placa: "EGC29852", grupo: "CAMINHÃO ALTA PRESSÃO", status: "Ligado", status_cod: 1, lat: -19.480, lng: -42.530, area: "PATIO", motor2_de: "10" }),
+    veiculo({ id: "20", placa: "EGC-2984", grupo: "CAMINHÃO BROOK", status: "Desligado", status_cod: 2, lat: -19.475, lng: -42.525, area: "OFICINA" }),
+    veiculo({ id: "30", placa: "DSY6472", grupo: "CAMINHÃO ALTA PRESSÃO", status: "Em manutenção", status_cod: 9, lat: -19.470, lng: -42.520, via: "RUA 1", posicao_em: minutosAtras(90) }),
+    veiculo({ id: "40", placa: "ASP12", grupo: "ASPIRADOR", vaga: "ASPIRADOR INDUSTRIAL - GPS - 03", status: "Ligado", status_cod: 1, lat: -19.4805, lng: -42.5305, area: "PATIO" }),
+    // não é da frota da Mecanizada: não pode aparecer em lugar nenhum
+    veiculo({ id: "90", placa: "EOF5208", grupo: "CAMINHÃO ALTA PRESSÃO", status: "Ligado", status_cod: 1, lat: -19.479, lng: -42.529, area: "PATIO" }),
   ],
 });
 export const eventos = () => [
-  { t: minutosAtras(50), id: "10", placa: "EOF5208", vaga: "VAGA 1", tipo: "entrada", area: "PATIO", lat: -19.48, lng: -42.53 },
-  { t: minutosAtras(40), id: "20", placa: "EGC2984", vaga: "VAGA 2", tipo: "status", de: "Ligado", para: "Desligado", area: "OFICINA", duracao_min: 70 },
+  { t: minutosAtras(600), id: "10", placa: "EGC2985", vaga: "", tipo: "abertura", status: "Desligado", area: "PATIO", sem_sinal: false },
+  { t: minutosAtras(50), id: "10", placa: "EGC2985", vaga: "", tipo: "entrada", area: "PATIO", lat: -19.48, lng: -42.53 },
+  { t: minutosAtras(45), id: "10", placa: "EGC2985", vaga: "", tipo: "status", de: "Desligado", para: "Ligado", area: "PATIO", duracao_min: 500 },
+  { t: minutosAtras(40), id: "20", placa: "EGC-2984", vaga: "", tipo: "status", de: "Ligado", para: "Desligado", area: "OFICINA", duracao_min: 70 },
+  { t: minutosAtras(30), id: "90", placa: "EOF5208", vaga: "", tipo: "status", de: "Desligado", para: "Ligado", area: "PATIO", duracao_min: 10 },
 ];
 export const historico = () => {
   const dia = hoje();
-  const pontos = Array.from({ length: 21 }, (_, i) => [-19.481 + i * 0.0002, -42.531 + i * 0.0001, `08:${pad(i)}:00`, i < 10 ? 35 : 0, i < 10 ? "movimento" : "parado_ligado", i >= 2 && i <= 5 ? 1 : 0]);
+  // 08:00–08:10 andando, 08:10–08:40 parado ligado no PATIO (30 min = 1 capítulo)
+  const pontos = Array.from({ length: 41 }, (_, i) => [-19.481 + Math.min(i, 10) * 0.0002, -42.531 + Math.min(i, 10) * 0.0001, `08:${pad(i)}:00`, i < 10 ? 35 : 0, i < 10 ? "movimento" : "parado_ligado", i >= 2 && i <= 5 ? 1 : 0]);
   return {
     id: "10", dia, fonte: "cache", baixado_em: minutosAtras(60), motor2_erro: null, temRpm: true, rpm_travado: null, motor2_rpm_travado: null,
-    motor2: { intervalos: [["08:02:00", "08:05:00"]], id: "11", placa: "EOF52082" },
+    motor2: { intervalos: [["08:02:00", "08:05:00"]], id: "11", placa: "EGC29852" },
     trechos: [
-      { estado: "movimento", inicio: `${dia} 08:00:00`, fim: `${dia} 08:10:00`, duracao_min: 10, de: "PATIO", para: "", percurso: ["PATIO"], km: 2.1, vel_max: 35, motor2_min: 3 },
-      { estado: "parado_ligado", inicio: `${dia} 08:10:00`, fim: `${dia} 08:20:00`, duracao_min: 10, local: "PATIO", lat: -19.479, lng: -42.53, motor2_min: 0 },
+      { estado: "movimento", inicio: `${dia} 08:00:00`, fim: `${dia} 08:10:00`, duracao_min: 10, de: "OFICINA", para: "PATIO", percurso: ["PATIO"], km: 2.1, vel_max: 35, motor2_min: 3 },
+      { estado: "parado_ligado", inicio: `${dia} 08:10:00`, fim: `${dia} 08:40:00`, duracao_min: 30, local: "PATIO", lat: -19.479, lng: -42.53, motor2_min: 0 },
     ],
-    resumo: { primeiro: `${dia} 08:00:00`, ultimo: `${dia} 08:20:00`, pontos: 21, km: 2.1, vel_max: 35, movimento_min: 10, parado_ligado_min: 10, desligado_min: 0, parado_min: 0, sem_sinal_min: 0, motor2_ligado_min: 3, areas: [{ area: "PATIO", min: 20 }] },
+    resumo: { primeiro: `${dia} 08:00:00`, ultimo: `${dia} 08:40:00`, pontos: 41, km: 2.1, vel_max: 35, movimento_min: 10, parado_ligado_min: 30, desligado_min: 0, parado_min: 0, sem_sinal_min: 0, motor2_ligado_min: 3, areas: [{ area: "PATIO", min: 30 }] },
     pontos,
   };
 };

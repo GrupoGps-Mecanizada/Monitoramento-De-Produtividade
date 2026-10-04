@@ -19,6 +19,8 @@ Mapa ao vivo da frota (ALTA PRESSÃO / AUTO VÁCUO / HIPER VÁCUO / aspiradores)
 5. **Regras da frota:** motor secundário = placa + `2` (EOF5208 → EOF52082), vai junto do caminhão; RPM que não muda o dia inteiro é sensor travado (não afirma ligado/desligado).
 6. **Publicar só quando o dono pedir.** Antes: `npm run lint && npm run typecheck && npm test && npm run build` e `npm run e2e`.
 7. Explique em português simples, com o que mudou, o que foi testado e o que falta.
+8. **Só a frota da Mecanizada aparece** (`src/lib/dominio/equipamentos.ts`, planilha "LOCAÇÃO - GPS": 41 equipamentos e o Ultravac OWU-1596). Equipamento novo ou devolvido: edite a lista e publique. Aspiradores são reconhecidos pelo número da vaga ("ASPIRADOR INDUSTRIAL - GPS - 05"). Placas de grupos da frota que não estão na lista ficam em `loc_kv` → `snapshot` → `fora_da_lista`.
+9. **"Trabalhando" ainda não está definido.** As telas falam só em ligado/desligado/parado ligado; quando a regra for decidida, ela entra em `classeTempo()` (`src/lib/dominio/capitulos.ts`).
 
 ## Como funciona
 
@@ -45,12 +47,13 @@ npm run e2e                    # testes de navegador (dados sintéticos, nada é
 
 | Caminho | O que é |
 |---|---|
-| `src/app/page.tsx` + `_localizacao/` | Localização: painel (veículos, áreas, eventos), detalhe com histórico, gaveta no celular |
-| `src/app/timeline/` | Timeline com player (`?v=<id ou placa>&dia=AAAA-MM-DD`) |
+| `src/app/page.tsx` + `_localizacao/` | Localização: painel retrátil (barra com os tipos), lista por tipo, áreas, alertas, detalhe; gaveta no celular |
+| `src/app/frota/` | Dia da frota: uma faixa por equipamento no dia, por tipo (só eventos já gravados, precisão ~5 min) |
+| `src/app/timeline/` | Timeline com player e a história do dia em capítulos (`?v=<id ou placa>&dia=AAAA-MM-DD`) |
 | `src/app/alertas/` | Alertas por tipo e hora, detalhe em gaveta (`?placa=`) |
 | `src/components/` | Barra "Campo", busca Ctrl K, gaveta, folha do celular, mapa (`mapa/`), histórico (`historico/`) |
 | `src/lib/tipos.ts` | Formatos dos dados (site **e** coletor) |
-| `src/lib/dominio/` | Regras puras com testes: categoria/frescor, eventos, frota (motor 2º), geometria, apontamento, leitura do GAUSS |
+| `src/lib/dominio/` | Regras puras com testes: frota própria e tipos (`equipamentos.ts`, `frota-propria.ts`), capítulos do dia, Dia da frota, categoria/frescor, eventos, motor 2º, geometria, apontamento, leitura do GAUSS |
 | `src/lib/dados/` | Leituras do Supabase validadas (zod), retrato ao vivo, pedido de histórico |
 | `coletor/` | Coletor em TypeScript (`tsx`), usa `src/lib/dominio` |
 | `supabase/` | `schema.sql` (tabelas, RLS, Realtime) e `disparo.sql` (pg_cron + token no Vault) |
@@ -68,9 +71,11 @@ npm run e2e                    # testes de navegador (dados sintéticos, nada é
 - O token do GitHub no Vault do Supabase **vence**: nesse dia o mapa para de atualizar — gere outro e rode `supabase/disparo.sql` de novo.
 - O disparo não é pontual: atrasos de alguns minutos são normais. O indicador da barra fica amarelo depois de 3 ciclos sem leitura.
 - `coletor/paridade.test.ts` compara o coletor com amostras do coletor antigo em JS (`coletor/__amostras__/`, fora do git por ter dados reais). O script que as gerou está no histórico do git (`coletor/scripts/gravar-amostras.mjs`).
+- O Dia da frota parte da "abertura do dia" que o coletor grava no 1º ciclo após a meia-noite. Dia sem abertura usa o primeiro status; sem nenhum evento, a faixa fica "sem registro" (nunca é inventada).
 
-## Pendências e estado atual (02/10/2026)
+## Pendências e estado atual (04/10/2026)
 
 | # | Pendência | Onde / como |
 |---|---|---|
-| 1 | Publicar a repaginação: merge da branch `repaginacao-campo` e trocar a fonte do Pages para "GitHub Actions" | Quando o dono pedir |
+| 1 | Publicar a etapa "história e frota": merge da branch `historia-e-frota` na `main` (publica o site e o coletor novo) | Quando o dono pedir |
+| 2 | Definir a regra de "trabalhando" (parado ligado em área de serviço? bomba ligada?) | `classeTempo()` em `src/lib/dominio/capitulos.ts` |
