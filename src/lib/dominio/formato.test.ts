@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diaBR, fmtHora, fmtMin, hhmm, hora, idadeCurta, rotuloDia, segDe, ultimosDias } from "./formato";
+import { diaBR, fmtHora, fmtHoras, fmtMin, hhmm, hmDoMinuto, hora, idadeCurta, rotuloDia, segDe, ultimosDias } from "./formato";
 
 describe("formato", () => {
   it("fmtMin: minutos, horas e dias", () => {
@@ -31,5 +31,16 @@ describe("formato", () => {
     expect(rotuloDia("2026-10-01", "2026-10-02")).toBe("Ontem");
     expect(rotuloDia("2026-09-30", "2026-10-02")).toBe("30/09/2026");
     expect(ultimosDias(3, new Date("2026-10-02T12:00:00-03:00"))).toEqual(["2026-10-02", "2026-10-01", "2026-09-30"]);
+  });
+});
+
+describe("horas do Dia da frota", () => {
+  it("fmtHoras não vira dias (soma de horas ligado de um tipo inteiro)", () => {
+    expect(fmtHoras(45)).toBe("0h45");
+    expect(fmtHoras(6065)).toBe("101h05");
+  });
+  it("hmDoMinuto", () => {
+    expect(hmDoMinuto(485)).toBe("08:05");
+    expect(hmDoMinuto(1440)).toBe("24:00");
   });
 });

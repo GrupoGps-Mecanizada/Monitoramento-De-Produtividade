@@ -17,6 +17,13 @@ export function fmtMin(min: number | null | undefined): string {
   if (m < 1440) return `${Math.floor(m / 60)}h${pad(m % 60)}`;
   return `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`;
 }
+/** Horas sem virar dias (soma de horas de vários equipamentos): 0h45 · 101h05 */
+export function fmtHoras(min: number): string {
+  const m = Math.round(min);
+  return `${Math.floor(m / 60)}h${pad(m % 60)}`;
+}
+/** Minuto do dia -> "HH:MM" */
+export const hmDoMinuto = (m: number) => `${pad(Math.floor(m / 60))}:${pad(Math.floor(m % 60))}`;
 
 /** Idade curta de uma posição: 40s · 12m · 3h · 2d */
 export function idadeCurta(iso: string | null | undefined, agora = Date.now()): string {
