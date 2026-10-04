@@ -10,3 +10,6 @@ next-env.d.ts
 coletor/.sessao-gauss.json
 # amostras do coletor antigo: têm placas, posições e motoristas (o repositório é público)
 coletor/__amostras__/
+
+# rascunhos e registros de trabalho do assistente (esboços, ledger)
+.superpowers/
