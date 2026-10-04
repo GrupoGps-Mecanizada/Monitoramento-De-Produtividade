@@ -1,4 +1,4 @@
-import type { Evento, Tom } from "../tipos";
+import type { Evento, TipoEquip, Tom } from "../tipos";
 import { fmtMin, hora, pad } from "./formato";
 
 export type GrupoEvento = "entrada" | "saida" | "status" | "sinal";
@@ -74,4 +74,9 @@ export function agruparPorHora(es: Evento[]): { rotulo: string; eventos: Evento[
     const h = k.split("|")[1];
     return { rotulo: `${h}:00 – ${h}:59`, eventos };
   });
+}
+
+/** Alertas de um tipo de equipamento (o do motor 2º conta como o do caminhão). */
+export function doTipo(es: Evento[], tipo: TipoEquip | null, tipoDe: ReadonlyMap<string, TipoEquip>): Evento[] {
+  return tipo ? es.filter((e) => tipoDe.get(veiculoDoEvento(e)) === tipo) : es;
 }

@@ -8,11 +8,13 @@ import { Gaveta } from "@/components/gaveta";
 import { Aviso, Campos, Chip, Contador, Entrada, Selecao, Selo, Vazio, cx } from "@/components/ui";
 import { CLASSE_TOM, corDoTom } from "@/lib/cores";
 import { lerDias } from "@/lib/dados/leituras";
+import { useRetrato } from "@/lib/dados/use-retrato";
+import { ORDEM_TIPOS, TIPOS_EQUIP } from "@/lib/dominio/equipamentos";
 import { useEventos } from "@/lib/dados/use-eventos";
-import { GRUPOS, ROTULO_TIPO, TODOS_GRUPOS, agruparPorHora, chaveEvento, contarPorGrupo, ehAlerta, filtrarEventos, grupoDoEvento, veiculoDoEvento, type GrupoEvento } from "@/lib/dominio/eventos";
+import { GRUPOS, ROTULO_TIPO, TODOS_GRUPOS, agruparPorHora, chaveEvento, contarPorGrupo, doTipo, ehAlerta, filtrarEventos, grupoDoEvento, veiculoDoEvento, type GrupoEvento } from "@/lib/dominio/eventos";
 import { dataHora, diaLocal, fmtMin, hora, horaSeg, rotuloDia } from "@/lib/dominio/formato";
 import { useCelular } from "@/lib/hooks";
-import type { Evento } from "@/lib/tipos";
+import type { Evento, TipoEquip } from "@/lib/tipos";
 
 /** Alertas: entradas/saídas de área, mudanças de status e perda/volta de sinal, por dia. */
 export function Alertas() {
@@ -27,13 +29,17 @@ export function Alertas() {
   const { eventos: doDia, carregando, erro } = useEventos(dia);
   // a abertura do dia (coletor) não é alerta
   const eventos = useMemo(() => doDia.filter(ehAlerta), [doDia]);
+  const { retrato } = useRetrato();
+  const [tipo, setTipo] = useState<TipoEquip | null>(null);
+  const tipoDe = useMemo(() => new Map((retrato?.veiculos ?? []).flatMap((v) => (v.equip ? [[v.id, v.equip.tipo] as const] : []))), [retrato]);
+  const doTipoEscolhido = useMemo(() => doTipo(eventos, tipo, tipoDe), [eventos, tipo, tipoDe]);
   const [grupos, setGrupos] = useState<Set<GrupoEvento>>(() => new Set(TODOS_GRUPOS));
   const [busca, setBusca] = useState(() => (params.get("placa") ?? "").toUpperCase());
   const [lidos, setLidos] = useState<Set<string>>(() => new Set());
   const [aberto, setAberto] = useState<Evento | null>(null);
 
-  const conta = contarPorGrupo(eventos);
-  const lista = useMemo(() => filtrarEventos(eventos, grupos, busca), [eventos, grupos, busca]);
+  const conta = contarPorGrupo(doTipoEscolhido);
+  const lista = useMemo(() => filtrarEventos(doTipoEscolhido, grupos, busca), [doTipoEscolhido, grupos, busca]);
   const blocos = useMemo(() => agruparPorHora(lista), [lista]);
   const todos = grupos.size === TODOS_GRUPOS.length;
   const opcoesDias = dias.includes(dia) ? dias : [dia, ...dias];
@@ -55,7 +61,7 @@ export function Alertas() {
   };
 
   const cartoes: { id: GrupoEvento | "todos"; rotulo: string; n: number; cor: string; ativo: boolean }[] = [
-    { id: "todos", rotulo: "Total", n: eventos.length, cor: "var(--primaria)", ativo: todos },
+    { id: "todos", rotulo: "Total", n: doTipoEscolhido.length, cor: "var(--primaria)", ativo: todos },
     ...TODOS_GRUPOS.map((g) => ({ id: g, rotulo: GRUPOS[g].rotulo, n: conta[g], cor: corDoTom(GRUPOS[g].tom), ativo: !todos && grupos.size === 1 && grupos.has(g) })),
   ];
 
@@ -88,6 +94,13 @@ export function Alertas() {
             ))}
           </Selecao>
           <Entrada type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Placa ou área…" aria-label="Buscar alerta" autoComplete="off" className="min-w-40 flex-1" />
+          <div className="flex flex-wrap gap-1.5" aria-label="Tipo de equipamento">
+            {ORDEM_TIPOS.map((t) => (
+              <Chip key={t} ativo={tipo === t} onClick={() => setTipo(tipo === t ? null : t)}>
+                {TIPOS_EQUIP[t].rotulo}
+              </Chip>
+            ))}
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {TODOS_GRUPOS.map((g) => (
               <Chip key={g} ativo={grupos.has(g)} tom={GRUPOS[g].tom} onClick={() => alternarGrupo(g)}>
@@ -96,7 +109,7 @@ export function Alertas() {
             ))}
           </div>
           <span className="ml-auto text-xs text-suave">
-            {eventos.length} eventos · {rotuloDia(dia, hoje).toLowerCase()}
+            {doTipoEscolhido.length} alertas · {rotuloDia(dia, hoje).toLowerCase()}
           </span>
         </div>
         {erro && (

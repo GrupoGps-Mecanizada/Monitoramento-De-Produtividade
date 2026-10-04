@@ -7,6 +7,7 @@ import { corDoTom } from "@/lib/cores";
 import { lerCercas } from "@/lib/dados/leituras";
 import { useEventos } from "@/lib/dados/use-eventos";
 import { useRetrato } from "@/lib/dados/use-retrato";
+import { TIPOS_EQUIP, nomeEquip } from "@/lib/dominio/equipamentos";
 import { chaveEvento, textoEvento, veiculoDoEvento } from "@/lib/dominio/eventos";
 import { diaLocal, hora } from "@/lib/dominio/formato";
 import { CATEGORIAS, categoria, semMotor2 } from "@/lib/dominio/veiculo";
@@ -104,8 +105,8 @@ function Janela() {
     const outro = destino === "mapa" ? "timeline" : "mapa";
     return {
       chave: `v:${v.id}`,
-      rotulo: v.motor2 ? `${v.placa} · ⚙ ${v.motor2.placa}` : v.placa,
-      sub: [v.motor2 ? `${v.status} · ⚙ 2º ${v.motor2.status}` : v.status, v.vaga || "sem vaga", v.area || v.via || "fora de cerca", v.motorista].filter(Boolean).join(" · "),
+      rotulo: v.motor2 ? `${nomeEquip(v)} · ⚙ ${v.motor2.placa}` : nomeEquip(v),
+      sub: [v.equip ? TIPOS_EQUIP[v.equip.tipo].rotulo : "", v.motor2 ? `${v.status} · ⚙ 2º ${v.motor2.status}` : v.status, v.vaga || "sem vaga", v.area || v.via || "fora de cerca", v.motorista].filter(Boolean).join(" · "),
       cor: corDoTom(CATEGORIAS[categoria(v)].tom),
       executar: () => irVeiculo(v.id, destino),
       extra: { rotulo: outro === "timeline" ? "Timeline" : "Mapa", executar: () => irVeiculo(v.id, outro) },

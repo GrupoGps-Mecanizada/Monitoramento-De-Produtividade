@@ -38,3 +38,21 @@ describe("busca geral", () => {
     expect(s.areas.map((c) => c.name)).toEqual(["PATIO", "OFICINA"]);
   });
 });
+
+describe("busca pela frota", () => {
+  const av = v("1", "DYB7C10", { equip: { tipo: "av", nome: "DYB-7210", ordem: 6 } });
+  const asp5 = v("2", "ASP12-RESERVA", { vaga: "ASPIRADOR INDUSTRIAL - GPS - 05", equip: { tipo: "as", nome: "Aspirador 05", ordem: 5 } });
+  const asp6 = v("3", "ASP06", { vaga: "ASPIRADOR INDUSTRIAL - GPS - 06", equip: { tipo: "as", nome: "Aspirador 06", ordem: 6 } });
+  it("placa antiga acha a Mercosul e vice-versa", () => {
+    expect(pontuarVeiculo(av, "dyb-72")).toBe(3);
+    expect(pontuarVeiculo(v("4", "DYB7210", { equip: av.equip }), "dyb7c")).toBe(3);
+  });
+  it("'asp 5' e 'aspirador 05' acham só o Aspirador 05", () => {
+    expect(pontuarVeiculo(asp5, "asp 5")).toBe(3);
+    expect(pontuarVeiculo(asp5, "aspirador 05")).toBe(3);
+    expect(pontuarVeiculo(asp6, "asp 5")).toBe(0);
+  });
+  it("acha pelo nome do tipo, sem acento", () => {
+    expect(pontuarVeiculo(av, "alto vacuo")).toBe(1);
+  });
+});

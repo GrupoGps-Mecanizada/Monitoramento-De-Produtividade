@@ -1,3 +1,4 @@
+import { TIPOS_EQUIP, formasPlaca } from "./dominio/equipamentos";
 import { ehAlerta, textoEvento, textoPlano } from "./dominio/eventos";
 import type { Cerca, Evento, Veiculo } from "./tipos";
 
@@ -6,15 +7,18 @@ export const norm = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[�
 /** Placa também sem hífen e espaço (EGC-2984 = egc2984). */
 export const normPlacaBusca = (s: unknown) => norm(s).replace(/[^A-Z0-9]/g, "");
 
-/** 3 = começo da placa (ou da placa do motor 2º), 2 = parte da placa, 1 = vaga/motorista/área/rua/grupo/status, 0 = não casa. */
+/** 3 = começo da placa (antiga ou Mercosul), do nome da planilha ou do motor 2º, ou o número do aspirador; 2 = parte; 1 = vaga/motorista/área/rua/grupo/status/tipo; 0 = não casa. */
 export function pontuarVeiculo(v: Veiculo, q: string): number {
   const qn = norm(q.trim());
   const qp = normPlacaBusca(q);
-  const p = normPlacaBusca(v.placa);
-  const p2 = normPlacaBusca(v.motor2?.placa);
-  if (qp.length >= 2 && (p.startsWith(qp) || (!!p2 && p2.startsWith(qp)))) return 3;
-  if (qp.length >= 2 && (p.includes(qp) || (!!p2 && p2.includes(qp)))) return 2;
-  if (qn && norm([v.vaga, v.motorista, v.area, v.via, v.grupo, v.status].join(" ")).includes(qn)) return 1;
+  const placas = [...formasPlaca(v.placa), normPlacaBusca(v.equip?.nome), normPlacaBusca(v.motor2?.placa)].filter(Boolean);
+  const asp = /^ASP(?:IRADOR)?0*(\d{1,2})$/.exec(qp);
+  if (asp && v.equip?.tipo === "as" && v.equip.ordem === Number(asp[1])) return 3;
+  if (asp) return 0;
+  if (qp.length >= 2 && placas.some((p) => p.startsWith(qp))) return 3;
+  if (qp.length >= 2 && placas.some((p) => p.includes(qp))) return 2;
+  const tipo = v.equip ? TIPOS_EQUIP[v.equip.tipo].rotulo : "";
+  if (qn && norm([v.vaga, v.motorista, v.area, v.via, v.grupo, v.status, tipo].join(" ")).includes(qn)) return 1;
   return 0;
 }
 

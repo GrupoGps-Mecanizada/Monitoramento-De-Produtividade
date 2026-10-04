@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Evento } from "../tipos";
-import { agruparPorHora, contarPorGrupo, ehAlerta, filtrarEventos, grupoDoEvento, textoEvento, textoPlano, TODOS_GRUPOS, veiculoDoEvento } from "./eventos";
+import { agruparPorHora, contarPorGrupo, doTipo, ehAlerta, filtrarEventos, grupoDoEvento, textoEvento, textoPlano, TODOS_GRUPOS, veiculoDoEvento } from "./eventos";
 
 const base = { id: "10", placa: "EOF5208", vaga: "V1" };
 const ev: Evento[] = [
@@ -44,5 +44,15 @@ describe("abertura do dia", () => {
     expect(ehAlerta(entrada)).toBe(true);
     expect(filtrarEventos([abertura, entrada], new Set(TODOS_GRUPOS), "")).toEqual([entrada]);
     expect(contarPorGrupo([abertura, entrada])).toEqual({ entrada: 1, saida: 0, status: 0, sinal: 0 });
+  });
+});
+
+describe("alertas por tipo de equipamento", () => {
+  it("filtra pelo tipo do equipamento (o motor 2º conta como o caminhão)", () => {
+    const base = { t: "2026-10-03T12:00:00.000Z", vaga: "", tipo: "entrada" as const, area: "P", lat: 0, lng: 0 };
+    const es: Evento[] = [{ ...base, id: "10", placa: "A" }, { ...base, id: "11", placa: "A2", motor2: true, principal_id: "10" }, { ...base, id: "40", placa: "ASP" }];
+    const tipoDe = new Map([["10", "ap" as const], ["40", "as" as const]]);
+    expect(doTipo(es, "ap", tipoDe).map((e) => e.id)).toEqual(["10", "11"]);
+    expect(doTipo(es, null, tipoDe)).toHaveLength(3);
   });
 });
