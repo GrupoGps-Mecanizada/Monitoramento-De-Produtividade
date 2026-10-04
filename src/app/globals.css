@@ -378,6 +378,7 @@ textarea:focus {
 .mk .seta { width: 14px; height: 14px; display: grid; place-items: center; font-size: 10px; line-height: 1; }
 .mk small { font-weight: 500; opacity: .9; }
 .mk .m2 { margin-left: 3px; font-size: 11px; color: #a5f3fc; text-shadow: 0 0 3px #0e7490; }
+.mk .sg { font-size: 9px; font-weight: 800; background: rgba(0, 0, 0, .28); border-radius: 999px; padding: 0 5px; letter-spacing: .02em; }
 .mk.semsinal { opacity: .6; border-style: dashed; }
 .mk.sel { outline: 3px solid #8fb1f5; outline-offset: 1px; z-index: 1; }
 /* agrupamento de marcadores */

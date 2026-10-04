@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Icone } from "@/components/icones";
 import { Chip, Ponto } from "@/components/ui";
+import { ORDEM_TIPOS, TIPOS_EQUIP, nomeEquip } from "@/lib/dominio/equipamentos";
 import { diaLocal, idadeCurta } from "@/lib/dominio/formato";
 import { CATEGORIAS, INDICADORES, categoria, motor2Ligado, noIndicador, nomeArea, type FiltroVeiculos } from "@/lib/dominio/veiculo";
 import type { Veiculo } from "@/lib/tipos";
@@ -26,7 +27,7 @@ export function ResumoCelular({ veiculos, filtro, vSel, agora, semSinalMin, muda
         <button type="button" onClick={abrirFolha} className="flex min-w-0 flex-1 items-center gap-3 text-left">
           <Ponto tom={CATEGORIAS[categoria(vSel)].tom} className="h-3 w-3" />
           <span className="min-w-0 leading-snug">
-            <b className="block text-base">{vSel.placa}</b>
+            <b className="block text-base">{nomeEquip(vSel)}</b>
             <span className="block truncate text-xs text-suave">
               {vSel.status}
               {motor2Ligado(vSel) ? " · ⚙ 2º ligado" : ""} · há {idadeCurta(vSel.posicao_em, agora)}
@@ -34,7 +35,7 @@ export function ResumoCelular({ veiculos, filtro, vSel, agora, semSinalMin, muda
             <span className="block truncate text-xs text-suave">{vSel.area || vSel.via || "fora de cerca"}</span>
           </span>
         </button>
-        <Link href={`/timeline/?v=${encodeURIComponent(vSel.id)}&dia=${diaLocal()}`} aria-label={`Timeline de ${vSel.placa}`} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primaria text-white">
+        <Link href={`/timeline/?v=${encodeURIComponent(vSel.id)}&dia=${diaLocal()}`} aria-label={`Timeline de ${nomeEquip(vSel)}`} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primaria text-white">
           <Icone nome="play" className="h-4 w-4" />
         </Link>
         <button type="button" onClick={fechar} aria-label="Fechar" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-borda">
@@ -54,6 +55,15 @@ export function ResumoCelular({ veiculos, filtro, vSel, agora, semSinalMin, muda
           <b>{total}</b> {i.curto}
         </Chip>
       ))}
+      {ORDEM_TIPOS.map((t) => {
+        const n = veiculos.filter((v) => v.equip?.tipo === t).length;
+        if (!n) return null;
+        return (
+          <Chip key={t} ativo={filtro.tipo === t} onClick={() => mudarFiltro({ ...filtro, tipo: filtro.tipo === t ? null : t })}>
+            {TIPOS_EQUIP[t].sigla} <b>{n}</b>
+          </Chip>
+        );
+      })}
       {filtro.area && (
         <Chip ativo tom="warn" onClick={() => mudarFiltro({ ...filtro, area: null })}>
           {nomeArea(filtro.area)} ✕

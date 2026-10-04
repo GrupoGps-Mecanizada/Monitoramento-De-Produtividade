@@ -1,5 +1,6 @@
 import { corDoTom } from "../cores";
 import { idadeCurta } from "../dominio/formato";
+import { TIPOS_EQUIP, nomeEquip } from "../dominio/equipamentos";
 import { CATEGORIAS, FRESCOR, categoria, frescor, motor2Ligado } from "../dominio/veiculo";
 import type { Veiculo } from "../tipos";
 
@@ -13,9 +14,10 @@ export function htmlMarcador(v: Veiculo, sel: boolean, semSinalMin: number, agor
   const fr = frescor(v, semSinalMin, agora);
   const seta = cat === "ligado" && fr === "vivo" ? `<span class="seta" style="transform:rotate(${Number(v.direcao) || 0}deg)">▲</span>` : '<span class="seta">●</span>';
   const m2 = motor2Ligado(v) ? '<span class="m2" title="Motor secundário ligado">⚙</span>' : "";
-  const titulo = `${v.placa} · ${v.status}${v.motor2 ? ` · motor 2º ${v.motor2.status}` : ""} · ${FRESCOR[fr].rotulo}`;
+  const titulo = `${nomeEquip(v)}${v.equip ? ` (${TIPOS_EQUIP[v.equip.tipo].rotulo})` : ""} · ${v.status}${v.motor2 ? ` · motor 2º ${v.motor2.status}` : ""} · ${FRESCOR[fr].rotulo}`;
   const classe = `mk${fr === "semsinal" ? " semsinal" : ""}${sel ? " sel" : ""}`;
-  return `<div class="${classe}" style="--c:${corDoTom(CATEGORIAS[cat].tom)}" title="${esc(titulo)}">${seta}${esc(v.placa)}${m2} <small>${idadeCurta(v.posicao_em, agora)}</small></div>`;
+  const sigla = v.equip ? `<b class="sg">${TIPOS_EQUIP[v.equip.tipo].sigla}</b>` : "";
+  return `<div class="${classe}" style="--c:${corDoTom(CATEGORIAS[cat].tom)}" title="${esc(titulo)}">${seta}${sigla}${esc(nomeEquip(v))}${m2} <small>${idadeCurta(v.posicao_em, agora)}</small></div>`;
 }
 
 /** Rótulo em pílula (início e fim da rota). */

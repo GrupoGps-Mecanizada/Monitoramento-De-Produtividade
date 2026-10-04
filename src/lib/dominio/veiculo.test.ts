@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Veiculo } from "../tipos";
-import { FORA_DE_AREA, agruparPorArea, areaInicial, categoria, filtrarVeiculos, frescor, noIndicador, resolverVeiculo, resumoAreas, semMotor2 } from "./veiculo";
+import { fmtMin } from "./formato";
+import { FORA_DE_AREA, agruparPorArea, areaInicial, categoria, filtrarVeiculos, fraseEstado, frescor, noIndicador, resolverVeiculo, resumoAreas, semMotor2, vagaCurta } from "./veiculo";
 
 const AGORA = new Date("2026-10-01T12:00:00Z").getTime();
 const v = (o: Partial<Veiculo>): Veiculo => ({
@@ -40,9 +41,9 @@ describe("filtros e agrupamentos", () => {
   });
   it("busca pela placa do motor 2º, área e fora de área", () => {
     const lista = semMotor2(frota);
-    expect(filtrarVeiculos(lista, { indicador: null, busca: "aaa00012", area: null }, 30, AGORA).map((x) => x.id)).toEqual(["3"]);
-    expect(filtrarVeiculos(lista, { indicador: null, busca: "", area: "PATIO" }, 30, AGORA).map((x) => x.id)).toEqual(["1", "2"]);
-    expect(filtrarVeiculos(lista, { indicador: null, busca: "", area: FORA_DE_AREA }, 30, AGORA).map((x) => x.id)).toEqual(["4"]);
+    expect(filtrarVeiculos(lista, { indicador: null, busca: "aaa00012", area: null, tipo: null }, 30, AGORA).map((x) => x.id)).toEqual(["3"]);
+    expect(filtrarVeiculos(lista, { indicador: null, busca: "", area: "PATIO", tipo: null }, 30, AGORA).map((x) => x.id)).toEqual(["1", "2"]);
+    expect(filtrarVeiculos(lista, { indicador: null, busca: "", area: FORA_DE_AREA, tipo: null }, 30, AGORA).map((x) => x.id)).toEqual(["4"]);
   });
   it("agrupa pela área: mais cheia primeiro, sem área por último, placas em ordem", () => {
     const g = agruparPorArea(semMotor2(frota));
@@ -73,5 +74,28 @@ describe("resolverVeiculo (links da Timeline)", () => {
   });
   it("veículo que não existe mais", () => {
     expect(resolverVeiculo(todos, "99")).toBeNull();
+  });
+});
+
+describe("frase do estado e vaga curta", () => {
+  it("ligado com hora do status e lugar", () => {
+    const x = v({ status: "Ligado", status_desde: "2026-10-01T11:09:00Z", area: "BAIA DE RESÍDUOS" });
+    expect(fraseEstado(x, 30, AGORA)).toBe(`Ligado há ${fmtMin(51)} · BAIA DE RESÍDUOS`);
+  });
+  it("sem saber desde quando, sem 'há'; fora de área usa a via", () => {
+    expect(fraseEstado(v({ status: "Desligado", status_desde: null, area: "", via: "RUA 20" }), 30, AGORA)).toBe("Desligado · RUA 20");
+  });
+  it("sem sinal diz há quanto tempo e o último lugar", () => {
+    expect(fraseEstado(v({ posicao_em: "2026-10-01T06:00:00Z", area: "PÁTIO 80" }), 30, AGORA)).toBe("Sem sinal há 6h · último lugar: PÁTIO 80");
+  });
+  it("filtra por tipo de equipamento", () => {
+    const lista = [v({ id: "1", equip: { tipo: "ap", nome: "A", ordem: 1 } }), v({ id: "2", equip: { tipo: "as", nome: "Aspirador 01", ordem: 1 } })];
+    expect(filtrarVeiculos(lista, { indicador: null, busca: "", area: null, tipo: "as" }, 30, AGORA).map((x) => x.id)).toEqual(["2"]);
+  });
+  it("vaga curta", () => {
+    expect(vagaCurta("ALTA PRESSÃO - GPS - 08 - 24 HS")).toBe("vaga 08 · 24h");
+    expect(vagaCurta("AUTO VÁCUO - GPS - 05")).toBe("vaga 05");
+    expect(vagaCurta("[S/ VAGA]")).toBe("");
+    expect(vagaCurta("TROCA 01 - ALTA PRESSÃO / AUTO VÁCUO - GPS")).toBe("TROCA 01 - ALTA PRESSÃO / AUTO VÁCUO - GPS");
   });
 });

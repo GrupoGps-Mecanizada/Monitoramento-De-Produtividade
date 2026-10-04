@@ -1,10 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Folha, type EstadoFolha } from "@/components/folha";
 import { FaixaLeitura } from "@/components/indicador-vivo";
 import { Legenda } from "@/components/mapa/legenda";
-import { desenharRota } from "@/components/mapa/rota";
 import { useMapa } from "@/components/mapa/use-mapa";
 import { corDoTom } from "@/lib/cores";
 import { lerCercas, lerDias } from "@/lib/dados/leituras";
@@ -13,10 +13,10 @@ import { useRetrato } from "@/lib/dados/use-retrato";
 import { ehAlerta } from "@/lib/dominio/eventos";
 import { diaLocal } from "@/lib/dominio/formato";
 import { CATEGORIAS, areaInicial, filtrarVeiculos, semMotor2, type FiltroVeiculos } from "@/lib/dominio/veiculo";
-import { useAgora, useCelular } from "@/lib/hooks";
-import { pontosDoTrecho } from "@/lib/mapa/rota";
+import { useAgora, useCelular, usePreferencia } from "@/lib/hooks";
 import { ouvirNavegacao } from "@/lib/navegacao";
-import type { Cerca, Historico, LatLng } from "@/lib/tipos";
+import type { Cerca, LatLng } from "@/lib/tipos";
+import { BarraTipos } from "./barra-tipos";
 import { Detalhe } from "./detalhe";
 import { criarCamadas, desenharCercas, destacarCerca, sincronizarMarcadores, type Camadas } from "./mapa-frota";
 import { Painel, type Aba } from "./painel";
@@ -36,12 +36,11 @@ export function Localizacao() {
   const camadas = useRef<Camadas | null>(null);
   const [cercas, setCercas] = useState<Cerca[]>([]);
   const [dias, setDias] = useState<string[]>([]);
-  const [aba, setAba] = useState<Aba>("veiculos");
-  const [filtro, setFiltro] = useState<FiltroVeiculos>({ indicador: null, busca: "", area: null });
+  const router = useRouter();
+  const [aba, setAba] = useState<Aba>("tipos");
+  const [filtro, setFiltro] = useState<FiltroVeiculos>({ indicador: null, busca: "", area: null, tipo: null });
+  const [recolhido, setRecolhido] = usePreferencia("mon-painel-recolhido");
   const [sel, setSel] = useState<string | null>(null);
-  const [hist, setHist] = useState<Historico | null>(null);
-  const [diaHist, setDiaHist] = useState<string | null>(null);
-  const [trechoSel, setTrechoSel] = useState<{ i: number; vez: number } | null>(null);
   const [folha, setFolha] = useState<EstadoFolha>("fechada");
   const [diaEventos, setDiaEventos] = useState(() => diaLocal());
   const { eventos: doDia } = useEventos(diaEventos);
@@ -66,31 +65,23 @@ export function Localizacao() {
     lerDias().then(setDias, () => undefined);
   }, []);
 
-  const fechar = useCallback(() => {
-    setSel(null);
-    setHist(null);
-    setTrechoSel(null);
-    setDiaHist(null);
-  }, []);
+  const fechar = useCallback(() => setSel(null), []);
   const abrir = useCallback(
-    (id: string, dia: string | null = null) => {
-      if (id !== sel) {
-        setHist(null);
-        setTrechoSel(null);
-      }
-      setDiaHist(dia);
+    (id: string) => {
       setSel(id);
+      // escolher um equipamento no mapa com o painel recolhido: o detalhe precisa do painel
+      if (!celular) setRecolhido(false);
       const v = veiculos.find((x) => x.id === id);
       const m = pronto?.mapa;
       if (!m || v?.lat == null || v.lng == null) return;
       if (celular) {
-        // zoom 18: acima do limite de agrupamento; centro deslocado para o caminhão ficar acima do cartão
+        // zoom 19: acima do limite de agrupamento; centro deslocado para o caminhão ficar acima do cartão
         setFolha("fechada");
-        const z = Math.max(m.getZoom(), 18);
+        const z = Math.max(m.getZoom(), 19);
         m.flyTo(m.unproject(m.project([v.lat, v.lng], z).add([0, 70]), z), z, { duration: 0.8 });
       } else m.flyTo([v.lat, v.lng], Math.max(m.getZoom(), 17));
     },
-    [sel, veiculos, pronto, celular],
+    [veiculos, pronto, celular, setRecolhido],
   );
   const focarCerca = useCallback(
     (nome: string) => {
@@ -100,7 +91,7 @@ export function Localizacao() {
       destacarCerca(pronto.L, pronto.mapa, c.polygon);
       if (veiculos.some((v) => v.area === nome)) {
         setFiltro((f) => ({ ...f, area: nome }));
-        setAba("veiculos");
+        setAba("tipos");
       }
       if (celular) setFolha("fechada");
       pronto.mapa.fitBounds(pronto.L.latLngBounds(c.polygon), { paddingTopLeft: [20, 20], paddingBottomRight: [20, celular ? 160 : 20], maxZoom: 18 });
@@ -117,14 +108,13 @@ export function Localizacao() {
 
   const escolherArea = (area: string) => {
     setFiltro((f) => ({ ...f, area }));
-    setAba("veiculos");
+    setAba("tipos");
     const p = poligonos[area];
     if (p && pronto) pronto.mapa.fitBounds(pronto.L.latLngBounds(p).pad(0.08));
   };
   const centralizar = () => {
     if (vSel?.lat != null && vSel.lng != null) pronto?.mapa.flyTo([vSel.lat, vSel.lng], 18);
   };
-  const focarTrecho = useCallback((i: number) => setTrechoSel((t) => ({ i, vez: (t?.vez ?? 0) + 1 })), []);
 
   // camadas (uma vez)
   useEffect(() => {
@@ -140,8 +130,8 @@ export function Localizacao() {
   }, [pronto, cercas]);
   useEffect(() => {
     if (!pronto || !camadas.current) return;
-    sincronizarMarcadores(pronto.L, camadas.current, veiculos, new Set(visiveis.map((v) => v.id)), sel, !!hist, semSinalMin, agora || Date.now(), (id) => abrirRef.current(id));
-  }, [pronto, veiculos, visiveis, sel, hist, semSinalMin, agora]);
+    sincronizarMarcadores(pronto.L, camadas.current, veiculos, new Set(visiveis.map((v) => v.id)), sel, semSinalMin, agora || Date.now(), (id) => abrirRef.current(id));
+  }, [pronto, veiculos, visiveis, sel, semSinalMin, agora]);
 
   // zoom inicial (área com mais veículos) e links diretos #v=<id>[&hist=AAAA-MM-DD] e #cerca=<nome>
   const zoomFeito = useRef(false);
@@ -158,9 +148,12 @@ export function Localizacao() {
     const h = new URLSearchParams(window.location.hash.slice(1));
     const v = h.get("v");
     const cerca = h.get("cerca");
-    if (v && veiculos.some((x) => x.id === v)) abrirRef.current(v, h.get("hist"));
+    const diaHist = h.get("hist");
+    // link antigo com histórico (#v=&hist=): o histórico agora fica só na Timeline
+    if (v && diaHist) router.push(`/timeline/?v=${encodeURIComponent(v)}&dia=${diaHist}`);
+    else if (v && veiculos.some((x) => x.id === v)) abrirRef.current(v);
     else if (cerca) setTimeout(() => focarCercaRef.current(cerca), 400);
-  }, [pronto, veiculos, cercas, poligonos, semSinalMin]);
+  }, [pronto, veiculos, cercas, poligonos, semSinalMin, router]);
 
   // busca Ctrl K e cartões: atende aqui mesmo, sem recarregar
   useEffect(
@@ -173,39 +166,8 @@ export function Localizacao() {
     [],
   );
 
-  // histórico do dia no mapa
-  useEffect(() => {
-    const c = camadas.current;
-    if (!pronto || !c) return;
-    if (!hist) {
-      c.hist.clearLayers();
-      return;
-    }
-    const limites = desenharRota(pronto.L, c.hist, hist, focarTrecho);
-    if (limites) pronto.mapa.fitBounds(limites.pad(0.05));
-  }, [pronto, hist, focarTrecho]);
-  useEffect(() => {
-    if (!pronto || !hist || !trechoSel) return;
-    const pts = pontosDoTrecho(hist, trechoSel.i);
-    const t = hist.trechos[trechoSel.i];
-    if (pts.length > 1) pronto.mapa.fitBounds(pronto.L.latLngBounds(pts).pad(0.2), { maxZoom: 18 });
-    else if (t && t.estado !== "movimento" && t.lat != null && t.lng != null) pronto.mapa.flyTo([t.lat, t.lng], 18);
-  }, [pronto, hist, trechoSel]);
-
   const conteudo = vSel ? (
-    <Detalhe
-      key={vSel.id}
-      v={vSel}
-      agora={agora}
-      semSinalMin={semSinalMin}
-      hist={hist}
-      aoCarregarHist={setHist}
-      diaInicial={diaHist}
-      trechoSel={trechoSel?.i ?? null}
-      focarTrecho={focarTrecho}
-      voltar={fechar}
-      centralizar={centralizar}
-    />
+    <Detalhe key={vSel.id} v={vSel} agora={agora} semSinalMin={semSinalMin} voltar={fechar} centralizar={centralizar} />
   ) : (
     <Painel
       aba={aba}
@@ -222,6 +184,7 @@ export function Localizacao() {
       agora={agora}
       abrir={abrir}
       escolherArea={escolherArea}
+      recolher={() => setRecolhido(true)}
     />
   );
 
@@ -229,7 +192,12 @@ export function Localizacao() {
     <div className="altura-tela flex flex-col">
       <FaixaLeitura />
       <div className="relative flex min-h-0 flex-1 md:gap-3 md:p-3">
-        {!celular && <aside className="flex w-[380px] shrink-0 flex-col overflow-hidden rounded-xl border border-borda bg-superficie shadow-md">{conteudo}</aside>}
+        {!celular &&
+          (recolhido ? (
+            <BarraTipos veiculos={veiculos} tipo={filtro.tipo} escolher={(t) => setFiltro((f) => ({ ...f, tipo: t }))} abrir={() => setRecolhido(false)} semSinalMin={semSinalMin} agora={agora} />
+          ) : (
+            <aside className="flex w-[380px] shrink-0 flex-col overflow-hidden rounded-xl border border-borda bg-superficie shadow-md">{conteudo}</aside>
+          ))}
         <div
           className="relative min-w-0 flex-1 overflow-hidden md:rounded-xl md:border md:border-borda md:shadow-md"
           onPointerDown={() => {
@@ -253,7 +221,7 @@ export function Localizacao() {
                 semSinalMin={semSinalMin}
                 mudarFiltro={(f) => {
                   setFiltro(f);
-                  setAba("veiculos");
+                  setAba("tipos");
                   setFolha("meio");
                 }}
                 abrirFolha={() => setFolha("meio")}

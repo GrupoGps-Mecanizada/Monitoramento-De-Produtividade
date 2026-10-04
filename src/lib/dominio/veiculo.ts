@@ -1,5 +1,5 @@
-import type { CategoriaVeiculo, EstadoTrecho, Frescor, LatLng, Tom, Veiculo } from "../tipos";
-import { minutosDesde } from "./formato";
+import type { CategoriaVeiculo, EstadoTrecho, Frescor, LatLng, TipoEquip, Tom, Veiculo } from "../tipos";
+import { fmtMin, idadeCurta, minutosDesde } from "./formato";
 
 export const SEM_SINAL_MIN_PADRAO = 30;
 
@@ -64,6 +64,28 @@ export function noIndicador(id: Indicador, v: Veiculo, semSinalMin: number, agor
   return categoria(v) === id;
 }
 
+/** Os 4 números do topo do painel (também filtram a lista e o mapa). */
+export const RESUMO_TOPO: Indicador[] = ["ligado", "desligado", "semsinal", "manut"];
+
+/** "Ligado há 51 min" + "Baia de Resíduos"; sem sinal: "Sem sinal há 6h" + "último lugar: Pátio 80". */
+export function partesEstado(v: Veiculo, semSinalMin: number, agora = Date.now()): { estado: string; lugar: string; semSinal: boolean } {
+  const lugar = v.area || v.via || "fora de área";
+  if (frescor(v, semSinalMin, agora) === "semsinal") return { estado: `Sem sinal há ${idadeCurta(v.posicao_em, agora)}`, lugar: `último lugar: ${lugar}`, semSinal: true };
+  return { estado: `${v.status}${v.status_desde ? ` há ${fmtMin(minutosDesde(v.status_desde, agora))}` : ""}`, lugar, semSinal: false };
+}
+export function fraseEstado(v: Veiculo, semSinalMin: number, agora = Date.now()): string {
+  const p = partesEstado(v, semSinalMin, agora);
+  return `${p.estado} · ${p.lugar}`;
+}
+
+/** "ALTA PRESSÃO - GPS - 08 - 24 HS" -> "vaga 08 · 24h"; "[S/ VAGA]" -> "". */
+export function vagaCurta(vaga: string): string {
+  if (!vaga || /S\/\s*VAGA/i.test(vaga)) return "";
+  const m = /GPS\s*-\s*(\d{1,2})(?!\d)/i.exec(vaga);
+  if (!m) return vaga;
+  return `vaga ${m[1]}${/24\s*HS/i.test(vaga) ? " · 24h" : ""}`;
+}
+
 export const FORA_DE_AREA = "__fora";
 export const nomeArea = (a: string) => (!a || a === FORA_DE_AREA ? "Fora de área / em vias" : a);
 
@@ -71,6 +93,7 @@ export interface FiltroVeiculos {
   indicador: Indicador | null;
   busca: string;
   area: string | null;
+  tipo: TipoEquip | null;
 }
 export function filtrarVeiculos(vs: Veiculo[], f: FiltroVeiculos, semSinalMin: number, agora = Date.now()): Veiculo[] {
   const q = f.busca.trim().toUpperCase();
@@ -78,7 +101,8 @@ export function filtrarVeiculos(vs: Veiculo[], f: FiltroVeiculos, semSinalMin: n
     (v) =>
       (!f.indicador || noIndicador(f.indicador, v, semSinalMin, agora)) &&
       (!f.area || (f.area === FORA_DE_AREA ? !v.area : v.area === f.area)) &&
-      (!q || [v.placa, v.motor2?.placa, v.vaga, v.grupo, v.area, v.via, v.motorista].join(" ").toUpperCase().includes(q)),
+      (!f.tipo || v.equip?.tipo === f.tipo) &&
+      (!q || [v.placa, v.equip?.nome, v.motor2?.placa, v.vaga, v.grupo, v.area, v.via, v.motorista].join(" ").toUpperCase().includes(q)),
   );
 }
 

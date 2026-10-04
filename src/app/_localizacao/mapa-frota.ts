@@ -6,24 +6,22 @@ import type { Cerca, LatLng, Veiculo } from "@/lib/tipos";
 
 export interface Camadas {
   cercas: Leaflet.LayerGroup;
-  hist: Leaflet.LayerGroup;
   cluster: Leaflet.MarkerClusterGroup;
   marcadores: Map<string, { m: Leaflet.Marker; chave: string }>;
 }
 
-/** Cercas, histórico e veículos (agrupados até o zoom 18), com o seletor de camadas. */
+/** Cercas e veículos (agrupados até o zoom 19: o pátio cheio vira um círculo com o número), com o seletor de camadas. */
 export function criarCamadas({ L, mapa, camadasBase }: MapaPronto): Camadas {
   const cercas = L.layerGroup().addTo(mapa);
-  const hist = L.layerGroup().addTo(mapa);
   const cluster = L.markerClusterGroup({
-    disableClusteringAtZoom: 18,
+    disableClusteringAtZoom: 19,
     maxClusterRadius: 45,
     showCoverageOnHover: false,
     spiderfyOnMaxZoom: true,
     iconCreateFunction: (c) => L.divIcon({ html: `<div class="cl">${c.getChildCount()}</div>`, className: "", iconSize: [38, 38] }),
   }).addTo(mapa);
-  L.control.layers(camadasBase, { Cercas: cercas, "Veículos": cluster, "Histórico": hist }).addTo(mapa);
-  return { cercas, hist, cluster, marcadores: new Map() };
+  L.control.layers(camadasBase, { Cercas: cercas, "Veículos": cluster }).addTo(mapa);
+  return { cercas, cluster, marcadores: new Map() };
 }
 
 export function desenharCercas(L: L, camada: Leaflet.LayerGroup, cercas: Cerca[]) {
@@ -45,15 +43,14 @@ export function sincronizarMarcadores(
   veiculos: Veiculo[],
   visiveis: Set<string>,
   sel: string | null,
-  comHistorico: boolean,
   semSinalMin: number,
   agora: number,
   aoClicar: (id: string) => void,
 ) {
   for (const v of veiculos) {
     if (!v.lat || !v.lng) continue;
-    // com histórico aberto, só o selecionado fica no mapa; o selecionado aparece mesmo que o filtro o esconda
-    const mostrar = (visiveis.has(v.id) || v.id === sel) && (!comHistorico || v.id === sel);
+    // o selecionado aparece mesmo que o filtro o esconda
+    const mostrar = visiveis.has(v.id) || v.id === sel;
     const html = htmlMarcador(v, v.id === sel, semSinalMin, agora);
     const chave = `${v.lat},${v.lng}|${html}`;
     let reg = c.marcadores.get(v.id);

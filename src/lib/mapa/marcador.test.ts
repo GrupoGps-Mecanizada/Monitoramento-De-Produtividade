@@ -27,4 +27,10 @@ describe("marcador do veículo", () => {
     expect(h).toContain('class="mk sel"');
     expect(h).toContain('class="m2"');
   });
+  it("mostra a sigla do tipo e o nome da planilha", () => {
+    const h = htmlMarcador(v({ placa: "ASP12", equip: { tipo: "as", nome: "Aspirador 03", ordem: 3 } }), false, 30, AGORA);
+    expect(h).toContain('<b class="sg">AS</b>');
+    expect(h).toContain("Aspirador 03");
+    expect(h).not.toContain("ASP12");
+  });
 });
