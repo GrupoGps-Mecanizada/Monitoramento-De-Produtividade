@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Evento } from "../tipos";
-import { agruparPorHora, contarPorGrupo, filtrarEventos, grupoDoEvento, textoEvento, textoPlano, TODOS_GRUPOS, veiculoDoEvento } from "./eventos";
+import { agruparPorHora, contarPorGrupo, ehAlerta, filtrarEventos, grupoDoEvento, textoEvento, textoPlano, TODOS_GRUPOS, veiculoDoEvento } from "./eventos";
 
 const base = { id: "10", placa: "EOF5208", vaga: "V1" };
 const ev: Evento[] = [
@@ -33,5 +33,16 @@ describe("eventos", () => {
   it("agrupa pela hora LOCAL (14h em Ipatinga, não 17h UTC)", () => {
     const g = agruparPorHora(filtrarEventos(ev, new Set(TODOS_GRUPOS), ""));
     expect(g.map((x) => [x.rotulo, x.eventos.length])).toEqual([["15:00 – 15:59", 3], ["14:00 – 14:59", 2]]);
+  });
+});
+
+describe("abertura do dia", () => {
+  const abertura = { t: "2026-10-03T03:02:00.000Z", id: "10", placa: "EGC2985", vaga: "", tipo: "abertura" as const, status: "Ligado", area: "PATIO", sem_sinal: false };
+  const entrada = { t: "2026-10-03T12:00:00.000Z", id: "10", placa: "EGC2985", vaga: "", tipo: "entrada" as const, area: "PATIO", lat: 0, lng: 0 };
+  it("abertura não é alerta: fora da lista e das contagens", () => {
+    expect(ehAlerta(abertura)).toBe(false);
+    expect(ehAlerta(entrada)).toBe(true);
+    expect(filtrarEventos([abertura, entrada], new Set(TODOS_GRUPOS), "")).toEqual([entrada]);
+    expect(contarPorGrupo([abertura, entrada])).toEqual({ entrada: 1, saida: 0, status: 0, sinal: 0 });
   });
 });

@@ -1,13 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { diaLocal } from "../dominio/formato";
+import { aplicarFrota } from "../dominio/frota-propria";
 import type { Cerca, Evento, Retrato } from "../tipos";
 import { db, ok } from "../supabase/cliente";
 import { validarCercas, validarEvento, validarRetrato } from "./esquemas";
 
-/** Retrato da frota (loc_kv.snapshot). Antes da 1ª leitura do coletor: retrato vazio. */
+/** Retrato da frota (loc_kv.snapshot), só com os equipamentos da Mecanizada. Antes da 1ª leitura do coletor: retrato vazio. */
 export async function lerRetrato(c: SupabaseClient = db()): Promise<Retrato> {
   const r = (await ok(c.from("loc_kv").select("valor").eq("chave", "snapshot").maybeSingle())) as { valor: unknown } | null;
-  return validarRetrato(r?.valor);
+  return aplicarFrota(validarRetrato(r?.valor));
 }
 
 let cercasCache: Promise<Cerca[]> | null = null;

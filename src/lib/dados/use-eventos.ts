@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { diaLocal } from "../dominio/formato";
+import { eventosDaFrota, idsDaFrota } from "../dominio/frota-propria";
 import type { Evento } from "../tipos";
 import { db } from "../supabase/cliente";
 import { validarEvento } from "./esquemas";
 import { lerEventos } from "./leituras";
+import { useRetrato } from "./use-retrato";
 
 interface Carga {
   dia: string;
@@ -13,9 +15,10 @@ interface Carga {
   erro: string | null;
 }
 
-/** Eventos do dia; no dia de hoje, os novos chegam ao vivo (Realtime). */
+/** Eventos do dia, só da frota da Mecanizada; no dia de hoje, os novos chegam ao vivo (Realtime). */
 export function useEventos(dia: string): { eventos: Evento[]; carregando: boolean; erro: string | null } {
   const [carga, setCarga] = useState<Carga | null>(null);
+  const { retrato } = useRetrato();
   useEffect(() => {
     let vivo = true;
     lerEventos(dia).then(
@@ -46,5 +49,8 @@ export function useEventos(dia: string): { eventos: Evento[]; carregando: boolea
     };
   }, [dia]);
   const atual = carga?.dia === dia ? carga : null;
-  return { eventos: atual?.eventos ?? [], carregando: !atual, erro: atual?.erro ?? null };
+  // eventos gravados antes do filtro do coletor: a frota vem do retrato atual
+  const ids = useMemo(() => (retrato ? idsDaFrota(retrato) : null), [retrato]);
+  const eventos = useMemo(() => (atual && ids ? eventosDaFrota(atual.eventos, ids) : []), [atual, ids]);
+  return { eventos, carregando: !atual || !ids, erro: atual?.erro ?? null };
 }

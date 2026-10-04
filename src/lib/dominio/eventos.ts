@@ -17,6 +17,9 @@ export const veiculoDoEvento = (e: Evento) => e.principal_id ?? e.id;
 /** Chave estável do evento na lista (lido / selecionado). */
 export const chaveEvento = (e: Evento) => `${e.t}|${e.id}|${e.tipo}`;
 
+/** A abertura do dia (coletor) é dado para o Dia da frota, não alerta. */
+export const ehAlerta = (e: Pick<Evento, "tipo">) => e.tipo !== "abertura";
+
 /** Partes do texto: a tela põe "quem" e "alvo" em negrito. */
 export interface TextoEvento {
   quem: string;
@@ -49,13 +52,13 @@ export const textoPlano = (t: TextoEvento) => [`${t.quem}${t.motor2 ? " ⚙ moto
 export function filtrarEventos(es: Evento[], grupos: ReadonlySet<GrupoEvento>, busca: string): Evento[] {
   const q = busca.trim().toUpperCase();
   return es
-    .filter((e) => grupos.has(grupoDoEvento(e)) && (!q || `${e.placa} ${e.principal ?? ""} ${e.area}`.toUpperCase().includes(q)))
+    .filter((e) => ehAlerta(e) && grupos.has(grupoDoEvento(e)) && (!q || `${e.placa} ${e.principal ?? ""} ${e.area}`.toUpperCase().includes(q)))
     .sort((a, b) => b.t.localeCompare(a.t));
 }
 
 export function contarPorGrupo(es: Evento[]): Record<GrupoEvento, number> {
   const c: Record<GrupoEvento, number> = { entrada: 0, saida: 0, status: 0, sinal: 0 };
-  for (const e of es) c[grupoDoEvento(e)]++;
+  for (const e of es) if (ehAlerta(e)) c[grupoDoEvento(e)]++;
   return c;
 }
 

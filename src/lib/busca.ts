@@ -1,4 +1,4 @@
-import { textoEvento, textoPlano } from "./dominio/eventos";
+import { ehAlerta, textoEvento, textoPlano } from "./dominio/eventos";
 import type { Cerca, Evento, Veiculo } from "./tipos";
 
 /** Sem acento e em maiúsculas. */
@@ -42,7 +42,7 @@ export function buscar(d: DadosBusca, q: string) {
   const cercas = d.cercas
     .filter((c) => c.polygon.length >= 3 && norm(c.name).includes(qn))
     .sort((a, b) => (ocupacao.get(b.name) ?? 0) - (ocupacao.get(a.name) ?? 0) || a.name.localeCompare(b.name));
-  const eventos = d.eventos.filter((e) => norm(`${textoPlano(textoEvento(e))} ${e.area}`).includes(qn)).sort((a, b) => b.t.localeCompare(a.t));
+  const eventos = d.eventos.filter((e) => ehAlerta(e) && norm(`${textoPlano(textoEvento(e))} ${e.area}`).includes(qn)).sort((a, b) => b.t.localeCompare(a.t));
   return { veiculos, cercas, eventos, ocupacao };
 }
 

@@ -10,6 +10,7 @@ import { corDoTom } from "@/lib/cores";
 import { lerCercas, lerDias } from "@/lib/dados/leituras";
 import { useEventos } from "@/lib/dados/use-eventos";
 import { useRetrato } from "@/lib/dados/use-retrato";
+import { ehAlerta } from "@/lib/dominio/eventos";
 import { diaLocal } from "@/lib/dominio/formato";
 import { CATEGORIAS, areaInicial, filtrarVeiculos, semMotor2, type FiltroVeiculos } from "@/lib/dominio/veiculo";
 import { useAgora, useCelular } from "@/lib/hooks";
@@ -43,7 +44,8 @@ export function Localizacao() {
   const [trechoSel, setTrechoSel] = useState<{ i: number; vez: number } | null>(null);
   const [folha, setFolha] = useState<EstadoFolha>("fechada");
   const [diaEventos, setDiaEventos] = useState(() => diaLocal());
-  const { eventos } = useEventos(diaEventos);
+  const { eventos: doDia } = useEventos(diaEventos);
+  const eventos = useMemo(() => doDia.filter(ehAlerta), [doDia]);
 
   const semSinalMin = retrato?.sem_sinal_min ?? 30;
   const veiculos = useMemo(() => semMotor2(retrato?.veiculos ?? []), [retrato]);

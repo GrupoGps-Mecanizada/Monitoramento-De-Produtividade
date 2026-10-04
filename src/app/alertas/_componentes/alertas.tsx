@@ -9,7 +9,7 @@ import { Aviso, Campos, Chip, Contador, Entrada, Selecao, Selo, Vazio, cx } from
 import { CLASSE_TOM, corDoTom } from "@/lib/cores";
 import { lerDias } from "@/lib/dados/leituras";
 import { useEventos } from "@/lib/dados/use-eventos";
-import { GRUPOS, ROTULO_TIPO, TODOS_GRUPOS, agruparPorHora, chaveEvento, contarPorGrupo, filtrarEventos, grupoDoEvento, veiculoDoEvento, type GrupoEvento } from "@/lib/dominio/eventos";
+import { GRUPOS, ROTULO_TIPO, TODOS_GRUPOS, agruparPorHora, chaveEvento, contarPorGrupo, ehAlerta, filtrarEventos, grupoDoEvento, veiculoDoEvento, type GrupoEvento } from "@/lib/dominio/eventos";
 import { dataHora, diaLocal, fmtMin, hora, horaSeg, rotuloDia } from "@/lib/dominio/formato";
 import { useCelular } from "@/lib/hooks";
 import type { Evento } from "@/lib/tipos";
@@ -24,7 +24,9 @@ export function Alertas() {
   useEffect(() => {
     lerDias().then(setDias, () => undefined);
   }, []);
-  const { eventos, carregando, erro } = useEventos(dia);
+  const { eventos: doDia, carregando, erro } = useEventos(dia);
+  // a abertura do dia (coletor) não é alerta
+  const eventos = useMemo(() => doDia.filter(ehAlerta), [doDia]);
   const [grupos, setGrupos] = useState<Set<GrupoEvento>>(() => new Set(TODOS_GRUPOS));
   const [busca, setBusca] = useState(() => (params.get("placa") ?? "").toUpperCase());
   const [lidos, setLidos] = useState<Set<string>>(() => new Set());
