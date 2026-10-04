@@ -400,3 +400,12 @@ textarea:focus {
   position: absolute; right: -9px; top: -9px; width: 18px; height: 18px; border-radius: 50%;
   background: var(--motor2); border: 2px solid #fff; font-size: 10px; display: grid; place-items: center;
 }
+/* capítulos da Timeline: o mesmo número no mapa e na lista */
+.cap {
+  position: absolute; transform: translate(-50%, -50%); width: 24px; height: 24px; display: grid; place-items: center;
+  background: var(--primaria); color: #fff; border: 2px solid #fff; border-radius: 50%;
+  font: 800 11px var(--font-sans); box-shadow: 0 1px 5px rgba(0, 0, 0, .5); cursor: pointer;
+}
+.cap.base { background: #64748b; }
+/* trilha "onde estava" da faixa do dia: em vias = listrado */
+.faixa-via { background: repeating-linear-gradient(135deg, #bfdbfe 0 4px, #dbeafe 4px 8px); color: #1e40af; }

@@ -1,4 +1,4 @@
-import type { EstadoTrecho, Historico, LatLng, PontoMapa, Trecho, TrechoParado } from "../tipos";
+import type { EstadoTrecho, Historico, LatLng, PontoMapa } from "../tipos";
 
 /** Uma linha por sequência de mesmo estado; cada sequência emenda na próxima (sem buraco visual). */
 export function sequenciasPorEstado(pontos: PontoMapa[]): { estado: EstadoTrecho; pts: LatLng[] }[] {
@@ -13,13 +13,6 @@ export function sequenciasPorEstado(pontos: PontoMapa[]): { estado: EstadoTrecho
     seqs.push({ estado, pts: [[lat, lng]] });
   }
   return seqs;
-}
-
-/** Paradas que viram marcador no mapa: 10 min ou mais, com posição. */
-export function paradasRelevantes(trechos: Trecho[]): { trecho: TrechoParado; i: number; lat: number; lng: number }[] {
-  return trechos.flatMap((t, i) =>
-    t.estado === "movimento" || t.estado === "sem_sinal" || t.duracao_min < 10 || t.lat == null || t.lng == null ? [] : [{ trecho: t, i, lat: t.lat, lng: t.lng }],
-  );
 }
 
 /** Pontos do trecho i (para enquadrar no mapa ao clicar no apontamento). */

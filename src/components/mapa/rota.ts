@@ -1,32 +1,46 @@
 import type * as Leaflet from "leaflet";
 import { corResolvida } from "@/lib/cores";
-import { fmtMin, hhmm } from "@/lib/dominio/formato";
+import type { Capitulo } from "@/lib/dominio/capitulos";
+import { fmtMin, hhmm, segDe } from "@/lib/dominio/formato";
 import { ESTADOS_TRECHO } from "@/lib/dominio/veiculo";
-import { esc, htmlRotulo } from "@/lib/mapa/marcador";
-import { paradasRelevantes, sequenciasPorEstado } from "@/lib/mapa/rota";
-import type { Historico } from "@/lib/tipos";
+import { esc } from "@/lib/mapa/marcador";
+import { sequenciasPorEstado } from "@/lib/mapa/rota";
+import type { Historico, PontoMapa } from "@/lib/tipos";
 import { iconeHtml, type L } from "./leaflet";
 
+/** Painel do Leaflet abaixo do padrão (400): o rastro do player fica por cima da rota redesenhada. */
+export const PAINEL_ROTA = "rota";
+
+function linhas(L: L, camada: Leaflet.LayerGroup, pontos: PontoMapa[], opacidade: number) {
+  const seqs = sequenciasPorEstado(pontos);
+  for (const s of seqs) L.polyline(s.pts, { pane: PAINEL_ROTA, color: "#0b1220", weight: 11, opacity: 0.75 * opacidade, lineJoin: "round", interactive: false }).addTo(camada);
+  for (const s of seqs) L.polyline(s.pts, { pane: PAINEL_ROTA, color: corResolvida(ESTADOS_TRECHO[s.estado].tom), weight: 7, opacity: opacidade, lineJoin: "round", lineCap: "round", interactive: false }).addTo(camada);
+}
+
 /**
- * Desenha a rota do dia (cor por estado, contorno escuro por baixo para destacar no satélite e sobre as
- * cercas), as paradas de 10 min ou mais e os rótulos de início e fim. Devolve os limites para enquadrar.
+ * Rota do dia (cor por estado, contorno escuro para destacar no satélite). Com foco (segundos do dia), o resto do
+ * dia fica apagado e só o pedaço do foco aparece forte. O painel PAINEL_ROTA precisa existir no mapa.
  */
-export function desenharRota(L: L, camada: Leaflet.LayerGroup, h: Historico, aoClicarParada: (i: number) => void): Leaflet.LatLngBounds | null {
+export function desenharRota(L: L, camada: Leaflet.LayerGroup, h: Historico, foco: [number, number] | null): void {
   camada.clearLayers();
-  if (!h.pontos.length) return null;
-  const seqs = sequenciasPorEstado(h.pontos);
-  for (const s of seqs) L.polyline(s.pts, { color: "#0b1220", weight: 11, opacity: 0.75, lineJoin: "round" }).addTo(camada);
-  for (const s of seqs) L.polyline(s.pts, { color: corResolvida(ESTADOS_TRECHO[s.estado].tom), weight: 7, opacity: 1, lineJoin: "round", lineCap: "round" }).addTo(camada);
-  for (const p of paradasRelevantes(h.trechos)) {
-    const e = ESTADOS_TRECHO[p.trecho.estado];
-    L.circleMarker([p.lat, p.lng], { radius: 7, color: "#fff", weight: 2, fillColor: corResolvida(e.tom), fillOpacity: 1 })
-      .bindTooltip(`${hhmm(p.trecho.inicio)}–${hhmm(p.trecho.fim)} · ${e.rotulo} · ${fmtMin(p.trecho.duracao_min)}<br>${esc(p.trecho.local)}`, { sticky: true })
-      .on("click", () => aoClicarParada(p.i))
+  if (!h.pontos.length) return;
+  linhas(L, camada, h.pontos, foco ? 0.3 : 1);
+  if (foco) {
+    const dentro = h.pontos.filter((p) => {
+      const s = segDe(p[2]);
+      return s >= foco[0] && s <= foco[1];
+    });
+    if (dentro.length > 1) linhas(L, camada, dentro, 1);
+  }
+}
+
+/** Pinos numerados dos capítulos (os mesmos números da lista); cinza = pátio/base. */
+export function desenharCapitulos(L: L, camada: Leaflet.LayerGroup, caps: Capitulo[], aoClicar: (c: Capitulo) => void): void {
+  for (const c of caps) {
+    if (c.lat == null || c.lng == null) continue;
+    L.marker([c.lat, c.lng], { icon: iconeHtml(L, `<div class="cap${c.tipoLugar === "base" ? " base" : ""}">${c.n}</div>`), zIndexOffset: 500 })
+      .bindTooltip(`${c.n} · ${esc(c.lugar)}<br>${hhmm(c.inicio)}–${hhmm(c.fim)} · ${fmtMin(c.duracao_min)}`)
+      .on("click", () => aoClicar(c))
       .addTo(camada);
   }
-  const ini = h.pontos[0];
-  const fim = h.pontos.at(-1)!;
-  L.marker([ini[0], ini[1]], { icon: iconeHtml(L, htmlRotulo(`Início ${ini[2].slice(0, 5)}`, "var(--ok-dot)")) }).addTo(camada);
-  L.marker([fim[0], fim[1]], { icon: iconeHtml(L, htmlRotulo(`Fim ${fim[2].slice(0, 5)}`, "var(--primaria)")) }).addTo(camada);
-  return L.latLngBounds(h.pontos.map((p): [number, number] => [p[0], p[1]]));
 }

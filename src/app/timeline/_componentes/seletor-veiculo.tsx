@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Entrada, Ponto, cx } from "@/components/ui";
+import { TIPOS_EQUIP, nomeEquip } from "@/lib/dominio/equipamentos";
 import { CATEGORIAS, categoria } from "@/lib/dominio/veiculo";
 import type { Veiculo } from "@/lib/tipos";
 
@@ -19,12 +20,12 @@ export function SeletorVeiculo({ veiculos, escolhido, escolher, paraCima = false
     return () => document.removeEventListener("mousedown", fora);
   }, [aberto]);
   const q = (texto ?? "").trim().toUpperCase();
-  const lista = q ? veiculos.filter((v) => [v.placa, v.vaga, v.motorista].join(" ").toUpperCase().includes(q)) : veiculos.slice(0, 30);
+  const lista = q ? veiculos.filter((v) => [v.placa, v.equip?.nome, v.vaga, v.motorista].join(" ").toUpperCase().includes(q)) : veiculos.slice(0, 30);
   return (
     <div ref={caixa} className="relative min-w-0 flex-1">
       <Entrada
         type="search"
-        value={texto ?? escolhido?.placa ?? ""}
+        value={texto ?? (escolhido ? nomeEquip(escolhido) : "")}
         onChange={(e) => {
           setTexto(e.target.value);
           setAberto(true);
@@ -53,7 +54,8 @@ export function SeletorVeiculo({ veiculos, escolhido, escolher, paraCima = false
               >
                 <Ponto tom={CATEGORIAS[categoria(v)].tom} />
                 <span className="font-semibold">
-                  {v.placa}
+                  {nomeEquip(v)}
+                  {v.equip && <span className="ml-1.5 text-xs font-normal text-suave">{TIPOS_EQUIP[v.equip.tipo].sigla}</span>}
                   {v.motor2 && (
                     <span className="ml-1 text-motor2" title="tem motor secundário">
                       ⚙

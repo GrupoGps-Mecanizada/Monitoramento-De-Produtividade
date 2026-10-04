@@ -1,17 +1,16 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type * as Leaflet from "leaflet";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Andamento } from "@/components/historico/andamento";
 import { Icone } from "@/components/icones";
 import { Legenda } from "@/components/mapa/legenda";
-import { desenharRota } from "@/components/mapa/rota";
 import { useMapa } from "@/components/mapa/use-mapa";
 import { Aviso, Botao, Selecao, Vazio } from "@/components/ui";
 import { corDoTom } from "@/lib/cores";
 import { pedirHistorico, type EtapaPedido } from "@/lib/dados/historico";
 import { useRetrato } from "@/lib/dados/use-retrato";
+import { TIPOS_EQUIP, compararEquip, nomeEquip } from "@/lib/dominio/equipamentos";
 import { diaBR, diaLocal, fmtMin, hhmm, rotuloDia, ultimosDias } from "@/lib/dominio/formato";
 import { ESTADOS_TRECHO, resolverVeiculo, semMotor2 } from "@/lib/dominio/veiculo";
 import { useCelular } from "@/lib/hooks";
@@ -29,7 +28,6 @@ export function Timeline() {
   const { retrato } = useRetrato();
   const celular = useCelular();
   const { ref, pronto } = useMapa(13);
-  const camada = useRef<Leaflet.LayerGroup | null>(null);
   const [sobreMapa, setSobreMapa] = useState<HTMLDivElement | null>(null);
   const [hoje] = useState(() => diaLocal());
   const [chave, setChave] = useState<string | null>(() => params.get("v"));
@@ -46,7 +44,7 @@ export function Timeline() {
   const [opcoes, setOpcoes] = useState(() => !params.get("v"));
 
   const todos = retrato?.veiculos;
-  const lista = useMemo(() => semMotor2(todos ?? []).sort((a, b) => a.placa.localeCompare(b.placa)), [todos]);
+  const lista = useMemo(() => semMotor2(todos ?? []).sort(compararEquip), [todos]);
   const escolhido = useMemo(() => (chave && todos ? resolverVeiculo(todos, chave) : null), [chave, todos]);
   const alvo = useMemo(() => (pedido && todos ? resolverVeiculo(todos, pedido.chave) : null), [pedido, todos]);
   const alvoId = alvo?.id ?? null;
@@ -88,19 +86,13 @@ export function Timeline() {
   const focarTrecho = useCallback((i: number) => setTrechoSel((t) => ({ i, vez: (t?.vez ?? 0) + 1 })), []);
 
   useEffect(() => {
-    if (!pronto) return;
-    camada.current = pronto.L.layerGroup().addTo(pronto.mapa);
-    pronto.L.control.layers(pronto.camadasBase).addTo(pronto.mapa);
+    if (pronto) pronto.L.control.layers(pronto.camadasBase).addTo(pronto.mapa);
   }, [pronto]);
+  // a rota e os capítulos são desenhados pelo ConteudoHistorico; aqui só enquadra o dia
   useEffect(() => {
-    if (!pronto || !camada.current) return;
-    if (!hist) {
-      camada.current.clearLayers();
-      return;
-    }
-    const limites = desenharRota(pronto.L, camada.current, hist, focarTrecho);
-    if (limites) pronto.mapa.fitBounds(limites.pad(0.06));
-  }, [pronto, hist, focarTrecho]);
+    if (!pronto || !hist?.pontos.length) return;
+    pronto.mapa.fitBounds(pronto.L.latLngBounds(hist.pontos.map((p): [number, number] => [p[0], p[1]])).pad(0.06));
+  }, [pronto, hist]);
   useEffect(() => {
     if (!pronto || !hist || !trechoSel) return;
     const pts = pontosDoTrecho(hist, trechoSel.i);
@@ -110,7 +102,7 @@ export function Timeline() {
   }, [pronto, hist, trechoSel]);
 
   const naoAchado = !!pedido && !!todos && !alvo;
-  const placa = alvo?.placa ?? hist?.id ?? "";
+  const placa = alvo ? nomeEquip(alvo) : (hist?.id ?? "");
   const situacao = naoAchado ? (
     <Vazio titulo="Veículo não encontrado">O endereço aponta para um veículo que não está mais na frota.</Vazio>
   ) : carga ? (
@@ -150,6 +142,7 @@ export function Timeline() {
         key={`${hist.id}|${hist.dia}|${hist.baixado_em}`}
         h={hist}
         placa={placa}
+        tipo={alvo?.equip ? TIPOS_EQUIP[alvo.equip.tipo].rotulo : ""}
         vaga={alvo?.vaga ?? ""}
         pronto={pronto}
         celular={celular}
@@ -199,7 +192,7 @@ export function Timeline() {
             onClick={() => setOpcoes(true)}
             className="absolute left-1/2 top-2.5 z-[600] flex max-w-[calc(100%-110px)] -translate-x-1/2 items-center gap-2 rounded-full border border-borda bg-superficie/95 px-3.5 py-2 text-[13px] shadow-md"
           >
-            <span className="truncate">{escolhido ? <><b>{escolhido.placa}</b> · {rotuloDia(dia, hoje)}</> : "Escolher veículo"}</span>
+            <span className="truncate">{escolhido ? <><b>{nomeEquip(escolhido)}</b> · {rotuloDia(dia, hoje)}</> : "Escolher veículo"}</span>
             <Icone nome="opcoes" className="h-4 w-4 text-suave" />
           </button>
         )}
