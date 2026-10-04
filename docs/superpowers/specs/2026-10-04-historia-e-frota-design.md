@@ -12,7 +12,7 @@ Hoje o sistema mostra dados demais e não conta o que aconteceu. A Timeline do E
 - **Manutenção:** sem sinal e em manutenção → números no topo da Localização e as cores do Dia da frota.
 
 **Sucesso =**
-- Só os 42 equipamentos da frota, mais o Ultravac, aparecem, organizados em 6 tipos.
+- Só os 42 equipamentos da frota (41 da planilha e o Ultravac) aparecem, organizados em 6 tipos.
 - O painel da Localização recolhe.
 - A Timeline mostra faixa e capítulos (o dia de 68 trechos vira cerca de 20 capítulos).
 - O Dia da frota mostra todos os equipamentos num olhar.
@@ -248,7 +248,7 @@ Regras:
 ### Mapa da Localização
 
 - **Marcador:** uma pílula com a sigla do tipo, num círculo na cor do estado, e a placa ou o nome. Sem sinal fica com a opacidade reduzida.
-- **Agrupamento:** com `leaflet.markercluster` (dependência nova; importada só no navegador, como o Leaflet). Um círculo com o número abre ao clicar ou ao aproximar.
+- **Agrupamento:** o `leaflet.markercluster` já usado hoje; o agrupamento passa a valer até o zoom 19 (era 18), para os veículos amontoados no pátio virarem um círculo com o número, que abre ao clicar ou ao aproximar.
 
 ### Alertas
 
@@ -288,4 +288,4 @@ Regras:
   - Uma vaga de aspirador trocada no GAUSS faz o aspirador mudar de número. É aceito; o `fora_da_lista` ajuda a perceber.
   - Um equipamento novo que não está na lista some da tela até alguém editar a lista. O `fora_da_lista` e o README avisam.
   - A precisão do Dia da frota é de ~5 min: a legenda diz isso, e o detalhe fino fica na Timeline.
-  - O `leaflet.markercluster` precisa funcionar com o Leaflet atual e com o export estático: conferir no build e no teste de navegador.
+  - Agrupar até o zoom 19 pode esconder veículos que alguém quer ver separados: clicar no círculo abre o grupo (spiderfy), como hoje.
