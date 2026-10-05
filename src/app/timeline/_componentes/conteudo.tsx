@@ -244,7 +244,7 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, motorista, pronto, cel
         >
           <div className="pb-2">
             <TrilhasDia h={h} historia={historia} player={player} janela={janela} alturaPx={Math.max(alturaPainel - 16, MIN_PAINEL)} regua={regua} foco={foco} mudarFoco={setFoco} atual={atual} irCapitulo={irCapitulo} />
-          {!h.motor2 && h.motor2_erro && <p className="mt-1 text-[10px] text-suave">motor secundário não carregou: {h.motor2_erro}</p>}
+            {!h.motor2 && h.motor2_erro && <p className="mt-1 text-[10px] text-suave">motor secundário não carregou: {h.motor2_erro}</p>}
           </div>
         </div>
       </section>
