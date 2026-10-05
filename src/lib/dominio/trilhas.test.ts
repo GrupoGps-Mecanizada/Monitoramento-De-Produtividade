@@ -1,15 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { Evento } from "../tipos";
-import { DIA, agruparEventos, ampliar, emPct, janelaDosEventos, janelaDosRegistros, janelaDosTrechos, marcasRegua, posBloco, rotuloMarca, segDaFracao, segDoEvento, segFim } from "./trilhas";
+import { DIA, ampliar, emPct, janelaDosRegistros, janelaDosTrechos, marcasRegua, posBloco, rotuloMarca, segDaFracao, segFim } from "./trilhas";
 
 const H = 3600;
 const D = "2026-10-01";
-// horário local do dia D (como o coletor grava: ISO em UTC)
-const iso = (hms: string) => new Date(`${D}T${hms}`).toISOString();
-const base = (hms: string, id = "1") => ({ t: iso(hms), id, placa: "AAA1111", vaga: "" });
-const entrada = (hms: string): Evento => ({ ...base(hms), tipo: "entrada", area: "PATIO", lat: null, lng: null });
-const status = (hms: string): Evento => ({ ...base(hms), tipo: "status", de: "Desligado", para: "Ligado", area: "PATIO", duracao_min: null });
-const abertura = (hms: string): Evento => ({ ...base(hms), tipo: "abertura", status: "Ligado", area: "PATIO", sem_sinal: false });
 
 describe("janela da régua", () => {
   it("cobre os registros em horas cheias, com no mínimo 1 h", () => {
@@ -60,30 +53,6 @@ describe("régua e zoom", () => {
     expect(ampliar([H, 2 * H])).toEqual([3420, 7380]);
     expect(ampliar([0, 600])).toEqual([0, 1800]);
     expect(ampliar([86000, DIA])).toEqual([84600, DIA]);
-  });
-});
-
-describe("acontecimentos em trilhas", () => {
-  it("segundo do dia no horário local", () => {
-    expect(segDoEvento(iso("08:05:00"), D)).toBe(8 * H + 300);
-  });
-  it("janela dos alertas (sem a abertura do dia); sem alertas = dia inteiro", () => {
-    expect(janelaDosEventos([], D)).toEqual([0, DIA]);
-    expect(janelaDosEventos([abertura("06:00:00"), entrada("08:05:00"), status("08:30:00")], D)).toEqual([8 * H, 9 * H]);
-  });
-  it("agrupa por trilha; próximos viram uma bolinha; abertura e fora da janela ficam de fora", () => {
-    const j = [8 * H, 9 * H] as const;
-    const t = agruparEventos([entrada("08:05:30"), entrada("08:05:00"), status("08:30:00"), abertura("08:00:00"), status("07:00:00")], D, j);
-    expect(t.entrada).toHaveLength(1);
-    expect(t.entrada[0].s).toBe(8 * H + 5.5 * 60);
-    expect(t.entrada[0].eventos.map((e) => e.t)).toEqual([iso("08:05:00"), iso("08:05:30")]);
-    expect(t.status).toEqual([{ s: 8 * H + 30.5 * 60, eventos: [status("08:30:00")] }]);
-    expect(t.saida).toEqual([]);
-    expect(t.sinal).toEqual([]);
-  });
-  it("evento no fim exato da janela fica na última bolinha, dentro da faixa", () => {
-    const t = agruparEventos([status("09:00:00")], D, [8 * H, 9 * H]);
-    expect(t.status[0].s).toBe(8 * H + 59.5 * 60);
   });
 });
 

@@ -62,23 +62,3 @@ test("Busca Ctrl K acha placa com hífen e aspirador pelo número", async ({ pag
   await caixa.fill("asp 3");
   await expect(page.getByRole("option", { name: /^Aspirador 03 Aspiradores/ })).toBeVisible();
 });
-
-test("Localização: faixa de acontecimentos com balão e clique que abre o equipamento", async ({ page }, info) => {
-  test.skip(info.project.name !== "computador", "faixa só no computador");
-  // os acontecimentos de teste são de 30 a 50 min atrás: na 1ª hora do dia caem no dia anterior
-  const agora = new Date();
-  test.skip(agora.getHours() === 0 && agora.getMinutes() < 55, "dados de teste caem no dia anterior");
-  await prepararDados(page);
-  await page.goto("/");
-  const faixa = page.getByRole("region", { name: "Acontecimentos de hoje" });
-  await expect(faixa.getByText("Status")).toBeVisible();
-  const bolinha = faixa.getByRole("button", { name: /EGC-2984/ });
-  await bolinha.hover();
-  await expect(page.getByRole("tooltip", { name: "Acontecimentos" })).toContainText("EGC-2984");
-  await bolinha.click();
-  await expect(page.getByRole("region", { name: "Equipamento" }).getByText("EGC-2984").first()).toBeVisible();
-  // filtro de tipo vale para a faixa: só aspiradores = nenhum acontecimento
-  await page.getByRole("navigation", { name: "Filtros do mapa" }).getByRole("button", { name: /^AS/ }).click();
-  await page.keyboard.press("Escape");
-  await expect(faixa.getByText(/Nenhum acontecimento/)).toBeVisible();
-});

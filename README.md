@@ -47,7 +47,7 @@ npm run e2e                    # testes de navegador (dados sintéticos, nada é
 
 | Caminho | O que é |
 |---|---|
-| `src/app/page.tsx` + `_localizacao/` | Localização. No computador: mapa inteiro; no topo, os tipos (o clique filtra e abre a lista num balão), os contadores, as Áreas e o sino de Alertas; cartão do equipamento no canto; embaixo, a faixa "Acontecimentos de hoje" (entradas, saídas, status, sinal), com balões. No celular: a gaveta |
+| `src/app/page.tsx` + `_localizacao/` | Localização. No computador: mapa inteiro; no topo, os tipos (o clique filtra e abre a lista num balão), os contadores, as Áreas e o sino de Alertas; cartão do equipamento no canto. No celular: a gaveta |
 | `src/app/frota/` | Dia da frota: uma faixa por equipamento no dia, por tipo (só eventos já gravados, precisão ~5 min) |
 | `src/app/timeline/` | Timeline (`?v=<id ou placa>&dia=AAAA-MM-DD`). No computador: veículo, dia e números no topo; embaixo do mapa, as trilhas Capítulos · Onde estava · Motor · Bomba sobre uma régua. A régua abre nas horas com registro e tem "Dia inteiro" e "Ampliar o foco"; passar o mouse mostra o balão; a alça muda a altura; capítulos, trechos, tempo por área e CSV ficam na gaveta "Apontamento". No celular: player no rodapé |
 | `src/app/alertas/` | Alertas por tipo e hora, detalhe em gaveta (`?placa=`) |

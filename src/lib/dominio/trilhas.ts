@@ -1,8 +1,6 @@
-// Trilhas horizontais (Timeline e acontecimentos da Localização): a régua mostra uma "janela" do dia em segundos e
+// Trilhas horizontais da Timeline: a régua mostra uma "janela" do dia em segundos e
 // cada bloco vira posição/largura em % dela (spec 2026-10-04-mapa-inteiro-trilhas-design.md).
-import type { Evento, Trecho } from "../tipos";
-import { minutoDoDia } from "./dia-frota";
-import { TODOS_GRUPOS, ehAlerta, grupoDoEvento, type GrupoEvento } from "./eventos";
+import type { Trecho } from "../tipos";
 import { pad, segDe } from "./formato";
 
 export const DIA = 86400;
@@ -61,43 +59,4 @@ export function ampliar([ini, fim]: Janela): Janela {
   if (a < 0) [a, b] = [0, Math.min(DIA, tam)];
   if (b > DIA) [a, b] = [Math.max(0, DIA - tam), DIA];
   return [Math.round(a), Math.round(b)];
-}
-
-/** Segundo do dia (horário local) de um instante ISO. */
-export const segDoEvento = (iso: string, dia: string) => Math.round(minutoDoDia(iso, dia) * 60);
-
-/** Janela dos alertas do dia (a abertura do dia não conta); sem alertas, o dia inteiro. */
-export function janelaDosEventos(eventos: Evento[], dia: string): Janela {
-  const ss = eventos.filter(ehAlerta).map((e) => segDoEvento(e.t, dia));
-  return ss.length ? janelaDosRegistros(Math.min(...ss), Math.max(...ss)) : [0, DIA];
-}
-
-export interface Bolinha {
-  /** centro da bolinha (segundo do dia) */
-  s: number;
-  eventos: Evento[];
-}
-/**
- * Alertas por trilha (Entradas, Saídas, Status, Sinal). Os que caem na mesma fatia (1/144 da janela, ~10 min no
- * dia inteiro, no mínimo 1 min) viram uma bolinha só. A abertura do dia e o que está fora da janela ficam de fora.
- */
-export function agruparEventos(eventos: Evento[], dia: string, j: Janela): Record<GrupoEvento, Bolinha[]> {
-  const fatia = Math.max(60, (j[1] - j[0]) / 144);
-  const ultima = Math.ceil((j[1] - j[0]) / fatia) - 1;
-  const porGrupo = new Map<GrupoEvento, Map<number, Evento[]>>(TODOS_GRUPOS.map((g) => [g, new Map()]));
-  for (const e of eventos) {
-    if (!ehAlerta(e)) continue;
-    const s = segDoEvento(e.t, dia);
-    if (s < j[0] || s > j[1]) continue;
-    const k = Math.min(ultima, Math.floor((s - j[0]) / fatia));
-    const m = porGrupo.get(grupoDoEvento(e))!;
-    m.set(k, [...(m.get(k) ?? []), e]);
-  }
-  const r = {} as Record<GrupoEvento, Bolinha[]>;
-  for (const g of TODOS_GRUPOS) {
-    r[g] = [...porGrupo.get(g)!]
-      .sort(([a], [b]) => a - b)
-      .map(([k, es]) => ({ s: j[0] + (k + 0.5) * fatia, eventos: es.sort((x, y) => x.t.localeCompare(y.t)) }));
-  }
-  return r;
 }
