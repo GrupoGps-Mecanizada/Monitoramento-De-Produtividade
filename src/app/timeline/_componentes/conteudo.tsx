@@ -238,12 +238,14 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, motorista, pronto, cel
         </div>
         <div
           data-testid="corpo-trilhas"
-          className="overflow-hidden px-3 pb-2"
+          className="overflow-hidden px-3"
           // enquanto arrasta, a altura segue o ponteiro sem atraso; recolher/expandir tem animação curta
           style={{ height: alturaPainel, transition: arrastando != null ? "none" : "height 180ms ease" }}
         >
-          <TrilhasDia h={h} historia={historia} player={player} janela={janela} alturaPx={Math.max(alturaPainel - 16, MIN_PAINEL)} regua={regua} foco={foco} mudarFoco={setFoco} atual={atual} irCapitulo={irCapitulo} />
+          <div className="pb-2">
+            <TrilhasDia h={h} historia={historia} player={player} janela={janela} alturaPx={Math.max(alturaPainel - 16, MIN_PAINEL)} regua={regua} foco={foco} mudarFoco={setFoco} atual={atual} irCapitulo={irCapitulo} />
           {!h.motor2 && h.motor2_erro && <p className="mt-1 text-[10px] text-suave">motor secundário não carregou: {h.motor2_erro}</p>}
+          </div>
         </div>
       </section>
       {apontamento && (
