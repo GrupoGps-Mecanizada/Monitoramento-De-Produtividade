@@ -17,6 +17,7 @@ import { useAgora, useCelular } from "@/lib/hooks";
 import { ouvirNavegacao } from "@/lib/navegacao";
 import type { Cerca, LatLng } from "@/lib/tipos";
 import { BarraTopo } from "./barra-topo";
+import { FaixaAcontecimentos } from "./faixa-acontecimentos";
 import { Detalhe } from "./detalhe";
 import { criarCamadas, desenharCercas, destacarCerca, sincronizarMarcadores, type Camadas } from "./mapa-frota";
 import { Painel, type Aba } from "./painel";
@@ -219,6 +220,7 @@ export function Localizacao() {
             </div>
           )}
         </div>
+        {!celular && <FaixaAcontecimentos eventos={eventos} dia={diaEventos} dias={dias} setDia={setDiaEventos} tipo={filtro.tipo} veiculos={veiculos} abrir={abrir} />}
         {celular && (
           <Folha
             estado={folha}
