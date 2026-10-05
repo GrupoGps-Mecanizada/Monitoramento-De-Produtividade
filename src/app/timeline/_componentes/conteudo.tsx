@@ -2,22 +2,24 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Apontamento } from "@/components/historico/apontamento";
 import { ControlesPlayer, InfoPlayer } from "@/components/historico/barra-tempo";
 import { Destaques, ListaCapitulos } from "@/components/historico/capitulos";
 import { FaixaDia } from "@/components/historico/faixa-dia";
-import { TempoPorArea } from "@/components/historico/tempo-area";
-import { ListaTrechos } from "@/components/historico/trechos";
+import { ALTURAS_TRILHAS, TrilhasDia, type AlturaTrilhas } from "@/components/historico/trilhas-dia";
 import { usePlayer } from "@/components/historico/use-player";
 import { Icone } from "@/components/icones";
 import { PAINEL_ROTA, desenharCapitulos, desenharRota } from "@/components/mapa/rota";
 import type { MapaPronto } from "@/components/mapa/use-mapa";
-import { Aviso, Botao, SecaoTitulo, Selo, cx } from "@/components/ui";
-import { baixarTexto } from "@/lib/arquivo";
-import { MIN_CAPITULO, capituloEm, montarHistoria, proximoCapitulo, segCap, type Capitulo } from "@/lib/dominio/capitulos";
-import { csvApontamento, nomeCsv } from "@/lib/dominio/csv";
+import { Alca } from "@/components/trilhas/alca";
+import { Balao } from "@/components/trilhas/balao";
+import { Aviso, Botao, Selo, cx } from "@/components/ui";
+import { capituloEm, montarHistoria, proximoCapitulo, segCap, type Capitulo, type HistoriaDia } from "@/lib/dominio/capitulos";
 import { diaBR, fmtHora, segDe } from "@/lib/dominio/formato";
 import { FONTE, itensResumo } from "@/lib/dominio/historico";
+import { DIA, ampliar, janelaDosTrechos, type Janela } from "@/lib/dominio/trilhas";
 import { ESTADOS_TRECHO } from "@/lib/dominio/veiculo";
+import { useOpcao } from "@/lib/hooks";
 import type { Historico } from "@/lib/tipos";
 
 interface Props {
@@ -29,12 +31,14 @@ interface Props {
   celular: boolean;
   /** camada sobre o mapa (para o horário do player e, no celular, o player inteiro) */
   sobreMapa: HTMLDivElement | null;
+  /** barra do topo (computador): os números do dia e o "Resumo do dia" */
+  noTopo: HTMLDivElement | null;
   trechoSel: number | null;
   focarTrecho: (i: number) => void;
 }
 
 /** Histórico carregado (use com key do histórico): a história do dia em capítulos, a faixa e o player. */
-export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobreMapa, trechoSel, focarTrecho }: Props) {
+export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobreMapa, noTopo, trechoSel, focarTrecho }: Props) {
   const player = usePlayer(pronto, h);
   const { trecho, tocando, irPara } = player;
   const historia = useMemo(() => montarHistoria(h.trechos), [h.trechos]);
@@ -42,6 +46,10 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobre
   const [verCapitulos, setVerCapitulos] = useState(false);
   const atual = capituloEm(historia.capitulos, player.t);
   const prox = proximoCapitulo(historia.capitulos, player.t);
+  const [altura, setAltura] = useOpcao<AlturaTrilhas>("mon-trilhas-altura", ALTURAS_TRILHAS, "normal");
+  const registros = useMemo(() => janelaDosTrechos(h.trechos), [h.trechos]);
+  const [janela, setJanela] = useState<Janela>(registros);
+  const [apontamento, setApontamento] = useState(false);
 
   const irCapitulo = useCallback((c: Capitulo) => irPara(segCap(c.inicio), true), [irPara]);
   const irCapituloRef = useRef(irCapitulo);
@@ -114,66 +122,102 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobre
       : null;
   }
 
+  const diaInteiro = janela[0] === 0 && janela[1] === DIA;
+  const soRegistros = janela[0] === registros[0] && janela[1] === registros[1];
   return (
     <>
       {sobreMapa && horario && createPortal(horario, sobreMapa)}
-      <div className="space-y-2 border-b border-borda px-4 py-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-lg font-semibold">{placa}</span>
+      {noTopo && createPortal(<ResumoTopo h={h} historia={historia} vaga={vaga} />, noTopo)}
+      <section aria-label="Timeline do veículo" className="shrink-0 rounded-xl border border-borda bg-superficie shadow-md">
+        <Alca opcoes={ALTURAS_TRILHAS} valor={altura} mudar={setAltura} rotulo="Altura das trilhas" />
+        <div className="flex flex-wrap items-center gap-2 px-3 pb-2">
+          <span className="text-base font-semibold">{placa}</span>
           {tipo && <Selo tom="reg">{tipo}</Selo>}
-          <span className="text-[13px] text-suave">
+          <span className="text-xs text-suave">
             {diaBR(h.dia)} · {FONTE[h.fonte]}
           </span>
-        </div>
-        {vaga && <p className="text-xs text-suave">{vaga}</p>}
-        {h.aviso && <p className="text-xs text-suave">{h.aviso}</p>}
-        <Destaques d={historia.destaques} />
-      </div>
-      {h.rpm_travado != null && (
-        <div className="px-4 pt-3">
-          <Aviso tipo="alerta">RPM do rastreador travado em {h.rpm_travado} o dia todo: não dá para afirmar motor ligado/desligado, as paradas aparecem só como “Parado”.</Aviso>
-        </div>
-      )}
-      <div className="mt-3 grid grid-cols-2 gap-px border-y border-borda bg-borda">
-        {itensResumo(h)
-          .filter((i) => i.rotulo !== "Período")
-          .map((i) => (
-            <div key={i.rotulo} className="bg-superficie px-4 py-2.5">
-              <p className={cx("text-base font-semibold tabular-nums", i.motor2 && "text-motor2")}>{i.valor}</p>
-              <p className="text-[11px] text-suave">{i.rotulo}</p>
-            </div>
-          ))}
-      </div>
-      <div className="space-y-2.5 border-b border-borda px-4 py-3">
-        <FaixaDia h={h} historia={historia} player={player} foco={foco} mudarFoco={setFoco} />
-        <div className="flex flex-wrap items-center gap-2">
           <ControlesPlayer player={player} />
           {botaoProximo}
-        </div>
-        <InfoPlayer player={player} />
-      </div>
-      <SecaoTitulo>Capítulos do dia · paradas de {MIN_CAPITULO} min ou mais</SecaoTitulo>
-      <ListaCapitulos capitulos={historia.capitulos} atual={atual} foco={foco} escolher={irCapitulo} />
-      <details className="border-t border-borda">
-        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Apontamento completo ({h.trechos.length} trechos)</summary>
-        {!!h.resumo?.areas.length && (
-          <>
-            <SecaoTitulo>Tempo por área</SecaoTitulo>
-            <TempoPorArea areas={h.resumo.areas} />
-          </>
-        )}
-        <SecaoTitulo
-          acao={
-            <Botao variante="secundaria" tamanho="mini" onClick={() => baixarTexto(nomeCsv(placa, h.dia), csvApontamento(h, placa))}>
-              <Icone nome="baixar" className="h-4 w-4" />
-              Exportar CSV
+          <InfoPlayer player={player} />
+          <span className="ml-auto flex flex-wrap items-center gap-1.5">
+            {foco && (
+              <>
+                <Botao variante="secundaria" tamanho="mini" onClick={() => setJanela(ampliar(foco))}>
+                  Ampliar o foco
+                </Botao>
+                <Botao variante="discreta" tamanho="mini" onClick={() => setFoco(null)}>
+                  ✕ Limpar foco
+                </Botao>
+              </>
+            )}
+            {!soRegistros && (
+              <Botao variante="secundaria" tamanho="mini" onClick={() => setJanela(registros)}>
+                Horas com registro
+              </Botao>
+            )}
+            {!diaInteiro && (
+              <Botao variante="secundaria" tamanho="mini" onClick={() => setJanela([0, DIA])}>
+                Dia inteiro
+              </Botao>
+            )}
+            <Botao variante="secundaria" tamanho="mini" onClick={() => setApontamento(true)}>
+              Apontamento
             </Botao>
-          }
-        >
-          Trechos
-        </SecaoTitulo>
-        <ListaTrechos trechos={h.trechos} sel={andou && trecho >= 0 ? trecho : null} aoEscolher={escolherTrecho} />
-      </details>
+          </span>
+        </div>
+        <div className="px-3 pb-3">
+          <TrilhasDia h={h} historia={historia} player={player} janela={janela} altura={altura} foco={foco} mudarFoco={setFoco} atual={atual} irCapitulo={irCapitulo} />
+          {!h.motor2 && h.motor2_erro && <p className="mt-1 text-[10px] text-suave">motor secundário não carregou: {h.motor2_erro}</p>}
+        </div>
+      </section>
+      {apontamento && (
+        <Apontamento
+          h={h}
+          placa={placa}
+          historia={historia}
+          atual={atual}
+          foco={foco}
+          irCapitulo={irCapitulo}
+          trechoSel={andou && trecho >= 0 ? trecho : null}
+          escolherTrecho={escolherTrecho}
+          fechar={() => setApontamento(false)}
+        />
+      )}
+    </>
+  );
+}
+
+/** Barra do topo da Timeline: os números do dia em pílulas e o balão "Resumo do dia". */
+function ResumoTopo({ h, historia, vaga }: { h: Historico; historia: HistoriaDia; vaga: string }) {
+  const [el, setEl] = useState<HTMLElement | null>(null);
+  const fechar = useCallback(() => setEl(null), []);
+  return (
+    <>
+      {itensResumo(h)
+        .filter((i) => i.rotulo !== "Período")
+        .map((i) => (
+          <span key={i.rotulo} className="rounded-full border border-borda bg-superficie-2 px-2.5 py-0.5 text-xs">
+            <b className={cx("tabular-nums", i.motor2 && "text-motor2")}>{i.valor}</b> <span className="text-suave">{i.rotulo.toLowerCase()}</span>
+          </span>
+        ))}
+      {h.rpm_travado != null && <Selo tom="warn">RPM travado</Selo>}
+      <Botao
+        variante="secundaria"
+        tamanho="mini"
+        aria-expanded={!!el}
+        onClick={(e) => {
+          const alvo = e.currentTarget;
+          setEl((x) => (x ? null : alvo));
+        }}
+      >
+        Resumo do dia
+      </Botao>
+      <Balao ancora={el} lado="baixo" rotulo="Resumo do dia" fechar={fechar} className="w-[360px] space-y-2 p-3">
+        {vaga && <p className="text-xs text-suave">{vaga}</p>}
+        {h.aviso && <p className="text-xs text-suave">{h.aviso}</p>}
+        {h.rpm_travado != null && <Aviso tipo="alerta">RPM do rastreador travado em {h.rpm_travado} o dia todo: não dá para afirmar motor ligado/desligado, as paradas aparecem só como “Parado”.</Aviso>}
+        <Destaques d={historia.destaques} />
+      </Balao>
     </>
   );
 }

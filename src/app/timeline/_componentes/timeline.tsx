@@ -11,7 +11,7 @@ import { corDoTom } from "@/lib/cores";
 import { pedirHistorico, type EtapaPedido } from "@/lib/dados/historico";
 import { useRetrato } from "@/lib/dados/use-retrato";
 import { TIPOS_EQUIP, compararEquip, nomeEquip } from "@/lib/dominio/equipamentos";
-import { diaBR, diaLocal, fmtMin, hhmm, rotuloDia, ultimosDias } from "@/lib/dominio/formato";
+import { diaBR, diaLocal, rotuloDia, ultimosDias } from "@/lib/dominio/formato";
 import { ESTADOS_TRECHO, resolverVeiculo, semMotor2 } from "@/lib/dominio/veiculo";
 import { useCelular } from "@/lib/hooks";
 import { pontosDoTrecho } from "@/lib/mapa/rota";
@@ -29,6 +29,7 @@ export function Timeline() {
   const celular = useCelular();
   const { ref, pronto } = useMapa(13);
   const [sobreMapa, setSobreMapa] = useState<HTMLDivElement | null>(null);
+  const [noTopo, setNoTopo] = useState<HTMLDivElement | null>(null);
   const [hoje] = useState(() => diaLocal());
   const [chave, setChave] = useState<string | null>(() => params.get("v"));
   const [dia, setDia] = useState(() => params.get("dia") || hoje);
@@ -119,18 +120,21 @@ export function Timeline() {
     </Vazio>
   ) : null;
 
+  const campos = (
+    <div className="flex gap-2">
+      <SeletorVeiculo veiculos={lista} escolhido={escolhido} escolher={(v) => setChave(v.id)} paraCima={celular} />
+      <Selecao value={dia} onChange={(e) => setDia(e.target.value)} aria-label="Dia" className="w-36 shrink-0">
+        {dias.map((d) => (
+          <option key={d} value={d}>
+            {rotuloDia(d, hoje)}
+          </option>
+        ))}
+      </Selecao>
+    </div>
+  );
   const formulario = (
     <div className="space-y-2.5 p-3">
-      <div className="flex gap-2">
-        <SeletorVeiculo veiculos={lista} escolhido={escolhido} escolher={(v) => setChave(v.id)} paraCima={celular} />
-        <Selecao value={dia} onChange={(e) => setDia(e.target.value)} aria-label="Dia" className="w-36 shrink-0">
-          {dias.map((d) => (
-            <option key={d} value={d}>
-              {rotuloDia(d, hoje)}
-            </option>
-          ))}
-        </Selecao>
-      </div>
+      {campos}
       <Botao onClick={ver} disabled={!escolhido || !!carga} className="w-full">
         Ver timeline
       </Botao>
@@ -147,44 +151,29 @@ export function Timeline() {
         pronto={pronto}
         celular={celular}
         sobreMapa={sobreMapa}
+        noTopo={noTopo}
         trechoSel={trechoSel?.i ?? null}
         focarTrecho={focarTrecho}
       />
     ) : null;
-  const tSel = hist && trechoSel ? hist.trechos[trechoSel.i] : null;
 
   return (
-    <div className="altura-tela relative flex md:gap-3 md:p-3">
+    <div className="altura-tela relative flex flex-col md:gap-3 md:p-3">
       {!celular && (
-        <section aria-label="Seleção e timeline do veículo" className="flex w-[400px] shrink-0 flex-col overflow-hidden rounded-xl border border-borda bg-superficie shadow-md">
-          <div className="border-b border-borda">{formulario}</div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            {situacao}
-            {conteudo}
-          </div>
-        </section>
+        <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-borda bg-superficie px-3 py-2 shadow-md">
+          <div className="w-[380px] shrink-0">{campos}</div>
+          <Botao onClick={ver} disabled={!escolhido || !!carga}>
+            Ver timeline
+          </Botao>
+          <div ref={setNoTopo} className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5" />
+        </div>
       )}
-      <div className="relative min-w-0 flex-1 overflow-hidden md:rounded-xl md:border md:border-borda md:shadow-md" onPointerDown={() => setOpcoes(false)}>
+      <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden md:rounded-xl md:border md:border-borda md:shadow-md" onPointerDown={() => setOpcoes(false)}>
         <div ref={ref} className="absolute inset-0" />
         <Legenda itens={LEGENDA} />
         <div ref={setSobreMapa} className="pointer-events-none absolute inset-0 z-[500] [&>*]:pointer-events-auto" />
-        {!celular && tSel && (
-          <div className="absolute bottom-6 right-3 z-[500] w-64 rounded-xl border border-borda bg-superficie/95 p-3 text-[13px] shadow-lg">
-            <p className="font-semibold">{placa}</p>
-            <p>
-              <b>{ESTADOS_TRECHO[tSel.estado].rotulo}</b>
-            </p>
-            <p>
-              {hhmm(tSel.inicio)} – {hhmm(tSel.fim)} · <b>{fmtMin(tSel.duracao_min)}</b>
-            </p>
-            {tSel.estado === "movimento" ? (
-              <p>
-                {tSel.km} km · máx {tSel.vel_max} km/h
-              </p>
-            ) : (
-              tSel.local && <p className="mt-1 text-suave">{tSel.local}</p>
-            )}
-          </div>
+        {!celular && situacao && (
+          <div className="absolute left-1/2 top-1/2 z-[600] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-borda bg-superficie/95 shadow-xl">{situacao}</div>
         )}
         {celular && (
           <button
@@ -210,6 +199,7 @@ export function Timeline() {
         )}
         {celular && conteudo}
       </div>
+      {!celular && conteudo}
       {celular && opcoes && (
         <div className="fixed inset-0 z-[1100]" role="dialog" aria-label="Veículo e dia">
           <button type="button" aria-label="Fechar" className="absolute inset-0 bg-black/40" onClick={() => setOpcoes(false)} />
