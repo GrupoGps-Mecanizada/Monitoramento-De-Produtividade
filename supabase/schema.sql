@@ -23,17 +23,21 @@ create table if not exists public.loc_kv (
   atualizado_em timestamptz not null default now()
 );
 
--- Entrada/saída de área, mudança de status, perda/retorno de sinal.
+-- Entrada/saída de área, mudança de status, perda/retorno de sinal e a abertura do dia (1º ciclo: status e área de cada um).
 create table if not exists public.loc_eventos (
   id bigint generated always as identity primary key,
   dia date not null,              -- dia local (America/Sao_Paulo)
   t timestamptz not null,
-  tipo text not null check (tipo in ('entrada', 'saida', 'status', 'sinal_perdido', 'sinal_retomado')),
+  tipo text not null check (tipo in ('entrada', 'saida', 'status', 'sinal_perdido', 'sinal_retomado', 'abertura')),
   veiculo_id text not null,
   dados jsonb not null,
   criado_em timestamptz not null default now()
 );
 create index if not exists loc_eventos_dia_t_idx on public.loc_eventos (dia, t desc);
+-- bancos criados antes de 05/10/2026: a trava antiga não aceitava 'abertura' (o coletor falhava no 1º ciclo do dia)
+alter table public.loc_eventos drop constraint if exists loc_eventos_tipo_check;
+alter table public.loc_eventos add constraint loc_eventos_tipo_check
+  check (tipo in ('entrada', 'saida', 'status', 'sinal_perdido', 'sinal_retomado', 'abertura'));
 
 -- Rota do GAUSS de um veículo num dia (cache) + apontamento já calculado.
 -- Dia "fechado" nunca é baixado de novo.
