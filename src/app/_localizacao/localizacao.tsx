@@ -215,7 +215,7 @@ export function Localizacao() {
           <div ref={ref} className="absolute inset-0" />
           <Legenda itens={LEGENDA} />
           {!celular && vSel && (
-            <div role="region" aria-label="Equipamento" className="absolute right-3 top-3 z-[600] flex max-h-[calc(100%-24px)] w-[340px] flex-col overflow-hidden rounded-xl border border-borda bg-superficie shadow-xl">
+            <div role="region" aria-label="Equipamento" className="absolute right-3 top-16 z-[600] flex max-h-[calc(100%-76px)] w-[340px] flex-col overflow-hidden rounded-xl border border-borda bg-superficie shadow-xl">
               <Detalhe key={vSel.id} v={vSel} agora={agora} semSinalMin={semSinalMin} voltar={fechar} centralizar={centralizar} modo="fechar" />
             </div>
           )}

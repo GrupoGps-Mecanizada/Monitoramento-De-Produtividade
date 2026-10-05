@@ -19,6 +19,10 @@ test("Localização: só a frota, por tipo, e o detalhe leva ao dia", async ({ p
     await expect(lista).toHaveCount(0);
     const cartao = page.getByRole("region", { name: "Equipamento" });
     await expect(cartao.getByText("Bomba (motor 2º)")).toBeVisible();
+    // o botão de camadas do mapa (canto de cima à direita) não pode cobrir o cartão
+    const camadas = (await page.locator(".leaflet-control-layers").boundingBox())!;
+    const caixa = (await cartao.boundingBox())!;
+    expect(caixa.y).toBeGreaterThanOrEqual(camadas.y + camadas.height);
     await expect(cartao.getByRole("link", { name: /Ver o dia/ })).toHaveAttribute("href", /\/timeline\/\?v=10&dia=/);
     await cartao.getByRole("button", { name: "Fechar" }).click();
     await expect(cartao).toHaveCount(0);
@@ -61,6 +65,9 @@ test("Busca Ctrl K acha placa com hífen e aspirador pelo número", async ({ pag
 
 test("Localização: faixa de acontecimentos com balão e clique que abre o equipamento", async ({ page }, info) => {
   test.skip(info.project.name !== "computador", "faixa só no computador");
+  // os acontecimentos de teste são de 30 a 50 min atrás: na 1ª hora do dia caem no dia anterior
+  const agora = new Date();
+  test.skip(agora.getHours() === 0 && agora.getMinutes() < 55, "dados de teste caem no dia anterior");
   await prepararDados(page);
   await page.goto("/");
   const faixa = page.getByRole("region", { name: "Acontecimentos de hoje" });

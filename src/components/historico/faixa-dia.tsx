@@ -4,6 +4,7 @@ import { useState, type PointerEvent as EventoPonteiro } from "react";
 import { corDoTom } from "@/lib/cores";
 import { segCap, type HistoriaDia, type TipoLugar } from "@/lib/dominio/capitulos";
 import { fmtHora, hhmm, segDe } from "@/lib/dominio/formato";
+import { segFim } from "@/lib/dominio/trilhas";
 import { ESTADOS_TRECHO } from "@/lib/dominio/veiculo";
 import type { Historico } from "@/lib/tipos";
 import { cx } from "../ui";
@@ -80,7 +81,7 @@ export function FaixaDia({ h, historia, player, foco, mudarFoco }: Props) {
         <div className="relative h-7 overflow-hidden rounded-md bg-superficie-2 ring-1 ring-black/10">
           {historia.faixaLugar.map((f, i) => {
             const a = segCap(f.inicio);
-            const b = segCap(f.fim);
+            const b = segFim(f.inicio, f.fim);
             return (
               <span
                 key={i}
@@ -97,7 +98,7 @@ export function FaixaDia({ h, historia, player, foco, mudarFoco }: Props) {
         <div className="relative h-3 overflow-hidden rounded bg-superficie-2">
           {historia.faixaMotor.map((f, i) => {
             const a = segCap(f.inicio);
-            const b = segCap(f.fim);
+            const b = segFim(f.inicio, f.fim);
             return <span key={i} title={`${hhmm(f.inicio)}–${hhmm(f.fim)} · ${ESTADOS_TRECHO[f.estado].rotulo}`} className="absolute inset-y-0" style={{ left: pct(a), width: pct(Math.max(b - a, 60)), background: corDoTom(ESTADOS_TRECHO[f.estado].tom) }} />;
           })}
         </div>

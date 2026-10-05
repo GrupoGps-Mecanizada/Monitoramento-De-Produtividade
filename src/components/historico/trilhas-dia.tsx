@@ -4,7 +4,7 @@ import { useState, type PointerEvent as EventoPonteiro, type ReactNode } from "r
 import { corDoTom } from "@/lib/cores";
 import { segCap, type Capitulo, type HistoriaDia } from "@/lib/dominio/capitulos";
 import { fmtHora, fmtMin, hhmm, segDe } from "@/lib/dominio/formato";
-import { emPct, marcasRegua, posBloco, segDaFracao, type Janela } from "@/lib/dominio/trilhas";
+import { emPct, marcasRegua, posBloco, segDaFracao, segFim, type Janela } from "@/lib/dominio/trilhas";
 import { ESTADOS_TRECHO } from "@/lib/dominio/veiculo";
 import type { Historico } from "@/lib/tipos";
 import { Balao } from "../trilhas/balao";
@@ -82,7 +82,7 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
           {px.cap > 0 && (
             <div className="relative" style={{ height: px.cap }}>
               {historia.capitulos.map((c) => {
-                const st = estilo(segCap(c.inicio), segCap(c.fim));
+                const st = estilo(segCap(c.inicio), segFim(c.inicio, c.fim));
                 if (!st) return null;
                 const balao = <BalaoCapitulo c={c} />;
                 return (
@@ -140,7 +140,7 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
           >
             <div className="relative overflow-hidden rounded-md bg-superficie-2 ring-1 ring-black/10" style={{ height: px.lugar }}>
               {historia.faixaLugar.map((f, i) => {
-                const st = estilo(segCap(f.inicio), segCap(f.fim));
+                const st = estilo(segCap(f.inicio), segFim(f.inicio, f.fim));
                 if (!st) return null;
                 return (
                   <span
@@ -151,7 +151,7 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
                         <>
                           <b>{f.lugar || LUGARES[f.tipoLugar].rotulo}</b>
                           <br />
-                          {hhmm(f.inicio)}–{hhmm(f.fim)} · {fmtMin((segCap(f.fim) - segCap(f.inicio)) / 60)}
+                          {hhmm(f.inicio)}–{hhmm(f.fim)} · {fmtMin((segFim(f.inicio, f.fim) - segCap(f.inicio)) / 60)}
                         </>,
                       )
                     }
@@ -166,7 +166,7 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
             {px.motor > 0 && (
               <div className="relative overflow-hidden rounded bg-superficie-2" style={{ height: px.motor }}>
                 {historia.faixaMotor.map((f, i) => {
-                  const st = estilo(segCap(f.inicio), segCap(f.fim));
+                  const st = estilo(segCap(f.inicio), segFim(f.inicio, f.fim));
                   if (!st) return null;
                   return (
                     <span
@@ -177,7 +177,7 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
                           <>
                             <b>{ESTADOS_TRECHO[f.estado].rotulo}</b>
                             <br />
-                            {hhmm(f.inicio)}–{hhmm(f.fim)} · {fmtMin((segCap(f.fim) - segCap(f.inicio)) / 60)}
+                            {hhmm(f.inicio)}–{hhmm(f.fim)} · {fmtMin((segFim(f.inicio, f.fim) - segCap(f.inicio)) / 60)}
                           </>,
                         )
                       }

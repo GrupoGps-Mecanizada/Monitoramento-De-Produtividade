@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Evento } from "../tipos";
-import { DIA, agruparEventos, ampliar, emPct, janelaDosEventos, janelaDosRegistros, janelaDosTrechos, marcasRegua, posBloco, segDaFracao, segDoEvento } from "./trilhas";
+import { DIA, agruparEventos, ampliar, emPct, janelaDosEventos, janelaDosRegistros, janelaDosTrechos, marcasRegua, posBloco, rotuloMarca, segDaFracao, segDoEvento, segFim } from "./trilhas";
 
 const H = 3600;
 const D = "2026-10-01";
@@ -84,5 +84,20 @@ describe("acontecimentos em trilhas", () => {
   it("evento no fim exato da janela fica na última bolinha, dentro da faixa", () => {
     const t = agruparEventos([status("09:00:00")], D, [8 * H, 9 * H]);
     expect(t.status[0].s).toBe(8 * H + 59.5 * 60);
+  });
+});
+
+describe("revisão final", () => {
+  it("fim de bloco à meia-noite (data do dia seguinte) vale 24 h, e não 0", () => {
+    expect(segFim(`${D} 18:00:00`, "2026-10-02 00:00:00")).toBe(DIA);
+    expect(segFim(`${D} 18:00:00`, `${D} 19:30:00`)).toBe(19.5 * H);
+  });
+  it("janela curta (foco ampliado) ainda tem marcas: de 5 em 5 min até 30 min, de 10 em 10 até 1 h", () => {
+    expect(marcasRegua([29100, 30900])).toEqual([29100, 29400, 29700, 30000, 30300, 30600, 30900]);
+    expect(marcasRegua([8 * H, 9 * H])).toEqual([8 * H, 8 * H + 600, 8 * H + 1200, 8 * H + 1800, 8 * H + 2400, 8 * H + 3000, 9 * H]);
+  });
+  it("rótulo da marca: hora cheia como 8h, o resto como 08:05", () => {
+    expect(rotuloMarca(8 * H)).toBe("8h");
+    expect(rotuloMarca(29100)).toBe("08:05");
   });
 });

@@ -3,7 +3,7 @@
 import type { Evento, Trecho } from "../tipos";
 import { minutoDoDia } from "./dia-frota";
 import { TODOS_GRUPOS, ehAlerta, grupoDoEvento, type GrupoEvento } from "./eventos";
-import { segDe } from "./formato";
+import { pad, segDe } from "./formato";
 
 export const DIA = 86400;
 const HORA = 3600;
@@ -22,9 +22,11 @@ export function janelaDosRegistros(primeiro: number | null, ultimo: number | nul
 export function janelaDosTrechos(trechos: Pick<Trecho, "inicio" | "fim">[]): Janela {
   if (!trechos.length) return [0, DIA];
   const ult = trechos[trechos.length - 1];
-  const fim = ult.fim.slice(0, 10) > ult.inicio.slice(0, 10) ? DIA : segDe(ult.fim.slice(11, 19));
-  return janelaDosRegistros(segDe(trechos[0].inicio.slice(11, 19)), fim);
+  return janelaDosRegistros(segDe(trechos[0].inicio.slice(11, 19)), segFim(ult.inicio, ult.fim));
 }
+
+/** Fim de um bloco ("AAAA-MM-DD HH:MM:SS") em segundos do dia; terminar no dia seguinte (00:00) = 24 h. */
+export const segFim = (inicio: string, fim: string) => (fim.slice(0, 10) > inicio.slice(0, 10) ? DIA : segDe(fim.slice(11, 19)));
 
 /** Posição de um instante na janela, em % (presa entre 0 e 100). */
 export const emPct = (s: number, [a, b]: Janela) => Math.min(100, Math.max(0, ((s - a) / (b - a)) * 100));
@@ -39,14 +41,17 @@ export function posBloco(ini: number, fim: number, j: Janela, minSeg = 60): { es
   return { esq, larg: emPct(f, j) - esq };
 }
 
-/** Horas cheias marcadas na régua: de 1 em 1 h até 8 h de janela, de 2 em 2 até 16 h, depois de 3 em 3. */
+/** Marcas da régua: de 5 em 5 min até 30 min de janela, de 10 em 10 até 1 h, de hora em hora até 8 h, de 2 em 2 até 16 h, depois de 3 em 3. */
 export function marcasRegua([a, b]: Janela): number[] {
   const horas = (b - a) / HORA;
-  const passo = (horas <= 8 ? 1 : horas <= 16 ? 2 : 3) * HORA;
+  const passo = horas <= 0.5 ? 300 : horas <= 1 ? 600 : (horas <= 8 ? 1 : horas <= 16 ? 2 : 3) * HORA;
   const m: number[] = [];
   for (let s = Math.ceil(a / passo) * passo; s <= b; s += passo) m.push(s);
   return m;
 }
+
+/** Rótulo da marca: hora cheia "8h"; o resto "08:05". */
+export const rotuloMarca = (s: number) => (s % HORA ? `${pad(Math.floor(s / HORA))}:${pad(Math.floor((s % HORA) / 60))}` : `${s / HORA}h`);
 
 /** "Ampliar o foco": o período com 5% de folga de cada lado, no mínimo 30 min, sem sair do dia. */
 export function ampliar([ini, fim]: Janela): Janela {
