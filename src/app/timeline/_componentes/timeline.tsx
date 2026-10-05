@@ -148,6 +148,7 @@ export function Timeline() {
         placa={placa}
         tipo={alvo?.equip ? TIPOS_EQUIP[alvo.equip.tipo].rotulo : ""}
         vaga={alvo?.vaga ?? ""}
+        motorista={hist.dia === hoje ? alvo?.motorista || null : null}
         pronto={pronto}
         celular={celular}
         sobreMapa={sobreMapa}

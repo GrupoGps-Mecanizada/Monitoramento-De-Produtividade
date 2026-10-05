@@ -111,3 +111,43 @@ export function useOpcao<T extends string>(chave: string, opcoes: readonly T[], 
   );
   return [opcaoValida(lido, opcoes, padrao), mudar];
 }
+
+// medida em px lembrada no navegador (ex.: altura do painel de trilhas), com a mesma regra das preferências
+const memoriaMedida = new Map<string, number>();
+function lerMedida(chave: string): string | null {
+  if (memoriaMedida.has(chave)) return String(memoriaMedida.get(chave));
+  try {
+    return localStorage.getItem(chave);
+  } catch {
+    return null;
+  }
+}
+/** Medida guardada só vale se for número dentro dos limites (senão, o padrão). */
+export const medidaValida = (lido: string | null, min: number, max: number, padrao: number): number => {
+  const n = lido == null ? NaN : Number(lido);
+  return Number.isFinite(n) && n >= min && n <= max ? n : padrao;
+};
+/** Uma medida (px) lembrada no navegador (o padrão na geração estática e até o navegador responder). */
+export function useMedida(chave: string, padrao: number, min: number, max: number): [number, (v: number) => void] {
+  const lido = useSyncExternalStore(
+    (f) => {
+      ouvintesPref.add(f);
+      return () => ouvintesPref.delete(f);
+    },
+    () => lerMedida(chave),
+    () => null,
+  );
+  const mudar = useCallback(
+    (v: number) => {
+      memoriaMedida.set(chave, Math.round(v));
+      try {
+        localStorage.setItem(chave, String(Math.round(v)));
+      } catch {
+        // sem armazenamento: vale só nesta visita
+      }
+      ouvintesPref.forEach((f) => f());
+    },
+    [chave],
+  );
+  return [medidaValida(lido, min, max, padrao), mudar];
+}

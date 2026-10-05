@@ -21,7 +21,7 @@ export const retrato = () => ({
   lido_em: minutosAtras(1), erro: null, intervalo_s: 300, sem_sinal_min: 30,
   gauss: { dia: hoje(), requisicoes: 42, logins: 1, erros: 0, desde: minutosAtras(600), pausadoAte: null },
   veiculos: [
-    veiculo({ id: "10", placa: "EGC2985", grupo: "CAMINHÃO ALTA PRESSÃO", vaga: "ALTA PRESSÃO - GPS - 08 - 24 HS", status: "Ligado", status_cod: 1, lat: -19.480, lng: -42.530, area: "PATIO", area_desde: minutosAtras(20),
+    veiculo({ id: "10", placa: "EGC2985", grupo: "CAMINHÃO ALTA PRESSÃO", motorista: "JOSÉ DA SILVA", vaga: "ALTA PRESSÃO - GPS - 08 - 24 HS", status: "Ligado", status_cod: 1, lat: -19.480, lng: -42.530, area: "PATIO", area_desde: minutosAtras(20),
       motor2: { id: "11", placa: "EGC29852", status: "Ligado", status_cod: 1, status_desde: minutosAtras(5), posicao_em: minutosAtras(1), sem_sinal: false } }),
     veiculo({ id: "11", placa: "EGC29852", grupo: "CAMINHÃO ALTA PRESSÃO", status: "Ligado", status_cod: 1, lat: -19.480, lng: -42.530, area: "PATIO", motor2_de: "10" }),
     veiculo({ id: "20", placa: "EGC-2984", grupo: "CAMINHÃO BROOK", status: "Desligado", status_cod: 2, lat: -19.475, lng: -42.525, area: "OFICINA" }),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DIA, ampliar, emPct, janelaDeHoras, janelaDosRegistros, janelaDosTrechos, marcasRegua, posBloco, rotuloMarca, segDaFracao, segFim } from "./trilhas";
+import { DIA, alturasTrilhas, ampliar, emPct, janelaDeHoras, janelaDosRegistros, janelaDosTrechos, marcasRegua, posBloco, rotuloMarca, segDaFracao, segFim } from "./trilhas";
 
 const H = 3600;
 const D = "2026-10-01";
@@ -81,5 +81,15 @@ describe("filtro de hora e régua detalhada", () => {
   it("régua detalhada (A+): marcas com metade do passo, no mínimo 5 min", () => {
     expect(marcasRegua([8 * H, 10 * H], true)).toEqual([8 * H, 8.5 * H, 9 * H, 9.5 * H, 10 * H]);
     expect(marcasRegua([29100, 30900], true)).toEqual(marcasRegua([29100, 30900]));
+  });
+});
+
+describe("alturas das trilhas pelo tamanho do painel", () => {
+  it("divide o espaço entre as trilhas (capítulos, onde estava, status, bomba)", () => {
+    expect(alturasTrilhas(200, true)).toEqual({ cap: 49, lugar: 53, status: 56, bomba: 30 });
+    expect(alturasTrilhas(200, false)).toEqual({ cap: 59, lugar: 64, status: 69, bomba: 0 });
+  });
+  it("painel baixo: cada trilha fica no seu mínimo", () => {
+    expect(alturasTrilhas(40, true)).toEqual({ cap: 14, lugar: 12, status: 14, bomba: 8 });
   });
 });

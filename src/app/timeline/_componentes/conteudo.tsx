@@ -6,7 +6,7 @@ import { Apontamento } from "@/components/historico/apontamento";
 import { ControlesPlayer, InfoPlayer } from "@/components/historico/barra-tempo";
 import { Destaques, ListaCapitulos } from "@/components/historico/capitulos";
 import { FaixaDia } from "@/components/historico/faixa-dia";
-import { ALTURAS_TRILHAS, TAMANHOS_REGUA, TrilhasDia, type AlturaTrilhas, type TamanhoRegua } from "@/components/historico/trilhas-dia";
+import { TAMANHOS_REGUA, TrilhasDia, type TamanhoRegua } from "@/components/historico/trilhas-dia";
 import { usePlayer } from "@/components/historico/use-player";
 import { Icone } from "@/components/icones";
 import { PAINEL_ROTA, desenharCapitulos, desenharRota } from "@/components/mapa/rota";
@@ -14,19 +14,26 @@ import type { MapaPronto } from "@/components/mapa/use-mapa";
 import { Alca } from "@/components/trilhas/alca";
 import { Balao } from "@/components/trilhas/balao";
 import { Aviso, Botao, Selecao, Selo, cx } from "@/components/ui";
+import { corDoTom } from "@/lib/cores";
 import { capituloEm, montarHistoria, proximoCapitulo, segCap, type Capitulo, type HistoriaDia } from "@/lib/dominio/capitulos";
 import { diaBR, fmtHora, segDe } from "@/lib/dominio/formato";
 import { FONTE, itensResumo } from "@/lib/dominio/historico";
 import { DIA, ampliar, janelaDeHoras, janelaDosTrechos, type Janela } from "@/lib/dominio/trilhas";
 import { ESTADOS_TRECHO } from "@/lib/dominio/veiculo";
-import { useOpcao } from "@/lib/hooks";
+import { useMedida, useOpcao, usePreferencia } from "@/lib/hooks";
 import type { Historico } from "@/lib/tipos";
+
+// painel das trilhas: abaixo disto ao soltar, recolhe; no máximo 60% da altura da janela
+const MIN_PAINEL = 64;
+const maxPainel = () => (typeof window === "undefined" ? 400 : Math.round(window.innerHeight * 0.6));
 
 interface Props {
   h: Historico;
   placa: string;
   tipo: string;
   vaga: string;
+  /** motorista atual (só quando o dia é hoje: o histórico do GAUSS não traz o motorista de cada hora) */
+  motorista: string | null;
   pronto: MapaPronto | null;
   celular: boolean;
   /** camada sobre o mapa (para o horário do player e, no celular, o player inteiro) */
@@ -38,7 +45,7 @@ interface Props {
 }
 
 /** Histórico carregado (use com key do histórico): a história do dia em capítulos, a faixa e o player. */
-export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobreMapa, noTopo, trechoSel, focarTrecho }: Props) {
+export function ConteudoHistorico({ h, placa, tipo, vaga, motorista, pronto, celular, sobreMapa, noTopo, trechoSel, focarTrecho }: Props) {
   const player = usePlayer(pronto, h);
   const { trecho, tocando, irPara } = player;
   const historia = useMemo(() => montarHistoria(h.trechos), [h.trechos]);
@@ -46,7 +53,10 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobre
   const [verCapitulos, setVerCapitulos] = useState(false);
   const atual = capituloEm(historia.capitulos, player.t);
   const prox = proximoCapitulo(historia.capitulos, player.t);
-  const [altura, setAltura] = useOpcao<AlturaTrilhas>("mon-trilhas-altura", ALTURAS_TRILHAS, "normal");
+  // painel de baixo: altura guardada, a que acompanha o arrasto (sem animação) e recolhido
+  const [alturaGuardada, guardarAltura] = useMedida("mon-trilhas-px", 170, MIN_PAINEL, 2000);
+  const [arrastando, setArrastando] = useState<number | null>(null);
+  const [recolhido, setRecolhido] = usePreferencia("mon-trilhas-recolhido");
   const [regua, setRegua] = useOpcao<TamanhoRegua>("mon-regua-tamanho", TAMANHOS_REGUA, "normal");
   const registros = useMemo(() => janelaDosTrechos(h.trechos), [h.trechos]);
   const [janela, setJanela] = useState<Janela>(registros);
@@ -87,12 +97,25 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobre
     </Botao>
   );
 
-  const horario = andou && player.ponto && (
-    <div className="absolute left-1/2 top-2.5 -translate-x-1/2 whitespace-nowrap rounded-lg bg-[#0b1220]/90 px-3.5 py-1.5 text-[13px] tabular-nums text-white shadow-md">
-      <b className="mr-2 text-lg">{fmtHora(player.t)}</b>
-      {placa} · {ESTADOS_TRECHO[player.ponto.estado].rotulo}
-      {player.ponto.estado === "movimento" ? ` · ${player.ponto.vel} km/h` : ""}
-      {player.ponto.m2 === 1 ? " · ⚙ 2º ligado" : ""}
+  const tAtual = trecho >= 0 ? h.trechos[trecho] : null;
+  const ondeEsta = !tAtual ? "" : tAtual.estado === "movimento" ? (tAtual.para ? `indo para ${tAtual.para}` : "em vias") : tAtual.local;
+  const horario = player.ponto && (
+    <div role="status" aria-label="Agora no mapa" className="absolute left-1/2 top-3 max-w-[min(640px,calc(100%-140px))] -translate-x-1/2 rounded-xl bg-[#0b1220]/90 px-4 py-2.5 text-white shadow-lg">
+      <div className="flex items-baseline gap-3 whitespace-nowrap">
+        <b className="text-3xl tabular-nums leading-none">{fmtHora(player.t)}</b>
+        <span className="text-base font-semibold">{placa}</span>
+        {tipo && <span className="truncate text-xs text-white/70">{tipo}</span>}
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[13px]">
+        <span className="flex items-center gap-1.5 font-semibold">
+          <i aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ background: corDoTom(ESTADOS_TRECHO[player.ponto.estado].tom) }} />
+          {ESTADOS_TRECHO[player.ponto.estado].rotulo}
+          {player.ponto.estado === "movimento" ? ` · ${player.ponto.vel} km/h` : ""}
+        </span>
+        {ondeEsta && <span className="truncate">{ondeEsta}</span>}
+        {player.ponto.m2 === 1 && <span className="font-semibold text-[#5eead4]">⚙ bomba ligada</span>}
+        {motorista && <span className="truncate text-white/85">Motorista: {motorista}</span>}
+      </div>
     </div>
   );
 
@@ -123,6 +146,7 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobre
       : null;
   }
 
+  const alturaPainel = arrastando ?? (recolhido ? 0 : alturaGuardada);
   const diaInteiro = janela[0] === 0 && janela[1] === DIA;
   const soRegistros = janela[0] === registros[0] && janela[1] === registros[1];
   const de = Math.floor(janela[0] / 3600);
@@ -152,8 +176,28 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobre
       {sobreMapa && horario && createPortal(horario, sobreMapa)}
       {noTopo && createPortal(<ResumoTopo h={h} historia={historia} vaga={vaga} />, noTopo)}
       <section aria-label="Timeline do veículo" className="shrink-0 rounded-xl border border-borda bg-superficie shadow-md">
-        <Alca opcoes={ALTURAS_TRILHAS} valor={altura} mudar={setAltura} rotulo="Altura das trilhas" />
+        <Alca
+          altura={alturaPainel}
+          maximo={maxPainel()}
+          mudando={(px) => {
+            if (recolhido && px > 0) setRecolhido(false);
+            setArrastando(px);
+          }}
+          soltar={(px) => {
+            setArrastando(null);
+            // soltou quase fechado: recolhe (e guarda a altura de antes para quando expandir)
+            if (px < MIN_PAINEL) setRecolhido(true);
+            else {
+              setRecolhido(false);
+              guardarAltura(px);
+            }
+          }}
+          rotulo="Altura das trilhas"
+        />
         <div className="flex flex-wrap items-center gap-2 px-3 pb-2">
+          <Botao variante="secundaria" tamanho="mini" onClick={() => setRecolhido(!recolhido)} aria-expanded={!recolhido} aria-label={recolhido ? "Expandir trilhas" : "Recolher trilhas"} title={recolhido ? "Expandir trilhas" : "Recolher trilhas"}>
+            {recolhido ? "▴ Expandir" : "▾ Recolher"}
+          </Botao>
           <span className="text-base font-semibold">{placa}</span>
           {tipo && <Selo tom="reg">{tipo}</Selo>}
           <span className="text-xs text-suave">
@@ -192,8 +236,13 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobre
             </Botao>
           </span>
         </div>
-        <div className="px-3 pb-3">
-          <TrilhasDia h={h} historia={historia} player={player} janela={janela} altura={altura} regua={regua} foco={foco} mudarFoco={setFoco} atual={atual} irCapitulo={irCapitulo} />
+        <div
+          data-testid="corpo-trilhas"
+          className="overflow-hidden px-3 pb-2"
+          // enquanto arrasta, a altura segue o ponteiro sem atraso; recolher/expandir tem animação curta
+          style={{ height: alturaPainel, transition: arrastando != null ? "none" : "height 180ms ease" }}
+        >
+          <TrilhasDia h={h} historia={historia} player={player} janela={janela} alturaPx={Math.max(alturaPainel - 16, MIN_PAINEL)} regua={regua} foco={foco} mudarFoco={setFoco} atual={atual} irCapitulo={irCapitulo} />
           {!h.motor2 && h.motor2_erro && <p className="mt-1 text-[10px] text-suave">motor secundário não carregou: {h.motor2_erro}</p>}
         </div>
       </section>

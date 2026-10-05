@@ -67,3 +67,21 @@ export function ampliar([ini, fim]: Janela): Janela {
   if (b > DIA) [a, b] = [Math.max(0, DIA - tam), DIA];
   return [Math.round(a), Math.round(b)];
 }
+
+export interface AlturasTrilhas {
+  cap: number;
+  lugar: number;
+  status: number;
+  bomba: number;
+}
+const PESO = { cap: 0.26, lugar: 0.28, status: 0.3, bomba: 0.16 };
+const MINIMO = { cap: 14, lugar: 12, status: 14, bomba: 8 };
+/** Altura (px) de cada trilha para o espaço do painel: cresce junto com ele, sem passar abaixo do mínimo (4 px entre elas). */
+export function alturasTrilhas(disponivel: number, comBomba: boolean): AlturasTrilhas {
+  const nomes = comBomba ? (["cap", "lugar", "status", "bomba"] as const) : (["cap", "lugar", "status"] as const);
+  const util = disponivel - (nomes.length - 1) * 4;
+  const soma = nomes.reduce((t, n) => t + PESO[n], 0);
+  const r: AlturasTrilhas = { cap: 0, lugar: 0, status: 0, bomba: 0 };
+  for (const n of nomes) r[n] = Math.max(MINIMO[n], Math.round((util * PESO[n]) / soma));
+  return r;
+}

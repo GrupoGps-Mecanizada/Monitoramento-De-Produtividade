@@ -2,41 +2,57 @@
 
 import { useRef } from "react";
 
-/** Alça na borda de cima de um painel: arrastar para cima aumenta, para baixo diminui; clicar passa para a próxima altura. */
-export function Alca<T extends string>({ opcoes, valor, mudar, rotulo }: { opcoes: readonly T[]; valor: T; mudar: (v: T) => void; rotulo: string }) {
-  const y0 = useRef<number | null>(null);
-  const i = opcoes.indexOf(valor);
-  const ir = (d: number) => mudar(opcoes[Math.min(opcoes.length - 1, Math.max(0, i + d))]);
-  const proxima = () => mudar(opcoes[(i + 1) % opcoes.length]);
+interface Props {
+  /** altura atual do painel (px) */
+  altura: number;
+  /** altura máxima agora (px) */
+  maximo: number;
+  /** enquanto arrasta: a altura acompanha o ponteiro */
+  mudando: (px: number) => void;
+  /** ao soltar (ou pelo teclado): a altura final */
+  soltar: (px: number) => void;
+  rotulo: string;
+}
+
+/** Alça na borda de cima de um painel: arrastar muda a altura em tempo real (para cima cresce, para baixo diminui). */
+export function Alca({ altura, maximo, mudando, soltar, rotulo }: Props) {
+  const inicio = useRef<{ y: number; h: number } | null>(null);
+  const medir = (y: number) => {
+    const i = inicio.current!;
+    return Math.min(maximo, Math.max(0, i.h + (i.y - y)));
+  };
   return (
-    <button
-      type="button"
+    <div
+      role="separator"
+      aria-orientation="horizontal"
       aria-label={rotulo}
-      title={`${rotulo} (arraste ou clique)`}
+      aria-valuemin={0}
+      aria-valuemax={Math.round(maximo)}
+      aria-valuenow={Math.round(altura)}
+      tabIndex={0}
+      title={`${rotulo} (arraste)`}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId);
-        y0.current = e.clientY;
+        inicio.current = { y: e.clientY, h: altura };
+      }}
+      onPointerMove={(e) => {
+        if (inicio.current && e.currentTarget.hasPointerCapture(e.pointerId)) mudando(medir(e.clientY));
       }}
       onPointerUp={(e) => {
-        const ini = y0.current;
-        y0.current = null;
-        if (ini == null) return;
-        const dy = e.clientY - ini;
-        if (dy < -24) ir(1);
-        else if (dy > 24) ir(-1);
-        else proxima();
+        if (!inicio.current) return;
+        const px = medir(e.clientY);
+        inicio.current = null;
+        soltar(px);
       }}
-      // teclado (Enter/Espaço) chega como clique sem ponteiro
-      onClick={(e) => e.detail === 0 && proxima()}
       onKeyDown={(e) => {
         if (e.key === "ArrowUp" || e.key === "ArrowDown") {
           e.preventDefault();
-          ir(e.key === "ArrowUp" ? 1 : -1);
+          soltar(Math.min(maximo, Math.max(0, altura + (e.key === "ArrowUp" ? 24 : -24))));
         }
       }}
-      className="mx-auto flex h-4 w-16 cursor-ns-resize touch-none items-center justify-center rounded-full hover:bg-superficie-2"
+      className="group mx-auto flex h-4 w-24 cursor-ns-resize touch-none items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primaria"
     >
-      <span aria-hidden className="h-1 w-10 rounded-full bg-borda" />
-    </button>
+      <span aria-hidden className="h-1 w-12 rounded-full bg-borda transition-colors group-hover:bg-suave" />
+    </div>
   );
 }
