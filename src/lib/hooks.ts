@@ -74,3 +74,40 @@ export function usePreferencia(chave: string): [boolean, (v: boolean) => void] {
   );
   return [valor, mudar];
 }
+
+// preferência de várias opções (ex.: altura do painel de trilhas), com a mesma regra de usePreferencia
+const memoriaOpcao = new Map<string, string>();
+function lerOpcao(chave: string): string | null {
+  if (memoriaOpcao.has(chave)) return memoriaOpcao.get(chave)!;
+  try {
+    return localStorage.getItem(chave);
+  } catch {
+    return null;
+  }
+}
+/** Valor guardado só vale se for uma das opções (valor antigo ou estranho volta ao padrão). */
+export const opcaoValida = <T extends string>(lido: string | null, opcoes: readonly T[], padrao: T): T => (lido != null && (opcoes as readonly string[]).includes(lido) ? (lido as T) : padrao);
+/** Uma entre várias opções, lembrada no navegador (o padrão na geração estática e até o navegador responder). */
+export function useOpcao<T extends string>(chave: string, opcoes: readonly T[], padrao: T): [T, (v: T) => void] {
+  const lido = useSyncExternalStore(
+    (f) => {
+      ouvintesPref.add(f);
+      return () => ouvintesPref.delete(f);
+    },
+    () => lerOpcao(chave),
+    () => null,
+  );
+  const mudar = useCallback(
+    (v: T) => {
+      memoriaOpcao.set(chave, v);
+      try {
+        localStorage.setItem(chave, v);
+      } catch {
+        // sem armazenamento: vale só nesta visita
+      }
+      ouvintesPref.forEach((f) => f());
+    },
+    [chave],
+  );
+  return [opcaoValida(lido, opcoes, padrao), mudar];
+}
