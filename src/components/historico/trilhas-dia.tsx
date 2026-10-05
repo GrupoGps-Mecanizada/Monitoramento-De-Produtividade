@@ -18,7 +18,7 @@ export type AlturaTrilhas = (typeof ALTURAS_TRILHAS)[number];
 // altura (px) de cada trilha; 0 = escondida
 const PX: Record<AlturaTrilhas, { cap: number; lugar: number; motor: number; bomba: number }> = {
   fina: { cap: 0, lugar: 12, motor: 0, bomba: 0 },
-  normal: { cap: 22, lugar: 26, motor: 12, bomba: 8 },
+  normal: { cap: 22, lugar: 26, motor: 12, bomba: 10 },
   alta: { cap: 30, lugar: 40, motor: 20, bomba: 14 },
 };
 
@@ -56,24 +56,24 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
     ["Capítulos", px.cap],
     ["Onde estava", px.lugar],
     ["Motor", px.motor],
-    ...(h.motor2 ? [[`⚙ Bomba${h.motor2.placa ? ` · ${h.motor2.placa}` : ""}`, px.bomba] as [string, number]] : []),
+    ...(h.motor2 ? [["⚙ Bomba", px.bomba] as [string, number]] : []),
   ];
   const noPlayer = player.t >= janela[0] && player.t <= janela[1];
 
   return (
     <div className="grid grid-cols-[104px_1fr] gap-x-2">
-      <div className="flex flex-col gap-1 pt-5 text-[10px] font-semibold uppercase tracking-wider text-suave">
+      <div className="flex flex-col gap-1 pt-4 text-[10px] font-semibold uppercase tracking-wider text-suave">
         {rotulos
           .filter(([, a]) => a > 0)
           .map(([r, a]) => (
-            <span key={r} className="flex items-center truncate" style={{ height: a }}>
+            <span key={r} title={r === "⚙ Bomba" && h.motor2?.placa ? `Bomba (motor 2º) · ${h.motor2.placa}` : undefined} className="flex items-center truncate leading-none" style={{ height: a }}>
               {r}
             </span>
           ))}
       </div>
       <div className="relative" onPointerLeave={() => setDica(null)}>
         <Regua janela={janela} />
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 top-5">
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 top-4">
           {marcasRegua(janela).map((s) => (
             <span key={s} className="absolute inset-y-0 w-px bg-borda/60" style={{ left: `${emPct(s, janela)}%` }} />
           ))}
@@ -223,7 +223,7 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
           </div>
         </div>
         {noPlayer && (
-          <span aria-hidden className="pointer-events-none absolute bottom-0 top-5 w-[3px] -translate-x-1/2 bg-white shadow-[0_0_0_1px_#0b1220,0_0_6px_rgba(0,0,0,.6)]" style={{ left: `${emPct(player.t, janela)}%` }} />
+          <span aria-hidden className="pointer-events-none absolute bottom-0 top-4 w-[3px] -translate-x-1/2 bg-white shadow-[0_0_0_1px_#0b1220,0_0_6px_rgba(0,0,0,.6)]" style={{ left: `${emPct(player.t, janela)}%` }} />
         )}
       </div>
       <Balao ancora={dica?.el ?? null} rotulo="Detalhe do trecho" className="px-3 py-2 leading-snug">
