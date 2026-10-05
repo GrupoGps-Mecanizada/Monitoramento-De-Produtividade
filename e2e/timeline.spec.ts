@@ -15,6 +15,14 @@ test("Timeline: conta o dia em capítulos e reproduz", async ({ page }, info) =>
     await expect(page.getByRole("tooltip")).toContainText("08:10–08:40");
     await cap.click();
     await expect(page.getByText(/08:10:00/).first()).toBeVisible();
+    // trilha de status com o nome dentro, legenda, filtro de hora e régua grande
+    await expect(trilhas.getByText("Parado ligado · 30 min")).toBeVisible();
+    await expect(trilhas.getByLabel("Legenda das trilhas")).toContainText("área de serviço");
+    await trilhas.getByLabel("Mostrar a partir de").selectOption("6");
+    await expect(trilhas.getByLabel("Mostrar até")).toHaveValue("9");
+    const aMais = trilhas.getByRole("button", { name: "A+" });
+    await aMais.click();
+    await expect(aMais).toHaveAttribute("aria-pressed", "true");
     await trilhas.getByRole("button", { name: "Apontamento" }).click();
     const gaveta = page.getByRole("dialog", { name: /Apontamento/ });
     await expect(gaveta.getByRole("list", { name: "Capítulos do dia" })).toBeVisible();

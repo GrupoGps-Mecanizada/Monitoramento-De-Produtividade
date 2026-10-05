@@ -6,18 +6,18 @@ import { Apontamento } from "@/components/historico/apontamento";
 import { ControlesPlayer, InfoPlayer } from "@/components/historico/barra-tempo";
 import { Destaques, ListaCapitulos } from "@/components/historico/capitulos";
 import { FaixaDia } from "@/components/historico/faixa-dia";
-import { ALTURAS_TRILHAS, TrilhasDia, type AlturaTrilhas } from "@/components/historico/trilhas-dia";
+import { ALTURAS_TRILHAS, TAMANHOS_REGUA, TrilhasDia, type AlturaTrilhas, type TamanhoRegua } from "@/components/historico/trilhas-dia";
 import { usePlayer } from "@/components/historico/use-player";
 import { Icone } from "@/components/icones";
 import { PAINEL_ROTA, desenharCapitulos, desenharRota } from "@/components/mapa/rota";
 import type { MapaPronto } from "@/components/mapa/use-mapa";
 import { Alca } from "@/components/trilhas/alca";
 import { Balao } from "@/components/trilhas/balao";
-import { Aviso, Botao, Selo, cx } from "@/components/ui";
+import { Aviso, Botao, Selecao, Selo, cx } from "@/components/ui";
 import { capituloEm, montarHistoria, proximoCapitulo, segCap, type Capitulo, type HistoriaDia } from "@/lib/dominio/capitulos";
 import { diaBR, fmtHora, segDe } from "@/lib/dominio/formato";
 import { FONTE, itensResumo } from "@/lib/dominio/historico";
-import { DIA, ampliar, janelaDosTrechos, type Janela } from "@/lib/dominio/trilhas";
+import { DIA, ampliar, janelaDeHoras, janelaDosTrechos, type Janela } from "@/lib/dominio/trilhas";
 import { ESTADOS_TRECHO } from "@/lib/dominio/veiculo";
 import { useOpcao } from "@/lib/hooks";
 import type { Historico } from "@/lib/tipos";
@@ -47,6 +47,7 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobre
   const atual = capituloEm(historia.capitulos, player.t);
   const prox = proximoCapitulo(historia.capitulos, player.t);
   const [altura, setAltura] = useOpcao<AlturaTrilhas>("mon-trilhas-altura", ALTURAS_TRILHAS, "normal");
+  const [regua, setRegua] = useOpcao<TamanhoRegua>("mon-regua-tamanho", TAMANHOS_REGUA, "normal");
   const registros = useMemo(() => janelaDosTrechos(h.trechos), [h.trechos]);
   const [janela, setJanela] = useState<Janela>(registros);
   const [apontamento, setApontamento] = useState(false);
@@ -124,6 +125,28 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobre
 
   const diaInteiro = janela[0] === 0 && janela[1] === DIA;
   const soRegistros = janela[0] === registros[0] && janela[1] === registros[1];
+  const de = Math.floor(janela[0] / 3600);
+  const ate = Math.ceil(janela[1] / 3600);
+  const filtroHora = (
+    <span className="flex items-center gap-1 text-xs text-suave">
+      De
+      <Selecao value={de} onChange={(e) => setJanela(janelaDeHoras(Number(e.target.value), ate))} aria-label="Mostrar a partir de" className="h-8 w-[88px] text-[13px]">
+        {Array.from({ length: 24 }, (_, i) => (
+          <option key={i} value={i}>
+            {i}h
+          </option>
+        ))}
+      </Selecao>
+      até
+      <Selecao value={ate} onChange={(e) => setJanela(janelaDeHoras(de, Number(e.target.value)))} aria-label="Mostrar até" className="h-8 w-[88px] text-[13px]">
+        {Array.from({ length: 24 }, (_, i) => (
+          <option key={i + 1} value={i + 1}>
+            {i + 1}h
+          </option>
+        ))}
+      </Selecao>
+    </span>
+  );
   return (
     <>
       {sobreMapa && horario && createPortal(horario, sobreMapa)}
@@ -140,6 +163,10 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobre
           {botaoProximo}
           <InfoPlayer player={player} />
           <span className="ml-auto flex flex-wrap items-center gap-1.5">
+            {filtroHora}
+            <Botao variante="secundaria" tamanho="mini" aria-pressed={regua === "grande"} title="Horários maiores na régua" onClick={() => setRegua(regua === "grande" ? "normal" : "grande")} className={cx(regua === "grande" && "border-primaria bg-primaria-suave")}>
+              A+
+            </Botao>
             {foco && (
               <>
                 <Botao variante="secundaria" tamanho="mini" onClick={() => setJanela(ampliar(foco))}>
@@ -166,7 +193,7 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, pronto, celular, sobre
           </span>
         </div>
         <div className="px-3 pb-3">
-          <TrilhasDia h={h} historia={historia} player={player} janela={janela} altura={altura} foco={foco} mudarFoco={setFoco} atual={atual} irCapitulo={irCapitulo} />
+          <TrilhasDia h={h} historia={historia} player={player} janela={janela} altura={altura} regua={regua} foco={foco} mudarFoco={setFoco} atual={atual} irCapitulo={irCapitulo} />
           {!h.motor2 && h.motor2_erro && <p className="mt-1 text-[10px] text-suave">motor secundário não carregou: {h.motor2_erro}</p>}
         </div>
       </section>

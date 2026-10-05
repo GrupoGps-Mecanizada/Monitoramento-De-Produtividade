@@ -13,8 +13,8 @@ import type { Player } from "./use-player";
 const DIA = 86400;
 const pct = (s: number) => `${(Math.min(DIA, Math.max(0, s)) / DIA) * 100}%`;
 export const LUGARES: Record<TipoLugar, { rotulo: string; classe: string }> = {
-  base: { rotulo: "pátio/base", classe: "bg-slate-500 text-white" },
-  servico: { rotulo: "área de serviço", classe: "bg-teal-700 text-white" },
+  base: { rotulo: "pátio/base", classe: "st-cinza" },
+  servico: { rotulo: "área de serviço", classe: "st-verde" },
   via: { rotulo: "em vias", classe: "faixa-via" },
 };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type PointerEvent as EventoPonteiro, type ReactNode } from "react";
-import { corDoTom } from "@/lib/cores";
+import { CLASSE_TOM } from "@/lib/cores";
 import { segCap, type Capitulo, type HistoriaDia } from "@/lib/dominio/capitulos";
 import { fmtHora, fmtMin, hhmm, segDe } from "@/lib/dominio/formato";
 import { emPct, marcasRegua, posBloco, segDaFracao, segFim, type Janela } from "@/lib/dominio/trilhas";
@@ -15,11 +15,13 @@ import type { Player } from "./use-player";
 
 export const ALTURAS_TRILHAS = ["fina", "normal", "alta"] as const;
 export type AlturaTrilhas = (typeof ALTURAS_TRILHAS)[number];
+export const TAMANHOS_REGUA = ["normal", "grande"] as const;
+export type TamanhoRegua = (typeof TAMANHOS_REGUA)[number];
 // altura (px) de cada trilha; 0 = escondida
-const PX: Record<AlturaTrilhas, { cap: number; lugar: number; motor: number; bomba: number }> = {
-  fina: { cap: 0, lugar: 12, motor: 0, bomba: 0 },
-  normal: { cap: 22, lugar: 26, motor: 12, bomba: 10 },
-  alta: { cap: 30, lugar: 40, motor: 20, bomba: 14 },
+const PX: Record<AlturaTrilhas, { cap: number; lugar: number; status: number; bomba: number }> = {
+  fina: { cap: 0, lugar: 12, status: 0, bomba: 0 },
+  normal: { cap: 22, lugar: 24, status: 22, bomba: 10 },
+  alta: { cap: 30, lugar: 34, status: 32, bomba: 14 },
 };
 
 interface Props {
@@ -28,6 +30,8 @@ interface Props {
   player: Player;
   janela: Janela;
   altura: AlturaTrilhas;
+  /** régua grande (A+): horários maiores e marcas de meia em meia hora */
+  regua: TamanhoRegua;
   foco: [number, number] | null;
   mudarFoco: (f: [number, number] | null) => void;
   atual: number | null;
@@ -35,11 +39,14 @@ interface Props {
 }
 
 /**
- * O dia em trilhas horizontais (capítulos, onde estava, motor, bomba) sobre a régua. Passar o mouse mostra o balão
+ * O dia em trilhas horizontais (capítulos, onde estava, status, bomba) sobre a régua, com legenda embaixo. Passar o mouse mostra o balão
  * do bloco; nas faixas, um toque leva o caminhão ao horário e arrastar escolhe um foco (como a FaixaDia do celular).
  */
-export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoco, atual, irCapitulo }: Props) {
+export function TrilhasDia({ h, historia, player, janela, altura, regua, foco, mudarFoco, atual, irCapitulo }: Props) {
   const px = PX[altura];
+  const grande = regua === "grande";
+  // altura da régua: as linhas e o player começam logo abaixo dela
+  const topo = grande ? 24 : 16;
   const [arrasto, setArrasto] = useState<{ a: number; b: number } | null>(null);
   const [dica, setDica] = useState<{ el: HTMLElement; c: ReactNode } | null>(null);
   const mostrar = (el: HTMLElement, c: ReactNode) => !arrasto && setDica({ el, c });
@@ -55,14 +62,14 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
   const rotulos: [string, number][] = [
     ["Capítulos", px.cap],
     ["Onde estava", px.lugar],
-    ["Motor", px.motor],
+    ["Status", px.status],
     ...(h.motor2 ? [["⚙ Bomba", px.bomba] as [string, number]] : []),
   ];
   const noPlayer = player.t >= janela[0] && player.t <= janela[1];
 
   return (
     <div className="grid grid-cols-[104px_1fr] gap-x-2">
-      <div className="flex flex-col gap-1 pt-4 text-[10px] font-semibold uppercase tracking-wider text-suave">
+      <div style={{ paddingTop: topo }} className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-suave">
         {rotulos
           .filter(([, a]) => a > 0)
           .map(([r, a]) => (
@@ -72,9 +79,9 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
           ))}
       </div>
       <div className="relative" onPointerLeave={() => setDica(null)}>
-        <Regua janela={janela} />
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 top-4">
-          {marcasRegua(janela).map((s) => (
+        <Regua janela={janela} grande={grande} />
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0" style={{ top: topo }}>
+          {marcasRegua(janela, grande).map((s) => (
             <span key={s} className="absolute inset-y-0 w-px bg-borda/60" style={{ left: `${emPct(s, janela)}%` }} />
           ))}
         </div>
@@ -96,10 +103,10 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
                     onPointerEnter={(e) => mostrar(e.currentTarget, balao)}
                     onFocus={(e) => mostrar(e.currentTarget, balao)}
                     onBlur={() => setDica(null)}
-                    className={cx("absolute inset-y-0 flex min-w-[18px] items-center gap-1 overflow-hidden rounded-md px-0.5 text-[10px] font-semibold text-white", c.tipoLugar === "base" ? "bg-slate-500" : "bg-primaria", atual === c.n && "ring-2 ring-texto")}
+                    className={cx("absolute inset-y-0 flex min-w-[18px] items-center gap-1 overflow-hidden rounded-md px-0.5 text-[10px] font-semibold ring-1", c.tipoLugar === "base" ? "st-cinza ring-slate-400/50" : "bg-primaria-suave text-texto ring-primaria/40", atual === c.n && "ring-2 ring-texto")}
                     style={st}
                   >
-                    <span className="grid h-4 min-w-4 shrink-0 place-items-center rounded-full bg-white/25 px-0.5">{c.n}</span>
+                    <span className={cx("grid h-4 min-w-4 shrink-0 place-items-center rounded-full px-0.5 text-white", c.tipoLugar === "base" ? "bg-slate-500" : "bg-primaria")}>{c.n}</span>
                     <span className="truncate">{c.lugar}</span>
                   </button>
                 );
@@ -163,8 +170,8 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
                 );
               })}
             </div>
-            {px.motor > 0 && (
-              <div className="relative overflow-hidden rounded bg-superficie-2" style={{ height: px.motor }}>
+            {px.status > 0 && (
+              <div className="relative overflow-hidden rounded-md bg-superficie-2 ring-1 ring-black/10" style={{ height: px.status }}>
                 {historia.faixaMotor.map((f, i) => {
                   const st = estilo(segCap(f.inicio), segFim(f.inicio, f.fim));
                   if (!st) return null;
@@ -181,9 +188,11 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
                           </>,
                         )
                       }
-                      className="absolute inset-y-0"
-                      style={{ ...st, background: corDoTom(ESTADOS_TRECHO[f.estado].tom) }}
-                    />
+                      className={cx("absolute inset-y-0 overflow-hidden whitespace-nowrap border-r border-white/60 px-1 text-[10px] font-semibold", CLASSE_TOM[ESTADOS_TRECHO[f.estado].tom])}
+                      style={{ ...st, lineHeight: `${px.status}px` }}
+                    >
+                      {px.status >= 20 ? `${ESTADOS_TRECHO[f.estado].rotulo} · ${fmtMin((segFim(f.inicio, f.fim) - segCap(f.inicio)) / 60)}` : ""}
+                    </span>
                   );
                 })}
               </div>
@@ -206,7 +215,7 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
                           </>,
                         )
                       }
-                      className="absolute inset-y-0 bg-motor2"
+                      className="absolute inset-y-0 bg-motor2/70"
                       style={st}
                     />
                   );
@@ -223,9 +232,10 @@ export function TrilhasDia({ h, historia, player, janela, altura, foco, mudarFoc
           </div>
         </div>
         {noPlayer && (
-          <span aria-hidden className="pointer-events-none absolute bottom-0 top-4 w-[3px] -translate-x-1/2 bg-white shadow-[0_0_0_1px_#0b1220,0_0_6px_rgba(0,0,0,.6)]" style={{ left: `${emPct(player.t, janela)}%` }} />
+          <span aria-hidden className="pointer-events-none absolute bottom-0 w-[3px] -translate-x-1/2 bg-texto shadow-[0_0_0_1px_var(--superficie),0_0_6px_rgba(0,0,0,.35)]" style={{ top: topo, left: `${emPct(player.t, janela)}%` }} />
         )}
       </div>
+      <LegendaTrilhas bomba={!!h.motor2 && px.bomba > 0} />
       <Balao ancora={dica?.el ?? null} rotulo="Detalhe do trecho" className="px-3 py-2 leading-snug">
         {dica?.c}
       </Balao>
@@ -255,5 +265,33 @@ function BalaoCapitulo({ c }: { c: Capitulo }) {
         </>
       )}
     </>
+  );
+}
+
+/** O que é cada cor das trilhas. */
+function LegendaTrilhas({ bomba }: { bomba: boolean }) {
+  const item = (rotulo: string, classe: string) => (
+    <span key={rotulo} className="flex items-center gap-1">
+      <i aria-hidden className={cx("inline-block h-2.5 w-3.5 rounded-sm ring-1 ring-black/10", classe)} />
+      {rotulo}
+    </span>
+  );
+  return (
+    <div aria-label="Legenda das trilhas" className="col-span-2 mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-borda pt-2 text-[11px] text-suave">
+      <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        <b className="font-semibold text-texto">Capítulo</b>
+        {item("parada de 15 min ou mais", "bg-primaria-suave ring-primaria/40")}
+        {item("no pátio/base", "st-cinza")}
+      </span>
+      <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        <b className="font-semibold text-texto">Onde estava</b>
+        {(Object.keys(LUGARES) as (keyof typeof LUGARES)[]).map((t) => item(LUGARES[t].rotulo, LUGARES[t].classe))}
+      </span>
+      <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        <b className="font-semibold text-texto">Status</b>
+        {(Object.keys(ESTADOS_TRECHO) as (keyof typeof ESTADOS_TRECHO)[]).map((e) => item(ESTADOS_TRECHO[e].rotulo, CLASSE_TOM[ESTADOS_TRECHO[e].tom]))}
+      </span>
+      {bomba && item("⚙ bomba ligada", "bg-motor2/70")}
+    </div>
   );
 }

@@ -26,6 +26,9 @@ export function janelaDosTrechos(trechos: Pick<Trecho, "inicio" | "fim">[]): Jan
 /** Fim de um bloco ("AAAA-MM-DD HH:MM:SS") em segundos do dia; terminar no dia seguinte (00:00) = 24 h. */
 export const segFim = (inicio: string, fim: string) => (fim.slice(0, 10) > inicio.slice(0, 10) ? DIA : segDe(fim.slice(11, 19)));
 
+/** Filtro "De … até …" em horas cheias (0–24); "até" igual ou antes do "de" vira 1 h a partir do "de". */
+export const janelaDeHoras = (de: number, ate: number): Janela => [de * HORA, (ate > de ? ate : Math.min(24, de + 1)) * HORA];
+
 /** Posição de um instante na janela, em % (presa entre 0 e 100). */
 export const emPct = (s: number, [a, b]: Janela) => Math.min(100, Math.max(0, ((s - a) / (b - a)) * 100));
 /** Instante de uma fração (0–1) da largura da janela. */
@@ -39,10 +42,14 @@ export function posBloco(ini: number, fim: number, j: Janela, minSeg = 60): { es
   return { esq, larg: emPct(f, j) - esq };
 }
 
-/** Marcas da régua: de 5 em 5 min até 30 min de janela, de 10 em 10 até 1 h, de hora em hora até 8 h, de 2 em 2 até 16 h, depois de 3 em 3. */
-export function marcasRegua([a, b]: Janela): number[] {
+/**
+ * Marcas da régua: de 5 em 5 min até 30 min de janela, de 10 em 10 até 1 h, de hora em hora até 8 h, de 2 em 2 até 16 h,
+ * depois de 3 em 3. `detalhe` (régua grande, A+) usa metade do passo, no mínimo 5 min.
+ */
+export function marcasRegua([a, b]: Janela, detalhe = false): number[] {
   const horas = (b - a) / HORA;
-  const passo = horas <= 0.5 ? 300 : horas <= 1 ? 600 : (horas <= 8 ? 1 : horas <= 16 ? 2 : 3) * HORA;
+  const base = horas <= 0.5 ? 300 : horas <= 1 ? 600 : (horas <= 8 ? 1 : horas <= 16 ? 2 : 3) * HORA;
+  const passo = detalhe ? Math.max(300, base / 2) : base;
   const m: number[] = [];
   for (let s = Math.ceil(a / passo) * passo; s <= b; s += passo) m.push(s);
   return m;

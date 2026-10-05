@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DIA, ampliar, emPct, janelaDosRegistros, janelaDosTrechos, marcasRegua, posBloco, rotuloMarca, segDaFracao, segFim } from "./trilhas";
+import { DIA, ampliar, emPct, janelaDeHoras, janelaDosRegistros, janelaDosTrechos, marcasRegua, posBloco, rotuloMarca, segDaFracao, segFim } from "./trilhas";
 
 const H = 3600;
 const D = "2026-10-01";
@@ -68,5 +68,18 @@ describe("revisão final", () => {
   it("rótulo da marca: hora cheia como 8h, o resto como 08:05", () => {
     expect(rotuloMarca(8 * H)).toBe("8h");
     expect(rotuloMarca(29100)).toBe("08:05");
+  });
+});
+
+describe("filtro de hora e régua detalhada", () => {
+  it("De/Até em horas cheias vira a janela; até antes do de vira 1 h a partir do de", () => {
+    expect(janelaDeHoras(6, 18)).toEqual([6 * H, 18 * H]);
+    expect(janelaDeHoras(0, 24)).toEqual([0, DIA]);
+    expect(janelaDeHoras(10, 10)).toEqual([10 * H, 11 * H]);
+    expect(janelaDeHoras(23, 5)).toEqual([23 * H, DIA]);
+  });
+  it("régua detalhada (A+): marcas com metade do passo, no mínimo 5 min", () => {
+    expect(marcasRegua([8 * H, 10 * H], true)).toEqual([8 * H, 8.5 * H, 9 * H, 9.5 * H, 10 * H]);
+    expect(marcasRegua([29100, 30900], true)).toEqual(marcasRegua([29100, 30900]));
   });
 });
