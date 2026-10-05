@@ -56,8 +56,9 @@ No computador, as duas telas de mapa usam uma coluna lateral fixa (380 px na Loc
 
 - **Barra do topo:**
   - Seletor de veículo e dia, e o botão "Ver" (o mesmo formulário de hoje, em linha).
-  - Os números do dia em pílulas (os mesmos de `itensResumo`) e os destaques.
-  - Aviso de RPM travado como selo com balão explicativo.
+  - Os números do dia em pílulas (os mesmos de `itensResumo`).
+  - Botão "Resumo do dia" com balão: vaga, aviso do histórico, aviso de RPM travado e os destaques.
+  - Selo "RPM travado" visível quando for o caso.
 - **Painel de baixo:**
   - Cabeçalho: placa, tipo, player, "Próximo capítulo" e "Apontamento".
   - Régua com as trilhas **Capítulos**, **Onde estava**, **Motor** e **⚙ Bomba** (esta só quando houver motor 2º).
@@ -69,8 +70,8 @@ No computador, as duas telas de mapa usam uma coluna lateral fixa (380 px na Loc
 - **Balões nas trilhas:** ao passar o mouse sobre um bloco aparece o balão do bloco.
   - Capítulo: número, lugar, de–até, duração e tempo ligado/desligado.
   - Onde estava: lugar, de–até e duração.
-  - Motor: estado, de–até, duração e velocidade máxima, se andou.
-  - Clicar no bloco: capítulo → `irCapitulo`; nos outros → o player vai ao início do bloco e o mapa enquadra o trecho.
+  - Motor: estado, de–até e duração.
+  - Clicar: no capítulo → `irCapitulo`; nas outras trilhas vale o que a faixa já faz (um toque vai ao horário exato, arrastar escolhe o foco).
 - **No mapa:** o horário do player (já existe) continua em cima. O cartão de trecho do canto direito sai, porque o balão substitui.
 - **Janela "Apontamento":** mostra os capítulos, os trechos, o tempo por área e o "Exportar CSV". O conteúdo é o mesmo de hoje, só muda de lugar.
 - **Estados** ("Selecione um veículo", "carregando", "erro", "sem dados", "veículo não encontrado") aparecem centralizados sobre o mapa.
