@@ -6,13 +6,22 @@ test("Localização: só a frota, por tipo, e o detalhe leva ao dia", async ({ p
   await page.goto("/");
   if (info.project.name === "computador") {
     await expect(page.getByRole("navigation", { name: "Menu principal" })).toBeVisible();
-    const painel = page.locator("aside");
-    await expect(painel.getByRole("button", { name: /Alta Pressão/ })).toBeVisible();
-    await expect(painel.getByRole("button", { name: /Aspirador 03/ })).toBeVisible();
+    // sem coluna lateral: filtros no topo, lista do tipo num balão
+    await expect(page.locator("aside")).toHaveCount(0);
+    const filtros = page.getByRole("navigation", { name: "Filtros do mapa" });
+    await expect(filtros.getByRole("button", { name: /^AS/ })).toBeVisible();
     await expect(page.getByText("EOF5208")).toHaveCount(0);
-    await painel.getByRole("button", { name: /EGC-2985/ }).click();
-    await expect(painel.getByText("Bomba (motor 2º)")).toBeVisible();
-    await expect(painel.getByRole("link", { name: /Ver o dia/ })).toHaveAttribute("href", /\/timeline\/\?v=10&dia=/);
+    const ap = filtros.getByRole("button", { name: /^AP/ });
+    await ap.click();
+    await expect(ap).toHaveAttribute("aria-pressed", "true");
+    const lista = page.getByRole("dialog", { name: "Alta Pressão" });
+    await lista.getByRole("button", { name: /EGC-2985/ }).click();
+    await expect(lista).toHaveCount(0);
+    const cartao = page.getByRole("region", { name: "Equipamento" });
+    await expect(cartao.getByText("Bomba (motor 2º)")).toBeVisible();
+    await expect(cartao.getByRole("link", { name: /Ver o dia/ })).toHaveAttribute("href", /\/timeline\/\?v=10&dia=/);
+    await cartao.getByRole("button", { name: "Fechar" }).click();
+    await expect(cartao).toHaveCount(0);
   } else {
     await expect(page.getByRole("navigation", { name: "Telas" })).toBeVisible();
     await expect(page.getByRole("button", { name: /4 veículos/ })).toBeVisible();
@@ -20,18 +29,22 @@ test("Localização: só a frota, por tipo, e o detalhe leva ao dia", async ({ p
   expect(gravacoes).toEqual([]);
 });
 
-test("Painel recolhe numa barra com os tipos, filtra e reabre", async ({ page }, info) => {
-  test.skip(info.project.name !== "computador", "barra só no computador");
+test("Localização: sino com os alertas do dia e clique de novo no tipo tira o filtro", async ({ page }, info) => {
+  test.skip(info.project.name !== "computador", "barra do topo só no computador");
   await prepararDados(page);
   await page.goto("/");
-  await page.getByRole("button", { name: "Recolher painel" }).click();
-  const barra = page.getByRole("navigation", { name: "Tipos de equipamento" });
-  await expect(barra).toBeVisible();
-  const as = barra.getByRole("button", { name: /^AS/ });
+  const filtros = page.getByRole("navigation", { name: "Filtros do mapa" });
+  await filtros.getByRole("button", { name: /^Alertas/ }).click();
+  const alertas = page.getByRole("dialog", { name: "Alertas" });
+  await expect(alertas.getByText(/EGC-2984/).first()).toBeVisible();
+  await expect(alertas.getByText("Início do dia")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(alertas).toHaveCount(0);
+  const as = filtros.getByRole("button", { name: /^AS/ });
   await as.click();
   await expect(as).toHaveAttribute("aria-pressed", "true");
-  await barra.getByRole("button", { name: "Abrir painel" }).click();
-  await expect(page.locator("aside").getByText("Aspiradores ✕")).toBeVisible();
+  await as.click();
+  await expect(as).toHaveAttribute("aria-pressed", "false");
 });
 
 test("Busca Ctrl K acha placa com hífen e aspirador pelo número", async ({ page }, info) => {

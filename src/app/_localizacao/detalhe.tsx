@@ -15,10 +15,12 @@ interface Props {
   semSinalMin: number;
   voltar: () => void;
   centralizar: () => void;
+  /** "fechar" no cartão do computador; "voltar" na gaveta do celular */
+  modo?: "voltar" | "fechar";
 }
 
 /** Detalhe do equipamento: uma frase que diz o que importa, 4 dados e o caminho para o dia (Timeline). */
-export function Detalhe({ v, agora, semSinalMin, voltar, centralizar }: Props) {
+export function Detalhe({ v, agora, semSinalMin, voltar, centralizar, modo = "voltar" }: Props) {
   const fr = frescor(v, semSinalMin, agora);
   const p = partesEstado(v, semSinalMin, agora);
   const campos: [string, ReactNode][] = [
@@ -37,8 +39,8 @@ export function Detalhe({ v, agora, semSinalMin, voltar, centralizar }: Props) {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b border-borda p-3">
         <Botao variante="secundaria" tamanho="mini" onClick={voltar}>
-          <Icone nome="voltar" className="h-4 w-4" />
-          Voltar
+          <Icone nome={modo === "fechar" ? "fechar" : "voltar"} className="h-4 w-4" />
+          {modo === "fechar" ? "Fechar" : "Voltar"}
         </Botao>
         <Botao variante="secundaria" tamanho="mini" onClick={centralizar}>
           <Icone nome="alvo" className="h-4 w-4" />

@@ -13,10 +13,10 @@ import { useRetrato } from "@/lib/dados/use-retrato";
 import { ehAlerta } from "@/lib/dominio/eventos";
 import { diaLocal } from "@/lib/dominio/formato";
 import { CATEGORIAS, areaInicial, filtrarVeiculos, semMotor2, type FiltroVeiculos } from "@/lib/dominio/veiculo";
-import { useAgora, useCelular, usePreferencia } from "@/lib/hooks";
+import { useAgora, useCelular } from "@/lib/hooks";
 import { ouvirNavegacao } from "@/lib/navegacao";
 import type { Cerca, LatLng } from "@/lib/tipos";
-import { BarraTipos } from "./barra-tipos";
+import { BarraTopo } from "./barra-topo";
 import { Detalhe } from "./detalhe";
 import { criarCamadas, desenharCercas, destacarCerca, sincronizarMarcadores, type Camadas } from "./mapa-frota";
 import { Painel, type Aba } from "./painel";
@@ -27,7 +27,7 @@ const LEGENDA = [
   { rotulo: "Tracejado = sem sinal", cor: corDoTom("neu"), tracejado: true },
 ];
 
-/** Localização: lista/áreas/eventos à esquerda e mapa ao vivo; no celular, o mapa com uma gaveta embaixo. */
+/** Localização: no computador, mapa inteiro com filtros no topo e cartão do equipamento; no celular, o mapa com uma gaveta embaixo. */
 export function Localizacao() {
   const { retrato } = useRetrato();
   const agora = useAgora();
@@ -39,7 +39,6 @@ export function Localizacao() {
   const router = useRouter();
   const [aba, setAba] = useState<Aba>("tipos");
   const [filtro, setFiltro] = useState<FiltroVeiculos>({ indicador: null, busca: "", area: null, tipo: null });
-  const [recolhido, setRecolhido] = usePreferencia("mon-painel-recolhido");
   const [sel, setSel] = useState<string | null>(null);
   const [folha, setFolha] = useState<EstadoFolha>("fechada");
   const [diaEventos, setDiaEventos] = useState(() => diaLocal());
@@ -69,8 +68,6 @@ export function Localizacao() {
   const abrir = useCallback(
     (id: string) => {
       setSel(id);
-      // escolher um equipamento no mapa com o painel recolhido: o detalhe precisa do painel
-      if (!celular) setRecolhido(false);
       const v = veiculos.find((x) => x.id === id);
       const m = pronto?.mapa;
       if (!m || v?.lat == null || v.lng == null) return;
@@ -81,7 +78,7 @@ export function Localizacao() {
         m.flyTo(m.unproject(m.project([v.lat, v.lng], z).add([0, 70]), z), z, { duration: 0.8 });
       } else m.flyTo([v.lat, v.lng], Math.max(m.getZoom(), 17));
     },
-    [veiculos, pronto, celular, setRecolhido],
+    [veiculos, pronto, celular],
   );
   const focarCerca = useCallback(
     (nome: string) => {
@@ -184,22 +181,31 @@ export function Localizacao() {
       agora={agora}
       abrir={abrir}
       escolherArea={escolherArea}
-      recolher={() => setRecolhido(true)}
     />
   );
 
   return (
     <div className="altura-tela flex flex-col">
       <FaixaLeitura />
-      <div className="relative flex min-h-0 flex-1 md:gap-3 md:p-3">
-        {!celular &&
-          (recolhido ? (
-            <BarraTipos veiculos={veiculos} tipo={filtro.tipo} escolher={(t) => setFiltro((f) => ({ ...f, tipo: t }))} abrir={() => setRecolhido(false)} semSinalMin={semSinalMin} agora={agora} />
-          ) : (
-            <aside className="flex w-[380px] shrink-0 flex-col overflow-hidden rounded-xl border border-borda bg-superficie shadow-md">{conteudo}</aside>
-          ))}
+      <div className="relative flex min-h-0 flex-1 flex-col md:gap-3 md:p-3">
+        {!celular && (
+          <BarraTopo
+            veiculos={veiculos}
+            visiveis={visiveis}
+            filtro={filtro}
+            setFiltro={setFiltro}
+            eventos={eventos}
+            dias={dias}
+            diaEventos={diaEventos}
+            setDiaEventos={setDiaEventos}
+            semSinalMin={semSinalMin}
+            agora={agora}
+            abrir={abrir}
+            escolherArea={escolherArea}
+          />
+        )}
         <div
-          className="relative min-w-0 flex-1 overflow-hidden md:rounded-xl md:border md:border-borda md:shadow-md"
+          className="relative min-h-0 min-w-0 flex-1 overflow-hidden md:rounded-xl md:border md:border-borda md:shadow-md"
           onPointerDown={() => {
             // tocar no mapa = foco no mapa: recolhe a gaveta
             if (celular && folha !== "fechada") setFolha("fechada");
@@ -207,6 +213,11 @@ export function Localizacao() {
         >
           <div ref={ref} className="absolute inset-0" />
           <Legenda itens={LEGENDA} />
+          {!celular && vSel && (
+            <div role="region" aria-label="Equipamento" className="absolute right-3 top-3 z-[600] flex max-h-[calc(100%-24px)] w-[340px] flex-col overflow-hidden rounded-xl border border-borda bg-superficie shadow-xl">
+              <Detalhe key={vSel.id} v={vSel} agora={agora} semSinalMin={semSinalMin} voltar={fechar} centralizar={centralizar} modo="fechar" />
+            </div>
+          )}
         </div>
         {celular && (
           <Folha

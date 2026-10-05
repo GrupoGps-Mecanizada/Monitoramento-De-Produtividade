@@ -27,22 +27,10 @@ interface Props {
   agora: number;
   abrir: (id: string) => void;
   escolherArea: (area: string) => void;
-  recolher: () => void;
 }
 
 export function Painel(p: Props) {
-  const [grupos, setGrupos] = useState<Set<GrupoEvento>>(() => new Set(TODOS_GRUPOS));
-  const [buscaEv, setBuscaEv] = useState("");
   const nAreas = new Set(p.veiculos.map((v) => v.area).filter(Boolean)).size;
-  const conta = contarPorGrupo(p.eventos);
-  const dias = p.dias.includes(p.diaEventos) ? p.dias : [p.diaEventos, ...p.dias];
-  const alternarGrupo = (g: GrupoEvento) => {
-    const n = new Set(grupos);
-    if (n.has(g)) n.delete(g);
-    else n.add(g);
-    setGrupos(n);
-  };
-
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="space-y-2.5 border-b border-borda p-3">
@@ -67,23 +55,16 @@ export function Painel(p: Props) {
             );
           })}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <Segmentado
-              rotulo="O que listar"
-              valor={p.aba}
-              mudar={p.setAba}
-              opcoes={[
-                { id: "tipos", rotulo: <>Tipos <Contador n={p.visiveis.length} /></> },
-                { id: "areas", rotulo: <>Áreas <Contador n={nAreas} /></> },
-                { id: "alertas", rotulo: <>Alertas <Contador n={p.eventos.length} /></> },
-              ]}
-            />
-          </div>
-          <button type="button" onClick={p.recolher} aria-label="Recolher painel" title="Recolher painel" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-borda text-lg text-suave hover:text-texto">
-            ◂
-          </button>
-        </div>
+        <Segmentado
+          rotulo="O que listar"
+          valor={p.aba}
+          mudar={p.setAba}
+          opcoes={[
+            { id: "tipos", rotulo: <>Tipos <Contador n={p.visiveis.length} /></> },
+            { id: "areas", rotulo: <>Áreas <Contador n={nAreas} /></> },
+            { id: "alertas", rotulo: <>Alertas <Contador n={p.eventos.length} /></> },
+          ]}
+        />
         {p.aba === "tipos" && (
           <>
             <Entrada type="search" value={p.filtro.busca} onChange={(e) => p.setFiltro({ ...p.filtro, busca: e.target.value })} placeholder="Buscar placa, vaga, área, motorista…" aria-label="Buscar veículo" autoComplete="off" className="w-full" />
@@ -108,33 +89,15 @@ export function Painel(p: Props) {
             )}
           </>
         )}
-        {p.aba === "alertas" && (
-          <>
-            <div className="flex gap-2">
-              <Selecao value={p.diaEventos} onChange={(e) => p.setDiaEventos(e.target.value)} aria-label="Dia dos alertas" className="w-36">
-                {dias.map((d) => (
-                  <option key={d} value={d}>
-                    {rotuloDia(d)}
-                  </option>
-                ))}
-              </Selecao>
-              <Entrada type="search" value={buscaEv} onChange={(e) => setBuscaEv(e.target.value)} placeholder="Placa ou área…" aria-label="Buscar alerta" autoComplete="off" className="flex-1" />
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {TODOS_GRUPOS.map((g) => (
-                <Chip key={g} ativo={grupos.has(g)} tom={GRUPOS[g].tom} onClick={() => alternarGrupo(g)}>
-                  {GRUPOS[g].rotulo} <Contador n={conta[g]} />
-                </Chip>
-              ))}
-            </div>
-          </>
-        )}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {p.aba === "tipos" && <ListaTipos lista={p.visiveis} semSinalMin={p.semSinalMin} agora={p.agora} abrir={p.abrir} />}
-        {p.aba === "areas" && <ListaAreas veiculos={p.veiculos} escolher={p.escolherArea} />}
-        {p.aba === "alertas" && <ListaEventos eventos={filtrarEventos(p.eventos, grupos, buscaEv)} abrir={p.abrir} />}
-      </div>
+      {p.aba === "alertas" ? (
+        <PainelAlertas eventos={p.eventos} dias={p.dias} diaEventos={p.diaEventos} setDiaEventos={p.setDiaEventos} abrir={p.abrir} />
+      ) : (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {p.aba === "tipos" && <ListaTipos lista={p.visiveis} semSinalMin={p.semSinalMin} agora={p.agora} abrir={p.abrir} />}
+          {p.aba === "areas" && <ListaAreas veiculos={p.veiculos} escolher={p.escolherArea} />}
+        </div>
+      )}
     </div>
   );
 }
@@ -175,7 +138,7 @@ function ListaTipos({ lista, semSinalMin, agora, abrir }: { lista: Veiculo[]; se
   );
 }
 
-function ItemVeiculo({ v, semSinalMin, agora, abrir }: { v: Veiculo; semSinalMin: number; agora: number; abrir: (id: string) => void }) {
+export function ItemVeiculo({ v, semSinalMin, agora, abrir }: { v: Veiculo; semSinalMin: number; agora: number; abrir: (id: string) => void }) {
   const fr = frescor(v, semSinalMin, agora);
   const vaga = v.equip?.tipo === "as" ? "" : vagaCurta(v.vaga);
   return (
@@ -197,7 +160,7 @@ function ItemVeiculo({ v, semSinalMin, agora, abrir }: { v: Veiculo; semSinalMin
   );
 }
 
-function ListaAreas({ veiculos, escolher }: { veiculos: Veiculo[]; escolher: (area: string) => void }) {
+export function ListaAreas({ veiculos, escolher }: { veiculos: Veiculo[]; escolher: (area: string) => void }) {
   return (
     <>
       {resumoAreas(veiculos).map((a) => (
@@ -234,5 +197,45 @@ function ListaEventos({ eventos, abrir }: { eventos: Evento[]; abrir: (id: strin
         </button>
       ))}
     </>
+  );
+}
+
+/** Alertas do dia com filtro por grupo e busca (aba do celular e balão do sino no computador). */
+export function PainelAlertas({ eventos, dias, diaEventos, setDiaEventos, abrir }: { eventos: Evento[]; dias: string[]; diaEventos: string; setDiaEventos: (d: string) => void; abrir: (id: string) => void }) {
+  const [grupos, setGrupos] = useState<Set<GrupoEvento>>(() => new Set(TODOS_GRUPOS));
+  const [buscaEv, setBuscaEv] = useState("");
+  const conta = contarPorGrupo(eventos);
+  const opcoesDia = dias.includes(diaEventos) ? dias : [diaEventos, ...dias];
+  const alternarGrupo = (g: GrupoEvento) => {
+    const n = new Set(grupos);
+    if (n.has(g)) n.delete(g);
+    else n.add(g);
+    setGrupos(n);
+  };
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="space-y-2.5 border-b border-borda p-3">
+        <div className="flex gap-2">
+          <Selecao value={diaEventos} onChange={(e) => setDiaEventos(e.target.value)} aria-label="Dia dos alertas" className="w-36">
+            {opcoesDia.map((d) => (
+              <option key={d} value={d}>
+                {rotuloDia(d)}
+              </option>
+            ))}
+          </Selecao>
+          <Entrada type="search" value={buscaEv} onChange={(e) => setBuscaEv(e.target.value)} placeholder="Placa ou área…" aria-label="Buscar alerta" autoComplete="off" className="flex-1" />
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {TODOS_GRUPOS.map((g) => (
+            <Chip key={g} ativo={grupos.has(g)} tom={GRUPOS[g].tom} onClick={() => alternarGrupo(g)}>
+              {GRUPOS[g].rotulo} <Contador n={conta[g]} />
+            </Chip>
+          ))}
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <ListaEventos eventos={filtrarEventos(eventos, grupos, buscaEv)} abrir={abrir} />
+      </div>
+    </div>
   );
 }
