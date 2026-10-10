@@ -370,6 +370,9 @@ textarea:focus {
 .mapa-analise.leaflet-container { background: #000; }
 .usina-contorno { fill: #10141b; stroke: #2b3240; }
 .area-sem-dado { fill: #1a1f29; stroke: #2b3240; }
+.bolha { cursor: pointer; }
+.bolha-selecionada { stroke: #fff; stroke-width: 3px; }
+.bolha-apagada { opacity: 0.25; }
 .area-selecionada { stroke: #fff; stroke-width: 3px; }
 .rotulo-area { background: none; border: 0; }
 .rotulo-area > span {
