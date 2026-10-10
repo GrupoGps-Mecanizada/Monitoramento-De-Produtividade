@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { EventoTexto } from "@/components/evento-texto";
-import { Chip, Contador, Entrada, Ponto, Segmentado, Selecao, Vazio, cx } from "@/components/ui";
+import { Chip, Contador, Entrada, Ponto, Segmentado, Selecao, Selo, Vazio, cx } from "@/components/ui";
 import { corDoTom } from "@/lib/cores";
-import { ORDEM_TIPOS, TIPOS_EQUIP, compararEquip, nomeEquip } from "@/lib/dominio/equipamentos";
+import { ORDEM_TIPOS, TIPOS_EQUIP, compararEquip, emManutencao, nomeEquip } from "@/lib/dominio/equipamentos";
 import { GRUPOS, TODOS_GRUPOS, contarPorGrupo, filtrarEventos, grupoDoEvento, veiculoDoEvento, chaveEvento, type GrupoEvento } from "@/lib/dominio/eventos";
 import { hora, idadeCurta, rotuloDia } from "@/lib/dominio/formato";
 import { CATEGORIAS, FRESCOR, INDICADORES, RESUMO_TOPO, categoria, fraseEstado, frescor, motor2Ligado, noIndicador, nomeArea, resumoAreas, vagaCurta, type FiltroVeiculos } from "@/lib/dominio/veiculo";
@@ -147,6 +147,7 @@ export function ItemVeiculo({ v, semSinalMin, agora, abrir }: { v: Veiculo; semS
       <span className="truncate font-semibold">
         {nomeEquip(v)}
         {vaga && <span className="ml-1.5 text-xs font-normal text-suave">{vaga}</span>}
+        {emManutencao(v) && <Selo tom="warn" className="ml-1.5 !px-1.5 !py-0 align-middle text-[10.5px]">manutenção</Selo>}
       </span>
       <span className="flex items-center gap-1.5 text-xs tabular-nums text-suave" title={FRESCOR[fr].rotulo}>
         <Ponto tom={FRESCOR[fr].tom} className="h-1.5 w-1.5" />

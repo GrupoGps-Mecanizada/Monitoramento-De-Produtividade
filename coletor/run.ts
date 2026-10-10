@@ -1,8 +1,12 @@
 // Uma execução do coletor (GitHub Actions, disparada pelo Supabase a cada 5 min e a cada pedido de histórico):
 //   1. posição da frota no GAUSS (UMA requisição para todos os veículos)
-//   2. estado + eventos -> Supabase; retrato (snapshot) para a página — só a frota da Mecanizada (frota-propria.ts),
+//   2. estado + eventos -> Supabase; retrato (snapshot) para a página — só a frota da Mecanizada (a matriz de
+//      equipamentos no Supabase, sem os desmobilizados; frota-propria.ts),
 //      e no 1º ciclo do dia a "abertura" (status e área de cada equipamento, para o Dia da frota)
 //   3. atende os pedidos de histórico que a página deixou em loc_pedidos
+//   4. a cada 10 min, a timeline de motor por vaga e os apontamentos do tablet (motor-vaga.ts)
+//   5. tempo real (tempo-real.ts): posições da frota a cada ciclo, paradas de hoje a cada 10 min e, de madrugada,
+//      a rota completa de ontem (paradas exatas, excessos de velocidade e a rota crua no R2, se configurado)
 //
 // Cuidado com a carga no GAUSS (ver gauss.ts): uma requisição por vez com intervalo, sessão reaproveitada
 // entre execuções (guardada no Supabase, chave privada), cadastro e cercas em cache, histórico só quando
@@ -11,18 +15,22 @@
 // Variáveis: GAUSSFLEET_USERNAME, GAUSSFLEET_PASSWORD, SUPABASE_URL, SUPABASE_SECRET_KEY e
 // TZ=America/Sao_Paulo (o GAUSS fala em horário local).
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { lerCadastro } from "../src/lib/dados/cadastro";
 import { montarApontamento } from "../src/lib/dominio/apontamento";
 import { tipoCerca } from "../src/lib/dominio/cercas";
+import { montarFrota, type Frota } from "../src/lib/dominio/equipamentos";
 import { diaLocal } from "../src/lib/dominio/formato";
 import { parearMotores } from "../src/lib/dominio/frota";
 import { aplicarFrota, eventosAbertura, eventosDaFrota, idsDaFrota, precisaAbertura } from "../src/lib/dominio/frota-propria";
 import { montarSnapshot, processarLeitura } from "../src/lib/dominio/leitura";
-import type { Cerca, EstadoVeiculo, FonteHistorico, PontoRota } from "../src/lib/tipos";
+import type { Cerca, EstadoVeiculo, FonteHistorico, PontoRota, Retrato } from "../src/lib/tipos";
 import { verificarAmbiente } from "./config";
 import { GaussFleetClient, SESSAO_FILE, estatisticas } from "./gauss";
 import { HOJE_TTL_MS, baixarRota, diaFechado, mesclarPontos } from "./historico";
 import { buscarCercas, buscarPosicoes, listarVeiculos, type VeiculoCadastro } from "./location-online";
+import { coletarMotor } from "./motor-vaga";
 import { db, kvGet, kvSet, ok } from "./supabase";
+import { gravarPosicoes, paradasAoVivo, rotinaNoturna } from "./tempo-real";
 
 const VEICULOS_TTL_MS = 24 * 60 * 60 * 1000;
 const CERCAS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -146,8 +154,11 @@ async function main() {
   const hoje = diaLocal(agora);
   let erro: { em: string; msg: string } | null = null;
   let estado: Estado = (await kvGet<Estado>("estado")) ?? {};
+  let matriz: Frota | null = null;
 
   try {
+    // a matriz (dezenas de linhas no Supabase, nenhuma consulta ao GAUSS) a cada ciclo: mudança na tela vale no próximo
+    matriz = montarFrota(await lerCadastro(db()));
     const veiculos = await carregarVeiculos();
     const cercas = await carregarCercas(veiculos);
     const posicoes = await buscarPosicoes(client, veiculos.map((v) => v.id));
@@ -155,7 +166,7 @@ async function main() {
     estado = r.estado;
     await kvSet("estado", estado);
     // só a frota da Mecanizada vai para o banco (o estado guarda todos: o pareamento do motor 2º precisa)
-    const frota = aplicarFrota(montarSnapshot(estado, { lido_em: agora.toISOString(), erro: null, intervalo_s: INTERVALO_S }));
+    const frota = aplicarFrota(montarSnapshot(estado, { lido_em: agora.toISOString(), erro: null, intervalo_s: INTERVALO_S }), matriz);
     const eventos = eventosDaFrota(r.eventos, idsDaFrota(frota));
     const abrirDia = precisaAbertura(await kvGet<{ dia: string }>("abertura"), hoje);
     if (abrirDia) eventos.push(...eventosAbertura(frota, agora.toISOString()));
@@ -164,9 +175,35 @@ async function main() {
     }
     // marca a abertura só depois de gravada: se o insert falhar, o próximo ciclo tenta de novo
     if (abrirDia) await kvSet("abertura", { dia: hoje });
+    // tempo real: posição de cada equipamento da frota (a leitura já feita; nada a mais no GAUSS)
+    try {
+      await gravarPosicoes(frota.veiculos, agora);
+    } catch (e) {
+      console.warn(`⚠ posições: ${e instanceof Error ? e.message : String(e)}`);
+    }
     console.log(`✅ ${posicoes.length} veículos (${frota.veiculos.filter((v) => !v.motor2_de).length} da frota), ${eventos.length} eventos${abrirDia ? " (com abertura do dia)" : ""}`);
     const atendidos = await atenderPedidos(estado, cercas, veiculos);
     if (atendidos) console.log(`✅ ${atendidos} pedido(s) de histórico`);
+    // timeline de motor e tablet a cada 10 min (o site mostra o motor só pelo GAUSS); falha aqui não derruba o ciclo
+    try {
+      const motor = await coletarMotor(client, frota.veiculos, agora);
+      if (motor) console.log(`✅ motor: ${motor}`);
+    } catch (e) {
+      console.warn(`⚠ motor: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    // paradas de hoje a cada 10 min e, de madrugada, a rota completa de ontem
+    try {
+      const n = await paradasAoVivo(frota.veiculos, cercas, agora);
+      if (n != null) console.log(`✅ paradas ao vivo: ${n}`);
+    } catch (e) {
+      console.warn(`⚠ paradas ao vivo: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    try {
+      const r = await rotinaNoturna(client, frota.veiculos, cercas, agora);
+      if (r) console.log(`✅ madrugada: ${r}`);
+    } catch (e) {
+      console.warn(`⚠ madrugada: ${e instanceof Error ? e.message : String(e)}`);
+    }
     await limpezaDiaria(hoje);
   } catch (err) {
     erro = { em: new Date().toISOString(), msg: err instanceof Error ? err.message : String(err) };
@@ -174,18 +211,20 @@ async function main() {
     process.exitCode = 1;
   } finally {
     const carga = await registrarCarga(hoje);
-    const anterior = (await kvGet<{ lido_em?: string | null }>("snapshot")) ?? {};
+    const anterior = (await kvGet<Partial<Retrato>>("snapshot")) ?? {};
     // em caso de erro, a página continua mostrando a última leitura boa, com o aviso
+    const retrato = montarSnapshot(estado, {
+      lido_em: erro ? (anterior.lido_em ?? null) : agora.toISOString(),
+      erro,
+      intervalo_s: INTERVALO_S,
+      gauss: { desde: new Date(`${hoje}T00:00:00`).toISOString(), ...carga, pausadoAte: estatisticas.pausadoAte },
+    });
+    // sem a matriz (falhou a leitura): fica a frota da última leitura boa, nunca o GAUSS inteiro
     await kvSet(
       "snapshot",
-      aplicarFrota(
-        montarSnapshot(estado, {
-          lido_em: erro ? (anterior.lido_em ?? null) : agora.toISOString(),
-          erro,
-          intervalo_s: INTERVALO_S,
-          gauss: { desde: new Date(`${hoje}T00:00:00`).toISOString(), ...carga, pausadoAte: estatisticas.pausadoAte },
-        }),
-      ),
+      matriz
+        ? aplicarFrota(retrato, matriz)
+        : { ...retrato, veiculos: anterior.veiculos ?? [], fora_da_lista: anterior.fora_da_lista ?? [] },
     );
     if (existsSync(SESSAO_FILE)) await kvSet("sessao", JSON.parse(readFileSync(SESSAO_FILE, "utf-8")));
     console.log(`GAUSS nesta execução: ${estatisticas.requisicoes} requisição(ões), ${estatisticas.logins} login(s)`);

@@ -18,10 +18,14 @@ const CENTRO: [number, number] = [-19.48, -42.53]; // Usiminas Ipatinga
 const SATELITE = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 const RUAS = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-/** Cria o mapa (satélite + ruas) no div de `ref`. Acompanha o tamanho do div (gaveta, painel). */
-export function useMapa(zoomInicial = 14) {
+/**
+ * Cria o mapa (satélite + ruas) no div de `ref`. Acompanha o tamanho do div (gaveta, painel).
+ * `fundo = false`: sem imagem nenhuma (a Análise desenha só as cercas da usina sobre o fundo da tela).
+ */
+export function useMapa(zoomInicial = 14, fundo = true) {
   const ref = useRef<HTMLDivElement>(null);
   const zoom = useRef(zoomInicial);
+  const comFundo = useRef(fundo);
   const [pronto, setPronto] = useState<MapaPronto | null>(null);
   useEffect(() => {
     let vivo = true;
@@ -32,7 +36,7 @@ export function useMapa(zoomInicial = 14) {
       if (!vivo || !el) return;
       const satelite = L.tileLayer(SATELITE, { maxZoom: 21, maxNativeZoom: 18, attribution: "Imagens © Esri" });
       const ruas = L.tileLayer(RUAS, { maxZoom: 21, maxNativeZoom: 19, attribution: "© OpenStreetMap" });
-      const m = L.map(el, { layers: [satelite], zoomControl: true, maxZoom: 21 }).setView(CENTRO, zoom.current);
+      const m = L.map(el, { layers: comFundo.current ? [satelite] : [], zoomControl: true, maxZoom: 21 }).setView(CENTRO, zoom.current);
       mapa = m;
       obs = new ResizeObserver(() => m.invalidateSize());
       obs.observe(el);

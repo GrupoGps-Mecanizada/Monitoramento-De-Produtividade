@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { matrizExemplo } from "../src/lib/dominio/matriz-exemplo";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 export const hoje = () => {
@@ -11,6 +12,8 @@ const quadrado = (lat: number, lng: number, lado: number) => [[lat, lng], [lat, 
 export const CERCAS = [
   { code: 1, name: "PATIO", layer: 1, color: "#2a78d6", tipo: "area", polygon: quadrado(-19.481, -42.531, 0.002) },
   { code: 2, name: "OFICINA", layer: 1, color: "#eb6834", tipo: "area", polygon: quadrado(-19.476, -42.526, 0.002) },
+  // contorno da usina (a Análise mostra só o que fica dentro)
+  { code: 3, name: "PLANTA USIMINAS", layer: 1, color: "#888888", tipo: "planta", polygon: quadrado(-19.49, -42.54, 0.03) },
 ];
 
 const veiculo = (o: Record<string, unknown>) => ({
@@ -54,26 +57,84 @@ export const historico = () => {
   };
 };
 
+/** Timeline de motor do GAUSS (timeline_motor_vaga) e apontamentos do tablet (demoras_categorizadas) do veículo 10. */
+export const motorGauss = () => {
+  const d = hoje();
+  return [
+    { placa_ou_codigo: "10", inicio: `${d} 08:00:00`, fim: `${d} 08:10:00`, status: "on", status_label: "Motor Ligado", gravado: minutosAtras(60) },
+    { placa_ou_codigo: "10", inicio: `${d} 08:10:00`, fim: `${d} 08:20:00`, status: "secondary_motor_on", status_label: "Motor Secundário Ligado", gravado: minutosAtras(60) },
+    { placa_ou_codigo: "10", inicio: `${d} 08:20:00`, fim: `${d} 08:32:00`, status: "stopped", status_label: "Parado Ligado", gravado: minutosAtras(60) },
+    // o RPM do rastreador dizia parado ligado até 08:40; o site só usa o GAUSS: desligado
+    { placa_ou_codigo: "10", inicio: `${d} 08:32:00`, fim: `${d} 08:40:00`, status: "off", status_label: "Motor Desligado", gravado: minutosAtras(60) },
+  ];
+};
+export const tablet = () => {
+  const d = hoje();
+  return [{ demora_cod: 1, inicio: `${d} 08:25:00`, fim: `${d} 08:35:00`, categoria_demora: "Refeição Motorista", motorista: "--", concluido: "NÃO" }];
+};
+
+/** Paradas da análise (analise_paradas): ontem, no PATIO e na OFICINA, do caminhão 10 (Alta Pressão) e do aspirador 40. */
+export const paradasAnalise = () => {
+  const d = new Date(Date.now() - 86400000);
+  const ontem = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const p = (veiculo_id: string, placa: string, ini: number, area: string, lat: number, lng: number, motor: Record<string, number>, apont: string[] = []) =>
+    ({ dia: ontem, veiculo_id, placa, ini, fim: ini + 3600, lat, lng, area, motor, apont });
+  return [
+    p("10", "EGC2985", 8 * 3600, "OFICINA", -19.475, -42.525, { secondary_motor_on: 40, stopped: 20 }, ["Aguardando Área"]),
+    p("10", "EGC2985", 14 * 3600, "PATIO", -19.48, -42.53, { stopped: 60 }),
+    p("40", "ASP12", 9 * 3600, "PATIO", -19.4805, -42.5305, { stopped: 60 }),
+    // fora da frota: não pode aparecer
+    p("90", "EOF5208", 9 * 3600, "PATIO", -19.479, -42.529, { secondary_motor_on: 60 }),
+    // o Pátio do Transporte é a base: sai da análise
+    p("10", "EGC2985", 16 * 3600, "PÁTIO DO TRANSPORTE RODOVIÁRIO", -19.485, -42.535, { secondary_motor_on: 60 }),
+    // fora da usina, mas na região (como o Aterro e o Poço Redondo): continua no mapa
+    p("10", "EGC2985", 18 * 3600, "ATERRO CONTROLADO", -19.4, -42.4, { secondary_motor_on: 30 }),
+    // a mais de 50 km: vai para a linha "Longe da região"
+    p("10", "EGC2985", 20 * 3600, "GALPÃO LONGE", -9.8, -34.1, { secondary_motor_on: 20 }),
+  ];
+};
+
+/** Matriz como o Supabase devolve (com o nome do supervisor e do regime dentro de objetos). */
+export const matrizBanco = () =>
+  matrizExemplo().map((c) => ({ ...c, supervisor: c.id === 11 ? { nome: "OZIAS" } : null, regime: c.id === 11 ? { nome: "ADM" } : null, supervisor_id: c.id === 11 ? 1 : null, regime_id: c.id === 11 ? 1 : null }));
+export const SUPERVISORES = [{ id: 1, nome: "OZIAS", ativo: true }, { id: 2, nome: "ISRAEL", ativo: true }];
+export const REGIMES = [{ id: 1, nome: "ADM", ativo: true }, { id: 2, nome: "4X4 - A", ativo: true }];
+
 /**
  * Responde as leituras do Supabase com os dados acima (o banco real nunca é lido nem gravado) e corta os
- * tiles do mapa. Devolve a lista de tentativas de gravação: os testes exigem que fique vazia.
+ * tiles do mapa. Devolve a lista de tentativas de gravação: os testes exigem que fique vazia (só a tela
+ * Equipamentos grava, e o teste dela confere o que foi enviado). `matriz`: troca a matriz de equipamentos.
  */
-export async function prepararDados(page: Page): Promise<string[]> {
+export async function prepararDados(page: Page, opcoes: { matriz?: ReturnType<typeof matrizBanco>; analise?: unknown[]; analiseSemTabela?: boolean; eventos?: unknown[]; excessos?: unknown[] } = {}): Promise<string[]> {
   const gravacoes: string[] = [];
   await page.route(/arcgisonline\.com|tile\.openstreetmap\.org/, (r) => r.abort());
   await page.route("**/rest/v1/**", async (route) => {
     const req = route.request();
     const url = new URL(req.url());
-    if (req.method() !== "GET" && req.method() !== "HEAD") {
-      gravacoes.push(`${req.method()} ${url.pathname}`);
-      return route.fulfill({ status: 201, body: "" });
-    }
     const json = (b: unknown) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(b) });
     const tabela = url.pathname.split("/").pop();
+    if (req.method() !== "GET" && req.method() !== "HEAD") {
+      gravacoes.push(`${req.method()} ${url.pathname}${req.postData() ? ` ${req.postData()}` : ""}`);
+      // a matriz grava com .select("id"): devolve a linha gravada
+      if (tabela?.startsWith("frota_")) return json([{ id: 99 }]);
+      return route.fulfill({ status: 201, body: "" });
+    }
+    if (tabela === "frota_equipamento") return json(opcoes.matriz ?? matrizBanco());
+    if (tabela === "frota_supervisor") return json(SUPERVISORES);
+    if (tabela === "frota_regime") return json(REGIMES);
+    if (tabela === "frota_equipamento_historico") return json([{ id: 1, em: minutosAtras(60), por: "sistema", mudancas: { novo: true } }]);
     if (tabela === "loc_kv") return json(url.searchParams.get("chave") === "eq.cercas" ? [{ valor: { cercas: CERCAS } }] : [{ valor: retrato() }]);
-    if (tabela === "loc_eventos") return json(eventos().map((dados) => ({ dados })));
+    if (tabela === "loc_eventos") return json((opcoes.eventos ?? eventos()).map((dados) => ({ dados })));
     if (tabela === "loc_dias") return json([{ dia: hoje() }]);
     if (tabela === "loc_historico") return json([{ resultado: historico(), baixado_em: minutosAtras(60), fechado: true }]);
+    if (tabela === "timeline_motor_vaga") return json(motorGauss());
+    if (tabela === "demoras_categorizadas") return json(tablet());
+    if (tabela === "analise_excessos") return json(opcoes.excessos ?? []);
+    if (tabela === "analise_paradas") {
+      // como o Supabase responde quando o SQL da tabela ainda não foi rodado
+      if (opcoes.analiseSemTabela) return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ code: "PGRST205", message: "Could not find the table 'public.analise_paradas' in the schema cache" }) });
+      return json(opcoes.analise ?? paradasAnalise());
+    }
     return json([]);
   });
   return gravacoes;

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Evento, Retrato, Veiculo } from "../tipos";
-import { aplicarFrota, eventosAbertura, eventosDaFrota, idsDaFrota, precisaAbertura } from "./frota-propria";
+import { montarFrota } from "./equipamentos";
+import { aplicarFrota as aplicar, eventosAbertura, eventosDaFrota, idsDaFrota, precisaAbertura } from "./frota-propria";
+import { matrizExemplo } from "./matriz-exemplo";
+
+const FROTA = montarFrota(matrizExemplo());
+const aplicarFrota = (r: Retrato) => aplicar(r, FROTA);
 
 const v = (o: Partial<Veiculo>): Veiculo => ({
   id: "1", placa: "AAA0001", vaga: "", grupo: "", motorista: "", endereco: "", demora: "", direcao: 0, status: "Ligado", status_cod: 1,
@@ -27,9 +32,20 @@ describe("só a frota da Mecanizada", () => {
   it("fora_da_lista: só placas de grupos da frota que não estão na planilha", () => {
     expect(aplicarFrota(ANTIGO).fora_da_lista).toEqual(["EOF5208"]);
   });
-  it("respeita o equip já gravado pelo coletor", () => {
-    const r = aplicarFrota(retrato([v({ id: "5", placa: "SEMPLACA", equip: { tipo: "uv", nome: "OWU-1596", ordem: 1 } })]));
-    expect(r.veiculos.map((x) => x.equip?.tipo)).toEqual(["uv"]);
+  it("a matriz do momento manda: equip antigo gravado pelo coletor não segura quem foi desmobilizado", () => {
+    const r = aplicarFrota(retrato([v({ id: "5", placa: "OWU1596", grupo: "CAMINHÃO HIPER VÁCUO", equip: { tipo: "uv", nome: "OWU-1596", ordem: 1 } })]));
+    expect(r.veiculos).toEqual([]);
+    // desmobilizado não é "equipamento novo?"
+    expect(r.fora_da_lista).toEqual([]);
+  });
+  it("retrato já filtrado pelo coletor: a lista de fora continua (menos o que entrou na matriz)", () => {
+    const r = aplicarFrota({ ...retrato([]), fora_da_lista: ["EOF5208", "EGC2985"] });
+    expect(r.fora_da_lista).toEqual(["EOF5208"]);
+  });
+  it("em manutenção continua no monitoramento, marcado", () => {
+    const m = matrizExemplo().map((c) => (c.placa === "EGC-2985" ? { ...c, status: "EM_MANUTENCAO" as const } : c));
+    const r = aplicar(ANTIGO, montarFrota(m));
+    expect(r.veiculos.filter((x) => x.equip?.status === "EM_MANUTENCAO").map((x) => x.id)).toEqual(["10", "11"]);
   });
   it("retrato vazio continua vazio", () => {
     expect(aplicarFrota(retrato([])).veiculos).toEqual([]);

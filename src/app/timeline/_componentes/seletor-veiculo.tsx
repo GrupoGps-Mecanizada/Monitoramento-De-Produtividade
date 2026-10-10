@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Entrada, Ponto, cx } from "@/components/ui";
-import { TIPOS_EQUIP, nomeEquip } from "@/lib/dominio/equipamentos";
+import { Entrada, Ponto, Selo, cx } from "@/components/ui";
+import { TIPOS_EQUIP, emManutencao, nomeEquip } from "@/lib/dominio/equipamentos";
 import { CATEGORIAS, categoria } from "@/lib/dominio/veiculo";
 import type { Veiculo } from "@/lib/tipos";
 
@@ -56,6 +56,7 @@ export function SeletorVeiculo({ veiculos, escolhido, escolher, paraCima = false
                 <span className="font-semibold">
                   {nomeEquip(v)}
                   {v.equip && <span className="ml-1.5 text-xs font-normal text-suave">{TIPOS_EQUIP[v.equip.tipo].sigla}</span>}
+                  {emManutencao(v) && <Selo tom="warn" className="ml-1.5 !px-1.5 !py-0 align-middle text-[10.5px]">manutenção</Selo>}
                   {v.motor2 && (
                     <span className="ml-1 text-motor2" title="tem motor secundário">
                       ⚙

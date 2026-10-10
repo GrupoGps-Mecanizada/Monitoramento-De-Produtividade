@@ -28,9 +28,9 @@ export function Destaques({ d }: { d: TDestaques }) {
 function BarraCapitulo({ c }: { c: Capitulo }) {
   const total = Math.max(c.duracao_min, 1);
   const partes: [number, string, string][] = [
-    [c.ligado_min, corDoTom("warn"), "parado ligado"],
+    [c.ligado_min, corDoTom("ok"), "motor ligado"],
     [c.desligado_min, corDoTom("bad"), "desligado"],
-    [c.outro_min, corDoTom("reg"), "sem sinal"],
+    [c.outro_min, corDoTom("reg"), "outros (manutenção, apontado, sem dados)"],
   ];
   return (
     <span className="my-1 flex h-1.5 overflow-hidden rounded bg-superficie-2" title={partes.filter(([m]) => m).map(([m, , r]) => `${fmtMin(m)} ${r}`).join(" · ")}>

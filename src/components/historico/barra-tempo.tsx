@@ -1,7 +1,6 @@
 "use client";
 
 import { fmtHora } from "@/lib/dominio/formato";
-import { ESTADOS_TRECHO } from "@/lib/dominio/veiculo";
 import { VELOCIDADES } from "@/lib/player";
 import { Icone } from "../icones";
 import { Botao, Selecao } from "../ui";
@@ -39,16 +38,14 @@ export function ControlesPlayer({ player }: { player: Player }) {
   );
 }
 
-/** "08:42:10 · Em deslocamento · 32 km/h · ⚙ motor 2º ligado" */
-export function InfoPlayer({ player }: { player: Player }) {
+/** "08:42:10 · Motor 2º ligado · andando 32 km/h": motor pelo GAUSS, andando pelo GPS. */
+export function InfoPlayer({ player, motor }: { player: Player; motor?: string | null }) {
   const p = player.ponto;
   if (!p) return null;
   return (
     <p className="text-xs tabular-nums">
-      <b>{fmtHora(player.t)}</b> · {ESTADOS_TRECHO[p.estado].rotulo}
-      {p.estado === "movimento" ? ` · ${p.vel} km/h` : ""}
-      {p.m2 === 1 && <span className="font-semibold text-motor2"> · ⚙ motor 2º ligado</span>}
-      {p.m2 === 0 && " · motor 2º desligado"}
+      <b>{fmtHora(player.t)}</b> · {motor ?? "motor sem dados do GAUSS"}
+      {p.estado === "movimento" ? ` · andando ${p.vel} km/h` : ""}
     </p>
   );
 }

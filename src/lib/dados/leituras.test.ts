@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
+import { matrizExemplo } from "../dominio/matriz-exemplo";
 import { lerEventos, lerRetrato } from "./leituras";
 
 // banco falso com N eventos; registra cada faixa pedida (o Supabase entrega no máximo 1000 linhas por vez)
@@ -38,7 +39,9 @@ describe("lerRetrato", () => {
     const veiculo = (id: string, placa: string, grupo: string) => ({ id, placa, vaga: "", grupo, status: "Ligado", status_cod: 1, lat: 1, lng: 1, posicao_em: null, area: "", via: "", sem_sinal: false });
     const valor = { lido_em: null, erro: null, intervalo_s: 300, sem_sinal_min: 30, veiculos: [veiculo("10", "EGC2985", "CAMINHÃO ALTA PRESSÃO"), veiculo("90", "EOF5208", "CAMINHÃO ALTA PRESSÃO")] };
     const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: { valor }, error: null }) };
-    const r = await lerRetrato({ from: () => q } as unknown as SupabaseClient);
+    const matriz = matrizExemplo().map((c) => ({ ...c, supervisor: c.supervisor && { nome: c.supervisor }, regime: null }));
+    const m = { select: () => m, order: () => m, limit: async () => ({ data: matriz, error: null }) };
+    const r = await lerRetrato({ from: (t: string) => (t === "frota_equipamento" ? m : q) } as unknown as SupabaseClient);
     expect(r.veiculos.map((v) => [v.id, v.equip?.nome])).toEqual([["10", "EGC-2985"]]);
     expect(r.fora_da_lista).toEqual(["EOF5208"]);
   });

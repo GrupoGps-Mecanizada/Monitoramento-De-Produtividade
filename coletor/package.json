@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.1",
+    "aws4fetch": "1.0.20",
     "tsx": "4.23.15"
   }
 }

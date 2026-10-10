@@ -3,10 +3,9 @@
 import { useState, type PointerEvent as EventoPonteiro } from "react";
 import { corDoTom } from "@/lib/cores";
 import { segCap, type HistoriaDia, type TipoLugar } from "@/lib/dominio/capitulos";
-import { fmtHora, hhmm, segDe } from "@/lib/dominio/formato";
+import { fmtHora, hhmm } from "@/lib/dominio/formato";
+import type { GaussDia } from "@/lib/dominio/gauss-dia";
 import { segFim } from "@/lib/dominio/trilhas";
-import { ESTADOS_TRECHO } from "@/lib/dominio/veiculo";
-import type { Historico } from "@/lib/tipos";
 import { cx } from "../ui";
 import type { Player } from "./use-player";
 
@@ -19,15 +18,16 @@ export const LUGARES: Record<TipoLugar, { rotulo: string; classe: string }> = {
 };
 
 interface Props {
-  h: Historico;
+  /** motor pela timeline de motor do GAUSS (null enquanto carrega) */
+  g: GaussDia | null;
   historia: HistoriaDia;
   player: Player;
   foco: [number, number] | null;
   mudarFoco: (f: [number, number] | null) => void;
 }
 
-/** O dia de 0h a 24h em duas trilhas alinhadas (onde estava / motor). Toque leva o caminhão ao horário; arrastar escolhe um foco. */
-export function FaixaDia({ h, historia, player, foco, mudarFoco }: Props) {
+/** O dia de 0h a 24h em duas trilhas alinhadas (onde estava pelo GPS / motor pelo GAUSS). Toque leva o caminhão ao horário; arrastar escolhe um foco. */
+export function FaixaDia({ g, historia, player, foco, mudarFoco }: Props) {
   const [arrasto, setArrasto] = useState<{ a: number; b: number } | null>(null);
   const emSeg = (e: EventoPonteiro<HTMLDivElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -94,24 +94,12 @@ export function FaixaDia({ h, historia, player, foco, mudarFoco }: Props) {
             );
           })}
         </div>
-        <p className="mb-1 mt-1.5 text-[10px] font-semibold uppercase tracking-wider text-suave">Motor</p>
+        <p className="mb-1 mt-1.5 text-[10px] font-semibold uppercase tracking-wider text-suave">Motor (GAUSS)</p>
         <div className="relative h-3 overflow-hidden rounded bg-superficie-2">
-          {historia.faixaMotor.map((f, i) => {
-            const a = segCap(f.inicio);
-            const b = segFim(f.inicio, f.fim);
-            return <span key={i} title={`${hhmm(f.inicio)}–${hhmm(f.fim)} · ${ESTADOS_TRECHO[f.estado].rotulo}`} className="absolute inset-y-0" style={{ left: pct(a), width: pct(Math.max(b - a, 60)), background: corDoTom(ESTADOS_TRECHO[f.estado].tom) }} />;
-          })}
+          {g?.status.map((x, i) => (
+            <span key={i} title={`${fmtHora(x.a).slice(0, 5)}–${fmtHora(x.b).slice(0, 5)} · ${x.rotulo}`} className="absolute inset-y-0" style={{ left: pct(x.a), width: pct(Math.max(x.b - x.a, 60)), background: corDoTom(x.tom) }} />
+          ))}
         </div>
-        {h.motor2 && (
-          <>
-            <p className="mb-1 mt-1.5 text-[10px] font-semibold uppercase tracking-wider text-suave">⚙ Bomba (motor 2º){h.motor2.placa ? ` · ${h.motor2.placa}` : ""}</p>
-            <div className="relative h-2 overflow-hidden rounded bg-superficie-2">
-              {h.motor2.intervalos.map(([a, b]) => (
-                <span key={a} className="absolute inset-y-0 bg-motor2" style={{ left: pct(segDe(a)), width: pct(Math.max(segDe(b) - segDe(a), 60)) }} />
-              ))}
-            </div>
-          </>
-        )}
         {janela && (
           <span aria-hidden className="pointer-events-none absolute -inset-y-1 rounded-md border-2 border-primaria" style={{ left: pct(janela[0]), width: pct(janela[1] - janela[0]), background: "color-mix(in srgb, var(--primaria) 12%, transparent)" }} />
         )}
@@ -122,7 +110,6 @@ export function FaixaDia({ h, historia, player, foco, mudarFoco }: Props) {
           <span key={x}>{x}</span>
         ))}
       </div>
-      {!h.motor2 && h.motor2_erro && <p className="mt-0.5 text-[10px] text-suave">motor secundário não carregou: {h.motor2_erro}</p>}
       {foco ? (
         <button type="button" onClick={() => mudarFoco(null)} className="mt-1 text-xs text-link">
           Foco {fmtHora(foco[0]).slice(0, 5)}–{fmtHora(foco[1]).slice(0, 5)} · ✕ limpar

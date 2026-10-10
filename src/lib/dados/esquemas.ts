@@ -1,4 +1,6 @@
 import { z } from "zod";
+import type { ParadaAnalise } from "../dominio/analise";
+import { semRpm } from "../dominio/historico";
 import type { Cerca, Evento, Historico, Retrato } from "../tipos";
 
 /** O formato dos dados mudou (ex.: coletor novo gravando outra coisa): a tela avisa em vez de quebrar em silêncio. */
@@ -52,6 +54,12 @@ export const validarEvento = (v: unknown): Evento => validar<Evento>(evento, v, 
 
 export function validarHistorico(v: unknown): Historico {
   const h = validar<Historico>(historico, v, "Histórico");
-  // ponto sem coordenada (o GAUSS mandou vazio) fica fora do mapa e do player
-  return { ...h, pontos: h.pontos.filter((p) => p[0] != null && p[1] != null) };
+  // ponto sem coordenada (o GAUSS mandou vazio) fica fora do mapa e do player; o RPM não entra no site (motor vem do GAUSS)
+  return semRpm({ ...h, pontos: h.pontos.filter((p) => p[0] != null && p[1] != null) });
 }
+
+const paradaAnalise = z.looseObject({
+  dia: z.string(), veiculo_id: z.string(), placa: z.string(), ini: z.number(), fim: z.number(), lat: z.number(), lng: z.number(),
+  area: z.string().nullable(), motor: z.record(z.string(), z.number()), apont: z.array(z.string()),
+});
+export const validarParadasAnalise = (v: unknown): ParadaAnalise[] => validar<ParadaAnalise[]>(z.array(paradaAnalise), v ?? [], "Paradas da análise");

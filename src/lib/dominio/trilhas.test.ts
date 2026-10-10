@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DIA, alturasTrilhas, ampliar, emPct, janelaDeHoras, janelaDosRegistros, janelaDosTrechos, marcasRegua, posBloco, rotuloMarca, segDaFracao, segFim } from "./trilhas";
+import { DIA, alturasTrilhas, ampliar, deslocarJanela, zoomJanela, emPct, janelaDeHoras, janelaDosRegistros, janelaDosTrechos, marcasRegua, posBloco, rotuloMarca, segDaFracao, segFim } from "./trilhas";
 
 const H = 3600;
 const D = "2026-10-01";
@@ -84,12 +84,33 @@ describe("filtro de hora e régua detalhada", () => {
   });
 });
 
+describe("zoom pela rodinha do mouse", () => {
+  it("aproxima mantendo o ponto do mouse no lugar", () => {
+    // dia inteiro, mouse às 12h, aproxima pela metade: 6h–18h
+    expect(zoomJanela([0, DIA], 12 * H, 0.5)).toEqual([6 * H, 18 * H]);
+    // mouse às 6h (1/4 da janela): continua a 1/4
+    expect(zoomJanela([0, DIA], 6 * H, 0.5)).toEqual([3 * H, 15 * H]);
+  });
+  it("afasta sem sair do dia e não passa do dia inteiro", () => {
+    expect(zoomJanela([20 * H, 24 * H], 23 * H, 2)).toEqual([16 * H, 24 * H]);
+    expect(zoomJanela([2 * H, 22 * H], 12 * H, 3)).toEqual([0, DIA]);
+  });
+  it("não aproxima além de 10 min", () => {
+    const [a, b] = zoomJanela([8 * H, 8 * H + 900], 8 * H + 450, 0.1);
+    expect(b - a).toBe(600);
+  });
+  it("arrasta para os lados sem sair do dia", () => {
+    expect(deslocarJanela([8 * H, 10 * H], 30 * 60)).toEqual([8.5 * H, 10.5 * H]);
+    expect(deslocarJanela([1 * H, 3 * H], -5 * H)).toEqual([0, 2 * H]);
+    expect(deslocarJanela([22 * H, DIA], H)).toEqual([22 * H, DIA]);
+  });
+});
+
 describe("alturas das trilhas pelo tamanho do painel", () => {
-  it("divide o espaço entre as trilhas (capítulos, onde estava, status, bomba)", () => {
-    expect(alturasTrilhas(200, true)).toEqual({ cap: 49, lugar: 53, status: 56, bomba: 30 });
-    expect(alturasTrilhas(200, false)).toEqual({ cap: 59, lugar: 64, status: 69, bomba: 0 });
+  it("divide o espaço entre as trilhas (capítulos, onde estava, motor, tablet)", () => {
+    expect(alturasTrilhas(200)).toEqual({ cap: 49, lugar: 53, motor: 56, tablet: 30 });
   });
   it("painel baixo: cada trilha fica no seu mínimo", () => {
-    expect(alturasTrilhas(40, true)).toEqual({ cap: 14, lugar: 12, status: 14, bomba: 8 });
+    expect(alturasTrilhas(40)).toEqual({ cap: 14, lugar: 12, motor: 14, tablet: 10 });
   });
 });

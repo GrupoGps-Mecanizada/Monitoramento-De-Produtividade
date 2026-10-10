@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Icone } from "@/components/icones";
 import { Botao, Campos, Ponto, Selo } from "@/components/ui";
-import { TIPOS_EQUIP, nomeEquip } from "@/lib/dominio/equipamentos";
+import { TIPOS_EQUIP, emManutencao, nomeEquip } from "@/lib/dominio/equipamentos";
 import { diaLocal, hora, horaSeg, idadeCurta } from "@/lib/dominio/formato";
 import { CATEGORIAS, FRESCOR, categoria, frescor, partesEstado } from "@/lib/dominio/veiculo";
 import type { Veiculo } from "@/lib/tipos";
@@ -27,6 +27,7 @@ export function Detalhe({ v, agora, semSinalMin, voltar, centralizar, modo = "vo
     ["Vaga", v.vaga || "Sem vaga"],
     ["Posição", `${horaSeg(v.posicao_em)} (há ${idadeCurta(v.posicao_em, agora)})`],
     ["Motorista", v.motorista || "Não identificado"],
+    ...(v.equip?.supervisor || v.equip?.regime ? ([["Supervisor · regime", [v.equip.supervisor, v.equip.regime].filter(Boolean).join(" · ")]] as [string, ReactNode][]) : []),
     ...(v.motor2 ? ([["Bomba (motor 2º)", `${v.motor2.status}${v.motor2.status_desde ? ` desde ${hora(v.motor2.status_desde)}` : ""}`]] as [string, ReactNode][]) : []),
   ];
   const mais: [string, ReactNode][] = [
@@ -51,6 +52,7 @@ export function Detalhe({ v, agora, semSinalMin, voltar, centralizar, modo = "vo
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-lg font-semibold">{nomeEquip(v)}</span>
           {v.equip && <Selo tom="reg">{TIPOS_EQUIP[v.equip.tipo].rotulo}</Selo>}
+          {emManutencao(v) && <Selo tom="warn">Em manutenção</Selo>}
           <Selo tom={FRESCOR[fr].tom}>{FRESCOR[fr].rotulo}</Selo>
         </div>
         <p className="mt-3 flex items-start gap-2 text-base leading-snug">

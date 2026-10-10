@@ -4,7 +4,9 @@ import type { IconeNome } from "@/components/icones";
 export const MENU: { href: string; rotulo: string; curto: string; icone: IconeNome }[] = [
   { href: "/", rotulo: "Localização", curto: "Mapa", icone: "mapa" },
   { href: "/frota", rotulo: "Dia da frota", curto: "Frota", icone: "frota" },
+  { href: "/analise", rotulo: "Análise", curto: "Análise", icone: "analise" },
   { href: "/timeline", rotulo: "Timeline", curto: "Timeline", icone: "timeline" },
+  { href: "/equipamentos", rotulo: "Equipamentos", curto: "Equip.", icone: "equipamentos" },
   { href: "/alertas", rotulo: "Alertas", curto: "Alertas", icone: "alertas" },
 ];
 

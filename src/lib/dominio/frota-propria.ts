@@ -1,29 +1,30 @@
-// O sistema mostra só a frota da Mecanizada (equipamentos.ts). O coletor filtra o retrato e os eventos antes de
-// gravar; o site aplica a mesma regra ao ler (retrato e eventos gravados antes do filtro). O estado do coletor
+// O sistema mostra só a frota da Mecanizada (matriz de equipamentos, ver equipamentos.ts). O coletor filtra o retrato
+// e os eventos antes de gravar; o site aplica a mesma regra ao ler, com a matriz do momento (quem foi desmobilizado
+// some na hora, sem esperar o coletor). O estado do coletor
 // (loc_kv.estado) continua com todos os veículos: o pareamento do motor 2º precisa deles.
 import type { Equip, Evento, Retrato } from "../tipos";
-import { identificarEquip } from "./equipamentos";
+import { formasPlaca, identificarEquip, type Frota } from "./equipamentos";
 
-// grupos do GAUSS onde a frota está: veículo desses grupos fora da planilha vai para fora_da_lista (equipamento novo?)
+// grupos do GAUSS onde a frota está: veículo desses grupos fora da matriz vai para fora_da_lista (equipamento novo?)
 const GRUPO_DA_FROTA = /ALTA PRESS|V[AÁ]CUO|BROOK|ASPIRADOR|ULTRAVAC/i;
 
-/** Retrato só com a frota: cada veículo ganha `equip`; o motor 2º fica se o caminhão dele é da frota. */
-export function aplicarFrota(r: Retrato): Retrato {
+/** Retrato só com a frota: cada veículo ganha `equip` (da matriz); o motor 2º fica se o caminhão dele é da frota. */
+export function aplicarFrota(r: Retrato, frota: Frota): Retrato {
   const equipDe = new Map<string, Equip>();
   for (const v of r.veiculos) {
     if (v.motor2_de) continue;
-    const e = v.equip ?? identificarEquip(v);
+    const e = identificarEquip(v, frota);
     if (e) equipDe.set(v.id, e);
   }
   const veiculos = r.veiculos.flatMap((v) => {
     const e = equipDe.get(v.motor2_de ?? v.id);
     return e ? [{ ...v, equip: e }] : [];
   });
-  const fora = r.veiculos
-    .filter((v) => !v.motor2_de && !equipDe.has(v.id) && GRUPO_DA_FROTA.test(v.grupo ?? ""))
-    .map((v) => v.placa)
-    .sort();
-  return { ...r, veiculos, fora_da_lista: fora };
+  const naMatriz = (placa: string) => formasPlaca(placa).some((f) => frota.conhecidas.has(f));
+  const fora = r.veiculos.filter((v) => !v.motor2_de && !equipDe.has(v.id) && GRUPO_DA_FROTA.test(v.grupo ?? "")).map((v) => v.placa);
+  // o retrato gravado pelo coletor já vem filtrado: a lista dele continua valendo (menos o que entrou na matriz depois)
+  const todas = [...new Set([...fora, ...(r.fora_da_lista ?? [])])].filter((p) => !naMatriz(p)).sort();
+  return { ...r, veiculos, fora_da_lista: todas };
 }
 
 /** ids que ficam no sistema (equipamentos e seus motores 2º) de um retrato já passado por aplicarFrota. */

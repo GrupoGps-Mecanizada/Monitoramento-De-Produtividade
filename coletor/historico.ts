@@ -17,8 +17,11 @@ interface RespostaRota {
   filter?: Record<string, string>;
 }
 
-/** Busca no GAUSS os pontos do veículo no dia a partir de horaInicio (HH:MM). */
-export async function baixarRota(client: GaussFleetClient, id: string, dia: string, horaInicio: string): Promise<PontoRota[]> {
+/**
+ * Busca no GAUSS os pontos do veículo no dia a partir de horaInicio (HH:MM). `info.completa` diz se a busca chegou
+ * ao fim do dia (false = erro numa página ou limite de páginas: a madrugada não substitui as paradas com ela).
+ */
+export async function baixarRota(client: GaussFleetClient, id: string, dia: string, horaInicio: string, info?: { completa: boolean }): Promise<PontoRota[]> {
   const hoje = dia === diaLocal();
   const fimJanela = hoje ? new Date(Date.now() - 2 * 60000) : paraData(`${dia} 23:58:00`);
   let filtro: Campo[] = [
@@ -27,18 +30,27 @@ export async function baixarRota(client: GaussFleetClient, id: string, dia: stri
     ["end_day", dia], ["end_hour", "23:59"],
   ];
   const pontos: PontoRota[] = [];
+  let completa = false;
   for (let pagina = 0; pagina < MAX_PAGINAS; pagina++) {
     const r = await client.post<RespostaRota>("/data/vehicle/routes/", filtro);
-    if (r.error || r.no_data || !r.board_data?.length) break;
+    if (r.error) break;
+    if (r.no_data || !r.board_data?.length) {
+      completa = true; // não há mais pontos
+      break;
+    }
     for (const p of r.board_data) {
       pontos.push({ t: p.datetime, lat: Number(p.location?.lat), lng: Number(p.location?.lng), vel: Number(p.speed_) || 0, rpm: Number(p.rpm) || 0 });
     }
     // o GAUSS pagina devolvendo o filtro da próxima página (como o maps.js faz); se o último ponto já cobre a
     // janela, não gasta uma requisição à toa
     const control = r.filter?.control;
-    if (!control || paraData(control) >= fimJanela) break;
+    if (!control || paraData(control) >= fimJanela) {
+      completa = true;
+      break;
+    }
     filtro = Object.entries(r.filter ?? {});
   }
+  if (info) info.completa = completa;
   return pontos;
 }
 

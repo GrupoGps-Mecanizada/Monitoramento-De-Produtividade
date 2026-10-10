@@ -58,6 +58,29 @@ export function marcasRegua([a, b]: Janela, detalhe = false): number[] {
 /** Rótulo da marca: hora cheia "8h"; o resto "08:05". */
 export const rotuloMarca = (s: number) => (s % HORA ? `${pad(Math.floor(s / HORA))}:${pad(Math.floor((s % HORA) / 60))}` : `${s / HORA}h`);
 
+/** Menor janela do zoom pela rodinha do mouse: 10 min. */
+export const JANELA_MIN = 600;
+
+/** Encaixa uma janela de tamanho `tam` começando em `a` dentro do dia. */
+function encaixar(a: number, tam: number): Janela {
+  const t = Math.min(DIA, Math.max(JANELA_MIN, tam));
+  const ini = Math.min(DIA - t, Math.max(0, a));
+  return [Math.round(ini), Math.round(ini + t)];
+}
+
+/**
+ * Zoom pela rodinha do mouse: fator < 1 aproxima, > 1 afasta. O instante `centro` (onde está o mouse) fica no mesmo
+ * lugar da tela. Nunca menos de 10 min nem mais que o dia inteiro.
+ */
+export function zoomJanela([a, b]: Janela, centro: number, fator: number): Janela {
+  const tam = (b - a) * fator;
+  const f = b > a ? (centro - a) / (b - a) : 0.5;
+  return encaixar(centro - f * Math.min(DIA, Math.max(JANELA_MIN, tam)), tam);
+}
+
+/** Arrasta a janela para os lados (rodinha na horizontal ou Shift + rodinha), sem sair do dia. */
+export const deslocarJanela = ([a, b]: Janela, seg: number): Janela => encaixar(a + seg, b - a);
+
 /** "Ampliar o foco": o período com 5% de folga de cada lado, no mínimo 30 min, sem sair do dia. */
 export function ampliar([ini, fim]: Janela): Janela {
   const tam = Math.max((fim - ini) * 1.1, 1800);
@@ -71,17 +94,18 @@ export function ampliar([ini, fim]: Janela): Janela {
 export interface AlturasTrilhas {
   cap: number;
   lugar: number;
-  status: number;
-  bomba: number;
+  /** status do motor (timeline de motor do GAUSS) */
+  motor: number;
+  /** apontamentos do tablet */
+  tablet: number;
 }
-const PESO = { cap: 0.26, lugar: 0.28, status: 0.3, bomba: 0.16 };
-const MINIMO = { cap: 14, lugar: 12, status: 14, bomba: 8 };
+const PESO = { cap: 0.26, lugar: 0.28, motor: 0.3, tablet: 0.16 };
+const MINIMO = { cap: 14, lugar: 12, motor: 14, tablet: 10 };
 /** Altura (px) de cada trilha para o espaço do painel: cresce junto com ele, sem passar abaixo do mínimo (4 px entre elas). */
-export function alturasTrilhas(disponivel: number, comBomba: boolean): AlturasTrilhas {
-  const nomes = comBomba ? (["cap", "lugar", "status", "bomba"] as const) : (["cap", "lugar", "status"] as const);
+export function alturasTrilhas(disponivel: number): AlturasTrilhas {
+  const nomes = ["cap", "lugar", "motor", "tablet"] as const;
   const util = disponivel - (nomes.length - 1) * 4;
-  const soma = nomes.reduce((t, n) => t + PESO[n], 0);
-  const r: AlturasTrilhas = { cap: 0, lugar: 0, status: 0, bomba: 0 };
-  for (const n of nomes) r[n] = Math.max(MINIMO[n], Math.round((util * PESO[n]) / soma));
+  const r: AlturasTrilhas = { cap: 0, lugar: 0, motor: 0, tablet: 0 };
+  for (const n of nomes) r[n] = Math.max(MINIMO[n], Math.round(util * PESO[n]));
   return r;
 }

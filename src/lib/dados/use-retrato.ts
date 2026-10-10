@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 import type { Retrato } from "../tipos";
 import { db } from "../supabase/cliente";
-import { lerRetrato } from "./leituras";
+import { esquecerCadastro, lerRetrato } from "./leituras";
 
 export interface EstadoRetrato {
   retrato: Retrato | null;
@@ -37,11 +37,19 @@ function iniciar(): () => void {
   const canal = db()
     .channel(`retrato-${Math.random().toString(36).slice(2)}`)
     .on("postgres_changes", { event: "*", schema: "public", table: "loc_kv", filter: "chave=eq.snapshot" }, () => void reler())
+    // alguém editou a matriz (status, supervisor, regime): o mapa já mostra, sem esperar o coletor
+    .on("postgres_changes", { event: "*", schema: "public", table: "frota_equipamento" }, () => {
+      esquecerCadastro();
+      void reler();
+    })
     .subscribe((s) => {
       if (s === "SUBSCRIBED") mudar({ conectado: true });
       else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") mudar({ conectado: false });
     });
-  const timer = setInterval(() => void reler(), RELEITURA_MS);
+  const timer = setInterval(() => {
+    esquecerCadastro();
+    void reler();
+  }, RELEITURA_MS);
   return () => {
     clearInterval(timer);
     void db().removeChannel(canal);

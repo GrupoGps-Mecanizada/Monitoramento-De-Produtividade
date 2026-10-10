@@ -1,14 +1,30 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { diaLocal } from "../dominio/formato";
+import { montarFrota } from "../dominio/equipamentos";
 import { aplicarFrota } from "../dominio/frota-propria";
-import type { Cerca, Evento, Retrato } from "../tipos";
+import type { Cerca, EquipamentoCadastro, Evento, Retrato } from "../tipos";
 import { db, ok } from "../supabase/cliente";
+import { lerCadastro } from "./cadastro";
 import { validarCercas, validarEvento, validarRetrato } from "./esquemas";
 
-/** Retrato da frota (loc_kv.snapshot), só com os equipamentos da Mecanizada. Antes da 1ª leitura do coletor: retrato vazio. */
+let cadastroCache: Promise<EquipamentoCadastro[]> | null = null;
+/** Matriz de equipamentos: uma leitura por aba; o Realtime manda esquecer quando alguém edita (esquecerCadastro). */
+export function cadastroEmCache(c: SupabaseClient = db()): Promise<EquipamentoCadastro[]> {
+  cadastroCache ??= lerCadastro(c).catch((e: unknown) => {
+    cadastroCache = null;
+    throw e;
+  });
+  return cadastroCache;
+}
+export const esquecerCadastro = () => void (cadastroCache = null);
+
+/** Retrato da frota (loc_kv.snapshot), só com os equipamentos da matriz. Antes da 1ª leitura do coletor: retrato vazio. */
 export async function lerRetrato(c: SupabaseClient = db()): Promise<Retrato> {
-  const r = (await ok(c.from("loc_kv").select("valor").eq("chave", "snapshot").maybeSingle())) as { valor: unknown } | null;
-  return aplicarFrota(validarRetrato(r?.valor));
+  const [r, cadastro] = await Promise.all([
+    ok(c.from("loc_kv").select("valor").eq("chave", "snapshot").maybeSingle()) as Promise<{ valor: unknown } | null>,
+    cadastroEmCache(c),
+  ]);
+  return aplicarFrota(validarRetrato(r?.valor), montarFrota(cadastro));
 }
 
 let cercasCache: Promise<Cerca[]> | null = null;

@@ -8,7 +8,7 @@ on:
   # roda também quando o código do coletor (ou as regras que ele usa) muda: valida a mudança na hora
   push:
     branches: [main]
-    paths: ['coletor/**', 'src/lib/dominio/**', 'src/lib/tipos.ts', '.github/workflows/coletor.yml']
+    paths: ['coletor/**', 'src/lib/dominio/**', 'src/lib/dados/cadastro.ts', 'src/lib/tipos.ts', '.github/workflows/coletor.yml']
 
 # nunca duas execuções ao mesmo tempo (evita requisições em dobro ao GAUSS)
 concurrency:
@@ -33,6 +33,11 @@ jobs:
       GAUSSFLEET_PASSWORD: ${{ secrets.GAUSSFLEET_PASSWORD }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      # opcionais: rota crua do dia no R2 da Cloudflare (sem eles, a madrugada pula só essa parte)
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,6 +45,6 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: coletor/package-lock.json
-      # só supabase-js e tsx (instalação leve a cada 5 min); o tsx roda o TypeScript sem compilar
+      # só supabase-js, tsx e aws4fetch (instalação leve a cada 5 min); o tsx roda o TypeScript sem compilar
       - run: npm ci --omit=dev --no-audit --no-fund
       - run: npx tsx run.ts

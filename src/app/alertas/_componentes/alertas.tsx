@@ -17,7 +17,7 @@ import { useCelular } from "@/lib/hooks";
 import type { Evento, TipoEquip } from "@/lib/tipos";
 
 /** Alertas: entradas/saídas de área, mudanças de status e perda/volta de sinal, por dia. */
-export function Alertas() {
+export function Alertas({ topo }: { topo?: ReactNode } = {}) {
   const params = useSearchParams();
   const celular = useCelular();
   const [hoje] = useState(() => diaLocal());
@@ -67,6 +67,7 @@ export function Alertas() {
 
   return (
     <div className="mx-auto w-full max-w-[1100px] space-y-4 px-4 pb-24 pt-5 md:px-8 md:pb-10 md:pt-7">
+      {topo}
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
         {cartoes.map((c) => (
           <button

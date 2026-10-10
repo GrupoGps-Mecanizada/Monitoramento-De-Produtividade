@@ -54,7 +54,9 @@ describe("validarHistorico", () => {
   it("tira do mapa e do player o ponto sem coordenada", () => {
     const h = validarHistorico(historico);
     expect(h.pontos).toHaveLength(1);
-    expect(h.trechos[0].estado).toBe("parado_ligado");
+    // o RPM não entra no site (07/10/2026): parado ligado vira só "parado"; motor vem do GAUSS
+    expect(h.trechos[0].estado).toBe("parado");
+    expect(h.temRpm).toBe(false);
   });
   it("dia sem pontos (resumo nulo) é válido", () => {
     expect(validarHistorico({ ...historico, trechos: [], pontos: [], resumo: null }).resumo).toBeNull();

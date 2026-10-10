@@ -1,127 +1,114 @@
-// "Dia da frota": uma faixa por equipamento ao longo do dia, montada só com os eventos que o coletor já grava
-// (abertura do dia, status, entrada/saída de área, sinal) — nenhuma consulta ao GAUSS. Precisão = intervalo do
-// coletor (~5 min). "Ligado" aqui é o status do GAUSS (inclui andando).
+// "Dia da frota": uma faixa por equipamento ao longo do dia, com o status de motor da timeline de motor do GAUSS
+// (motor ligado, parado ligado, motor 2º, desligado, parada apontada, manutenção...) e a produtividade de cada tipo.
+// Sem RPM (decisão do dono, 07/10/2026). Os dados vêm de timeline_motor_vaga (o coletor grava; nenhuma consulta daqui).
+// O produtivo na base (Pátio, Garagem) fica à parte, pelas entradas e saídas de área de loc_eventos.
 import type { Evento, TipoEquip, Veiculo } from "../tipos";
 import { ORDEM_TIPOS, compararEquip, nomeEquip } from "./equipamentos";
+import { blocoEm, montarStatusGauss, type BlocoGauss, type LinhaMotorGauss } from "./gauss-dia";
+import { baseDosEventos, dividirProdutivo, naBase, statusProdutivo } from "./produtividade";
 
-export type EstadoFaixa = "ligado" | "desligado" | "manut" | "sem_sinal" | "sem_registro";
-/** de/ate em minutos do dia (0–1440, horário local) */
-export interface FaixaFrota {
-  de: number;
-  ate: number;
-  estado: EstadoFaixa;
-  status: string;
-  area: string;
+/** Linha de timeline_motor_vaga com o veículo (placa_ou_codigo = id do veículo no GAUSS). */
+export interface LinhaMotorFrota extends LinhaMotorGauss {
+  placa_ou_codigo: string;
 }
 export interface LinhaFrota {
   id: string;
   nome: string;
   tipo: TipoEquip;
   vaga: string;
-  faixas: FaixaFrota[];
+  blocos: BlocoGauss[];
+  /** código do status produtivo (ex.: secondary_motor_on); null = o tipo não tem regra */
+  produtivo: string | null;
+  /** produtivo fora da base (o que conta) */
+  produtivo_min: number | null;
+  /** produtivo dentro da base (Pátio, Garagem): mostrado à parte como "motor ligado na base" */
+  base_min: number;
+  /** agora no status produtivo e fora da base */
+  produzindo: boolean;
+  /** motor ligado (andando, parado ligado ou com o motor 2º) */
   ligado_min: number;
-  /** estado no fim da faixa quando o dia é hoje */
-  agora: EstadoFaixa | null;
+  /** status agora (só hoje): o último bloco da timeline */
+  agora: BlocoGauss | null;
 }
 export interface GrupoFrota {
   tipo: TipoEquip;
   linhas: LinhaFrota[];
+  produtivo: string | null;
+  produtivo_min: number;
+  base_min: number;
   ligado_min: number;
+  agoraProdutivos: number;
   agoraLigados: number;
   agoraDesligados: number;
-  agoraSemSinal: number;
 }
 export type OrdemFrota = "tipo" | "mais" | "menos";
 
-export function estadoDoStatus(status: string): EstadoFaixa {
-  if (/^(ligado|parado ligado)$/i.test(status.trim())) return "ligado";
-  if (/manuten/i.test(status)) return "manut";
-  if (/sem comunica/i.test(status)) return "sem_sinal";
-  return "desligado";
-}
+const LIGADO = new Set(["on", "stopped", "secondary_motor_on"]);
+const DESLIGADO = new Set(["off", "main_switch_off"]);
+const minDe = (blocos: BlocoGauss[], cods: Set<string>) => blocos.reduce((n, x) => n + (cods.has(x.cod) ? (x.b - x.a) / 60 : 0), 0);
 
-export const minutoDoDia = (iso: string, dia: string) => Math.min(1440, Math.max(0, (new Date(iso).getTime() - new Date(`${dia}T00:00:00`).getTime()) / 60000));
-
-interface Situacao {
-  status: string | null;
-  semSinal: boolean;
-  area: string;
-}
-
-/** Situação à meia-noite: abertura do dia, senão o "de" do 1º status, senão (hoje) o retrato; senão sem registro. */
-function inicial(evs: Evento[], v: Veiculo, hoje: boolean): Situacao {
-  const primeiro = evs.find((e) => e.tipo === "abertura" || e.tipo === "status");
-  if (evs[0]?.tipo === "abertura") return { status: evs[0].status, semSinal: evs[0].sem_sinal, area: evs[0].area };
-  const status = primeiro?.tipo === "abertura" ? primeiro.status : primeiro?.tipo === "status" ? primeiro.de : hoje ? v.status : null;
-  const sinal = evs.find((e) => e.tipo === "sinal_perdido" || e.tipo === "sinal_retomado");
-  const areaEv = evs.find((e) => e.tipo === "entrada" || e.tipo === "saida");
-  const area = areaEv?.tipo === "saida" ? areaEv.area : areaEv?.tipo === "entrada" ? "" : primeiro?.tipo === "status" ? primeiro.area : hoje ? v.area : "";
-  return { status, semSinal: sinal ? sinal.tipo === "sinal_retomado" : hoje && !evs.length ? v.sem_sinal : false, area };
-}
-
-function aplicar(s: Situacao, e: Evento): Situacao {
-  switch (e.tipo) {
-    case "abertura":
-      return { status: e.status, semSinal: e.sem_sinal, area: e.area };
-    case "status":
-      return { ...s, status: e.para };
-    case "entrada":
-      return { ...s, area: e.area };
-    case "saida":
-      return { ...s, area: s.area === e.area ? "" : s.area };
-    case "sinal_perdido":
-      return { ...s, semSinal: true };
-    case "sinal_retomado":
-      return { ...s, semSinal: false };
+/**
+ * Uma linha por equipamento da frota (sem o motor 2º, que já aparece como status "Motor 2º ligado" do caminhão), na
+ * ordem da planilha. `agoraSeg`: segundos do dia agora (só quando o dia é hoje), para o status atual. `eventos`: entradas
+ * e saídas de área do dia (para separar o produtivo na base).
+ */
+export function montarDiaFrota(linhas: LinhaMotorFrota[], veiculos: Veiculo[], dia: string, agoraSeg: number | null, eventos: Evento[] = []): LinhaFrota[] {
+  const porId = new Map<string, LinhaMotorFrota[]>();
+  for (const l of linhas) {
+    const lista = porId.get(l.placa_ou_codigo);
+    if (lista) lista.push(l);
+    else porId.set(l.placa_ou_codigo, [l]);
   }
-}
-
-const estadoDe = (s: Situacao): EstadoFaixa => (s.status == null ? "sem_registro" : s.semSinal ? "sem_sinal" : estadoDoStatus(s.status));
-
-function linhaFrota(v: Veiculo, evs: Evento[], dia: string, agora: number, hoje: boolean): LinhaFrota {
-  const fim = hoje ? minutoDoDia(new Date(agora).toISOString(), dia) : 1440;
-  let s = inicial(evs, v, hoje);
-  let de = 0;
-  const faixas: FaixaFrota[] = [];
-  const fechar = (ate: number) => {
-    const a = Math.min(ate, fim);
-    if (a <= de) return;
-    const estado = estadoDe(s);
-    const ult = faixas.at(-1);
-    if (ult && ult.estado === estado && ult.area === s.area && ult.status === (s.status ?? "")) ult.ate = a;
-    else faixas.push({ de, ate: a, estado, status: s.status ?? "", area: s.area });
-    de = a;
-  };
-  for (const e of evs) {
-    fechar(minutoDoDia(e.t, dia));
-    s = aplicar(s, e);
-  }
-  fechar(fim);
-  const ligado_min = Math.round(faixas.filter((f) => f.estado === "ligado").reduce((n, f) => n + f.ate - f.de, 0));
-  return { id: v.id, nome: nomeEquip(v), tipo: v.equip?.tipo ?? "ap", vaga: v.vaga, faixas, ligado_min, agora: hoje ? (faixas.at(-1)?.estado ?? estadoDe(s)) : null };
-}
-
-/** Uma linha por equipamento da frota (sem o motor 2º), na ordem da planilha. */
-export function montarDiaFrota(eventos: Evento[], veiculos: Veiculo[], dia: string, agora: number, hoje: boolean): LinhaFrota[] {
-  const porId = new Map<string, Evento[]>();
-  for (const e of [...eventos].sort((a, b) => a.t.localeCompare(b.t))) {
+  const eventosPorId = new Map<string, Evento[]>();
+  for (const e of eventos) {
     if (e.motor2) continue;
-    const l = porId.get(e.id);
-    if (l) l.push(e);
-    else porId.set(e.id, [e]);
+    const lista = eventosPorId.get(e.id);
+    if (lista) lista.push(e);
+    else eventosPorId.set(e.id, [e]);
   }
   return veiculos
     .filter((v) => !v.motor2_de && v.equip)
     .sort(compararEquip)
-    .map((v) => linhaFrota(v, porId.get(v.id) ?? [], dia, agora, hoje));
+    .map((v) => {
+      const blocos = montarStatusGauss(porId.get(v.id) ?? [], dia);
+      const produtivo = statusProdutivo(v.equip?.tipo, v.placa);
+      const base = baseDosEventos(eventosPorId.get(v.id) ?? [], dia);
+      const prod = dividirProdutivo(blocos, produtivo, base);
+      const ult = blocos.at(-1) ?? null;
+      // "agora" = o bloco que cobre este momento; se a timeline ainda não chegou até agora, o último que chegou
+      const agora = agoraSeg == null ? null : (blocoEm(blocos, agoraSeg) ?? ult);
+      return {
+        id: v.id,
+        nome: nomeEquip(v),
+        tipo: v.equip?.tipo ?? "ap",
+        vaga: v.vaga,
+        blocos,
+        produtivo,
+        produtivo_min: prod && prod.min,
+        base_min: prod?.base_min ?? 0,
+        produzindo: !!agora && agora.cod === produtivo && agoraSeg != null && !naBase(base, agoraSeg),
+        ligado_min: Math.round(minDe(blocos, LIGADO)),
+        agora,
+      };
+    });
 }
 
-/** Grupos por tipo (só os que têm equipamento), com a contagem de agora e a ordem escolhida. */
+/** Grupos por tipo (só os que têm equipamento), com a contagem de agora e a ordem escolhida (por produtivo; sem regra, por ligado). */
 export function agruparFrota(linhas: LinhaFrota[], ordem: OrdemFrota): GrupoFrota[] {
+  const chave = (l: LinhaFrota) => l.produtivo_min ?? l.ligado_min;
   return ORDEM_TIPOS.map((tipo) => {
     const ls = linhas.filter((l) => l.tipo === tipo);
-    if (ordem !== "tipo") ls.sort((a, b) => (ordem === "mais" ? b.ligado_min - a.ligado_min : a.ligado_min - b.ligado_min));
-    const agora = (e: EstadoFaixa) => ls.filter((l) => l.agora === e).length;
-    return { tipo, linhas: ls, ligado_min: ls.reduce((n, l) => n + l.ligado_min, 0), agoraLigados: agora("ligado"), agoraDesligados: agora("desligado"), agoraSemSinal: agora("sem_sinal") };
+    if (ordem !== "tipo") ls.sort((a, b) => (ordem === "mais" ? chave(b) - chave(a) : chave(a) - chave(b)));
+    return {
+      tipo,
+      linhas: ls,
+      produtivo: ls.find((l) => l.produtivo)?.produtivo ?? null,
+      produtivo_min: ls.reduce((n, l) => n + (l.produtivo_min ?? 0), 0),
+      base_min: ls.reduce((n, l) => n + l.base_min, 0),
+      ligado_min: ls.reduce((n, l) => n + l.ligado_min, 0),
+      agoraProdutivos: ls.filter((l) => l.produzindo).length,
+      agoraLigados: ls.filter((l) => l.agora && LIGADO.has(l.agora.cod)).length,
+      agoraDesligados: ls.filter((l) => l.agora && DESLIGADO.has(l.agora.cod)).length,
+    };
   }).filter((g) => g.linhas.length);
 }

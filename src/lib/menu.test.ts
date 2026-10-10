@@ -9,8 +9,8 @@ describe("tela ativa", () => {
     expect(telaAtiva("/timeline/", "/")).toBe(false);
     expect(telaAtiva("/alertas/", "/timeline")).toBe(false);
   });
-  it("Dia da frota está no menu, depois da Localização", () => {
-    expect(MENU.map((m) => m.href)).toEqual(["/", "/frota", "/timeline", "/alertas"]);
+  it("Dia da frota depois da Localização, Análise logo depois; Equipamentos logo depois da Timeline", () => {
+    expect(MENU.map((m) => m.href)).toEqual(["/", "/frota", "/analise", "/timeline", "/equipamentos", "/alertas"]);
     expect(telaAtiva("/frota/", "/frota")).toBe(true);
   });
 });

@@ -12,15 +12,48 @@ export type CategoriaVeiculo = "ligado" | "parado" | "desligado" | "manut" | "se
 export type Frescor = "vivo" | "atrasado" | "semsinal";
 export type EstadoTrecho = "movimento" | "parado_ligado" | "desligado" | "parado" | "sem_sinal";
 export type TipoCerca = "planta" | "via" | "area";
-/** Tipo de equipamento da frota (planilha "LOCAÇÃO - GPS"; src/lib/dominio/equipamentos.ts). Não confundir com
+/** Tipo de equipamento da frota (matriz de equipamentos; src/lib/dominio/equipamentos.ts). Não confundir com
  * CategoriaVeiculo (ligado/desligado...). */
 export type TipoEquip = "ap" | "av" | "hv" | "uv" | "pg" | "as";
+/** Situação do equipamento na matriz: DESMOBILIZADO sai do monitoramento. */
+export type StatusEquip = "ATIVO" | "EM_MANUTENCAO" | "DESMOBILIZADO";
 export interface Equip {
   tipo: TipoEquip;
   /** como a planilha escreve: "EGC-2985", "Aspirador 05" */
   nome: string;
   /** posição na planilha dentro do tipo (aspirador: o número) */
   ordem: number;
+  /** campos da matriz (ausentes em retrato gravado antes da matriz) */
+  id?: number;
+  status?: Exclude<StatusEquip, "DESMOBILIZADO">;
+  codigo?: string | null;
+  supervisor?: string | null;
+  regime?: string | null;
+}
+
+/** Linha da matriz de equipamentos (tabela frota_equipamento, com os nomes de supervisor e regime). */
+export interface EquipamentoCadastro {
+  id: number;
+  tipo: TipoEquip;
+  /** caminhão: placa ("EGC-2985"); aspirador: null */
+  placa: string | null;
+  /** aspirador: número da vaga no GAUSS; caminhão: null */
+  numero: number | null;
+  codigo: string | null;
+  status: StatusEquip;
+  supervisor_id: number | null;
+  regime_id: number | null;
+  supervisor: string | null;
+  regime: string | null;
+  observacao: string | null;
+  ordem: number;
+  atualizado_em: string;
+}
+/** Supervisor ou regime (listas da matriz). */
+export interface ItemLista {
+  id: number;
+  nome: string;
+  ativo: boolean;
 }
 
 /** Cerca (geofence) como vem do GAUSS. */
@@ -93,7 +126,7 @@ export interface Retrato {
   sem_sinal_min: number;
   gauss?: CargaGauss & { desde: string; pausadoAte: string | null };
   veiculos: Veiculo[];
-  /** placas de grupos da frota (Alta Pressão, Vácuo, Brook...) que NÃO estão na lista: equipamento novo? */
+  /** placas de grupos da frota (Alta Pressão, Vácuo, Brook...) que NÃO estão na matriz: equipamento novo? */
   fora_da_lista?: string[];
 }
 

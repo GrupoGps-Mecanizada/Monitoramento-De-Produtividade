@@ -3,33 +3,33 @@
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Andamento } from "@/components/historico/andamento";
-import { Icone } from "@/components/icones";
-import { Legenda } from "@/components/mapa/legenda";
 import { useMapa } from "@/components/mapa/use-mapa";
 import { Aviso, Botao, Selecao, Vazio } from "@/components/ui";
-import { corDoTom } from "@/lib/cores";
 import { pedirHistorico, type EtapaPedido } from "@/lib/dados/historico";
 import { useRetrato } from "@/lib/dados/use-retrato";
 import { TIPOS_EQUIP, compararEquip, nomeEquip } from "@/lib/dominio/equipamentos";
 import { diaBR, diaLocal, rotuloDia, ultimosDias } from "@/lib/dominio/formato";
-import { ESTADOS_TRECHO, resolverVeiculo, semMotor2 } from "@/lib/dominio/veiculo";
-import { useCelular } from "@/lib/hooks";
+import { resolverVeiculo, semMotor2 } from "@/lib/dominio/veiculo";
 import { pontosDoTrecho } from "@/lib/mapa/rota";
-import type { EstadoTrecho, Historico } from "@/lib/tipos";
+import type { Historico } from "@/lib/tipos";
 import { ConteudoHistorico } from "./conteudo";
+import { ConteudoClassico } from "./conteudo-classica";
+import { BotaoFunil, CartaoTopo, PainelOpcoes } from "./opcoes";
 import { SeletorVeiculo } from "./seletor-veiculo";
+import { TrocaVisual, useVisualTimeline } from "./troca-visual";
 
-const LEGENDA = (Object.keys(ESTADOS_TRECHO) as EstadoTrecho[]).map((e) => ({ rotulo: ESTADOS_TRECHO[e].rotulo, cor: corDoTom(ESTADOS_TRECHO[e].tom) }));
 type Carga = { etapa: EtapaPedido | "buscando"; desde: number } | null;
 
-/** Timeline: trajeto de um veículo num dia, com player. Endereço: /timeline/?v=<id ou placa>&dia=AAAA-MM-DD */
+/**
+ * Timeline: trajeto de um veículo num dia, com player. Endereço: /timeline/?v=<id ou placa>&dia=AAAA-MM-DD
+ * O mapa ocupa a tela toda (computador e celular); veículo, dia e opções ficam no funil. Embaixo, a linha fina do dia
+ * (nova) ou o painel de trilhas (clássica, que voltou a pedido do dono em 07/10/2026): a pessoa escolhe no funil.
+ */
 export function Timeline() {
   const params = useSearchParams();
   const { retrato } = useRetrato();
-  const celular = useCelular();
   const { ref, pronto } = useMapa(13);
   const [sobreMapa, setSobreMapa] = useState<HTMLDivElement | null>(null);
-  const [noTopo, setNoTopo] = useState<HTMLDivElement | null>(null);
   const [hoje] = useState(() => diaLocal());
   const [chave, setChave] = useState<string | null>(() => params.get("v"));
   const [dia, setDia] = useState(() => params.get("dia") || hoje);
@@ -41,8 +41,10 @@ export function Timeline() {
   const [hist, setHist] = useState<Historico | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [trechoSel, setTrechoSel] = useState<{ i: number; vez: number } | null>(null);
-  // celular: opções (veículo e dia) abertas quando não veio veículo no endereço
+  // funil (veículo, dia e opções): já aberto quando não veio veículo no endereço
   const [opcoes, setOpcoes] = useState(() => !params.get("v"));
+  // nova: linha fina do dia embaixo; clássica: painel de trilhas embaixo (o filtro é o mesmo)
+  const [visual] = useVisualTimeline();
 
   const todos = retrato?.veiculos;
   const lista = useMemo(() => semMotor2(todos ?? []).sort(compararEquip), [todos]);
@@ -86,8 +88,9 @@ export function Timeline() {
   };
   const focarTrecho = useCallback((i: number) => setTrechoSel((t) => ({ i, vez: (t?.vez ?? 0) + 1 })), []);
 
+  // mapa limpo: zoom pela roda do mouse ou pinça; a camada (satélite/ruas) troca no funil
   useEffect(() => {
-    if (pronto) pronto.L.control.layers(pronto.camadasBase).addTo(pronto.mapa);
+    pronto?.mapa.zoomControl.remove();
   }, [pronto]);
   // a rota e os capítulos são desenhados pelo ConteudoHistorico; aqui só enquadra o dia
   useEffect(() => {
@@ -120,102 +123,79 @@ export function Timeline() {
     </Vazio>
   ) : null;
 
-  const campos = (
-    <div className="flex gap-2">
-      <SeletorVeiculo veiculos={lista} escolhido={escolhido} escolher={(v) => setChave(v.id)} paraCima={celular} />
-      <Selecao value={dia} onChange={(e) => setDia(e.target.value)} aria-label="Dia" className="w-36 shrink-0">
+  const formulario = (
+    <div className="space-y-2.5">
+      <SeletorVeiculo veiculos={lista} escolhido={escolhido} escolher={(v) => setChave(v.id)} paraCima={false} />
+      <Selecao value={dia} onChange={(e) => setDia(e.target.value)} aria-label="Dia" className="w-full">
         {dias.map((d) => (
           <option key={d} value={d}>
             {rotuloDia(d, hoje)}
           </option>
         ))}
       </Selecao>
-    </div>
-  );
-  const formulario = (
-    <div className="space-y-2.5 p-3">
-      {campos}
       <Botao onClick={ver} disabled={!escolhido || !!carga} className="w-full">
         Ver timeline
       </Botao>
+      <TrocaVisual />
     </div>
   );
+  const abrirOpcoes = () => setOpcoes(true);
+  const fecharOpcoes = () => setOpcoes(false);
+  const Conteudo = visual === "classica" ? ConteudoClassico : ConteudoHistorico;
   const conteudo =
     hist && hist.trechos.length > 0 && !carga ? (
-      <ConteudoHistorico
+      <Conteudo
         key={`${hist.id}|${hist.dia}|${hist.baixado_em}`}
         h={hist}
         placa={placa}
+        placaGauss={alvo?.placa ?? ""}
+        tipoEquip={alvo?.equip?.tipo}
         tipo={alvo?.equip ? TIPOS_EQUIP[alvo.equip.tipo].rotulo : ""}
         vaga={alvo?.vaga ?? ""}
         motorista={hist.dia === hoje ? alvo?.motorista || null : null}
         pronto={pronto}
-        celular={celular}
         sobreMapa={sobreMapa}
-        noTopo={noTopo}
         trechoSel={trechoSel?.i ?? null}
         focarTrecho={focarTrecho}
+        opcoes={opcoes}
+        abrirOpcoes={abrirOpcoes}
+        fecharOpcoes={fecharOpcoes}
+        formulario={formulario}
       />
     ) : null;
 
   return (
-    <div className="altura-tela relative flex flex-col md:gap-3 md:p-3">
-      {!celular && (
-        <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-borda bg-superficie px-3 py-2 shadow-md">
-          <div className="w-[380px] shrink-0">{campos}</div>
-          <Botao onClick={ver} disabled={!escolhido || !!carga}>
-            Ver timeline
-          </Botao>
-          <div ref={setNoTopo} className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5" />
-        </div>
-      )}
-      <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden md:rounded-xl md:border md:border-borda md:shadow-md" onPointerDown={() => setOpcoes(false)}>
-        <div ref={ref} className="absolute inset-0" />
-        <Legenda itens={LEGENDA} />
-        <div ref={setSobreMapa} className="pointer-events-none absolute inset-0 z-[500] [&>*]:pointer-events-auto" />
-        {!celular && situacao && (
-          <div className="absolute left-1/2 top-1/2 z-[600] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-borda bg-superficie/95 shadow-xl">{situacao}</div>
-        )}
-        {celular && (
-          <button
-            type="button"
-            onClick={() => setOpcoes(true)}
-            className="absolute left-1/2 top-2.5 z-[600] flex max-w-[calc(100%-110px)] -translate-x-1/2 items-center gap-2 rounded-full border border-borda bg-superficie/95 px-3.5 py-2 text-[13px] shadow-md"
-          >
-            <span className="truncate">{escolhido ? <><b>{nomeEquip(escolhido)}</b> · {rotuloDia(dia, hoje)}</> : "Escolher veículo"}</span>
-            <Icone nome="opcoes" className="h-4 w-4 text-suave" />
-          </button>
-        )}
-        {celular && situacao && (
-          <div className="absolute inset-x-2 bottom-2 z-[600] rounded-2xl border border-borda bg-superficie/95 shadow-xl">
-            {situacao}
-            {!carga && (
-              <div className="px-3 pb-3">
-                <Botao variante="secundaria" className="w-full" onClick={() => setOpcoes(true)}>
-                  Escolher veículo e dia
-                </Botao>
-              </div>
+    <div className="altura-tela relative overflow-hidden">
+      <div ref={ref} className="absolute inset-0" />
+      <div ref={setSobreMapa} className="pointer-events-none absolute inset-0 z-[500] [&>*]:pointer-events-auto" />
+      {!conteudo && (
+        <>
+          <CartaoTopo abrir={abrirOpcoes}>
+            {escolhido ? (
+              <>
+                <b className="text-[14px]">{nomeEquip(escolhido)}</b> {rotuloDia(dia, hoje)}
+              </>
+            ) : (
+              "Escolher veículo"
             )}
-          </div>
-        )}
-        {celular && conteudo}
-      </div>
-      {!celular && conteudo}
-      {celular && opcoes && (
-        <div className="fixed inset-0 z-[1100]" role="dialog" aria-label="Veículo e dia">
-          <button type="button" aria-label="Fechar" className="absolute inset-0 bg-black/40" onClick={() => setOpcoes(false)} />
-          <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-borda bg-superficie pb-[env(safe-area-inset-bottom)] shadow-2xl">
-            <div className="flex items-center justify-between px-4 pt-3">
-              <b>Veículo e dia</b>
-              <button type="button" aria-label="Fechar" onClick={() => setOpcoes(false)} className="grid h-9 w-9 place-items-center rounded-lg text-suave">
-                <Icone nome="fechar" className="h-4 w-4" />
-              </button>
+          </CartaoTopo>
+          <BotaoFunil abrir={abrirOpcoes} />
+          {opcoes && <PainelOpcoes fechar={fecharOpcoes} formulario={formulario} pronto={pronto} />}
+        </>
+      )}
+      {situacao && (
+        <div className="absolute left-1/2 top-1/2 z-[600] w-[min(380px,calc(100%-24px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-borda bg-superficie/95 shadow-xl">
+          {situacao}
+          {!carga && !hist?.trechos.length && (
+            <div className="px-3 pb-3">
+              <Botao variante="secundaria" className="w-full" onClick={abrirOpcoes}>
+                Escolher veículo e dia
+              </Botao>
             </div>
-            {formulario}
-            <p className="px-4 pb-4 text-xs text-suave">No celular o foco é o mapa. Resumo completo, tempo por área e CSV ficam no computador.</p>
-          </div>
+          )}
         </div>
       )}
+      {conteudo}
     </div>
   );
 }

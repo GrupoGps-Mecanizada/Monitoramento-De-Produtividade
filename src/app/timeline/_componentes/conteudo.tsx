@@ -1,73 +1,69 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Apontamento } from "@/components/historico/apontamento";
-import { ControlesPlayer, InfoPlayer } from "@/components/historico/barra-tempo";
-import { Destaques, ListaCapitulos } from "@/components/historico/capitulos";
-import { FaixaDia } from "@/components/historico/faixa-dia";
-import { TAMANHOS_REGUA, TrilhasDia, type TamanhoRegua } from "@/components/historico/trilhas-dia";
+import { LinhaTabletFina, agoraGauss, useHistoriaComGauss } from "@/components/historico/faixas-gauss";
+import { LinhaDia } from "@/components/historico/linha-dia";
 import { usePlayer } from "@/components/historico/use-player";
+import { useZoomRoda } from "@/components/historico/zoom-roda";
 import { Icone } from "@/components/icones";
 import { PAINEL_ROTA, desenharCapitulos, desenharRota } from "@/components/mapa/rota";
 import type { MapaPronto } from "@/components/mapa/use-mapa";
-import { Alca } from "@/components/trilhas/alca";
-import { Balao } from "@/components/trilhas/balao";
-import { Aviso, Botao, Selecao, Selo, cx } from "@/components/ui";
-import { corDoTom } from "@/lib/cores";
-import { capituloEm, montarHistoria, proximoCapitulo, segCap, type Capitulo, type HistoriaDia } from "@/lib/dominio/capitulos";
-import { diaBR, fmtHora, segDe } from "@/lib/dominio/formato";
-import { FONTE, itensResumo } from "@/lib/dominio/historico";
-import { DIA, ampliar, janelaDeHoras, janelaDosTrechos, type Janela } from "@/lib/dominio/trilhas";
-import { ESTADOS_TRECHO } from "@/lib/dominio/veiculo";
-import { useMedida, useOpcao, usePreferencia } from "@/lib/hooks";
-import type { Historico } from "@/lib/tipos";
+import { Selecao } from "@/components/ui";
+import { useGaussDia } from "@/lib/dados/gauss-dia";
+import { capituloEm, montarHistoria, segCap, type Capitulo } from "@/lib/dominio/capitulos";
+import { segDe } from "@/lib/dominio/formato";
+import { statusProdutivo } from "@/lib/dominio/produtividade";
+import { DIA, rotuloMarca, type Janela } from "@/lib/dominio/trilhas";
+import { VELOCIDADES } from "@/lib/player";
+import type { Historico, TipoEquip } from "@/lib/tipos";
+import { BotaoFunil, PainelOpcoes, Secao } from "./opcoes";
+import { CartaoAgora, SecoesDoDia } from "./partes";
 
-// painel das trilhas: abaixo disto ao soltar, recolhe; no máximo 60% da altura da janela
-const MIN_PAINEL = 64;
-const maxPainel = () => (typeof window === "undefined" ? 400 : Math.round(window.innerHeight * 0.6));
-
-interface Props {
+export interface PropsConteudo {
   h: Historico;
   placa: string;
+  /** placa como o GAUSS grava (para achar os apontamentos do tablet e a regra de produtividade) */
+  placaGauss: string;
+  /** tipo do equipamento (Alta Pressão, Alto Vácuo...): decide o que é produtivo */
+  tipoEquip: TipoEquip | undefined;
   tipo: string;
   vaga: string;
   /** motorista atual (só quando o dia é hoje: o histórico do GAUSS não traz o motorista de cada hora) */
   motorista: string | null;
   pronto: MapaPronto | null;
-  celular: boolean;
-  /** camada sobre o mapa (para o horário do player e, no celular, o player inteiro) */
+  /** camada sobre o mapa: cartão, funil, linha do dia e botões */
   sobreMapa: HTMLDivElement | null;
-  /** barra do topo (computador): os números do dia e o "Resumo do dia" */
-  noTopo: HTMLDivElement | null;
   trechoSel: number | null;
   focarTrecho: (i: number) => void;
+  /** funil (veículo, dia e opções), controlado pela tela */
+  opcoes: boolean;
+  abrirOpcoes: () => void;
+  fecharOpcoes: () => void;
+  formulario: ReactNode;
 }
 
-/** Histórico carregado (use com key do histórico): a história do dia em capítulos, a faixa e o player. */
-export function ConteudoHistorico({ h, placa, tipo, vaga, motorista, pronto, celular, sobreMapa, noTopo, trechoSel, focarTrecho }: Props) {
+/** O que as duas Timelines (nova e clássica) calculam igual: player, história, motor do GAUSS, tablet e produtivo. */
+export function useConteudoDia({ h, placaGauss, tipoEquip, pronto, focarTrecho }: Pick<PropsConteudo, "h" | "placaGauss" | "tipoEquip" | "pronto" | "focarTrecho">, foco: [number, number] | null) {
   const player = usePlayer(pronto, h);
-  const { trecho, tocando, irPara } = player;
-  const historia = useMemo(() => montarHistoria(h.trechos), [h.trechos]);
-  const [foco, setFoco] = useState<[number, number] | null>(null);
-  const [verCapitulos, setVerCapitulos] = useState(false);
+  const { trecho, irPara } = player;
+  // motor (timeline de motor do GAUSS) e apontamentos do tablet: lidos do Supabase, sem consulta nova ao GAUSS
+  const gauss = useGaussDia(h.id, placaGauss, h.dia);
+  const historia = useHistoriaComGauss(
+    useMemo(() => montarHistoria(h.trechos), [h.trechos]),
+    gauss.dados,
+    h.dia,
+  );
+  const agora = agoraGauss(gauss.dados, player.t);
+  const produtivo = statusProdutivo(tipoEquip, placaGauss);
   const atual = capituloEm(historia.capitulos, player.t);
-  const prox = proximoCapitulo(historia.capitulos, player.t);
-  // painel de baixo: altura guardada, a que acompanha o arrasto (sem animação) e recolhido
-  const [alturaGuardada, guardarAltura] = useMedida("mon-trilhas-px", 170, MIN_PAINEL, 2000);
-  const [arrastando, setArrastando] = useState<number | null>(null);
-  const [recolhido, setRecolhido] = usePreferencia("mon-trilhas-recolhido");
-  const [regua, setRegua] = useOpcao<TamanhoRegua>("mon-regua-tamanho", TAMANHOS_REGUA, "normal");
-  const registros = useMemo(() => janelaDosTrechos(h.trechos), [h.trechos]);
-  const [janela, setJanela] = useState<Janela>(registros);
-  const [apontamento, setApontamento] = useState(false);
 
   const irCapitulo = useCallback((c: Capitulo) => irPara(segCap(c.inicio), true), [irPara]);
   const irCapituloRef = useRef(irCapitulo);
   useEffect(() => {
     irCapituloRef.current = irCapitulo;
   });
-
   // rota do dia (o pedaço do foco em destaque) e os capítulos numerados no mapa
   useEffect(() => {
     if (!pronto) return;
@@ -80,222 +76,131 @@ export function ConteudoHistorico({ h, placa, tipo, vaga, motorista, pronto, cel
     return () => void camada.remove();
   }, [pronto, h, foco, historia]);
 
-  // acompanha na lista o capítulo em que o caminhão está
-  useEffect(() => {
-    if (tocando && atual) document.querySelector(`[data-capitulo="${atual}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [atual, tocando]);
-
   const escolherTrecho = (i: number) => {
     focarTrecho(i);
     irPara(segDe(h.trechos[i].inicio.slice(11, 19)), false);
   };
-  const andou = tocando || player.t > player.t0 || trechoSel != null;
-  const botaoProximo = prox && (
-    <Botao variante="secundaria" tamanho="mini" onClick={() => irCapitulo(prox)}>
-      <Icone nome="proximo" className="h-4 w-4" />
-      Próximo capítulo
-    </Botao>
-  );
-
   const tAtual = trecho >= 0 ? h.trechos[trecho] : null;
   const ondeEsta = !tAtual ? "" : tAtual.estado === "movimento" ? (tAtual.para ? `indo para ${tAtual.para}` : "em vias") : tAtual.local;
-  const horario = player.ponto && (
-    <div role="status" aria-label="Agora no mapa" className="absolute left-1/2 top-3 max-w-[min(640px,calc(100%-140px))] -translate-x-1/2 rounded-xl bg-[#0b1220]/90 px-4 py-2.5 text-white shadow-lg">
-      <div className="flex items-baseline gap-3 whitespace-nowrap">
-        <b className="text-3xl tabular-nums leading-none">{fmtHora(player.t)}</b>
-        <span className="text-base font-semibold">{placa}</span>
-        {tipo && <span className="truncate text-xs text-white/70">{tipo}</span>}
-      </div>
-      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[13px]">
-        <span className="flex items-center gap-1.5 font-semibold">
-          <i aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ background: corDoTom(ESTADOS_TRECHO[player.ponto.estado].tom) }} />
-          {ESTADOS_TRECHO[player.ponto.estado].rotulo}
-          {player.ponto.estado === "movimento" ? ` · ${player.ponto.vel} km/h` : ""}
-        </span>
-        {ondeEsta && <span className="truncate">{ondeEsta}</span>}
-        {player.ponto.m2 === 1 && <span className="font-semibold text-[#5eead4]">⚙ bomba ligada</span>}
-        {motorista && <span className="truncate text-white/85">Motorista: {motorista}</span>}
-      </div>
-    </div>
-  );
+  return { player, gauss, historia, agora, produtivo, atual, irCapitulo, escolherTrecho, ondeEsta };
+}
 
-  if (celular) {
-    return sobreMapa
-      ? createPortal(
-          // no celular o horário fica na barra do player (em cima, a pílula do veículo)
-          <div className="absolute inset-x-2 bottom-2 max-h-[70%] overflow-y-auto rounded-2xl border border-borda bg-superficie/95 p-3 shadow-xl">
-            <InfoPlayer player={player} />
-            <div className="my-2">
-              <FaixaDia h={h} historia={historia} player={player} foco={foco} mudarFoco={setFoco} />
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <ControlesPlayer player={player} />
-              {botaoProximo}
-              <Botao variante="secundaria" tamanho="mini" onClick={() => setVerCapitulos((x) => !x)} aria-expanded={verCapitulos}>
-                Capítulos ({historia.capitulos.length})
-              </Botao>
-            </div>
-            {verCapitulos && (
-              <div className="mt-2 border-t border-borda">
-                <ListaCapitulos capitulos={historia.capitulos} atual={atual} foco={foco} escolher={irCapitulo} />
-              </div>
-            )}
-          </div>,
-          sobreMapa,
-        )
-      : null;
-  }
+/**
+ * Timeline nova (use com key do histórico). O foco é o mapa: em cima, o cartão do horário e o funil; embaixo, a linha
+ * do tablet, a linha do motor (GAUSS) e ◀ ▶ ▶. A rodinha do mouse sobre as linhas aproxima/afasta.
+ */
+export function ConteudoHistorico(props: PropsConteudo) {
+  const { h, placa, tipo, vaga, motorista, pronto, sobreMapa, trechoSel, opcoes, abrirOpcoes, fecharOpcoes, formulario } = props;
+  const { player, gauss, historia, agora, produtivo, atual, irCapitulo, escolherTrecho, ondeEsta } = useConteudoDia(props, null);
+  const { trecho, tocando, irPara } = player;
+  const [apontamento, setApontamento] = useState(false);
+  // zoom das linhas pela rodinha do mouse (começa no dia inteiro)
+  const [janela, setJanela] = useState<Janela>([0, DIA]);
+  const faixasRef = useRef<HTMLDivElement>(null);
+  useZoomRoda(faixasRef, janela, setJanela);
+  const andou = tocando || player.t > player.t0 || trechoSel != null;
 
-  const alturaPainel = arrastando ?? (recolhido ? 0 : alturaGuardada);
-  const diaInteiro = janela[0] === 0 && janela[1] === DIA;
-  const soRegistros = janela[0] === registros[0] && janela[1] === registros[1];
-  const de = Math.floor(janela[0] / 3600);
-  const ate = Math.ceil(janela[1] / 3600);
-  const filtroHora = (
-    <span className="flex items-center gap-1 text-xs text-suave">
-      De
-      <Selecao value={de} onChange={(e) => setJanela(janelaDeHoras(Number(e.target.value), ate))} aria-label="Mostrar a partir de" className="h-8 w-[88px] text-[13px]">
-        {Array.from({ length: 24 }, (_, i) => (
-          <option key={i} value={i}>
-            {i}h
-          </option>
-        ))}
-      </Selecao>
-      até
-      <Selecao value={ate} onChange={(e) => setJanela(janelaDeHoras(de, Number(e.target.value)))} aria-label="Mostrar até" className="h-8 w-[88px] text-[13px]">
-        {Array.from({ length: 24 }, (_, i) => (
-          <option key={i + 1} value={i + 1}>
-            {i + 1}h
-          </option>
-        ))}
-      </Selecao>
-    </span>
-  );
-  return (
+  const icone = "grid h-10 w-10 place-items-center rounded-full text-white/90 transition hover:bg-white/15 hover:text-white";
+  const sobre = (
     <>
-      {sobreMapa && horario && createPortal(horario, sobreMapa)}
-      {noTopo && createPortal(<ResumoTopo h={h} historia={historia} vaga={vaga} />, noTopo)}
-      <section aria-label="Timeline do veículo" className="shrink-0 rounded-xl border border-borda bg-superficie shadow-md">
-        <Alca
-          altura={alturaPainel}
-          maximo={maxPainel()}
-          mudando={(px) => {
-            if (recolhido && px > 0) setRecolhido(false);
-            setArrastando(px);
-          }}
-          soltar={(px) => {
-            setArrastando(null);
-            // soltou quase fechado: recolhe (e guarda a altura de antes para quando expandir)
-            if (px < MIN_PAINEL) setRecolhido(true);
-            else {
-              setRecolhido(false);
-              guardarAltura(px);
-            }
-          }}
-          rotulo="Altura das trilhas"
-        />
-        <div className="flex flex-wrap items-center gap-2 px-3 pb-2">
-          <Botao variante="secundaria" tamanho="mini" onClick={() => setRecolhido(!recolhido)} aria-expanded={!recolhido} aria-label={recolhido ? "Expandir trilhas" : "Recolher trilhas"} title={recolhido ? "Expandir trilhas" : "Recolher trilhas"}>
-            {recolhido ? "▴ Expandir" : "▾ Recolher"}
-          </Botao>
-          <span className="text-base font-semibold">{placa}</span>
-          {tipo && <Selo tom="reg">{tipo}</Selo>}
-          <span className="text-xs text-suave">
-            {diaBR(h.dia)} · {FONTE[h.fonte]}
-          </span>
-          <ControlesPlayer player={player} />
-          {botaoProximo}
-          <InfoPlayer player={player} />
-          <span className="ml-auto flex flex-wrap items-center gap-1.5">
-            {filtroHora}
-            <Botao variante="secundaria" tamanho="mini" aria-pressed={regua === "grande"} title="Horários maiores na régua" onClick={() => setRegua(regua === "grande" ? "normal" : "grande")} className={cx(regua === "grande" && "border-primaria bg-primaria-suave")}>
-              A+
-            </Botao>
-            {foco && (
-              <>
-                <Botao variante="secundaria" tamanho="mini" onClick={() => setJanela(ampliar(foco))}>
-                  Ampliar o foco
-                </Botao>
-                <Botao variante="discreta" tamanho="mini" onClick={() => setFoco(null)}>
-                  ✕ Limpar foco
-                </Botao>
-              </>
-            )}
-            {!soRegistros && (
-              <Botao variante="secundaria" tamanho="mini" onClick={() => setJanela(registros)}>
-                Horas com registro
-              </Botao>
-            )}
-            {!diaInteiro && (
-              <Botao variante="secundaria" tamanho="mini" onClick={() => setJanela([0, DIA])}>
+      <CartaoAgora placa={placa} player={player} ondeEsta={ondeEsta} agora={agora} abrir={abrirOpcoes} />
+      <BotaoFunil abrir={abrirOpcoes} />
+      {/* embaixo: linhas do dia e ◀ ▶ ▶ (o degradê é só para os botões aparecerem sobre qualquer mapa) */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[600] bg-gradient-to-t from-black/55 via-black/20 to-transparent px-4 pb-2 pt-12">
+        <div className="pointer-events-auto mx-auto max-w-5xl">
+          {(janela[0] > 0 || janela[1] < DIA) && (
+            <div className="mb-1 flex items-center justify-center gap-2 text-[11px] tabular-nums text-white/85">
+              Zoom {rotuloMarca(janela[0])} – {rotuloMarca(janela[1])}
+              <button type="button" onClick={() => setJanela([0, DIA])} className="rounded-full bg-white/15 px-2 py-0.5 font-semibold text-white hover:bg-white/25">
                 Dia inteiro
-              </Botao>
-            )}
-            <Botao variante="secundaria" tamanho="mini" onClick={() => setApontamento(true)}>
-              Apontamento
-            </Botao>
-          </span>
-        </div>
-        <div
-          data-testid="corpo-trilhas"
-          className="overflow-hidden px-3"
-          // enquanto arrasta, a altura segue o ponteiro sem atraso; recolher/expandir tem animação curta
-          style={{ height: alturaPainel, transition: arrastando != null ? "none" : "height 180ms ease" }}
-        >
-          <div className="pb-2">
-            <TrilhasDia h={h} historia={historia} player={player} janela={janela} alturaPx={Math.max(alturaPainel - 16, MIN_PAINEL)} regua={regua} foco={foco} mudarFoco={setFoco} atual={atual} irCapitulo={irCapitulo} />
-            {!h.motor2 && h.motor2_erro && <p className="mt-1 text-[10px] text-suave">motor secundário não carregou: {h.motor2_erro}</p>}
+              </button>
+            </div>
+          )}
+          {/* rodinha do mouse sobre as linhas: para cima aproxima, para baixo afasta */}
+          <div ref={faixasRef} title="Rodinha do mouse: aproxima ou afasta">
+            {gauss.dados && <LinhaTabletFina g={gauss.dados} player={player} janela={janela} />}
+            <div className="flex items-center gap-2">
+              <span className="w-12 shrink-0 text-right text-[10px] font-semibold uppercase tracking-wider text-white/80">Motor</span>
+              <div className="min-w-0 flex-1">
+                <LinhaDia blocos={gauss.dados?.status ?? []} player={player} janela={janela} />
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-4">
+            <button type="button" className={icone} onClick={() => player.pular(-1)} aria-label="Deslocamento anterior" title="Deslocamento anterior">
+              <Icone nome="anterior" className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={player.alternar}
+              aria-label={player.tocando ? "Pausar" : "Reproduzir"}
+              title={`${player.tocando ? "Pausar" : "Reproduzir"} (Espaço)`}
+              className="grid h-12 w-12 place-items-center rounded-full bg-white text-[#0b1220] shadow-lg transition hover:scale-105"
+            >
+              <Icone nome={player.tocando ? "pausa" : "play"} className="h-5 w-5" />
+            </button>
+            <button type="button" className={icone} onClick={() => player.pular(1)} aria-label="Próximo deslocamento" title="Próximo deslocamento">
+              <Icone nome="proximo" className="h-5 w-5" />
+            </button>
           </div>
         </div>
-      </section>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      {sobreMapa && createPortal(sobre, sobreMapa)}
+      {opcoes && (
+        <PainelOpcoes fechar={fecharOpcoes} formulario={formulario} pronto={pronto}>
+          <Secao titulo="Reprodução">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Selecao value={player.velocidade} onChange={(e) => player.setVelocidade(Number(e.target.value))} aria-label="Velocidade" className="w-32">
+                {VELOCIDADES.map(([v, r]) => (
+                  <option key={v} value={v}>
+                    {r}
+                  </option>
+                ))}
+              </Selecao>
+              <label className="flex items-center gap-1.5 text-sm" title="Paradas passam 20x mais rápido">
+                <input type="checkbox" checked={player.acelerar} onChange={(e) => player.setAcelerar(e.target.checked)} /> Acelerar paradas
+              </label>
+              <label className="flex items-center gap-1.5 text-sm">
+                <input type="checkbox" checked={player.seguir} onChange={(e) => player.setSeguir(e.target.checked)} /> Seguir caminhão
+              </label>
+            </div>
+          </Secao>
+          <SecoesDoDia
+            h={h}
+            historia={historia}
+            gauss={gauss}
+            produtivo={produtivo}
+            info={[tipo, vaga, motorista && `Motorista: ${motorista}`].filter(Boolean).join(" · ")}
+            agora={agora}
+            abrirApontamento={() => {
+              fecharOpcoes();
+              setApontamento(true);
+            }}
+            irPara={(s) => {
+              fecharOpcoes();
+              irPara(s, true);
+            }}
+          />
+        </PainelOpcoes>
+      )}
       {apontamento && (
         <Apontamento
           h={h}
           placa={placa}
           historia={historia}
           atual={atual}
-          foco={foco}
+          foco={null}
           irCapitulo={irCapitulo}
           trechoSel={andou && trecho >= 0 ? trecho : null}
           escolherTrecho={escolherTrecho}
           fechar={() => setApontamento(false)}
         />
       )}
-    </>
-  );
-}
-
-/** Barra do topo da Timeline: os números do dia em pílulas e o balão "Resumo do dia". */
-function ResumoTopo({ h, historia, vaga }: { h: Historico; historia: HistoriaDia; vaga: string }) {
-  const [el, setEl] = useState<HTMLElement | null>(null);
-  const fechar = useCallback(() => setEl(null), []);
-  return (
-    <>
-      {itensResumo(h)
-        .filter((i) => i.rotulo !== "Período")
-        .map((i) => (
-          <span key={i.rotulo} className="rounded-full border border-borda bg-superficie-2 px-2.5 py-0.5 text-xs">
-            <b className={cx("tabular-nums", i.motor2 && "text-motor2")}>{i.valor}</b> <span className="text-suave">{i.rotulo.toLowerCase()}</span>
-          </span>
-        ))}
-      {h.rpm_travado != null && <Selo tom="warn">RPM travado</Selo>}
-      <Botao
-        variante="secundaria"
-        tamanho="mini"
-        aria-expanded={!!el}
-        onClick={(e) => {
-          const alvo = e.currentTarget;
-          setEl((x) => (x ? null : alvo));
-        }}
-      >
-        Resumo do dia
-      </Botao>
-      <Balao ancora={el} lado="baixo" rotulo="Resumo do dia" fechar={fechar} className="w-[360px] space-y-2 p-3">
-        {vaga && <p className="text-xs text-suave">{vaga}</p>}
-        {h.aviso && <p className="text-xs text-suave">{h.aviso}</p>}
-        {h.rpm_travado != null && <Aviso tipo="alerta">RPM do rastreador travado em {h.rpm_travado} o dia todo: não dá para afirmar motor ligado/desligado, as paradas aparecem só como “Parado”.</Aviso>}
-        <Destaques d={historia.destaques} />
-      </Balao>
     </>
   );
 }

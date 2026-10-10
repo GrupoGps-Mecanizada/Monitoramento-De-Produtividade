@@ -21,7 +21,8 @@ describe("tipo de lugar e classe de tempo", () => {
   it("classe de tempo (único ponto da futura regra de 'trabalhando')", () => {
     expect(classeTempo("parado_ligado")).toBe("ligado");
     expect(classeTempo("desligado")).toBe("desligado");
-    expect(classeTempo("parado")).toBe("desligado");
+    // sem RPM no site, parado não diz nada do motor (ligado/desligado vem do GAUSS)
+    expect(classeTempo("parado")).toBe("outro");
     expect(classeTempo("sem_sinal")).toBe("outro");
     expect(classeTempo("movimento")).toBeNull();
   });

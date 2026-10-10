@@ -42,6 +42,8 @@ export interface FaixaMotor {
   inicio: string;
   fim: string;
   estado: EstadoTrecho;
+  /** de onde veio ligado/desligado: o GAUSS (fonte principal) ou o RPM do rastreador; ausente = rastreador */
+  fonte?: "gauss" | "rastreador";
 }
 export interface Destaques {
   primeiraSaidaBase: string | null;
@@ -70,8 +72,9 @@ export function tipoLugar(nome: string): TipoLugar {
  */
 export function classeTempo(e: EstadoTrecho): ClasseTempo | null {
   if (e === "parado_ligado") return "ligado";
-  if (e === "desligado" || e === "parado") return "desligado";
-  if (e === "sem_sinal") return "outro";
+  if (e === "desligado") return "desligado";
+  // sem RPM no site (07/10/2026): parado não diz nada do motor; ligado/desligado dos capítulos vem do GAUSS (capitulosComGauss)
+  if (e === "parado" || e === "sem_sinal") return "outro";
   return null;
 }
 
