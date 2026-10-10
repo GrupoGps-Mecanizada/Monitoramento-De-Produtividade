@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Veiculo } from "../tipos";
 import {
-  areasDaRegiao, contornoDaUsina, plantasDaRegiao, porDia, porTipo, separarFora, totais,
-  categoriaPeloNome, diaDaSemana, diaMenos, equipDaFrota, faixaDe, faixaDeCor, filtrar, montarLocais, ordemDeDesenho, ranking, resumir, temRegra, valoresDaParada,
+  areasDaRegiao, contornoDaUsina, plantasDaRegiao, separarFora, totais,
+  categoriaPeloNome, diaDaSemana, diaMenos, equipDaFrota, faixaDe, filtrar, montarLocais, ordemDeDesenho, ranking, resumir, temRegra, valoresDaParada,
   CHAVE_FORA, OUTROS, SELECAO_VAZIA, filtrarSelecao, horaDe, placar, porHora, porServico, raioDaBolha, servicosPrincipais,
   type FiltroAnalise, type ParadaAnalise,
 } from "./analise";
@@ -127,8 +127,7 @@ describe("filtros e resumo por local", () => {
     expect(r.porHora[20]).toBe(60);
     expect(r.apont).toEqual([{ nome: "Aguardando Área", n: 2 }, { nome: "Refeição Motorista", n: 1 }]);
   });
-  it("faixa de cor e ranking", () => {
-    expect([faixaDeCor(0, 10), faixaDeCor(1, 10), faixaDeCor(10, 10), faixaDeCor(5, 0)]).toEqual([0, 1, 5, 0]);
+  it("ranking", () => {
     expect(ranking(resumir(filtrar(paradas, F), locais), "produtivo").map((x) => x.local.nome)).toEqual(["ALTO FORNO 3"]);
     expect(ranking([], "produtivo")).toEqual([]);
   });
@@ -207,7 +206,7 @@ describe("mapa da região (Usiminas, Poço Redondo, Aterro, oficinas de fora), s
     const { locais } = montarLocais([p({ area: "GALPÃO LONGE", lat: -9.8, lng: -34.1 })], AREAS, equip, null);
     expect(locais.get("GALPÃO LONGE")?.naRegiao).toBe(true);
   });
-  it("totais do período, dia a dia (com os dias sem parada) e por tipo", () => {
+  it("totais do período", () => {
     const { locais, paradas } = montarLocais(
       [p({ dia: "2026-10-06", motor: { secondary_motor_on: 30, stopped: 10 } }), p({ dia: "2026-10-08", veiculo_id: "2", placa: "EGC2993", motor: { stopped: 45 } }), p({ dia: "2026-10-08", veiculo_id: "3", placa: "EAM3257" })],
       AREAS,
@@ -216,16 +215,6 @@ describe("mapa da região (Usiminas, Poço Redondo, Aterro, oficinas de fora), s
     );
     const f = filtrar(paradas, { ...F, periodo: 3 });
     expect(totais(resumir(f, locais))).toMatchObject({ produtivo: 75, semProduzir: 10, parado: 180, areas: 1 });
-    expect(porDia(f, locais, "2026-10-08", 3)).toEqual([
-      { dia: "2026-10-06", produtivo: 30, semProduzir: 10 },
-      { dia: "2026-10-07", produtivo: 0, semProduzir: 0 },
-      { dia: "2026-10-08", produtivo: 45, semProduzir: 0 },
-    ]);
-    expect(porTipo(f, locais)).toEqual([
-      { tipo: "ap", produtivo: 30, parado: 60 },
-      { tipo: "av", produtivo: 45, parado: 60 },
-      { tipo: "hv", produtivo: null, parado: 60 },
-    ]);
   });
 });
 

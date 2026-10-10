@@ -1,5 +1,11 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Análise em painel · 10/10/2026 (não publicado)
+- **A tela Análise virou um painel de apresentação** (computador/TV): filtros e placar em cima (produtivo, % produtivo, parado, serviços), mapa de bolhas à esquerda e 3 gráficos à direita (Lugares, Por serviço, Hora do dia), todos com o número exato escrito.
+- **Um filtra o outro:** clicar numa bolha, num lugar, num serviço ou numa hora vira uma etiqueta no topo e filtra o resto; o × tira só aquela e "Limpar tudo" volta.
+- **Saíram:** o funil, o botão de lista, as 6 medidas, o "Ir para", a troca de fundo preto/branco, os filtros de faixa do dia e dia da semana e o detalhe "quem atende" (pedido do dono: menos botões, dados precisos).
+- Mapa: só os 3 serviços com mais paradas ganham cor (testadas para daltonismo); os outros ficam cinza.
+
 ## Portal SGE · 10/10/2026
 - **Dentro do Portal SGE (sge-portal.pages.dev) fica só a barra do Monitoramento:** a barra se apresenta ao portal (`SGEPortal.registrarBarra`) e a do portal some; a logo volta ao início do portal e aparece o botão **Sair**, que sai de todos os sistemas. Fora do portal (github.io direto) nada muda. Código em `src/lib/portal.ts` (mesmo contrato do SST e da Barra Universal do sge-core); teste em `e2e/portal.spec.ts`. Feito também no ramo `portal-sge` (a partir do `main`) para publicar sozinho.
 

@@ -1,7 +1,6 @@
 // Mapa de análise (desenho: docs/superpowers/specs/2026-10-08-mapa-de-analise-design.md): as paradas dos últimos 30 dias
 // (tabela analise_paradas, só fatos) viram números por local com as regras de produtividade.ts. Tudo puro; a tela só desenha.
 import type { LatLng, TipoEquip, Veiculo } from "../tipos";
-import { ORDEM_TIPOS } from "./equipamentos";
 import { areaPoligono, distanciaM } from "./geo";
 import { ehBase, statusProdutivo } from "./produtividade";
 
@@ -310,8 +309,6 @@ export function resumir(paradas: ParadaNoLocal[], locais: Map<string, Local>): R
 export function valorDe(r: ResumoLocal, m: Medida): number {
   return m === "produtivo" ? r.produtivo : m === "sem_produzir" ? r.semProduzir : m === "parado" ? r.parado : r.visitas;
 }
-/** Faixa de cor 1–5 proporcional ao maior valor (0 = sem valor). */
-export const faixaDeCor = (v: number, max: number) => (v <= 0 || max <= 0 ? 0 : Math.min(5, Math.ceil((v / max) * 5)));
 /** Os n locais com mais da medida (só os que têm valor). */
 export const ranking = (rs: ResumoLocal[], m: Medida, n = 10) =>
   rs
@@ -366,33 +363,6 @@ export function totais(rs: ResumoLocal[]) {
     t.base += r.base;
   }
   return t;
-}
-
-/** Produtivo e sem produzir de cada dia do período (os dias sem parada aparecem com zero). */
-export function porDia(paradas: ParadaNoLocal[], locais: Map<string, Local>, hoje: string, periodo: number): { dia: string; produtivo: number; semProduzir: number }[] {
-  const dias = Array.from({ length: periodo }, (_, i) => diaMenos(hoje, periodo - 1 - i));
-  const m = new Map(dias.map((dia) => [dia, { dia, produtivo: 0, semProduzir: 0 }]));
-  for (const p of paradas) {
-    const d = m.get(p.dia);
-    if (!d) continue;
-    const v = valoresDaParada(p, locais.get(p.local)?.naBase ?? false);
-    d.produtivo += v.produtivo ?? 0;
-    d.semProduzir += v.semProduzir ?? 0;
-  }
-  return [...m.values()];
-}
-
-/** Produtivo (null = tipo sem regra) e tempo parado por tipo de equipamento, na ordem da planilha. */
-export function porTipo(paradas: ParadaNoLocal[], locais: Map<string, Local>): { tipo: TipoEquip; produtivo: number | null; parado: number }[] {
-  const m = new Map<TipoEquip, { tipo: TipoEquip; produtivo: number | null; parado: number }>();
-  for (const p of paradas) {
-    const t = m.get(p.equip.tipo) ?? { tipo: p.equip.tipo, produtivo: p.equip.produtivo ? 0 : null, parado: 0 };
-    const v = valoresDaParada(p, locais.get(p.local)?.naBase ?? false);
-    t.parado += minutos(p);
-    if (v.produtivo != null) t.produtivo = (t.produtivo ?? 0) + v.produtivo;
-    m.set(t.tipo, t);
-  }
-  return ORDEM_TIPOS.flatMap((tipo) => m.get(tipo) ?? []);
 }
 
 /** Clique no painel: o lugar (bolha ou ranking), o serviço (apontamento) e a hora de início escolhidos. */

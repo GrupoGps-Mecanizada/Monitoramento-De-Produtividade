@@ -373,27 +373,11 @@ textarea:focus {
 .bolha { cursor: pointer; }
 .bolha-selecionada { stroke: #fff; stroke-width: 3px; }
 .bolha-apagada { opacity: 0.25; }
-.area-selecionada { stroke: #fff; stroke-width: 3px; }
-.rotulo-area { background: none; border: 0; }
-.rotulo-area > span {
-  position: absolute; transform: translate(-50%, -50%); display: inline-flex; gap: 4px; white-space: nowrap;
-  font: 600 10px var(--font-sans); padding: 2px 6px; border-radius: 6px; pointer-events: none;
-  background: rgb(11 18 32 / 0.85); color: #f1f5f9; border: 1px solid rgb(255 255 255 / 0.12); box-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
-}
-.rotulo-area > span b { color: #94a3b8; font-weight: 600; }
 .rotulo-planta { background: none; border: 0; }
 .rotulo-planta > span {
   position: absolute; transform: translate(-50%, -50%); white-space: nowrap; pointer-events: none;
   font: 700 10px var(--font-sans); letter-spacing: 0.04em; color: #8b95a7; text-shadow: 0 0 3px #000;
 }
-/* Análise com fundo branco (escolhido no funil) */
-.mapa-analise.mapa-claro.leaflet-container { background: #fff; }
-.mapa-claro .usina-contorno { fill: #f1f5f9; stroke: #cbd5e1; }
-.mapa-claro .area-sem-dado { fill: #e2e8f0; stroke: #cbd5e1; }
-.mapa-claro .area-selecionada { stroke: #0f172a; }
-.mapa-claro .rotulo-area > span { background: rgb(255 255 255 / 0.92); color: #0f172a; border-color: rgb(15 23 42 / 0.12); box-shadow: 0 1px 2px rgb(0 0 0 / 0.15); }
-.mapa-claro .rotulo-area > span b { color: #64748b; }
-.mapa-claro .rotulo-planta > span { color: #64748b; text-shadow: 0 0 3px #fff; }
 /* marcador do veículo: cor do status (--c), seta na direção, idade da posição */
 .mk {
   position: absolute; transform: translate(-50%, -50%);
