@@ -3,6 +3,7 @@ import type { Veiculo } from "../tipos";
 import {
   areasDaRegiao, contornoDaUsina, plantasDaRegiao, porDia, porTipo, separarFora, totais,
   categoriaPeloNome, diaDaSemana, diaMenos, equipDaFrota, faixaDe, faixaDeCor, filtrar, montarLocais, ordemDeDesenho, ranking, resumir, temRegra, valoresDaParada,
+  CHAVE_FORA, OUTROS, SELECAO_VAZIA, filtrarSelecao, horaDe, placar, porHora, porServico, raioDaBolha, servicosPrincipais,
   type FiltroAnalise, type ParadaAnalise,
 } from "./analise";
 
@@ -225,5 +226,84 @@ describe("mapa da região (Usiminas, Poço Redondo, Aterro, oficinas de fora), s
       { tipo: "av", produtivo: 45, parado: 60 },
       { tipo: "hv", produtivo: null, parado: 60 },
     ]);
+  });
+});
+
+describe("painel: seleção cruzada, serviços, horas e placar", () => {
+  const equip = equipDaFrota(FROTA);
+  const usina = AREAS[0].polygon;
+  // ALTO FORNO 3 (caminhão 1, Alta Pressão): 8h–9h com Vácuo e Transbordo; 14h–16h com Vácuo.
+  // GALPÃO LONGE (caminhão 2, Alto Vácuo, em Recife): 10h–11h, sem apontamento e sem dado de motor.
+  const { paradas, locais } = montarLocais(
+    [
+      p({ apont: ["Vácuo", "Transbordo"], motor: { secondary_motor_on: 30, stopped: 30 } }),
+      p({ ini: 14 * H, fim: 16 * H, apont: ["Vácuo"], motor: { stopped: 120 } }),
+      p({ veiculo_id: "2", placa: "EGC2993", area: "GALPÃO LONGE", lat: -8.05, lng: -34.9, ini: 10 * H, fim: 11 * H }),
+    ],
+    AREAS,
+    equip,
+    usina,
+  );
+  const sel = (o: Partial<typeof SELECAO_VAZIA>) => ({ ...SELECAO_VAZIA, ...o });
+
+  it("hora do início (0–23)", () => {
+    expect([horaDe(0), horaDe(14 * H), horaDe(24 * H - 1), horaDe(24 * H)]).toEqual([0, 14, 23, 23]);
+  });
+  it("seleção vazia não filtra; serviço, hora e lugar filtram", () => {
+    expect(filtrarSelecao(paradas, SELECAO_VAZIA, locais)).toHaveLength(3);
+    expect(filtrarSelecao(paradas, sel({ servico: "Vácuo" }), locais)).toHaveLength(2);
+    expect(filtrarSelecao(paradas, sel({ servico: "Transbordo" }), locais)).toHaveLength(1);
+    expect(filtrarSelecao(paradas, sel({ hora: 14 }), locais).map((x) => x.ini)).toEqual([14 * H]);
+    expect(filtrarSelecao(paradas, sel({ local: "ALTO FORNO 3" }), locais)).toHaveLength(2);
+  });
+  it("'Longe da região' pega as paradas dos lugares fora da região; lugar que não existe no recorte esvazia", () => {
+    expect(filtrarSelecao(paradas, sel({ local: CHAVE_FORA }), locais).map((x) => x.local)).toEqual(["GALPÃO LONGE"]);
+    expect(filtrarSelecao(paradas, sel({ local: "OFICINA QUE SUMIU" }), locais)).toEqual([]);
+  });
+  it("ignorar uma dimensão: o gráfico dela mostra todas e as outras seleções continuam valendo", () => {
+    const s = sel({ servico: "Transbordo", hora: 14 });
+    expect(filtrarSelecao(paradas, s, locais)).toEqual([]);
+    expect(filtrarSelecao(paradas, s, locais, "hora").map((x) => x.ini)).toEqual([8 * H]);
+    expect(filtrarSelecao(paradas, s, locais, "servico").map((x) => x.ini)).toEqual([14 * H]);
+  });
+  it("por serviço: a parada com 2 apontamentos conta nos dois; o mesmo apontamento repetido conta uma vez", () => {
+    expect(porServico(paradas)).toEqual([
+      { nome: "Vácuo", n: 2, min: 180 },
+      { nome: "Transbordo", n: 1, min: 60 },
+    ]);
+    const repetido = montarLocais([p({ apont: ["Vácuo", "Vácuo"] })], AREAS, equip, usina).paradas;
+    expect(porServico(repetido)).toEqual([{ nome: "Vácuo", n: 1, min: 60 }]);
+  });
+  it("por serviço: depois do 10º, o resto soma em 'Outros'", () => {
+    const nomes = Array.from({ length: 12 }, (_, i) => `S${String(i + 1).padStart(2, "0")}`);
+    const r = porServico(montarLocais([p({ apont: nomes })], AREAS, equip, usina).paradas);
+    expect(r).toHaveLength(11);
+    expect(r[9].nome).toBe("S10");
+    expect(r[10]).toEqual({ nome: OUTROS, n: 2, min: 120 });
+  });
+  it("serviços principais: os 3 com mais paradas, sem 'Outros'", () => {
+    expect(servicosPrincipais(paradas)).toEqual(["Vácuo", "Transbordo"]);
+    const nomes = Array.from({ length: 12 }, (_, i) => `S${String(i + 1).padStart(2, "0")}`);
+    expect(servicosPrincipais(montarLocais([p({ apont: nomes })], AREAS, equip, usina).paradas)).toEqual(["S01", "S02", "S03"]);
+  });
+  it("por hora: minutos parados pela hora de início", () => {
+    const h = porHora(paradas);
+    expect(h).toHaveLength(24);
+    expect([h[8], h[10], h[14], h[15]]).toEqual([60, 60, 120, 0]);
+    expect(h.reduce((s, x) => s + x, 0)).toBe(240);
+  });
+  it("placar: produtivo e % só das paradas com regra e dado de motor; serviços = paradas com apontamento", () => {
+    expect(placar(paradas, locais)).toEqual({ produtivo: 30, pct: 30 / 180, parado: 240, servicos: 2 });
+  });
+  it("placar: tipo sem regra de produtividade mostra '—' (null), nunca 0%", () => {
+    const hv = montarLocais([p({ veiculo_id: "3", placa: "EAM3257", motor: { stopped: 60 } })], AREAS, equip, usina);
+    expect(placar(hv.paradas, hv.locais)).toEqual({ produtivo: null, pct: null, parado: 60, servicos: 0 });
+    expect(placar([], new Map())).toEqual({ produtivo: null, pct: null, parado: 0, servicos: 0 });
+  });
+  it("raio da bolha: a área cresce com as horas; mínimo de 5 px para dar para clicar", () => {
+    expect(raioDaBolha(0, 0)).toBe(5);
+    expect(raioDaBolha(100, 100)).toBe(28);
+    expect(raioDaBolha(25, 100)).toBe(14);
+    expect(raioDaBolha(1, 10000)).toBe(5);
   });
 });

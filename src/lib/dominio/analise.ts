@@ -394,3 +394,88 @@ export function porTipo(paradas: ParadaNoLocal[], locais: Map<string, Local>): {
   }
   return ORDEM_TIPOS.flatMap((tipo) => m.get(tipo) ?? []);
 }
+
+/** Clique no painel: o lugar (bolha ou ranking), o serviço (apontamento) e a hora de início escolhidos. */
+export interface SelecaoCruzada {
+  local: string | null;
+  servico: string | null;
+  hora: number | null;
+}
+export type DimensaoSelecao = keyof SelecaoCruzada;
+export const SELECAO_VAZIA: SelecaoCruzada = { local: null, servico: null, hora: null };
+/** Hora (0–23) do início da parada. */
+export const horaDe = (ini: number) => Math.min(23, Math.floor(ini / H));
+
+/** Paradas da seleção. `ignorar` pula uma dimensão: o gráfico dela mostra todas as opções e destaca a escolhida. */
+export function filtrarSelecao(paradas: ParadaNoLocal[], sel: SelecaoCruzada, locais: Map<string, Local>, ignorar?: DimensaoSelecao): ParadaNoLocal[] {
+  const noLocal = (p: ParadaNoLocal) => (sel.local === CHAVE_FORA ? locais.get(p.local)?.naRegiao === false : p.local === sel.local);
+  return paradas.filter(
+    (p) =>
+      (ignorar === "local" || !sel.local || noLocal(p)) &&
+      (ignorar === "servico" || !sel.servico || p.apont.includes(sel.servico)) &&
+      (ignorar === "hora" || sel.hora == null || horaDe(p.ini) === sel.hora),
+  );
+}
+
+/** Nome da barra que junta os serviços depois dos 10 primeiros (não é um serviço: não vira filtro). */
+export const OUTROS = "Outros";
+const MAX_SERVICOS = 10;
+/** Paradas por apontamento do tablet, do maior ao menor (a parada com 2 apontamentos conta nos dois); depois do 10º, "Outros". */
+export function porServico(paradas: ParadaNoLocal[]): { nome: string; n: number; min: number }[] {
+  const m = new Map<string, { nome: string; n: number; min: number }>();
+  for (const p of paradas) {
+    for (const a of new Set(p.apont)) {
+      const s = m.get(a) ?? { nome: a, n: 0, min: 0 };
+      s.n++;
+      s.min += minutos(p);
+      m.set(a, s);
+    }
+  }
+  const xs = [...m.values()].sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome));
+  if (xs.length <= MAX_SERVICOS) return xs;
+  const resto = xs.slice(MAX_SERVICOS);
+  return [...xs.slice(0, MAX_SERVICOS), { nome: OUTROS, n: resto.reduce((s, x) => s + x.n, 0), min: resto.reduce((s, x) => s + x.min, 0) }];
+}
+/** Os n serviços com mais paradas: ganham cor no mapa. Calcular sobre os 30 dias inteiros, para a cor não trocar ao filtrar. */
+export const servicosPrincipais = (paradas: ParadaNoLocal[], n = 3): string[] =>
+  porServico(paradas)
+    .filter((s) => s.nome !== OUTROS)
+    .slice(0, n)
+    .map((s) => s.nome);
+
+/** Minutos parados pela hora de início (0–23). */
+export function porHora(paradas: ParadaNoLocal[]): number[] {
+  const h = Array<number>(24).fill(0);
+  for (const p of paradas) h[horaDe(p.ini)] += minutos(p);
+  return h;
+}
+
+/** Os 4 números do placar. `produtivo` e `pct` = null quando nenhuma parada tem regra de produtividade com dado de motor. */
+export interface Placar {
+  produtivo: number | null;
+  pct: number | null;
+  parado: number;
+  servicos: number;
+}
+export function placar(paradas: ParadaNoLocal[], locais: Map<string, Local>): Placar {
+  let produtivo = 0;
+  let comRegra = 0;
+  let parado = 0;
+  let servicos = 0;
+  for (const p of paradas) {
+    const min = minutos(p);
+    parado += min;
+    if (p.apont.length) servicos++;
+    const v = valoresDaParada(p, locais.get(p.local)?.naBase ?? false);
+    if (v.produtivo != null && Object.keys(p.motor).length) {
+      produtivo += v.produtivo;
+      comRegra += min;
+    }
+  }
+  return { produtivo: comRegra ? produtivo : null, pct: comRegra ? produtivo / comRegra : null, parado, servicos };
+}
+
+const RAIO_MIN = 5;
+const RAIO_MAX = 28;
+/** Raio da bolha em pixels: a ÁREA cresce com as horas paradas (raiz quadrada), com um mínimo que dá para clicar. */
+export const raioDaBolha = (min: number, max: number) => (max <= 0 ? RAIO_MIN : Math.max(RAIO_MIN, RAIO_MAX * Math.sqrt(min / max)));
