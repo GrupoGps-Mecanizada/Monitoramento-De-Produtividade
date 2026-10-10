@@ -45,7 +45,7 @@ Uma cor só por gráfico (barras na cor de destaque); a cor não carrega signifi
 
 ## Mapa
 - Uma **bolha por lugar** da região (centro da cerca ou ponto), **área da bolha proporcional às horas paradas** (raiz quadrada; mínimo legível).
-- **Cor = serviço principal do lugar**, só para os **3 serviços com mais paradas** no recorte atual; o resto e "sem apontamento" em cinza ("Outros"). Legenda com as 4 entradas. Contorno fino da cor da superfície entre bolhas sobrepostas.
+- **Cor = serviço principal do lugar**, só para os **3 serviços com mais paradas nos 30 dias carregados** (sem filtros, para a cor não trocar ao filtrar); o resto e "sem apontamento" em cinza ("Outros"). Legenda com as 4 entradas. Contorno fino da cor da superfície entre bolhas sobrepostas.
 - As cercas continuam desenhadas apagadas, só como referência. Ao passar o mouse na bolha: nome, horas paradas, serviço principal.
 - A cor de cada serviço é fixa pelo nome (não muda quando o filtro muda). Paleta validada com `validate_palette.js` (claro e escuro) antes de entrar.
 
