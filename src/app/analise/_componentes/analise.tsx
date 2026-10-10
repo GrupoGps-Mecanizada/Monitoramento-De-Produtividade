@@ -9,8 +9,8 @@ import { useParadasAnalise } from "@/lib/dados/analise";
 import { lerCercas } from "@/lib/dados/leituras";
 import { useRetrato } from "@/lib/dados/use-retrato";
 import {
-  CHAVE_FORA, OUTROS, PERIODOS, SELECAO_VAZIA, areasDaRegiao, contornoDaUsina, equipDaFrota, filtrar, filtrarSelecao, montarLocais, placar, plantasDaRegiao,
-  porHora, porServico, ranking, resumir, separarFora, servicosPrincipais,
+  CHAVE_FORA, OUTROS, PERIODOS, SELECAO_VAZIA, areasDaRegiao, contornoDaUsina, equipDaFrota, filtrar, filtrarSelecao, lugaresDoGrafico, montarLocais, placar, plantasDaRegiao,
+  porHora, porServico, resumir, separarFora, servicosPrincipais,
   type DimensaoSelecao, type Periodo, type SelecaoCruzada,
 } from "@/lib/dominio/analise";
 import { diaLocal, fmtHoras } from "@/lib/dominio/formato";
@@ -92,7 +92,7 @@ export function Analise() {
     if (pronto && camada.current) desenharBolhas(pronto.L, camada.current, pronto.mapa, { plantas, areas, resumos: dentro, principais, sel: sel.local, aoClicar: clicarBolha });
   }, [pronto, plantas, areas, dentro, principais, sel.local, zoom, clicarBolha]);
 
-  const lugares: ItemBarra[] = [...ranking(dentro, "parado", 10), ...(fora ? [fora] : [])].map((r) => ({
+  const lugares: ItemBarra[] = lugaresDoGrafico(dentro, fora, sel.local).map((r) => ({
     chave: r.local.chave,
     rotulo: r.local.nome,
     valor: r.parado,

@@ -3,8 +3,8 @@ import type { Veiculo } from "../tipos";
 import {
   areasDaRegiao, contornoDaUsina, plantasDaRegiao, separarFora, totais,
   categoriaPeloNome, diaDaSemana, diaMenos, equipDaFrota, faixaDe, filtrar, montarLocais, ordemDeDesenho, ranking, resumir, temRegra, valoresDaParada,
-  CHAVE_FORA, OUTROS, SELECAO_VAZIA, filtrarSelecao, horaDe, placar, porHora, porServico, raioDaBolha, servicosPrincipais,
-  type FiltroAnalise, type ParadaAnalise,
+  CHAVE_FORA, OUTROS, SELECAO_VAZIA, filtrarSelecao, horaDe, lugaresDoGrafico, placar, porHora, porServico, raioDaBolha, servicosPrincipais,
+  type FiltroAnalise, type ParadaAnalise, type ResumoLocal,
 } from "./analise";
 
 const H = 3600;
@@ -294,5 +294,24 @@ describe("painel: seleção cruzada, serviços, horas e placar", () => {
     expect(raioDaBolha(100, 100)).toBe(28);
     expect(raioDaBolha(25, 100)).toBe(14);
     expect(raioDaBolha(1, 10000)).toBe(5);
+  });
+});
+
+describe("painel: lugares do gráfico", () => {
+  const lugar = (chave: string, parado: number) => ({ local: { chave, nome: chave }, parado }) as unknown as ResumoLocal;
+  const dentro = Array.from({ length: 12 }, (_, i) => lugar(`L${String(i + 1).padStart(2, "0")}`, 120 - i * 10));
+  const fora = lugar(CHAVE_FORA, 5);
+  const chaves = (rs: ResumoLocal[]) => rs.map((r) => r.local.chave);
+
+  it("os 10 com mais tempo parado e, no fim, 'Longe da região'", () => {
+    expect(chaves(lugaresDoGrafico(dentro, fora, null))).toEqual([...chaves(dentro.slice(0, 10)), CHAVE_FORA]);
+  });
+  it("o lugar escolhido fora dos 10 entra no fim (antes de 'Longe da região'), para aparecer em destaque", () => {
+    expect(chaves(lugaresDoGrafico(dentro, fora, "L12"))).toEqual([...chaves(dentro.slice(0, 10)), "L12", CHAVE_FORA]);
+  });
+  it("escolhido já entre os 10 ou 'Longe da região': nada se repete", () => {
+    expect(lugaresDoGrafico(dentro, null, "L01")).toHaveLength(10);
+    expect(chaves(lugaresDoGrafico(dentro, fora, CHAVE_FORA))).toEqual([...chaves(dentro.slice(0, 10)), CHAVE_FORA]);
+    expect(lugaresDoGrafico(dentro, null, "SUMIU")).toHaveLength(10);
   });
 });

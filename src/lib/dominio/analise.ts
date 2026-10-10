@@ -449,3 +449,10 @@ const RAIO_MIN = 5;
 const RAIO_MAX = 28;
 /** Raio da bolha em pixels: a ÁREA cresce com as horas paradas (raiz quadrada), com um mínimo que dá para clicar. */
 export const raioDaBolha = (min: number, max: number) => (max <= 0 ? RAIO_MIN : Math.max(RAIO_MIN, RAIO_MAX * Math.sqrt(min / max)));
+
+/** Lugares do gráfico: os n com mais tempo parado, o escolhido (se ficou fora dos n, para aparecer em destaque) e, no fim, "Longe da região". */
+export function lugaresDoGrafico(dentro: ResumoLocal[], fora: ResumoLocal | null, escolhido: string | null, n = 10): ResumoLocal[] {
+  const top = ranking(dentro, "parado", n);
+  const extra = escolhido && escolhido !== CHAVE_FORA && !top.some((r) => r.local.chave === escolhido) ? dentro.filter((r) => r.local.chave === escolhido) : [];
+  return [...top, ...extra, ...(fora ? [fora] : [])];
+}
