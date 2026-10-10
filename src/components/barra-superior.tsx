@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { MARCA } from "@/lib/marca";
 import { MENU, telaAtiva } from "@/lib/menu";
+import { avisarBarraAoPortal, portalSGE, useNoPortal } from "@/lib/portal";
 import { useTema } from "@/lib/tema";
 import { CAMINHOS, Icone } from "./icones";
 import { IndicadorVivo } from "./indicador-vivo";
@@ -13,11 +15,35 @@ import { cx } from "./ui";
 /**
  * Barra superior "Campo" (a mesma do SST): logo, telas com ícone num trilho próprio, leitura ao vivo,
  * busca Ctrl K e tema. No celular: cabeçalho compacto + barra inferior com as telas e a busca.
+ * Dentro do Portal SGE: a barra do portal some, a logo volta ao início do portal e aparece "Sair".
  */
 export function BarraSuperior() {
   const caminho = usePathname();
   const [tema, alternarTema] = useTema();
   const atual = MENU.find((m) => telaAtiva(caminho, m.href));
+  const noPortal = useNoPortal();
+  useEffect(() => avisarBarraAoPortal(), []);
+  // no portal, a logo volta para o início do portal (de onde se troca de sistema)
+  const inicioDoPortal = (e: React.MouseEvent) => {
+    const portal = portalSGE();
+    if (!portal) return;
+    e.preventDefault();
+    portal.inicio();
+  };
+  // só existe no portal: sair vale para todos os sistemas (este não tem login próprio)
+  const botaoSair = noPortal && (
+    <button
+      type="button"
+      onClick={() => portalSGE()?.sair()}
+      title="Sair do portal"
+      aria-label="Sair"
+      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.05] text-nav-texto transition-colors hover:bg-white/[0.1]"
+    >
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10" />
+      </svg>
+    </button>
+  );
 
   const logo = (tam: string) => (
     <span className={cx("flex shrink-0 items-center justify-center rounded-md bg-white p-1 shadow-sm ring-1 ring-black/5", tam)}>
@@ -49,7 +75,7 @@ export function BarraSuperior() {
     <>
       {/* computador */}
       <header className="sticky top-0 z-[1000] hidden h-[62px] items-center gap-3 border-b border-nav-borda bg-nav px-5 text-nav-texto shadow-[0_1px_0_rgba(255,255,255,0.04),0_6px_16px_-8px_rgba(0,0,0,0.5)] md:flex">
-        <Link href="/" className="flex shrink-0 items-center gap-3 whitespace-nowrap hover:no-underline">
+        <Link href="/" onClick={inicioDoPortal} className="flex shrink-0 items-center gap-3 whitespace-nowrap hover:no-underline">
           {logo("h-9 w-9")}
           <span className="leading-tight">
             <span className="block text-[15px] font-semibold tracking-tight text-white">
@@ -91,11 +117,18 @@ export function BarraSuperior() {
           <kbd className="hidden rounded-md border border-white/10 bg-white/[0.06] px-1.5 text-[11px] min-[1400px]:inline">Ctrl K</kbd>
         </button>
         {botaoTema}
+        {botaoSair}
       </header>
 
       {/* celular */}
       <header className="sticky top-0 z-[1000] flex h-14 items-center gap-2.5 border-b border-nav-borda bg-nav px-3.5 text-nav-texto md:hidden">
-        {logo("h-[34px] w-[34px]")}
+        {noPortal ? (
+          <button type="button" onClick={inicioDoPortal} title="Início do portal" aria-label="Início do portal" className="shrink-0">
+            {logo("h-[34px] w-[34px]")}
+          </button>
+        ) : (
+          logo("h-[34px] w-[34px]")
+        )}
         <div className="min-w-0 flex-1 leading-tight">
           <p className="text-sm font-semibold">
             {MARCA.sigla} · {MARCA.area}
@@ -104,6 +137,7 @@ export function BarraSuperior() {
         </div>
         <IndicadorVivo curto />
         {botaoTema}
+        {botaoSair}
       </header>
       <nav aria-label="Telas" className="fixed inset-x-0 bottom-0 z-[1000] flex h-16 border-t border-borda bg-superficie pb-[env(safe-area-inset-bottom)] md:hidden">
         {MENU.map((m) => {
