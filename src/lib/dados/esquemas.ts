@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ParadaAnalise } from "../dominio/analise";
+import type { Boletim, EventoIndisp, TrechoMotor, VagaBoletim, VagaDia } from "../dominio/medicao";
 import { semRpm } from "../dominio/historico";
 import type { Cerca, Evento, Historico, Retrato } from "../tipos";
 
@@ -63,3 +64,21 @@ const paradaAnalise = z.looseObject({
   area: z.string().nullable(), motor: z.record(z.string(), z.number()), apont: z.array(z.string()),
 });
 export const validarParadasAnalise = (v: unknown): ParadaAnalise[] => validar<ParadaAnalise[]>(z.array(paradaAnalise), v ?? [], "Paradas da análise");
+
+// medição (tabelas medicao_*): numeric do Postgres pode chegar como texto
+const horas = z.coerce.number();
+const boletimMedicao = z.looseObject({ cod: z.string(), identificacao: z.string(), inicio: z.string(), fim: z.string() });
+const vagaBoletim = z.looseObject({
+  boletim_cod: z.string(), vaga_id: z.number(), vaga: z.string(), regime: z.string().nullable(),
+  horas_regime: horas, horas_indisp: horas, df: horas,
+  ausencia_operador: horas, area_manutencao: horas, fora_planta: horas, trajeto: horas, cartao_rfid: horas, lancada: horas, motor_desligado: horas, parado_ligado: horas, outros: horas,
+});
+const eventoIndisp = z.looseObject({ boletim_cod: z.string(), vaga_id: z.number(), placa: z.string(), inicio: z.string(), fim: z.string(), tipo: z.string(), horas });
+const vagaDia = z.looseObject({ boletim_cod: z.string(), vaga_id: z.number(), dia: z.string(), placas: z.string().nullable().transform((p) => p ?? ""), horas_regime: horas, horas_indisp: horas });
+const trechoMotor = z.looseObject({ inicio: z.string(), fim: z.string(), status: z.string() });
+
+export const validarBoletins = (v: unknown): Boletim[] => validar<Boletim[]>(z.array(boletimMedicao), v ?? [], "Boletins da medição");
+export const validarVagasBoletim = (v: unknown): VagaBoletim[] => validar<VagaBoletim[]>(z.array(vagaBoletim), v ?? [], "Vagas do boletim");
+export const validarEventosIndisp = (v: unknown): EventoIndisp[] => validar<EventoIndisp[]>(z.array(eventoIndisp), v ?? [], "Indisponibilidades da vaga");
+export const validarVagaDias = (v: unknown): VagaDia[] => validar<VagaDia[]>(z.array(vagaDia), v ?? [], "DF por dia da vaga");
+export const validarTrechosMotor = (v: unknown): TrechoMotor[] => validar<TrechoMotor[]>(z.array(trechoMotor), v ?? [], "Motor secundário da vaga");
