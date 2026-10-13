@@ -8,7 +8,7 @@ import { useParadasAnalise } from "@/lib/dados/analise";
 import { lerCercas } from "@/lib/dados/leituras";
 import { useRetrato } from "@/lib/dados/use-retrato";
 import {
-  CHAVE_FORA, OUTROS, SELECAO_VAZIA, areasDaRegiao, buracosDaMascara, contornoDaUsina, diaMenos, equipDaFrota, filtrar, filtrarSelecao, lugaresDoGrafico, montarLocais, plantasDaRegiao, plantasExcluidas, pontosDoCalor,
+  CHAVE_FORA, OUTROS, SELECAO_VAZIA, areasDaRegiao, contornoDaUsina, diaMenos, equipDaFrota, filtrar, filtrarSelecao, lugaresDoGrafico, montarLocais, plantasDaRegiao, plantasExcluidas,
   porHora, porServico, resumir, semExcluidas, separarFora, ultimoDiaVelho,
   type DimensaoSelecao, type Periodo, type SelecaoCruzada,
 } from "@/lib/dominio/analise";
@@ -17,17 +17,16 @@ import { diaBR, diaLocal, fmtHoras } from "@/lib/dominio/formato";
 import { useOpcao } from "@/lib/hooks";
 import type { Cerca } from "@/lib/tipos";
 import { BarraFiltros, FILTROS_TOPO_VAZIOS, type Etiqueta, type FiltrosTopo } from "./barra-filtros";
-import { PAINEL_MASCARA, desenharCalor } from "./camada-analise";
+import { desenharCercas } from "./camada-analise";
 import { PainelFamilia } from "./familia/painel-familia";
 import { SubabasFamilia } from "./familia/subabas-familia";
 import { GraficoBarras, type ItemBarra } from "./grafico-barras";
 import { GraficoHoras } from "./grafico-horas";
-import { LegendaCalor } from "./legenda-calor";
 
 /**
  * Painel da Análise (desenhos: docs/superpowers/specs/2026-10-10-painel-analise-design.md e 2026-10-13-analise-satelite-calor-design.md):
- * abas, período e filtros numa linha; mapa de satélite (só as plantas, preto em volta) com o calor das paradas à esquerda e, à direita,
- * a Visão geral ou o painel da família de apontamento escolhida (que também filtra o calor).
+ * abas, período e filtros numa linha; mapa de satélite com as cercas nas cores do GAUSS à esquerda e, à direita,
+ * a Visão geral ou o painel da família de apontamento escolhida.
  * Clicar numa área, num lugar, num serviço, numa hora ou numa placa filtra o resto; cada gráfico aplica as escolhas dos outros e marca a sua.
  */
 export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }) {
@@ -52,7 +51,6 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   const usina = useMemo(() => contornoDaUsina(validas), [validas]);
   const areas = useMemo(() => areasDaRegiao(validas.filter((c) => c.tipo === "area"), usina), [validas, usina]);
   const plantas = useMemo(() => plantasDaRegiao(validas), [validas]);
-  const buracos = useMemo(() => buracosDaMascara(plantas), [plantas]);
   const equip = useMemo(() => equipDaFrota(retrato?.veiculos ?? []), [retrato]);
   const base = useMemo(() => montarLocais(paradas, validas.filter((c) => c.tipo === "area"), equip, usina, excluidas), [paradas, validas, equip, usina, excluidas]);
   const doFiltro = useMemo(() => filtrar(base.paradas, { hoje, periodo: Number(periodo), ...filtros, faixas: [], diasSemana: [] }), [base, hoje, periodo, filtros]);
@@ -68,7 +66,6 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   const velho = useMemo(() => ultimoDiaVelho(paradas, hoje), [paradas, hoje]);
   const novos = useMemo(() => (familia === "manutencao" ? apontNovos(doFiltro) : []), [doFiltro, familia]);
   const { dentro, fora } = useMemo(() => separarFora(resumir(recorte("local"), base.locais)), [recorte, base]);
-  const pontos = useMemo(() => pontosDoCalor(recorte("local")), [recorte]);
   const servicos = useMemo(() => porServico(recorte("servico")), [recorte]);
   const horas = useMemo(() => porHora(recorte("hora")), [recorte]);
 
@@ -92,7 +89,6 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
     if (!pronto) return;
     pronto.mapa.getContainer().classList.add("mapa-analise");
     pronto.mapa.zoomControl.remove();
-    if (!pronto.mapa.getPane(PAINEL_MASCARA)) pronto.mapa.createPane(PAINEL_MASCARA).style.zIndex = "350";
     const g = pronto.L.layerGroup().addTo(pronto.mapa);
     camada.current = g;
     const aoZoom = () => setZoom(pronto.mapa.getZoom());
@@ -110,8 +106,8 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
     pronto.mapa.fitBounds(pronto.L.polygon(usina).getBounds(), { padding: [12, 12] });
   }, [pronto, usina, plantas]);
   useEffect(() => {
-    if (pronto && camada.current) desenharCalor(pronto.L, camada.current, pronto.mapa, { plantas, buracos, areas, resumos: dentro, pontos, sel: sel.local, aoClicar: clicarArea });
-  }, [pronto, plantas, buracos, areas, dentro, pontos, sel.local, zoom, clicarArea]);
+    if (pronto && camada.current) desenharCercas(pronto.L, camada.current, pronto.mapa, { plantas, areas, resumos: dentro, sel: sel.local, aoClicar: clicarArea });
+  }, [pronto, plantas, areas, dentro, sel.local, zoom, clicarArea]);
 
   const lugares: ItemBarra[] = lugaresDoGrafico(dentro, fora, sel.local).map((r) => ({
     chave: r.local.chave,
@@ -157,7 +153,6 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
       <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,3fr)_minmax(340px,2fr)] lg:grid-rows-[minmax(0,1fr)]">
         <div className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-borda lg:h-full">
           <div ref={ref} className="absolute inset-0" />
-          <LegendaCalor />
           {(aviso || semHistorico) && (
             <div className="absolute left-1/2 top-1/2 z-[600] w-[min(380px,calc(100%-24px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-borda bg-superficie/95 p-1 shadow-xl">
               {aviso ? <Aviso tipo="erro">{aviso}</Aviso> : <Vazio titulo="O histórico ainda não foi enviado">Rode o “Enviar Historico ao Site.bat” no PC.</Vazio>}

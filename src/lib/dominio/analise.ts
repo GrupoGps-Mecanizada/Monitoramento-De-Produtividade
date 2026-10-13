@@ -474,22 +474,3 @@ export function lugaresDoGrafico(dentro: ResumoLocal[], fora: ResumoLocal | null
   const extra = escolhido && escolhido !== CHAVE_FORA && !top.some((r) => r.local.chave === escolhido) ? dentro.filter((r) => r.local.chave === escolhido) : [];
   return [...top, ...extra, ...(fora ? [fora] : [])];
 }
-
-/** Furos da máscara preta: as plantas que não estão dentro de outra maior (furo dentro de furo voltaria a ficar preto). */
-export function buracosDaMascara(plantas: { polygon: LatLng[] }[]): LatLng[][] {
-  const ps = plantas.filter((pl) => pl.polygon.length >= 3);
-  return ps
-    .filter((pl) => {
-      const [lat, lng] = centro(pl.polygon);
-      const a = areaPoligono(pl.polygon);
-      return !ps.some((q) => q !== pl && areaPoligono(q.polygon) > a && dentroDoPoligono(lat, lng, q.polygon));
-    })
-    .map((pl) => pl.polygon);
-}
-
-/** Pontos do mapa de calor: [lat, lng, peso]; peso = minutos ÷ percentil 95 das paradas, no máximo 1 (uma parada enorme não apaga as outras). */
-export function pontosDoCalor(paradas: ParadaAnalise[]): [number, number, number][] {
-  const mins = paradas.map(minutos).sort((a, b) => a - b);
-  const p95 = mins[Math.floor(0.95 * (mins.length - 1))] ?? 0;
-  return p95 <= 0 ? [] : paradas.map((p) => [p.lat, p.lng, Math.min(1, minutos(p) / p95)]);
-}

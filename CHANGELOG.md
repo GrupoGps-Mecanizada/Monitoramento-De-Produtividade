@@ -7,7 +7,7 @@
 - Em cada família: **frases automáticas** (total e comparação com o período anterior em 7 e 15 dias, placa que concentra o tempo, pico de 2 horas, lugar), **por apontamento**, **quem mais para** (placas e supervisores, com média por parada) e **tendência por dia**. Clicar numa placa vira filtro; num supervisor, preenche o filtro do topo.
 - Aviso "Último dia com dados" quando o envio do histórico parou. Apontamento novo do tablet cai em Manutenção e clima com aviso.
 - **Uma linha só** no topo: abas, período e filtros (também na Disponibilidade).
-- **Mapa de satélite** só dentro das plantas, com preto em volta, e **mapa de calor** no lugar das bolhas (azul = pouco, vermelho = muito tempo parado). Clicar numa área cercada continua filtrando o resto.
+- **Mapa de satélite normal com as cercas nas cores do GAUSS** (como na Localização; plantas tracejadas), no lugar das bolhas. Passar o mouse numa cerca mostra nome e horas paradas; clicar filtra o resto. (O mapa de calor chegou a ser feito e saiu a pedido do dono.)
 - **Mata CDP e USIPA** saem do mapa e das contas (como o Pátio da base).
 
 ## Medição oficial na Análise · 13/10/2026 (não publicado)

@@ -366,14 +366,10 @@ textarea:focus {
 
 .leaflet-container { font-family: var(--font-sans); background: #1b1f27; }
 .leaflet-tooltip.rotulo-cerca { font: 600 11px var(--font-sans); }
-/* Análise: satélite só dentro das plantas, preto em volta (igual nos dois temas), calor por baixo das áreas */
+/* Análise: satélite com as cercas nas cores do GAUSS; a área escolhida ganha contorno branco */
 .mapa-analise.leaflet-container { background: #000; }
-.mascara-analise { fill: #000; }
-.planta-contorno { stroke: rgba(255, 255, 255, 0.55); }
-.area-calor { stroke: rgba(255, 255, 255, 0.35); fill: #fff; cursor: pointer; }
+.area-cerca { cursor: pointer; }
 .area-selecionada { stroke: #fff; stroke-width: 3px; }
-.mapa-analise .leaflet-heatmap-layer { pointer-events: none; z-index: 1; }
-.mapa-analise .leaflet-overlay-pane > svg { z-index: 2; }
 .rotulo-planta { background: none; border: 0; }
 .rotulo-planta > span {
   position: absolute; transform: translate(-50%, -50%); white-space: nowrap; pointer-events: none;
