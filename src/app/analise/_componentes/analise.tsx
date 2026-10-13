@@ -1,7 +1,7 @@
 "use client";
 
 import type * as Leaflet from "leaflet";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Legenda } from "@/components/mapa/legenda";
 import { useMapa } from "@/components/mapa/use-mapa";
 import { Aviso, Vazio } from "@/components/ui";
@@ -30,7 +30,7 @@ import { GraficoHoras } from "./grafico-horas";
  * mapa de bolhas à esquerda e, à direita, a Visão geral ou o painel da família de apontamento escolhida (que também filtra as bolhas).
  * Clicar numa bolha, num lugar, num serviço, numa hora ou numa placa filtra o resto; cada gráfico aplica as escolhas dos outros e marca a sua.
  */
-export function Analise({ periodo }: { periodo: Periodo }) {
+export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }) {
   const { retrato } = useRetrato();
   const { paradas, carregando, erro } = useParadasAnalise();
   const { ref, pronto } = useMapa(14, false);
@@ -144,6 +144,7 @@ export function Analise({ periodo }: { periodo: Periodo }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2 lg:overflow-hidden">
       <BarraFiltros
+        topo={topo}
         filtros={filtros}
         mudarFiltros={(p) => setFiltros((f) => ({ ...f, ...p }))}
         equip={[...equip.values()]}

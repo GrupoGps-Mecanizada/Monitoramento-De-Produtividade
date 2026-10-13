@@ -7,6 +7,11 @@ test("Análise › Disponibilidade: ranking pela pior DF e detalhe da vaga com o
   await page.getByRole("tab", { name: "Disponibilidade" }).click();
   await expect(page.getByText("Oficial", { exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Ciclo da medição" })).toContainText("GPS 2026-10");
+  if (test.info().project.name !== "celular") {
+    const abas = (await page.getByRole("tablist", { name: "Análise" }).boundingBox())!;
+    const ciclo = (await page.getByRole("combobox", { name: "Ciclo da medição" }).boundingBox())!;
+    expect(Math.abs(ciclo.y + ciclo.height / 2 - (abas.y + abas.height / 2))).toBeLessThan(8);
+  }
   // placar: (144 − 7,92) ÷ 144 = 94,50%; 7,92 h = 7h55; pior vaga = AP 01
   const placar = page.getByRole("region", { name: "Placar da disponibilidade" });
   await expect(placar).toContainText("94,50%");
@@ -34,6 +39,7 @@ test("Análise › Disponibilidade: avisa quando o SQL não foi rodado", async (
   await page.getByRole("tab", { name: "Disponibilidade" }).click();
   // o Next também põe um role="alert" vazio na página (anúncio de rota): filtra pelo texto
   await expect(page.getByRole("alert").filter({ hasText: "rode supabase/medicao.sql" })).toBeVisible();
+  await expect(page.getByRole("tablist", { name: "Análise" })).toBeVisible();
 });
 
 test("Análise › Disponibilidade: nenhum boletim baixado ainda", async ({ page }) => {
@@ -41,4 +47,5 @@ test("Análise › Disponibilidade: nenhum boletim baixado ainda", async ({ page
   await page.goto("/analise/");
   await page.getByRole("tab", { name: "Disponibilidade" }).click();
   await expect(page.getByText("Nenhum boletim baixado ainda")).toBeVisible();
+  await expect(page.getByRole("tablist", { name: "Análise" })).toBeVisible();
 });

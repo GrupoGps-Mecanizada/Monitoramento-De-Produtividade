@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { Aviso, Selecao, Selo, Vazio } from "@/components/ui";
 import { useBoletins, useDetalheVaga, useVagasBoletim } from "@/lib/dados/medicao";
 import { dfDaFrota, ordenarVagas, rotuloBoletim } from "@/lib/dominio/medicao";
@@ -16,7 +16,7 @@ const mensagem = (erro: string) => (SEM_TABELA.test(erro) ? "As tabelas da medi�
  * Aba Disponibilidade (desenho: docs/superpowers/specs/2026-10-10-medicao-oficial-design.md): os números OFICIAIS
  * dos boletins de medição GPS já fechados. Vagas da pior DF para a melhor; clicar abre o detalhe.
  */
-export function Disponibilidade() {
+export function Disponibilidade({ topo }: { topo: ReactNode }) {
   const boletins = useBoletins();
   const [escolhido, setEscolhido] = useState<string | null>(null);
   const [vagaSel, setVagaSel] = useState<number | null>(null);
@@ -28,39 +28,59 @@ export function Disponibilidade() {
   const detalhe = useDetalheVaga(vaga ? boletim : null, vaga?.vaga_id ?? null);
   const horasIndisp = ordenadas.reduce((s, v) => s + v.horas_indisp, 0);
 
+  // abas da Análise + filtros desta aba numa linha só (as abas aparecem também carregando, com erro ou sem boletim)
+  const linha = (extra?: ReactNode) => (
+    <div className="flex flex-wrap items-center gap-2">
+      {topo}
+      {extra}
+    </div>
+  );
   if (boletins.erro) {
     return (
-      <div className="p-2">
+      <div className="flex flex-col gap-2 p-2">
+        {linha()}
         <Aviso tipo="erro">{mensagem(boletins.erro)}</Aviso>
       </div>
     );
   }
-  if (boletins.carregando) return <p className="p-4 text-sm text-suave">Carregando os boletins…</p>;
+  if (boletins.carregando) {
+    return (
+      <div className="flex flex-col gap-2 p-2">
+        {linha()}
+        <p className="text-sm text-suave">Carregando os boletins…</p>
+      </div>
+    );
+  }
   if (!boletim) {
     return (
-      <Vazio titulo="Nenhum boletim baixado ainda">O coletor baixa o boletim quando ele fecha no GAUSS (uma vez por dia, a partir das 07:00).</Vazio>
+      <div className="flex flex-col gap-2 p-2">
+        {linha()}
+        <Vazio titulo="Nenhum boletim baixado ainda">O coletor baixa o boletim quando ele fecha no GAUSS (uma vez por dia, a partir das 07:00).</Vazio>
+      </div>
     );
   }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2 lg:overflow-hidden">
-      <div className="flex flex-wrap items-center gap-2">
-        <Selecao
-          aria-label="Ciclo da medição"
-          value={boletim.cod}
-          onChange={(e) => {
-            setEscolhido(e.target.value);
-            setVagaSel(null);
-          }}
-        >
-          {lista.map((b) => (
-            <option key={b.cod} value={b.cod}>
-              {rotuloBoletim(b)}
-            </option>
-          ))}
-        </Selecao>
-        <Selo tom="ok">Oficial</Selo>
-      </div>
+      {linha(
+        <>
+          <Selecao
+            aria-label="Ciclo da medição"
+            value={boletim.cod}
+            onChange={(e) => {
+              setEscolhido(e.target.value);
+              setVagaSel(null);
+            }}
+          >
+            {lista.map((b) => (
+              <option key={b.cod} value={b.cod}>
+                {rotuloBoletim(b)}
+              </option>
+            ))}
+          </Selecao>
+          <Selo tom="ok">Oficial</Selo>
+        </>,
+      )}
       {vagas.erro ? (
         <Aviso tipo="erro">{mensagem(vagas.erro)}</Aviso>
       ) : (

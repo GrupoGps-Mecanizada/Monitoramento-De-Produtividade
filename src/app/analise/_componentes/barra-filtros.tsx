@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Selecao } from "@/components/ui";
 import type { DimensaoSelecao, EquipAnalise } from "@/lib/dominio/analise";
 import { ORDEM_TIPOS, TIPOS_EQUIP } from "@/lib/dominio/equipamentos";
@@ -19,8 +20,9 @@ export interface Etiqueta {
 }
 const distintos = (xs: (string | null)[]) => [...new Set(xs.filter((x): x is string => !!x))].sort((a, b) => a.localeCompare(b));
 
-/** Uma linha: tipo, supervisor e regime (o período fica nas abas); embaixo, as etiquetas do que foi clicado ("Servitec ×") e "Limpar tudo". */
+/** Uma linha: abas e período (vêm de fora em `topo`), tipo, supervisor e regime; embaixo, as etiquetas do que foi clicado ("Servitec ×") e "Limpar tudo". */
 export function BarraFiltros({
+  topo,
   filtros,
   mudarFiltros,
   equip,
@@ -28,6 +30,7 @@ export function BarraFiltros({
   tirar,
   limpar,
 }: {
+  topo: ReactNode;
   filtros: FiltrosTopo;
   mudarFiltros: (p: Partial<FiltrosTopo>) => void;
   equip: EquipAnalise[];
@@ -38,6 +41,7 @@ export function BarraFiltros({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
+        {topo}
         <Selecao aria-label="Tipo" value={filtros.tipo ?? ""} onChange={(e) => mudarFiltros({ tipo: (e.target.value || null) as TipoEquip | null })} className="w-auto min-w-[160px]">
           <option value="">Todos os tipos</option>
           {ORDEM_TIPOS.map((t) => (

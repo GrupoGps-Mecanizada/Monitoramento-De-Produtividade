@@ -19,6 +19,14 @@ test("Análise: painel com mapa e gráficos que se filtram, período no topo ao 
   await expect(periodo).toHaveCount(0);
   await page.getByRole("tablist", { name: "Análise" }).getByRole("tab", { name: "Paradas" }).click();
   await expect(periodo).toBeVisible();
+  // uma linha só: abas, período e filtros (no computador; no celular a linha quebra)
+  if (test.info().project.name !== "celular") {
+    const abas = (await page.getByRole("tablist", { name: "Análise" }).boundingBox())!;
+    for (const nome of ["Tipo", "Supervisor", "Regime"]) {
+      const b = (await page.getByLabel(nome, { exact: true }).boundingBox())!;
+      expect(Math.abs(b.y + b.height / 2 - (abas.y + abas.height / 2))).toBeLessThan(8);
+    }
+  }
   // lugares: PATIO (2 paradas da frota) em primeiro; "Longe da região" no fim
   await expect(lugares.getByRole("button").first()).toHaveAccessibleName(/^PATIO, 2h00/);
   await expect(page.getByText("PÁTIO DO TRANSPORTE RODOVIÁRIO", { exact: true })).toHaveCount(0);
