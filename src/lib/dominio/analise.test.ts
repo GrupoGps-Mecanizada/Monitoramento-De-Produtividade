@@ -353,6 +353,9 @@ describe("Mata CDP e USIPA fora da análise", () => {
       [quad(-19.4, -42.6)],
     );
     expect(paradas.map((x) => x.local)).toEqual(["ALTO FORNO 3"]);
+  });  it("o polígono só tira parada sem cerca: o estacionamento da Mata, mesmo dentro da planta, fica", () => {
+    const { paradas } = montarLocais([p({ area: "ESTACIONAMENTO RESTAURANTE DA MATA", lat: -19.399, lng: -42.599 })], AREAS, equipDaFrota(FROTA), AREAS[0].polygon, [quad(-19.4, -42.6)]);
+    expect(paradas.map((x) => x.local)).toEqual(["ESTACIONAMENTO RESTAURANTE DA MATA"]);
   });
 });
 

@@ -145,7 +145,7 @@ export const ehPatioDaBase = (area: string | null) => !!area && /P[ÁA]TIO DO TR
 export const ehExcluidaDaAnalise = (nome: string | null) => !!nome && /^(PLANTA )?(MATA CDP|USIPA)$/i.test(nome.trim());
 /** Cercas sem as excluídas da análise. */
 export const semExcluidas = <C extends { name: string }>(cercas: C[]): C[] => cercas.filter((c) => !ehExcluidaDaAnalise(c.name));
-/** Polígonos das plantas excluídas: a parada que cai dentro delas sai mesmo sem a cerca anotada. */
+/** Polígonos das plantas excluídas: a parada SEM cerca anotada que cai dentro delas também sai (com cerca, vale o nome dela). */
 export const plantasExcluidas = (cercas: { name: string; tipo: string; polygon: LatLng[] }[]): LatLng[][] =>
   cercas.filter((c) => c.tipo === "planta" && c.polygon.length >= 3 && ehExcluidaDaAnalise(c.name)).map((c) => c.polygon);
 
@@ -207,7 +207,7 @@ export function montarLocais(
   const centroDe = new Map(areas.filter((a) => a.polygon.length >= 3).map((a) => [a.name, centro(a.polygon)] as const));
   const comEquip: ParadaNoLocal[] = paradas.flatMap((p) => {
     const e = equip.get(p.veiculo_id);
-    return e && !ehPatioDaBase(p.area) && !ehExcluidaDaAnalise(p.area) && !excluidas.some((pl) => dentroDoPoligono(p.lat, p.lng, pl)) ? [{ ...p, equip: e, local: p.area ?? "" }] : [];
+    return e && !ehPatioDaBase(p.area) && !ehExcluidaDaAnalise(p.area) && !(p.area == null && excluidas.some((pl) => dentroDoPoligono(p.lat, p.lng, pl))) ? [{ ...p, equip: e, local: p.area ?? "" }] : [];
   });
 
   // fora das cercas: grade de ~110 m, cada parada comparada só com os grupos das 9 casas vizinhas
