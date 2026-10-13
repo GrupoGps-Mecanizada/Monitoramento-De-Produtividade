@@ -3,6 +3,9 @@
 ## Análise mais limpa · 13/10/2026 (não publicado)
 - **Saiu o placar** da aba Paradas (Produtivo, % Produtivo, Parado, Serviços), a pedido do dono.
 - **O período (7, 15, 30 dias) subiu para o topo**, ao lado de "Paradas | Disponibilidade". Só aparece em Paradas: a Disponibilidade segue o período do boletim oficial.
+- **Subabas por família de apontamento** ao lado do mapa: Visão geral (o painel de sempre), Aguardando, Pausas e pessoas, Logística, Preparação e bloqueio, Manutenção e clima e Sem apontamento. A família escolhida filtra também o mapa.
+- Em cada família: **frases automáticas** (total e comparação com o período anterior em 7 e 15 dias, placa que concentra o tempo, pico de 2 horas, lugar), **por apontamento**, **quem mais para** (placas e supervisores, com média por parada) e **tendência por dia**. Clicar numa placa vira filtro; num supervisor, preenche o filtro do topo.
+- Aviso "Último dia com dados" quando o envio do histórico parou. Apontamento novo do tablet cai em Manutenção e clima com aviso.
 
 ## Medição oficial na Análise · 13/10/2026 (não publicado)
 - **Aba Disponibilidade** na Análise (a aba Paradas continua sendo a padrão): os números **oficiais** dos boletins de medição GPS já fechados. Escolha do ciclo, selo Oficial, placar (DF da frota, horas indisponíveis, pior vaga), vagas da pior DF para a melhor com o motivo que mais pesou e, ao clicar, o detalhe: DF por dia, horas por motivo, motor secundário ligado (timeline de motor), placas, conferência eventos × boletim e cada indisponibilidade (placa, início, fim, motivo).
