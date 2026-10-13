@@ -115,15 +115,19 @@ export function porDia(paradas: ParadaNoLocal[], hoje: string, periodo: number):
 const CONCENTRACAO = 0.2;
 const somaMin = (ps: ParadaNoLocal[]) => ps.reduce((s, p) => s + minutos(p), 0);
 
-/** Conclusões curtas da família (só as que têm dado): total (e comparação), concentração numa placa, pico de 2 horas e lugar. */
-export function frases({ rotulo, atual, anterior, dias, locais }: { rotulo: string; atual: ParadaNoLocal[]; anterior: ParadaNoLocal[] | null; dias: number; locais: Map<string, Local> }): string[] {
+/**
+ * Conclusões curtas da família (só as que têm dado): total (e comparação), concentração numa placa, pico de 2 horas e lugar.
+ * A comparação é pela média por dia e deixa de fora o dia de hoje (incompleto): `dias − 1` dias completos contra os `dias` do período anterior.
+ */
+export function frases({ rotulo, atual, anterior, dias, hoje, locais }: { rotulo: string; atual: ParadaNoLocal[]; anterior: ParadaNoLocal[] | null; dias: number; hoje: string; locais: Map<string, Local> }): string[] {
   if (!atual.length) return [];
   const total = somaMin(atual);
   let t = `${rotulo} somou ${fmtHoras(total)} em ${atual.length} ${atual.length === 1 ? "parada" : "paradas"}`;
-  const antes = anterior ? somaMin(anterior) : 0;
-  if (antes > 0) {
-    const pct = Math.round(((total - antes) / antes) * 100);
-    t += pct === 0 ? `, igual aos ${dias} dias anteriores` : `, ${Math.abs(pct)}% a ${pct > 0 ? "mais" : "menos"} que nos ${dias} dias anteriores`;
+  const antesPorDia = anterior ? somaMin(anterior) / dias : 0;
+  if (antesPorDia > 0 && dias > 1) {
+    const agoraPorDia = somaMin(atual.filter((p) => p.dia < hoje)) / (dias - 1);
+    const pct = Math.round(((agoraPorDia - antesPorDia) / antesPorDia) * 100);
+    t += pct === 0 ? `, igual por dia aos ${dias} dias anteriores` : `, ${Math.abs(pct)}% a ${pct > 0 ? "mais" : "menos"} por dia que nos ${dias} dias anteriores`;
   }
   const out = [`${t}.`];
   if (total <= 0) return out;

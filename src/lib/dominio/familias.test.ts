@@ -83,7 +83,7 @@ describe("famílias de apontamento", () => {
 });
 
 describe("frases automáticas", () => {
-  const base = { rotulo: "Aguardando", atual: aguardando, anterior: null, dias: 30, locais };
+  const base = { rotulo: "Aguardando", atual: aguardando, anterior: null, dias: 30, hoje: "2026-10-08", locais };
   it("sem período anterior (30 dias): total, concentração, pico e lugar", () => {
     expect(frases(base)).toEqual([
       "Aguardando somou 3h30 em 3 paradas.",
@@ -92,12 +92,19 @@ describe("frases automáticas", () => {
       "Onde mais acontece: ALTO FORNO 3, 3h30.",
     ]);
   });
-  it("com período anterior: % a mais, a menos; anterior zerado não compara", () => {
-    const ant = (min: number) => paradasDaFamilia(montar([p({ apont: ["Aguardando Área"], ini: 0, fim: min * 60 })]).paradas, "aguardando");
-    expect(frases({ ...base, dias: 7, anterior: ant(140) })[0]).toBe("Aguardando somou 3h30 em 3 paradas, 50% a mais que nos 7 dias anteriores.");
-    expect(frases({ ...base, dias: 7, anterior: ant(420) })[0]).toBe("Aguardando somou 3h30 em 3 paradas, 50% a menos que nos 7 dias anteriores.");
-    expect(frases({ ...base, dias: 7, anterior: ant(210) })[0]).toBe("Aguardando somou 3h30 em 3 paradas, igual aos 7 dias anteriores.");
-    expect(frases({ ...base, dias: 7, anterior: [] })[0]).toBe("Aguardando somou 3h30 em 3 paradas.");
+  it("com período anterior: compara a média por dia, sem o dia de hoje (incompleto); anterior zerado não compara", () => {
+    // atual: 210 min em 01/10 e 03/10; hoje = 08/10 → 6 dias completos = 35 min/dia
+    const ant = (min: number) => paradasDaFamilia(montar([p({ dia: "2026-09-28", apont: ["Aguardando Área"], ini: 0, fim: min * 60 })]).paradas, "aguardando");
+    const sete = { ...base, dias: 7, hoje: "2026-10-08" };
+    expect(frases({ ...sete, anterior: ant(196) })[0]).toBe("Aguardando somou 3h30 em 3 paradas, 25% a mais por dia que nos 7 dias anteriores.");
+    expect(frases({ ...sete, anterior: ant(490) })[0]).toBe("Aguardando somou 3h30 em 3 paradas, 50% a menos por dia que nos 7 dias anteriores.");
+    expect(frases({ ...sete, anterior: ant(245) })[0]).toBe("Aguardando somou 3h30 em 3 paradas, igual por dia aos 7 dias anteriores.");
+    expect(frases({ ...sete, anterior: [] })[0]).toBe("Aguardando somou 3h30 em 3 paradas.");
+  });
+  it("as paradas de hoje entram no total, mas não na comparação", () => {
+    const comHoje = [...aguardando, ...paradasDaFamilia(montar([p({ dia: "2026-10-08", apont: ["Aguardando Área"], ini: 0, fim: 600 * 60 })]).paradas, "aguardando")];
+    const ant = paradasDaFamilia(montar([p({ dia: "2026-09-28", apont: ["Aguardando Área"], ini: 0, fim: 245 * 60 })]).paradas, "aguardando");
+    expect(frases({ ...base, atual: comHoje, dias: 7, hoje: "2026-10-08", anterior: ant })[0]).toBe("Aguardando somou 13h30 em 4 paradas, igual por dia aos 7 dias anteriores.");
   });
   it("concentração de até 20% não vira frase; 1 parada no singular", () => {
     const cinco = paradasDaFamilia(montar(["P1", "P2", "P3", "P4", "P5"].map((placa) => p({ placa, apont: ["Aguardando Área"] }))).paradas, "aguardando");

@@ -37,7 +37,7 @@ export function PainelFamilia({
   vazio: string;
 }) {
   const todas = recorte();
-  const textos = frases({ rotulo: ROTULO_FAMILIA[familia], atual: todas, anterior, dias, locais });
+  const textos = frases({ rotulo: ROTULO_FAMILIA[familia], atual: todas, anterior, dias, hoje, locais });
   const apont: ItemBarra[] = porApontamento(recorte("servico"), familia).map((s) => ({
     chave: s.nome,
     rotulo: s.nome,
