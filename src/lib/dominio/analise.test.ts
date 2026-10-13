@@ -4,6 +4,7 @@ import {
   areasDaRegiao, contornoDaUsina, plantasDaRegiao, separarFora, totais,
   categoriaPeloNome, diaDaSemana, diaMenos, equipDaFrota, faixaDe, filtrar, montarLocais, ordemDeDesenho, ranking, resumir, temRegra, valoresDaParada,
   CHAVE_FORA, OUTROS, SELECAO_VAZIA, filtrarSelecao, horaDe, lugaresDoGrafico, placar, porHora, porServico, raioDaBolha, servicosPrincipais, ultimoDiaVelho,
+  buracosDaMascara, ehExcluidaDaAnalise, plantasExcluidas, pontosDoCalor, semExcluidas,
   type FiltroAnalise, type ParadaAnalise, type ResumoLocal,
 } from "./analise";
 
@@ -326,5 +327,45 @@ describe("histórico parado", () => {
     expect(ultimoDiaVelho([{ dia: "2026-10-12" }], "2026-10-13")).toBeNull();
     expect(ultimoDiaVelho([{ dia: "2026-10-13" }], "2026-10-13")).toBeNull();
     expect(ultimoDiaVelho([], "2026-10-13")).toBeNull();
+  });
+});
+
+describe("Mata CDP e USIPA fora da análise", () => {
+  it("planta ou cerca com o nome; o estacionamento da Mata e o resto ficam", () => {
+    expect(["PLANTA MATA CDP", "MATA CDP", "PLANTA USIPA", " usipa ", "ESTACIONAMENTO RESTAURANTE DA MATA", "ALTO FORNO 3"].map(ehExcluidaDaAnalise)).toEqual([true, true, true, true, false, false]);
+    expect(ehExcluidaDaAnalise(null)).toBe(false);
+  });
+  it("tira as cercas excluídas e separa os polígonos das plantas excluídas", () => {
+    const cercas = [
+      { name: "PLANTA MATA CDP", tipo: "planta", polygon: quad(-19.4, -42.6) },
+      { name: "MATA CDP", tipo: "area", polygon: quad(-19.4, -42.6) },
+      { name: "ALTO FORNO 3", tipo: "area", polygon: quad(-19.48, -42.53) },
+    ];
+    expect(semExcluidas(cercas).map((c) => c.name)).toEqual(["ALTO FORNO 3"]);
+    expect(plantasExcluidas(cercas)).toEqual([quad(-19.4, -42.6)]);
+  });
+  it("a parada sai pela cerca anotada e pelo ponto dentro da planta excluída", () => {
+    const { paradas } = montarLocais(
+      [p({}), p({ area: "MATA CDP" }), p({ area: null, lat: -19.399, lng: -42.599 })],
+      AREAS,
+      equipDaFrota(FROTA),
+      AREAS[0].polygon,
+      [quad(-19.4, -42.6)],
+    );
+    expect(paradas.map((x) => x.local)).toEqual(["ALTO FORNO 3"]);
+  });
+});
+
+describe("mapa de satélite e calor", () => {
+  it("furos da máscara: só as plantas que não estão dentro de outra maior", () => {
+    const grande: [number, number][] = [[-19.5, -42.6], [-19.5, -42.4], [-19.3, -42.4], [-19.3, -42.6]];
+    const dentro = quad(-19.45, -42.5);
+    const fora = quad(-19.0, -42.0);
+    expect(buracosDaMascara([{ polygon: dentro }, { polygon: grande }, { polygon: fora }])).toEqual([grande, fora]);
+  });
+  it("pontos do calor: peso = minutos ÷ percentil 95, no máximo 1; sem paradas, nada", () => {
+    const ps = [p({ ini: 0, fim: 60 * 60 }), p({ ini: 0, fim: 30 * 60, lat: -19.47 }), p({ ini: 0, fim: 600 * 60, lat: -19.46 })];
+    expect(pontosDoCalor(ps)).toEqual([[-19.479, -42.529, 1], [-19.47, -42.529, 0.5], [-19.46, -42.529, 1]]);
+    expect(pontosDoCalor([])).toEqual([]);
   });
 });

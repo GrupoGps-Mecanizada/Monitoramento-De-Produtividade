@@ -1,7 +1,7 @@
 // Mapa de análise (desenho: docs/superpowers/specs/2026-10-08-mapa-de-analise-design.md): as paradas dos últimos 30 dias
 // (tabela analise_paradas, só fatos) viram números por local com as regras de produtividade.ts. Tudo puro; a tela só desenha.
 import type { LatLng, TipoEquip, Veiculo } from "../tipos";
-import { areaPoligono, distanciaM } from "./geo";
+import { areaPoligono, dentroDoPoligono, distanciaM } from "./geo";
 import { ehBase, statusProdutivo } from "./produtividade";
 
 /** Uma linha de analise_paradas. */
@@ -141,6 +141,14 @@ export function plantasDaRegiao<C extends { name: string; tipo: string; polygon:
 /** O Pátio do Transporte é a base: sai da análise (decisão do dono, 08/10/2026). A Baia de Resíduos, dentro dele, fica. */
 export const ehPatioDaBase = (area: string | null) => !!area && /P[ÁA]TIO DO TRANSPORTE/i.test(area);
 
+/** Mata CDP e USIPA saem da análise (decisão do dono, 13/10/2026): a planta e a cerca de mesmo nome. "ESTACIONAMENTO RESTAURANTE DA MATA" fica. */
+export const ehExcluidaDaAnalise = (nome: string | null) => !!nome && /^(PLANTA )?(MATA CDP|USIPA)$/i.test(nome.trim());
+/** Cercas sem as excluídas da análise. */
+export const semExcluidas = <C extends { name: string }>(cercas: C[]): C[] => cercas.filter((c) => !ehExcluidaDaAnalise(c.name));
+/** Polígonos das plantas excluídas: a parada que cai dentro delas sai mesmo sem a cerca anotada. */
+export const plantasExcluidas = (cercas: { name: string; tipo: string; polygon: LatLng[] }[]): LatLng[][] =>
+  cercas.filter((c) => c.tipo === "planta" && c.polygon.length >= 3 && ehExcluidaDaAnalise(c.name)).map((c) => c.polygon);
+
 /** Cercas que o mapa desenha: as da região (sem contorno da usina: todas), nunca o Pátio da base. */
 export function areasDaRegiao<A extends { name: string; polygon: LatLng[] }>(areas: A[], usina: LatLng[] | null): A[] {
   return areas.filter((a) => a.polygon.length >= 3 && !ehPatioDaBase(a.name) && naRegiaoDe(usina, ...centro(a.polygon)));
@@ -194,11 +202,12 @@ export function montarLocais(
   areas: { name: string; polygon: LatLng[] }[],
   equip: Map<string, EquipAnalise>,
   usina: LatLng[] | null = null,
+  excluidas: LatLng[][] = [],
 ): { locais: Map<string, Local>; paradas: ParadaNoLocal[] } {
   const centroDe = new Map(areas.filter((a) => a.polygon.length >= 3).map((a) => [a.name, centro(a.polygon)] as const));
   const comEquip: ParadaNoLocal[] = paradas.flatMap((p) => {
     const e = equip.get(p.veiculo_id);
-    return e && !ehPatioDaBase(p.area) ? [{ ...p, equip: e, local: p.area ?? "" }] : [];
+    return e && !ehPatioDaBase(p.area) && !ehExcluidaDaAnalise(p.area) && !excluidas.some((pl) => dentroDoPoligono(p.lat, p.lng, pl)) ? [{ ...p, equip: e, local: p.area ?? "" }] : [];
   });
 
   // fora das cercas: grade de ~110 m, cada parada comparada só com os grupos das 9 casas vizinhas
@@ -464,4 +473,23 @@ export function lugaresDoGrafico(dentro: ResumoLocal[], fora: ResumoLocal | null
   const top = ranking(dentro, "parado", n);
   const extra = escolhido && escolhido !== CHAVE_FORA && !top.some((r) => r.local.chave === escolhido) ? dentro.filter((r) => r.local.chave === escolhido) : [];
   return [...top, ...extra, ...(fora ? [fora] : [])];
+}
+
+/** Furos da máscara preta: as plantas que não estão dentro de outra maior (furo dentro de furo voltaria a ficar preto). */
+export function buracosDaMascara(plantas: { polygon: LatLng[] }[]): LatLng[][] {
+  const ps = plantas.filter((pl) => pl.polygon.length >= 3);
+  return ps
+    .filter((pl) => {
+      const [lat, lng] = centro(pl.polygon);
+      const a = areaPoligono(pl.polygon);
+      return !ps.some((q) => q !== pl && areaPoligono(q.polygon) > a && dentroDoPoligono(lat, lng, q.polygon));
+    })
+    .map((pl) => pl.polygon);
+}
+
+/** Pontos do mapa de calor: [lat, lng, peso]; peso = minutos ÷ percentil 95 das paradas, no máximo 1 (uma parada enorme não apaga as outras). */
+export function pontosDoCalor(paradas: ParadaAnalise[]): [number, number, number][] {
+  const mins = paradas.map(minutos).sort((a, b) => a - b);
+  const p95 = mins[Math.floor(0.95 * (mins.length - 1))] ?? 0;
+  return p95 <= 0 ? [] : paradas.map((p) => [p.lat, p.lng, Math.min(1, minutos(p) / p95)]);
 }
