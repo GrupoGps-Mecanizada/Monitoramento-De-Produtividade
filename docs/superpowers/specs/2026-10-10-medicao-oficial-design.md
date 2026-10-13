@@ -129,3 +129,10 @@ Conversão de horas: aceita "h:mm", "h:mm:ss" e número com vírgula ou ponto; v
 
 ## Fora desta fase
 Nossa conta (período em aberto, Agora/Hoje/Ontem/Semana/Customizado, selo Parcial, conferência automática com o oficial), SERVITEC, login.
+
+## Ajustes na construção (13/10/2026)
+Vistos nos dados reais e aplicados no plano `docs/superpowers/plans/2026-10-13-medicao-oficial.md`:
+- Horas por motivo = soma dos eventos da vaga (o campo de área de manutenção do GAUSS às vezes passa do total: AP 01 tem 47h57 nele, contra 23h55 de total). Tipo desconhecido vai para a coluna nova `outros`. `horas_regime`, `horas_indisp` e `df` seguem os campos oficiais.
+- `medicao_boletim.completo`: o boletim entra primeiro (chave estrangeira) e só vira completo depois de gravado por inteiro.
+- `get_data`: tempo limite de 180 s e 1 tentativa (o boletim tem ~16 MB).
+- Falha na lista do dia: tenta de novo só no dia seguinte.

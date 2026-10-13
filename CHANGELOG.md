@@ -1,5 +1,11 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Medição oficial na Análise · 13/10/2026 (não publicado)
+- **Aba Disponibilidade** na Análise (a aba Paradas continua sendo a padrão): os números **oficiais** dos boletins de medição GPS já fechados. Escolha do ciclo, selo Oficial, placar (DF da frota, horas indisponíveis, pior vaga), vagas da pior DF para a melhor com o motivo que mais pesou e, ao clicar, o detalhe: DF por dia, horas por motivo, motor secundário ligado (timeline de motor), placas, conferência eventos × boletim e cada indisponibilidade (placa, início, fim, motivo).
+- **Coletor:** baixa cada boletim novo uma única vez (1 lista por dia, 1 boletim por ciclo), com uma trava que só deixa passar as 2 chamadas de leitura do Dashboard Medição.
+- **Banco:** `supabase/medicao.sql` (4 tabelas `medicao_*`, leitura pública, grava só o coletor). Precisa rodar antes de publicar.
+- Período em aberto, "agora" e o selo Parcial ficam para a Fase 2.
+
 ## Análise em painel · 10/10/2026 (não publicado)
 - **A tela Análise virou um painel de apresentação** (computador/TV): filtros e placar em cima (produtivo, % produtivo, parado, serviços), mapa de bolhas à esquerda e 3 gráficos à direita (Lugares, Por serviço, Hora do dia), todos com o número exato escrito.
 - **Um filtra o outro:** clicar numa bolha, num lugar, num serviço ou numa hora vira uma etiqueta no topo e filtra o resto; o × tira só aquela e "Limpar tudo" volta.
