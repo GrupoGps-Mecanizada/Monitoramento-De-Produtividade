@@ -7,6 +7,8 @@
 //   4. a cada 10 min, a timeline de motor por vaga e os apontamentos do tablet (motor-vaga.ts)
 //   5. tempo real (tempo-real.ts): posições da frota a cada ciclo, paradas de hoje a cada 10 min e, de madrugada,
 //      a rota completa de ontem (paradas exatas, excessos de velocidade e a rota crua no R2, se configurado)
+//   6. medição oficial (medicao.ts): 1 lista de boletins por dia (a partir das 07:00) e no máximo 1 boletim novo
+//      por ciclo, só com as 2 chamadas de leitura do Dashboard Medição
 //
 // Cuidado com a carga no GAUSS (ver gauss.ts): uma requisição por vez com intervalo, sessão reaproveitada
 // entre execuções (guardada no Supabase, chave privada), cadastro e cercas em cache, histórico só quando
@@ -29,6 +31,7 @@ import { GaussFleetClient, SESSAO_FILE, estatisticas } from "./gauss";
 import { HOJE_TTL_MS, baixarRota, diaFechado, mesclarPontos } from "./historico";
 import { buscarCercas, buscarPosicoes, listarVeiculos, type VeiculoCadastro } from "./location-online";
 import { coletarMotor } from "./motor-vaga";
+import { coletarMedicao, depsReais } from "./medicao";
 import { db, kvGet, kvSet, ok } from "./supabase";
 import { gravarPosicoes, paradasAoVivo, rotinaNoturna } from "./tempo-real";
 
@@ -203,6 +206,13 @@ async function main() {
       if (r) console.log(`✅ madrugada: ${r}`);
     } catch (e) {
       console.warn(`⚠ madrugada: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    // medição oficial: falha aqui (ex.: SQL ainda não rodado) não derruba o ciclo
+    try {
+      const m = await coletarMedicao(depsReais(client), agora);
+      if (m) console.log(`✅ medição: ${m}`);
+    } catch (e) {
+      console.warn(`⚠ medição: ${e instanceof Error ? e.message : String(e)}`);
     }
     await limpezaDiaria(hoje);
   } catch (err) {

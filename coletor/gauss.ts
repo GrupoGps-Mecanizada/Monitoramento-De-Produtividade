@@ -55,19 +55,25 @@ function enfileirar<T>(fn: () => Promise<T>): Promise<T> {
   return tarefa;
 }
 
-async function fetchComBackoff(url: string, opcoes: RequestInit): Promise<Response> {
+/** Tempo limite e tentativas de uma requisição (padrão: 30 s e 3). Resposta grande (ex.: boletim da medição) pede mais tempo e 1 tentativa. */
+export interface OpcoesPost {
+  timeoutMs?: number;
+  tentativas?: number;
+}
+
+async function fetchComBackoff(url: string, opcoes: RequestInit, { timeoutMs = REQUEST_TIMEOUT_MS, tentativas = TENTATIVAS }: OpcoesPost = {}): Promise<Response> {
   for (let tentativa = 1; ; tentativa++) {
     estatisticas.requisicoes++;
     let res: Response;
     try {
-      res = await fetch(url, { ...opcoes, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+      res = await fetch(url, { ...opcoes, signal: AbortSignal.timeout(timeoutMs) });
     } catch (err) {
-      if (tentativa >= TENTATIVAS) throw registrarFalha(err instanceof Error ? err : new Error(String(err)));
+      if (tentativa >= tentativas) throw registrarFalha(err instanceof Error ? err : new Error(String(err)));
       await espera(BACKOFF_BASE_MS * 2 ** (tentativa - 1));
       continue;
     }
     if (res.status === 429 || res.status === 503) {
-      if (tentativa >= TENTATIVAS) throw registrarFalha(new Error(`HTTP ${res.status} (servidor pediu para desacelerar)`));
+      if (tentativa >= tentativas) throw registrarFalha(new Error(`HTTP ${res.status} (servidor pediu para desacelerar)`));
       const retryAfter = Number(res.headers.get("retry-after"));
       await espera(retryAfter > 0 ? retryAfter * 1000 : BACKOFF_BASE_MS * 2 ** (tentativa - 1));
       continue;
@@ -142,18 +148,18 @@ export class GaussFleetClient {
     this.#gravarSessao(true);
   }
 
-  async post<T = unknown>(path: string, campos: Campo[]): Promise<T> {
+  async post<T = unknown>(path: string, campos: Campo[], opcoes: OpcoesPost = {}): Promise<T> {
     if (!this.#cookie) await this.login();
     const body = new URLSearchParams();
     for (const [chave, valor] of campos) body.append(chave, String(valor));
 
-    let { status, texto } = await enviar(path, body, this.#cookie);
+    let { status, texto } = await enviar(path, body, this.#cookie, opcoes);
     // sessão expirada: o GAUSS responde a página de login (HTML) em vez de JSON. Reloga UMA vez e repete;
     // se continuar, é erro de verdade.
     let json = tentarJSON(texto);
     if ((json === undefined && status < 400) || status === 401 || status === 403) {
       await this.login({ forcar: true });
-      ({ status, texto } = await enviar(path, body, this.#cookie));
+      ({ status, texto } = await enviar(path, body, this.#cookie, opcoes));
       json = tentarJSON(texto);
     }
     if (status < 200 || status >= 300) throw new Error(`POST ${path} -> HTTP ${status}`);
@@ -163,13 +169,13 @@ export class GaussFleetClient {
   }
 }
 
-function enviar(path: string, body: URLSearchParams, cookie: string): Promise<{ status: number; texto: string }> {
+function enviar(path: string, body: URLSearchParams, cookie: string, opcoes: OpcoesPost = {}): Promise<{ status: number; texto: string }> {
   return enfileirar(async () => {
     const res = await fetchComBackoff(`${BASE_URL}${path}`, {
       method: "POST",
       headers: { ...COMMON_HEADERS, "Content-Type": "application/x-www-form-urlencoded", Cookie: cookie },
       body,
-    });
+    }, opcoes);
     return { status: res.status, texto: await res.text() };
   });
 }
