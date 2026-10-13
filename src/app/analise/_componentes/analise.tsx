@@ -9,33 +9,30 @@ import { useParadasAnalise } from "@/lib/dados/analise";
 import { lerCercas } from "@/lib/dados/leituras";
 import { useRetrato } from "@/lib/dados/use-retrato";
 import {
-  CHAVE_FORA, OUTROS, PERIODOS, SELECAO_VAZIA, areasDaRegiao, contornoDaUsina, equipDaFrota, filtrar, filtrarSelecao, lugaresDoGrafico, montarLocais, placar, plantasDaRegiao,
+  CHAVE_FORA, OUTROS, SELECAO_VAZIA, areasDaRegiao, contornoDaUsina, equipDaFrota, filtrar, filtrarSelecao, lugaresDoGrafico, montarLocais, plantasDaRegiao,
   porHora, porServico, resumir, separarFora, servicosPrincipais,
   type DimensaoSelecao, type Periodo, type SelecaoCruzada,
 } from "@/lib/dominio/analise";
 import { diaLocal, fmtHoras } from "@/lib/dominio/formato";
-import { useOpcao } from "@/lib/hooks";
 import type { Cerca } from "@/lib/tipos";
 import { BarraFiltros, FILTROS_TOPO_VAZIOS, type Etiqueta, type FiltrosTopo } from "./barra-filtros";
 import { desenharBolhas } from "./camada-analise";
 import { COR_OUTROS, corDoServico } from "./cores-analise";
 import { GraficoBarras, type ItemBarra } from "./grafico-barras";
 import { GraficoHoras } from "./grafico-horas";
-import { PlacarAnalise } from "./placar";
 
 /**
- * Painel da Análise (desenho: docs/superpowers/specs/2026-10-10-painel-analise-design.md): filtros e placar em cima,
+ * Painel da Análise (desenho: docs/superpowers/specs/2026-10-10-painel-analise-design.md): filtros em cima (o período vem das abas),
  * mapa de bolhas à esquerda e os gráficos à direita. Clicar numa bolha, num lugar, num serviço ou numa hora filtra o resto;
- * o placar aplica tudo, cada gráfico aplica as escolhas dos outros e marca a sua.
+ * cada gráfico aplica as escolhas dos outros e marca a sua.
  */
-export function Analise() {
+export function Analise({ periodo }: { periodo: Periodo }) {
   const { retrato } = useRetrato();
   const { paradas, carregando, erro } = useParadasAnalise();
   const { ref, pronto } = useMapa(14, false);
   const camada = useRef<Leaflet.LayerGroup | null>(null);
   const [cercas, setCercas] = useState<Cerca[]>([]);
   const [hoje] = useState(() => diaLocal());
-  const [periodo, setPeriodo] = useOpcao<Periodo>("mon-analise-periodo", PERIODOS, "30");
   const [filtros, setFiltros] = useState<FiltrosTopo>(FILTROS_TOPO_VAZIOS);
   const [sel, setSel] = useState<SelecaoCruzada>(SELECAO_VAZIA);
   // o zoom muda quais nomes de planta cabem no mapa
@@ -53,7 +50,6 @@ export function Analise() {
   const principais = useMemo(() => servicosPrincipais(base.paradas), [base]);
   const doFiltro = useMemo(() => filtrar(base.paradas, { hoje, periodo: Number(periodo), ...filtros, faixas: [], diasSemana: [] }), [base, hoje, periodo, filtros]);
   const recorte = useCallback((ignorar?: DimensaoSelecao) => filtrarSelecao(doFiltro, sel, base.locais, ignorar), [doFiltro, sel, base]);
-  const numeros = useMemo(() => placar(recorte(), base.locais), [recorte, base]);
   const { dentro, fora } = useMemo(() => separarFora(resumir(recorte("local"), base.locais)), [recorte, base]);
   const servicos = useMemo(() => porServico(recorte("servico")), [recorte]);
   const horas = useMemo(() => porHora(recorte("hora")), [recorte]);
@@ -126,8 +122,6 @@ export function Analise() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2 lg:overflow-hidden">
       <BarraFiltros
-        periodo={periodo}
-        mudarPeriodo={setPeriodo}
         filtros={filtros}
         mudarFiltros={(p) => setFiltros((f) => ({ ...f, ...p }))}
         equip={[...equip.values()]}
@@ -135,7 +129,6 @@ export function Analise() {
         tirar={(d) => setSel((s) => ({ ...s, [d]: null }))}
         limpar={() => setSel(SELECAO_VAZIA)}
       />
-      <PlacarAnalise p={numeros} />
       <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,3fr)_minmax(340px,2fr)] lg:grid-rows-[minmax(0,1fr)]">
         <div className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-borda lg:h-full">
           <div ref={ref} className="absolute inset-0" />

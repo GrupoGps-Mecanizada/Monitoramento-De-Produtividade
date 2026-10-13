@@ -1,7 +1,7 @@
 "use client";
 
-import { Segmentado, Selecao } from "@/components/ui";
-import { PERIODOS, type DimensaoSelecao, type EquipAnalise, type Periodo } from "@/lib/dominio/analise";
+import { Selecao } from "@/components/ui";
+import type { DimensaoSelecao, EquipAnalise } from "@/lib/dominio/analise";
 import { ORDEM_TIPOS, TIPOS_EQUIP } from "@/lib/dominio/equipamentos";
 import type { TipoEquip } from "@/lib/tipos";
 
@@ -19,10 +19,8 @@ export interface Etiqueta {
 }
 const distintos = (xs: (string | null)[]) => [...new Set(xs.filter((x): x is string => !!x))].sort((a, b) => a.localeCompare(b));
 
-/** Uma linha: período, tipo, supervisor e regime; embaixo, as etiquetas do que foi clicado ("Servitec ×") e "Limpar tudo". */
+/** Uma linha: tipo, supervisor e regime (o período fica nas abas); embaixo, as etiquetas do que foi clicado ("Servitec ×") e "Limpar tudo". */
 export function BarraFiltros({
-  periodo,
-  mudarPeriodo,
   filtros,
   mudarFiltros,
   equip,
@@ -30,8 +28,6 @@ export function BarraFiltros({
   tirar,
   limpar,
 }: {
-  periodo: Periodo;
-  mudarPeriodo: (p: Periodo) => void;
   filtros: FiltrosTopo;
   mudarFiltros: (p: Partial<FiltrosTopo>) => void;
   equip: EquipAnalise[];
@@ -42,9 +38,6 @@ export function BarraFiltros({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="w-[240px]">
-          <Segmentado<Periodo> rotulo="Período" valor={periodo} mudar={mudarPeriodo} opcoes={PERIODOS.map((p) => ({ id: p, rotulo: <span className="whitespace-nowrap">{p} dias</span> }))} />
-        </div>
         <Selecao aria-label="Tipo" value={filtros.tipo ?? ""} onChange={(e) => mudarFiltros({ tipo: (e.target.value || null) as TipoEquip | null })} className="w-auto min-w-[160px]">
           <option value="">Todos os tipos</option>
           {ORDEM_TIPOS.map((t) => (
