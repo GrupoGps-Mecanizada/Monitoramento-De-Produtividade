@@ -64,7 +64,7 @@ export function PainelFamilia({
         )}
       </section>
       {familia !== "sem" && <GraficoBarras titulo="Por apontamento" sub="horas paradas" itens={apont} selecionada={sel.servico} escolher={(n) => alternar("servico", n)} vazio={vazio} />}
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 2xl:grid-cols-2">
         <GraficoBarras titulo="Placas" sub="quem mais para" itens={rankingPlacas(recorte("placa")).map((r) => itemRanking(r))} selecionada={sel.placa} escolher={(c) => alternar("placa", c)} vazio={vazio} />
         <GraficoBarras titulo="Supervisores" sub="quem mais para" itens={rankingSupervisores(todas).map((r) => itemRanking(r, r.chave !== SEM_SUPERVISOR))} selecionada={supervisor} escolher={escolherSupervisor} vazio={vazio} />
       </div>
