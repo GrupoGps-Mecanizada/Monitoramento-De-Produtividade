@@ -6,6 +6,9 @@
 - **Subabas por família de apontamento** ao lado do mapa: Visão geral (o painel de sempre), Aguardando, Pausas e pessoas, Logística, Preparação e bloqueio, Manutenção e clima e Sem apontamento. A família escolhida filtra também o mapa.
 - Em cada família: **frases automáticas** (total e comparação com o período anterior em 7 e 15 dias, placa que concentra o tempo, pico de 2 horas, lugar), **por apontamento**, **quem mais para** (placas e supervisores, com média por parada) e **tendência por dia**. Clicar numa placa vira filtro; num supervisor, preenche o filtro do topo.
 - Aviso "Último dia com dados" quando o envio do histórico parou. Apontamento novo do tablet cai em Manutenção e clima com aviso.
+- **Uma linha só** no topo: abas, período e filtros (também na Disponibilidade).
+- **Mapa de satélite** só dentro das plantas, com preto em volta, e **mapa de calor** no lugar das bolhas (azul = pouco, vermelho = muito tempo parado). Clicar numa área cercada continua filtrando o resto.
+- **Mata CDP e USIPA** saem do mapa e das contas (como o Pátio da base).
 
 ## Medição oficial na Análise · 13/10/2026 (não publicado)
 - **Aba Disponibilidade** na Análise (a aba Paradas continua sendo a padrão): os números **oficiais** dos boletins de medição GPS já fechados. Escolha do ciclo, selo Oficial, placar (DF da frota, horas indisponíveis, pior vaga), vagas da pior DF para a melhor com o motivo que mais pesou e, ao clicar, o detalhe: DF por dia, horas por motivo, motor secundário ligado (timeline de motor), placas, conferência eventos × boletim e cada indisponibilidade (placa, início, fim, motivo).
