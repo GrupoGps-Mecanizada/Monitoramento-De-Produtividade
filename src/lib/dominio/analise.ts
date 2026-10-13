@@ -111,7 +111,7 @@ function agruparPor<T>(xs: T[], chave: (x: T) => string): Map<string, T[]> {
   return m;
 }
 const centro = (poly: LatLng[]): LatLng => [poly.reduce((n, p) => n + p[0], 0) / poly.length, poly.reduce((n, p) => n + p[1], 0) / poly.length];
-const minutos = (p: ParadaAnalise) => (p.fim - p.ini) / 60;
+export const minutos = (p: ParadaAnalise) => (p.fim - p.ini) / 60;
 
 /** O tipo tem regra de produtividade? (Hiper Vácuo, Ultravac, Brook e Aspiradores não têm) */
 export const temRegra = (tipo: TipoEquip) => statusProdutivo(tipo, "") !== null;
