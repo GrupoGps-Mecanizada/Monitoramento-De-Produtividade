@@ -3,7 +3,7 @@ import type { Veiculo } from "../tipos";
 import {
   areasDaRegiao, contornoDaUsina, plantasDaRegiao, separarFora, totais,
   categoriaPeloNome, diaDaSemana, diaMenos, equipDaFrota, faixaDe, filtrar, montarLocais, ordemDeDesenho, ranking, resumir, temRegra, valoresDaParada,
-  CHAVE_FORA, OUTROS, SELECAO_VAZIA, filtrarSelecao, horaDe, lugaresDoGrafico, placar, porHora, porServico, raioDaBolha, servicosPrincipais,
+  CHAVE_FORA, OUTROS, SELECAO_VAZIA, filtrarSelecao, horaDe, lugaresDoGrafico, placar, porHora, porServico, raioDaBolha, servicosPrincipais, ultimoDiaVelho,
   type FiltroAnalise, type ParadaAnalise, type ResumoLocal,
 } from "./analise";
 
@@ -245,6 +245,10 @@ describe("painel: seleção cruzada, serviços, horas e placar", () => {
     expect(filtrarSelecao(paradas, sel({ hora: 14 }), locais).map((x) => x.ini)).toEqual([14 * H]);
     expect(filtrarSelecao(paradas, sel({ local: "ALTO FORNO 3" }), locais)).toHaveLength(2);
   });
+  it("placa: filtra pela placa; ignorar 'placa' devolve todas", () => {
+    expect(filtrarSelecao(paradas, sel({ placa: "EGC2993" }), locais).map((x) => x.placa)).toEqual(["EGC2993"]);
+    expect(filtrarSelecao(paradas, sel({ placa: "EGC2993" }), locais, "placa")).toHaveLength(3);
+  });
   it("'Longe da região' pega as paradas dos lugares fora da região; lugar que não existe no recorte esvazia", () => {
     expect(filtrarSelecao(paradas, sel({ local: CHAVE_FORA }), locais).map((x) => x.local)).toEqual(["GALPÃO LONGE"]);
     expect(filtrarSelecao(paradas, sel({ local: "OFICINA QUE SUMIU" }), locais)).toEqual([]);
@@ -313,5 +317,14 @@ describe("painel: lugares do gráfico", () => {
     expect(lugaresDoGrafico(dentro, null, "L01")).toHaveLength(10);
     expect(chaves(lugaresDoGrafico(dentro, fora, CHAVE_FORA))).toEqual([...chaves(dentro.slice(0, 10)), CHAVE_FORA]);
     expect(lugaresDoGrafico(dentro, null, "SUMIU")).toHaveLength(10);
+  });
+});
+
+describe("histórico parado", () => {
+  it("último dia anterior a ontem: avisa; ontem, hoje ou sem dados: não", () => {
+    expect(ultimoDiaVelho([{ dia: "2026-10-05" }, { dia: "2026-10-06" }], "2026-10-13")).toBe("2026-10-06");
+    expect(ultimoDiaVelho([{ dia: "2026-10-12" }], "2026-10-13")).toBeNull();
+    expect(ultimoDiaVelho([{ dia: "2026-10-13" }], "2026-10-13")).toBeNull();
+    expect(ultimoDiaVelho([], "2026-10-13")).toBeNull();
   });
 });

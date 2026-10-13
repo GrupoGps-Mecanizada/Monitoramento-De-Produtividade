@@ -167,6 +167,13 @@ export function diaMenos(dia: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Último dia com paradas quando é anterior a ontem (o envio do histórico parou); null se está em dia ou sem dados. */
+export function ultimoDiaVelho(paradas: { dia: string }[], hoje: string): string | null {
+  if (!paradas.length) return null;
+  const ultimo = paradas.reduce((m, p) => (p.dia > m ? p.dia : m), paradas[0].dia);
+  return ultimo < diaMenos(hoje, 1) ? ultimo : null;
+}
+
 /** Categoria que o nome já diz (a mesma regra do classificar.js). */
 export function categoriaPeloNome(nome: string): CategoriaLocal | null {
   const n = nome.toUpperCase();
@@ -365,14 +372,15 @@ export function totais(rs: ResumoLocal[]) {
   return t;
 }
 
-/** Clique no painel: o lugar (bolha ou ranking), o serviço (apontamento) e a hora de início escolhidos. */
+/** Clique no painel: o lugar (bolha ou ranking), o serviço (apontamento), a hora de início e a placa escolhidos. */
 export interface SelecaoCruzada {
   local: string | null;
   servico: string | null;
   hora: number | null;
+  placa: string | null;
 }
 export type DimensaoSelecao = keyof SelecaoCruzada;
-export const SELECAO_VAZIA: SelecaoCruzada = { local: null, servico: null, hora: null };
+export const SELECAO_VAZIA: SelecaoCruzada = { local: null, servico: null, hora: null, placa: null };
 /** Hora (0–23) do início da parada. */
 export const horaDe = (ini: number) => Math.min(23, Math.floor(ini / H));
 
@@ -383,7 +391,8 @@ export function filtrarSelecao(paradas: ParadaNoLocal[], sel: SelecaoCruzada, lo
     (p) =>
       (ignorar === "local" || !sel.local || noLocal(p)) &&
       (ignorar === "servico" || !sel.servico || p.apont.includes(sel.servico)) &&
-      (ignorar === "hora" || sel.hora == null || horaDe(p.ini) === sel.hora),
+      (ignorar === "hora" || sel.hora == null || horaDe(p.ini) === sel.hora) &&
+      (ignorar === "placa" || !sel.placa || p.placa === sel.placa),
   );
 }
 
