@@ -49,6 +49,45 @@ test("Análise: painel com mapa e gráficos que se filtram, período no topo ao 
 });
 
 
+test("Análise: subabas por família com frases, apontamentos, quem mais para e tendência", async ({ page }) => {
+  const gravacoes = await prepararDados(page);
+  await page.goto("/analise/");
+  const familias = page.getByRole("tablist", { name: "Família" });
+  const filtrando = page.getByRole("group", { name: "Filtrando" });
+  // Visão geral é a padrão: o painel de sempre
+  await expect(familias.getByRole("tab", { name: "Visão geral" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("region", { name: "Lugares" })).toBeVisible();
+  // serviço escolhido na Visão geral sai ao trocar de família
+  await page.getByRole("region", { name: "Por serviço" }).getByRole("button", { name: /^Aguardando Área/ }).click();
+  await expect(filtrando.getByRole("button", { name: "Tirar filtro: Aguardando Área" })).toBeVisible();
+  await familias.getByRole("tab", { name: "Aguardando" }).click();
+  await expect(filtrando).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Lugares" })).toHaveCount(0);
+  // frases (30 dias: sem comparação); só o caminhão 10 na OFICINA às 8h
+  const frases = page.getByRole("list", { name: "Frases automáticas" });
+  await expect(frases).toContainText("Aguardando somou 1h00 em 1 parada.");
+  await expect(frases).toContainText("A placa EGC2985 sozinha soma 100% do tempo.");
+  await expect(frases).toContainText("O pico é das 8h às 10h.");
+  await expect(frases).toContainText("Onde mais acontece: OFICINA, 1h00.");
+  // por apontamento e placa viram etiquetas
+  await page.getByRole("region", { name: "Por apontamento" }).getByRole("button", { name: /^Aguardando Área/ }).click();
+  await expect(filtrando.getByRole("button", { name: "Tirar filtro: Aguardando Área" })).toBeVisible();
+  await page.getByRole("region", { name: "Placas" }).getByRole("button", { name: /^EGC2985/ }).click();
+  await expect(filtrando.getByRole("button", { name: "Tirar filtro: EGC2985" })).toBeVisible();
+  await page.getByRole("button", { name: "Limpar tudo" }).click();
+  await expect(page.getByRole("region", { name: "Supervisores" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Tendência por dia" }).getByRole("listitem")).toHaveCount(30);
+  // família sem paradas: avisa em todas as seções, sem quebrar
+  await familias.getByRole("tab", { name: "Pausas e pessoas" }).click();
+  await expect(page.getByText("Nada neste filtro.").first()).toBeVisible();
+  await expect(frases).toHaveCount(0);
+  // sem apontamento: sem o gráfico "Por apontamento"
+  await familias.getByRole("tab", { name: "Sem apontamento" }).click();
+  await expect(page.getByRole("list", { name: "Frases automáticas" })).toContainText("Sem apontamento somou");
+  await expect(page.getByRole("region", { name: "Por apontamento" })).toHaveCount(0);
+  expect(gravacoes).toEqual([]);
+});
+
 test("Análise: sem histórico enviado, avisa em vez de quebrar", async ({ page }) => {
   await prepararDados(page, { analise: [] });
   await page.goto("/analise/");
