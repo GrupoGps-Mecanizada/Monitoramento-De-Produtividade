@@ -124,7 +124,7 @@ export function Analise() {
   const vazio = carregando ? "Carregando o histórico…" : "Nada neste filtro.";
 
   return (
-    <div className="altura-tela flex flex-col gap-2 overflow-y-auto p-2 lg:overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2 lg:overflow-hidden">
       <BarraFiltros
         periodo={periodo}
         mudarPeriodo={setPeriodo}

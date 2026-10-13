@@ -1,5 +1,5 @@
-import { Analise } from "./_componentes/analise";
+import { AbasAnalise } from "./_componentes/abas-analise";
 
 export default function Pagina() {
-  return <Analise />;
+  return <AbasAnalise />;
 }

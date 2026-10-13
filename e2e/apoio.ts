@@ -94,6 +94,28 @@ export const paradasAnalise = () => {
   ];
 };
 
+const diaAtras = (n: number) => {
+  const d = new Date(Date.now() - n * 86400000);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+const vagaMedicao = (o: Record<string, unknown>) => ({
+  boletim_cod: "B1", regime: "24h-12 GPS (Novo)", horas_regime: 72, horas_indisp: 0, df: 100,
+  ausencia_operador: 0, area_manutencao: 0, fora_planta: 0, trajeto: 0, cartao_rfid: 0, lancada: 0, motor_desligado: 0, parado_ligado: 0, outros: 0, ...o,
+});
+/** Medição oficial (tabelas medicao_*): um boletim cujo ciclo termina hoje (o motor 2º de motorGauss cai dentro), 2 vagas. */
+export const medicao = () => ({
+  boletins: [{ cod: "B1", identificacao: "GPS 2026-10", inicio: diaAtras(2), fim: hoje() }],
+  vagas: [
+    vagaMedicao({ vaga_id: 545, vaga: "ALTA PRESSÃO - GPS - 08 - 24 HS", horas_indisp: 0.72, df: 99, fora_planta: 0.72 }),
+    vagaMedicao({ vaga_id: 530, vaga: "ALTA PRESSÃO - GPS - 01 - 24 HS", horas_indisp: 7.2, df: 90, ausencia_operador: 5, area_manutencao: 2 }),
+  ],
+  eventos: [
+    { boletim_cod: "B1", vaga_id: 530, placa: "EGC2985", inicio: `${hoje()}T06:00:00-03:00`, fim: `${hoje()}T11:00:00-03:00`, tipo: "Ausência de operador", horas: 5 },
+    { boletim_cod: "B1", vaga_id: 530, placa: "EGC2985", inicio: `${hoje()}T13:00:00-03:00`, fim: `${hoje()}T15:00:00-03:00`, tipo: "Área de manutenção - OFICINA GPS/SERVITEC", horas: 2 },
+  ],
+  dias: [2, 1, 0].map((n) => ({ boletim_cod: "B1", vaga_id: 530, dia: diaAtras(n), placas: "EGC2985", horas_regime: 24, horas_indisp: 2.4 })),
+});
+
 /** Matriz como o Supabase devolve (com o nome do supervisor e do regime dentro de objetos). */
 export const matrizBanco = () =>
   matrizExemplo().map((c) => ({ ...c, supervisor: c.id === 11 ? { nome: "OZIAS" } : null, regime: c.id === 11 ? { nome: "ADM" } : null, supervisor_id: c.id === 11 ? 1 : null, regime_id: c.id === 11 ? 1 : null }));
@@ -105,7 +127,7 @@ export const REGIMES = [{ id: 1, nome: "ADM", ativo: true }, { id: 2, nome: "4X4
  * tiles do mapa. Devolve a lista de tentativas de gravação: os testes exigem que fique vazia (só a tela
  * Equipamentos grava, e o teste dela confere o que foi enviado). `matriz`: troca a matriz de equipamentos.
  */
-export async function prepararDados(page: Page, opcoes: { matriz?: ReturnType<typeof matrizBanco>; analise?: unknown[]; analiseSemTabela?: boolean; eventos?: unknown[]; excessos?: unknown[] } = {}): Promise<string[]> {
+export async function prepararDados(page: Page, opcoes: { matriz?: ReturnType<typeof matrizBanco>; analise?: unknown[]; analiseSemTabela?: boolean; eventos?: unknown[]; excessos?: unknown[]; medicao?: ReturnType<typeof medicao>; medicaoSemTabela?: boolean } = {}): Promise<string[]> {
   const gravacoes: string[] = [];
   await page.route(/arcgisonline\.com|tile\.openstreetmap\.org/, (r) => r.abort());
   await page.route("**/rest/v1/**", async (route) => {
@@ -134,6 +156,15 @@ export async function prepararDados(page: Page, opcoes: { matriz?: ReturnType<ty
       // como o Supabase responde quando o SQL da tabela ainda não foi rodado
       if (opcoes.analiseSemTabela) return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ code: "PGRST205", message: "Could not find the table 'public.analise_paradas' in the schema cache" }) });
       return json(opcoes.analise ?? paradasAnalise());
+    }
+    if (tabela?.startsWith("medicao_")) {
+      // como o Supabase responde quando o SQL da medição ainda não foi rodado
+      if (opcoes.medicaoSemTabela) return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ code: "PGRST205", message: `Could not find the table 'public.${tabela}' in the schema cache` }) });
+      const m = opcoes.medicao ?? medicao();
+      if (tabela === "medicao_boletim") return json(m.boletins);
+      if (tabela === "medicao_boletim_vaga") return json(m.vagas);
+      if (tabela === "medicao_indisp_evento") return json(m.eventos);
+      if (tabela === "medicao_vaga_dia") return json(m.dias);
     }
     return json([]);
   });
