@@ -4,6 +4,7 @@ import { Aviso } from "@/components/ui";
 import type { DimensaoSelecao, Local, ParadaNoLocal, SelecaoCruzada } from "@/lib/dominio/analise";
 import { ROTULO_FAMILIA, SEM_SUPERVISOR, frases, porApontamento, porDia, rankingPlacas, rankingSupervisores, type Familia, type LinhaRanking } from "@/lib/dominio/familias";
 import { fmtHoras } from "@/lib/dominio/formato";
+import { Frases } from "../assunto/frases";
 import { GraficoBarras, type ItemBarra } from "../grafico-barras";
 import { GraficoDias } from "./grafico-dias";
 
@@ -48,21 +49,7 @@ export function PainelFamilia({
   return (
     <div className="flex flex-col gap-2">
       {novos.length > 0 && <Aviso tipo="alerta">Apontamento novo sem família: {novos.join(", ")}</Aviso>}
-      <section aria-label="O que os dados dizem" className="rounded-xl border border-borda bg-superficie p-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-suave">O que os dados dizem</h2>
-        {textos.length === 0 ? (
-          <p className="mt-2 text-xs text-suave">{vazio}</p>
-        ) : (
-          <ul aria-label="Frases automáticas" className="mt-2 grid gap-1 text-[13px] text-texto">
-            {textos.map((t) => (
-              <li key={t} className="flex gap-1.5">
-                <span aria-hidden className="text-primaria">•</span>
-                {t}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <Frases textos={textos} vazio={vazio} />
       {familia !== "sem" && <GraficoBarras titulo="Por apontamento" sub="horas paradas" itens={apont} selecionada={sel.servico} escolher={(n) => alternar("servico", n)} vazio={vazio} />}
       <div className="grid gap-2 2xl:grid-cols-2">
         <GraficoBarras titulo="Placas" sub="quem mais para" itens={rankingPlacas(recorte("placa")).map((r) => itemRanking(r))} selecionada={sel.placa} escolher={(c) => alternar("placa", c)} vazio={vazio} />

@@ -12,11 +12,15 @@ import {
   porHora, porServico, resumir, semExcluidas, separarFora, ultimoDiaVelho,
   type DimensaoSelecao, type Periodo, type SelecaoCruzada,
 } from "@/lib/dominio/analise";
+import { ASSUNTOS, type Assunto } from "@/lib/dominio/assuntos";
 import { ABAS_FAMILIA, DIAS_GUARDADOS, apontNovos, paradasDaFamilia, type AbaFamilia } from "@/lib/dominio/familias";
 import { diaBR, diaLocal, fmtHoras } from "@/lib/dominio/formato";
 import { useOpcao } from "@/lib/hooks";
 import type { Cerca } from "@/lib/tipos";
 import { BarraFiltros, FILTROS_TOPO_VAZIOS, type Etiqueta, type FiltrosTopo } from "./barra-filtros";
+import { AbasAssunto } from "./assunto/abas-assunto";
+import { PainelMotor2 } from "./assunto/painel-motor2";
+import { PainelStatus } from "./assunto/painel-status";
 import { desenharCercas } from "./camada-analise";
 import { PainelFamilia } from "./familia/painel-familia";
 import { SubabasFamilia } from "./familia/subabas-familia";
@@ -40,6 +44,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   const [sel, setSel] = useState<SelecaoCruzada>(SELECAO_VAZIA);
   // o zoom muda quais nomes de planta cabem no mapa
   const [zoom, setZoom] = useState(0);
+  const [assunto, setAssunto] = useOpcao<Assunto>("mon-analise-assunto", ASSUNTOS, "status");
   const [familia, setFamilia] = useOpcao<AbaFamilia>("mon-analise-familia", ABAS_FAMILIA, "geral");
 
   useEffect(() => {
@@ -54,17 +59,18 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   const equip = useMemo(() => equipDaFrota(retrato?.veiculos ?? []), [retrato]);
   const base = useMemo(() => montarLocais(paradas, validas.filter((c) => c.tipo === "area"), equip, usina, excluidas), [paradas, validas, equip, usina, excluidas]);
   const doFiltro = useMemo(() => filtrar(base.paradas, { hoje, periodo: Number(periodo), ...filtros, faixas: [], diasSemana: [] }), [base, hoje, periodo, filtros]);
-  const doFamilia = useMemo(() => (familia === "geral" ? doFiltro : paradasDaFamilia(doFiltro, familia)), [doFiltro, familia]);
+  // a família só filtra dentro de Apontamentos
+  const doFamilia = useMemo(() => (assunto !== "apontamentos" || familia === "geral" ? doFiltro : paradasDaFamilia(doFiltro, familia)), [doFiltro, familia, assunto]);
   const recorte = useCallback((ignorar?: DimensaoSelecao) => filtrarSelecao(doFamilia, sel, base.locais, ignorar), [doFamilia, sel, base]);
   // mesmo recorte no período anterior de mesmo tamanho (só cabe nos 30 dias guardados: 7 e 15)
   const anterior = useMemo(() => {
     const n = Number(periodo);
-    if (familia === "geral" || n * 2 > DIAS_GUARDADOS) return null;
+    if (assunto !== "apontamentos" || familia === "geral" || n * 2 > DIAS_GUARDADOS) return null;
     const ps = filtrar(base.paradas, { hoje: diaMenos(hoje, n), periodo: n, ...filtros, faixas: [], diasSemana: [] });
     return filtrarSelecao(paradasDaFamilia(ps, familia), sel, base.locais);
-  }, [base, hoje, periodo, filtros, familia, sel]);
+  }, [base, hoje, periodo, filtros, familia, sel, assunto]);
   const velho = useMemo(() => ultimoDiaVelho(paradas, hoje), [paradas, hoje]);
-  const novos = useMemo(() => (familia === "manutencao" ? apontNovos(doFiltro) : []), [doFiltro, familia]);
+  const novos = useMemo(() => (assunto === "apontamentos" && familia === "manutencao" ? apontNovos(doFiltro) : []), [doFiltro, familia, assunto]);
   const { dentro, fora } = useMemo(() => separarFora(resumir(recorte("local"), base.locais)), [recorte, base]);
   const servicos = useMemo(() => porServico(recorte("servico")), [recorte]);
   const horas = useMemo(() => porHora(recorte("hora")), [recorte]);
@@ -73,6 +79,11 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   // o serviço escolhido é de uma família: trocar de subaba tira a etiqueta
   const trocarFamilia = (f: AbaFamilia) => {
     setFamilia(f);
+    setSel((s) => ({ ...s, servico: null }));
+  };
+  // o serviço só existe em Apontamentos: trocar de assunto tira a etiqueta
+  const trocarAssunto = (a: Assunto) => {
+    setAssunto(a);
     setSel((s) => ({ ...s, servico: null }));
   };
   const escolherSupervisor = (s: string) => setFiltros((f) => ({ ...f, supervisor: f.supervisor === s ? null : s }));
@@ -160,33 +171,42 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
           )}
         </div>
         <div className="flex flex-col gap-2 lg:min-h-0 lg:overflow-y-auto">
-          <SubabasFamilia valor={familia} mudar={trocarFamilia} />
+          <AbasAssunto valor={assunto} mudar={trocarAssunto} />
           {velho && (
             <p role="status" className="px-1 text-xs font-medium text-suave">
               Último dia com dados: {diaBR(velho)}
             </p>
           )}
-          {familia === "geral" ? (
-            <>
-              <GraficoBarras titulo="Lugares" sub="mais tempo parado" itens={lugares} selecionada={sel.local} escolher={escolherLugar} vazio={vazio} />
-              <GraficoBarras titulo="Por serviço" sub="paradas com o apontamento" itens={itensServico} selecionada={sel.servico} escolher={(n) => alternar("servico", n)} vazio={vazio} />
-              <GraficoHoras minutos={horas} selecionada={sel.hora} escolher={(h) => alternar("hora", h)} vazio={vazio} />
-            </>
+          {assunto === "status" ? (
+            <PainelStatus recorte={recorte} locais={base.locais} sel={sel} alternar={alternar} vazio={vazio} />
+          ) : assunto === "motor2" ? (
+            <PainelMotor2 recorte={recorte} locais={base.locais} sel={sel} alternar={alternar} vazio={vazio} />
           ) : (
-            <PainelFamilia
-              familia={familia}
-              recorte={recorte}
-              anterior={anterior}
-              dias={Number(periodo)}
-              hoje={hoje}
-              locais={base.locais}
-              novos={novos}
-              sel={sel}
-              alternar={alternar}
-              supervisor={filtros.supervisor}
-              escolherSupervisor={escolherSupervisor}
-              vazio={vazio}
-            />
+            <>
+              <SubabasFamilia valor={familia} mudar={trocarFamilia} />
+            {familia === "geral" ? (
+              <>
+                <GraficoBarras titulo="Lugares" sub="mais tempo parado" itens={lugares} selecionada={sel.local} escolher={escolherLugar} vazio={vazio} />
+                <GraficoBarras titulo="Por serviço" sub="paradas com o apontamento" itens={itensServico} selecionada={sel.servico} escolher={(n) => alternar("servico", n)} vazio={vazio} />
+                <GraficoHoras minutos={horas} selecionada={sel.hora} escolher={(h) => alternar("hora", h)} vazio={vazio} />
+              </>
+            ) : (
+              <PainelFamilia
+                familia={familia}
+                recorte={recorte}
+                anterior={anterior}
+                dias={Number(periodo)}
+                hoje={hoje}
+                locais={base.locais}
+                novos={novos}
+                sel={sel}
+                alternar={alternar}
+                supervisor={filtros.supervisor}
+                escolherSupervisor={escolherSupervisor}
+                vazio={vazio}
+              />
+            )}
+            </>
           )}
         </div>
       </div>

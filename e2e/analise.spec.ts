@@ -4,6 +4,7 @@ import { prepararDados } from "./apoio";
 test("Análise: painel com mapa e gráficos que se filtram, período no topo ao lado das abas", async ({ page }) => {
   const gravacoes = await prepararDados(page);
   await page.goto("/analise/");
+  await page.getByRole("tablist", { name: "Assunto" }).getByRole("tab", { name: "Apontamentos" }).click();
   const lugares = page.getByRole("region", { name: "Lugares" });
   const servicos = page.getByRole("region", { name: "Por serviço" });
   const filtrando = page.getByRole("group", { name: "Filtrando" });
@@ -75,9 +76,44 @@ test("Análise: satélite normal com as cercas nas cores delas, área clicável;
   expect(gravacoes).toEqual([]);
 });
 
+test("Análise: Status do motor (padrão) e Motor secundário com números, frases e gráficos", async ({ page }) => {
+  const gravacoes = await prepararDados(page);
+  await page.goto("/analise/");
+  const assunto = page.getByRole("tablist", { name: "Assunto" });
+  await expect(assunto.getByRole("tab", { name: "Status do motor" })).toHaveAttribute("aria-selected", "true");
+  // 5 paradas da frota (OFICINA, PATIO x2, ATERRO, longe): 5h00 paradas; todo o tempo com dado de motor está ligado
+  const numeros = page.getByRole("region", { name: "Números" });
+  await expect(numeros).toContainText("5h00");
+  await expect(numeros).toContainText("100%");
+  await expect(numeros).toContainText("Parado ligado");
+  await expect(page.getByRole("list", { name: "Frases automáticas" })).toContainText("Tempo parado: 5h00 em 5 paradas.");
+  // escolher um status: placas pesam só ele; clicar de novo volta
+  const porStatus = page.getByRole("region", { name: "Por status" });
+  await porStatus.getByRole("button", { name: /^Motor 2º ligado/ }).click();
+  await expect(page.getByRole("region", { name: "Placas" }).getByRole("button")).toHaveCount(1);
+  await expect(page.getByRole("region", { name: "Placas" })).toContainText("1h30");
+  await porStatus.getByRole("button", { name: /^Motor 2º ligado/ }).click();
+  await expect(page.getByRole("region", { name: "Placas" }).getByRole("button")).toHaveCount(2);
+  // serviço escolhido em Apontamentos sai ao trocar de assunto
+  await assunto.getByRole("tab", { name: "Apontamentos" }).click();
+  await page.getByRole("region", { name: "Por serviço" }).getByRole("button", { name: /^Aguardando Área/ }).click();
+  await assunto.getByRole("tab", { name: "Motor secundário" }).click();
+  await expect(page.getByRole("group", { name: "Filtrando" })).toHaveCount(0);
+  // motor 2º: só o Alta Pressão (bomba 40 + 30 + 20 min = 1h30)
+  await expect(page.getByRole("region", { name: "Números" })).toContainText("1h30");
+  await expect(page.getByRole("region", { name: "Números" })).toContainText("EGC2985");
+  await expect(page.getByRole("region", { name: "Lugares" }).getByRole("button").first()).toHaveAccessibleName(/^OFICINA/);
+  // filtro de tipo que esvazia: "—" e aviso, sem quebrar
+  await page.getByLabel("Tipo").selectOption("as");
+  await expect(page.getByRole("region", { name: "Números" })).toContainText("—");
+  await expect(page.getByText("Nada neste filtro.").first()).toBeVisible();
+  expect(gravacoes).toEqual([]);
+});
+
 test("Análise: subabas por família com frases, apontamentos, quem mais para e tendência", async ({ page }) => {
   const gravacoes = await prepararDados(page);
   await page.goto("/analise/");
+  await page.getByRole("tablist", { name: "Assunto" }).getByRole("tab", { name: "Apontamentos" }).click();
   const familias = page.getByRole("tablist", { name: "Família" });
   const filtrando = page.getByRole("group", { name: "Filtrando" });
   // Visão geral é a padrão: o painel de sempre
