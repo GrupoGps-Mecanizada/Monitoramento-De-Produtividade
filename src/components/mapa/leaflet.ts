@@ -5,8 +5,8 @@ export type L = typeof Leaflet;
 let promessa: Promise<L> | null = null;
 
 /**
- * Leaflet + markercluster baixados só no navegador (o site é gerado estático e o Leaflet usa `window`).
- * O plugin de agrupamento procura o `L` global, por isso ele é registrado antes.
+ * Leaflet + markercluster + heat baixados só no navegador (o site é gerado estático e o Leaflet usa `window`).
+ * Os plugins (agrupamento e mapa de calor) procuram o `L` global, por isso ele é registrado antes.
  */
 export function carregarLeaflet(): Promise<L> {
   promessa ??= (async () => {
@@ -14,6 +14,7 @@ export function carregarLeaflet(): Promise<L> {
     const L = ((m as unknown as { default?: L }).default ?? m) as L;
     (window as unknown as { L: L }).L = L;
     await import("leaflet.markercluster");
+    await import("leaflet.heat");
     return L;
   })();
   return promessa;

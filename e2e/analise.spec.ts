@@ -57,6 +57,21 @@ test("Análise: painel com mapa e gráficos que se filtram, período no topo ao 
 });
 
 
+test("Análise: satélite só nas plantas, mapa de calor e área clicável; Mata CDP fora", async ({ page }) => {
+  const gravacoes = await prepararDados(page);
+  await page.goto("/analise/");
+  await expect(page.locator(".mapa-analise .mascara-analise")).toHaveCount(1);
+  await expect(page.locator(".mapa-analise .leaflet-heatmap-layer")).toHaveCount(1);
+  await expect(page.locator('.mapa-analise img.leaflet-tile[src*="World_Imagery"]').first()).toBeAttached();
+  const lugares = page.getByRole("region", { name: "Lugares" });
+  await expect(lugares.getByRole("button").first()).toBeVisible();
+  await expect(lugares).not.toContainText("MATA CDP");
+  // a área recebe o clique mesmo com o calor por cima
+  await page.getByRole("button", { name: "OFICINA", exact: true }).click();
+  await expect(page.getByRole("group", { name: "Filtrando" }).getByRole("button", { name: "Tirar filtro: OFICINA" })).toBeVisible();
+  expect(gravacoes).toEqual([]);
+});
+
 test("Análise: subabas por família com frases, apontamentos, quem mais para e tendência", async ({ page }) => {
   const gravacoes = await prepararDados(page);
   await page.goto("/analise/");

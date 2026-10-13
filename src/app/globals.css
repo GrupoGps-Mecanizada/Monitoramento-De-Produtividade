@@ -366,13 +366,14 @@ textarea:focus {
 
 .leaflet-container { font-family: var(--font-sans); background: #1b1f27; }
 .leaflet-tooltip.rotulo-cerca { font: 600 11px var(--font-sans); }
-/* Análise: mapa só das cercas da região, sem imagem, sobre fundo preto (igual nos dois temas) */
+/* Análise: satélite só dentro das plantas, preto em volta (igual nos dois temas), calor por baixo das áreas */
 .mapa-analise.leaflet-container { background: #000; }
-.usina-contorno { fill: #10141b; stroke: #2b3240; }
-.area-sem-dado { fill: #1a1f29; stroke: #2b3240; }
-.bolha { cursor: pointer; }
-.bolha-selecionada { stroke: #fff; stroke-width: 3px; }
-.bolha-apagada { opacity: 0.25; }
+.mascara-analise { fill: #000; }
+.planta-contorno { stroke: rgba(255, 255, 255, 0.55); }
+.area-calor { stroke: rgba(255, 255, 255, 0.35); fill: #fff; cursor: pointer; }
+.area-selecionada { stroke: #fff; stroke-width: 3px; }
+.mapa-analise .leaflet-heatmap-layer { pointer-events: none; z-index: 1; }
+.mapa-analise .leaflet-overlay-pane > svg { z-index: 2; }
 .rotulo-planta { background: none; border: 0; }
 .rotulo-planta > span {
   position: absolute; transform: translate(-50%, -50%); white-space: nowrap; pointer-events: none;

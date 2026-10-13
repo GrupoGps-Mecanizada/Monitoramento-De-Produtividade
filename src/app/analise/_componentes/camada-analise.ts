@@ -1,29 +1,59 @@
 import type * as Leaflet from "leaflet";
 import type { L } from "@/components/mapa/leaflet";
-import { ordemDeDesenho, raioDaBolha, type ResumoLocal } from "@/lib/dominio/analise";
+import { ordemDeDesenho, type ResumoLocal } from "@/lib/dominio/analise";
 import { fmtHoras } from "@/lib/dominio/formato";
 import { esc } from "@/lib/mapa/marcador";
 import type { LatLng } from "@/lib/tipos";
-import { corDoServico } from "./cores-analise";
 
 /** Caixa aproximada do nome de uma planta em pixels: nome que encostaria em outro já escrito fica de fora. */
 const LARG = 130;
 const ALT = 20;
+/** O mundo inteiro: a máscara preta é ele com furos nas plantas. */
+const MUNDO: LatLng[] = [[-89, -179], [-89, 179], [89, 179], [89, -179]];
+/** Painel da máscara: acima do satélite (200) e abaixo do calor e das áreas (overlayPane, 400). */
+export const PAINEL_MASCARA = "mascara";
+/** Azul (pouco) → vermelho (muito), legível sobre o satélite; em lista, porque objeto com a chave 1 põe o vermelho primeiro. */
+export const CORES_CALOR: [number, string][] = [[0.2, "#2563eb"], [0.45, "#22d3ee"], [0.65, "#facc15"], [0.85, "#f97316"], [1, "#dc2626"]];
+const GRADIENTE_CALOR = Object.fromEntries(CORES_CALOR);
 
 /**
- * Mapa da região (sem imagem): contorno das plantas e das cercas, apagados, só de referência; uma bolha por lugar com
- * a área proporcional às horas paradas e a cor do serviço principal (3 cores + cinza). Com um lugar escolhido, ele ganha
- * contorno branco e os outros ficam apagados. Passar o mouse = nome, horas e serviço; clicar = escolhe/desfaz o lugar.
+ * Mapa de calor sobre o satélite: preto fora das plantas (máscara com furos), contorno fino das plantas e das áreas e o calor
+ * com o peso de cada parada. As áreas com parada recebem o mouse (nome e horas) e o clique (escolhe/desfaz o lugar).
  */
-export function desenharBolhas(
+export function desenharCalor(
   L: L,
   camada: Leaflet.LayerGroup,
   mapa: Leaflet.Map,
-  o: { plantas: { name: string; polygon: LatLng[] }[]; areas: { name: string; polygon: LatLng[] }[]; resumos: ResumoLocal[]; principais: string[]; sel: string | null; aoClicar: (chave: string) => void },
+  o: {
+    plantas: { name: string; polygon: LatLng[] }[];
+    buracos: LatLng[][];
+    areas: { name: string; polygon: LatLng[] }[];
+    resumos: ResumoLocal[];
+    pontos: [number, number, number][];
+    sel: string | null;
+    aoClicar: (chave: string) => void;
+  },
 ) {
   camada.clearLayers();
-  for (const pl of ordemDeDesenho(o.plantas)) L.polygon(pl.polygon, { className: "usina-contorno", weight: 1.5, fillOpacity: 1, interactive: false }).addTo(camada);
-  for (const a of ordemDeDesenho(o.areas)) L.polygon(a.polygon, { className: "area-sem-dado", weight: 1, fillOpacity: 1, interactive: false }).addTo(camada);
+  L.polygon([MUNDO, ...o.buracos], { pane: PAINEL_MASCARA, className: "mascara-analise", stroke: false, fillOpacity: 1, interactive: false }).addTo(camada);
+  for (const pl of ordemDeDesenho(o.plantas)) L.polygon(pl.polygon, { className: "planta-contorno", weight: 1.5, fill: false, interactive: false }).addTo(camada);
+  // as paradas se somam onde se juntam: o teto cresce com a raiz da quantidade para o vermelho ficar só onde concentra de verdade
+  if (o.pontos.length) L.heatLayer(o.pontos, { radius: 20, blur: 16, maxZoom: 17, max: Math.max(1, Math.sqrt(o.pontos.length) / 3), minOpacity: 0.25, gradient: GRADIENTE_CALOR }).addTo(camada);
+  const porLocal = new Map(o.resumos.map((r) => [r.local.chave, r]));
+  for (const a of ordemDeDesenho(o.areas)) {
+    const r = porLocal.get(a.name);
+    const pol = L.polygon(a.polygon, { className: a.name === o.sel ? "area-calor area-selecionada" : "area-calor", weight: 1, fillOpacity: 0, interactive: !!r });
+    if (r) {
+      pol
+        .bindTooltip(`<b>${esc(a.name)}</b><br>${esc(fmtHoras(r.parado))} parado · ${r.visitas} ${r.visitas === 1 ? "parada" : "paradas"}`, { sticky: true, className: "rotulo-cerca" })
+        .on("click", () => o.aoClicar(a.name));
+    }
+    pol.addTo(camada);
+    if (r) {
+      pol.getElement()?.setAttribute("role", "button");
+      pol.getElement()?.setAttribute("aria-label", a.name);
+    }
+  }
   // nome das plantas de fora da usina (a Usiminas é o mapa inteiro), quando cabem
   const postos: { x: number; y: number }[] = [];
   for (const pl of o.plantas) {
@@ -33,15 +63,5 @@ export function desenharBolhas(
     if (postos.some((q) => Math.abs(q.x - pt.x) < LARG && Math.abs(q.y - pt.y) < ALT)) continue;
     postos.push(pt);
     L.marker(c, { interactive: false, icon: L.divIcon({ className: "rotulo-planta", iconSize: [0, 0], html: `<span>${esc(pl.name.replace(/^PLANTA (DAS |DA |DO |DE )?/i, ""))}</span>` }) }).addTo(camada);
-  }
-  const max = Math.max(0, ...o.resumos.map((r) => r.parado));
-  // da maior para a menor: a bolha pequena fica por cima e recebe o clique
-  for (const r of [...o.resumos].sort((a, b) => b.parado - a.parado)) {
-    const principal = r.apont[0]?.nome ?? null;
-    const classe = o.sel == null ? "bolha" : r.local.chave === o.sel ? "bolha bolha-selecionada" : "bolha bolha-apagada";
-    L.circleMarker([r.local.lat, r.local.lng], { className: classe, radius: raioDaBolha(r.parado, max), color: "#000", weight: 2, fillColor: corDoServico(principal, o.principais), fillOpacity: 0.85 })
-      .bindTooltip(`<b>${esc(r.local.nome)}</b><br>${esc(fmtHoras(r.parado))} parado · ${r.visitas} ${r.visitas === 1 ? "parada" : "paradas"}<br>${esc(principal ?? "sem apontamento")}`, { sticky: true, className: "rotulo-cerca" })
-      .on("click", () => o.aoClicar(r.local.chave))
-      .addTo(camada);
   }
 }

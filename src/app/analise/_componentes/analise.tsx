@@ -2,15 +2,14 @@
 
 import type * as Leaflet from "leaflet";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Legenda } from "@/components/mapa/legenda";
 import { useMapa } from "@/components/mapa/use-mapa";
 import { Aviso, Vazio } from "@/components/ui";
 import { useParadasAnalise } from "@/lib/dados/analise";
 import { lerCercas } from "@/lib/dados/leituras";
 import { useRetrato } from "@/lib/dados/use-retrato";
 import {
-  CHAVE_FORA, OUTROS, SELECAO_VAZIA, areasDaRegiao, contornoDaUsina, diaMenos, equipDaFrota, filtrar, filtrarSelecao, lugaresDoGrafico, montarLocais, plantasDaRegiao,
-  porHora, porServico, resumir, separarFora, servicosPrincipais, ultimoDiaVelho,
+  CHAVE_FORA, OUTROS, SELECAO_VAZIA, areasDaRegiao, buracosDaMascara, contornoDaUsina, diaMenos, equipDaFrota, filtrar, filtrarSelecao, lugaresDoGrafico, montarLocais, plantasDaRegiao, plantasExcluidas, pontosDoCalor,
+  porHora, porServico, resumir, semExcluidas, separarFora, ultimoDiaVelho,
   type DimensaoSelecao, type Periodo, type SelecaoCruzada,
 } from "@/lib/dominio/analise";
 import { ABAS_FAMILIA, DIAS_GUARDADOS, apontNovos, paradasDaFamilia, type AbaFamilia } from "@/lib/dominio/familias";
@@ -18,22 +17,23 @@ import { diaBR, diaLocal, fmtHoras } from "@/lib/dominio/formato";
 import { useOpcao } from "@/lib/hooks";
 import type { Cerca } from "@/lib/tipos";
 import { BarraFiltros, FILTROS_TOPO_VAZIOS, type Etiqueta, type FiltrosTopo } from "./barra-filtros";
-import { desenharBolhas } from "./camada-analise";
-import { COR_OUTROS, corDoServico } from "./cores-analise";
+import { PAINEL_MASCARA, desenharCalor } from "./camada-analise";
 import { PainelFamilia } from "./familia/painel-familia";
 import { SubabasFamilia } from "./familia/subabas-familia";
 import { GraficoBarras, type ItemBarra } from "./grafico-barras";
 import { GraficoHoras } from "./grafico-horas";
+import { LegendaCalor } from "./legenda-calor";
 
 /**
- * Painel da Análise (desenho: docs/superpowers/specs/2026-10-10-painel-analise-design.md): filtros em cima (o período vem das abas),
- * mapa de bolhas à esquerda e, à direita, a Visão geral ou o painel da família de apontamento escolhida (que também filtra as bolhas).
- * Clicar numa bolha, num lugar, num serviço, numa hora ou numa placa filtra o resto; cada gráfico aplica as escolhas dos outros e marca a sua.
+ * Painel da Análise (desenhos: docs/superpowers/specs/2026-10-10-painel-analise-design.md e 2026-10-13-analise-satelite-calor-design.md):
+ * abas, período e filtros numa linha; mapa de satélite (só as plantas, preto em volta) com o calor das paradas à esquerda e, à direita,
+ * a Visão geral ou o painel da família de apontamento escolhida (que também filtra o calor).
+ * Clicar numa área, num lugar, num serviço, numa hora ou numa placa filtra o resto; cada gráfico aplica as escolhas dos outros e marca a sua.
  */
 export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }) {
   const { retrato } = useRetrato();
   const { paradas, carregando, erro } = useParadasAnalise();
-  const { ref, pronto } = useMapa(14, false);
+  const { ref, pronto } = useMapa(14, true);
   const camada = useRef<Leaflet.LayerGroup | null>(null);
   const [cercas, setCercas] = useState<Cerca[]>([]);
   const [hoje] = useState(() => diaLocal());
@@ -46,13 +46,15 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   useEffect(() => {
     lerCercas().then(setCercas, () => undefined);
   }, []);
-  const usina = useMemo(() => contornoDaUsina(cercas), [cercas]);
-  const areas = useMemo(() => areasDaRegiao(cercas.filter((c) => c.tipo === "area"), usina), [cercas, usina]);
-  const plantas = useMemo(() => plantasDaRegiao(cercas), [cercas]);
+  // Mata CDP e USIPA saem do mapa e das contas
+  const validas = useMemo(() => semExcluidas(cercas), [cercas]);
+  const excluidas = useMemo(() => plantasExcluidas(cercas), [cercas]);
+  const usina = useMemo(() => contornoDaUsina(validas), [validas]);
+  const areas = useMemo(() => areasDaRegiao(validas.filter((c) => c.tipo === "area"), usina), [validas, usina]);
+  const plantas = useMemo(() => plantasDaRegiao(validas), [validas]);
+  const buracos = useMemo(() => buracosDaMascara(plantas), [plantas]);
   const equip = useMemo(() => equipDaFrota(retrato?.veiculos ?? []), [retrato]);
-  const base = useMemo(() => montarLocais(paradas, cercas.filter((c) => c.tipo === "area"), equip, usina), [paradas, cercas, equip, usina]);
-  // cor fixa por serviço: os 3 principais dos 30 dias inteiros (não trocam ao filtrar)
-  const principais = useMemo(() => servicosPrincipais(base.paradas), [base]);
+  const base = useMemo(() => montarLocais(paradas, validas.filter((c) => c.tipo === "area"), equip, usina, excluidas), [paradas, validas, equip, usina, excluidas]);
   const doFiltro = useMemo(() => filtrar(base.paradas, { hoje, periodo: Number(periodo), ...filtros, faixas: [], diasSemana: [] }), [base, hoje, periodo, filtros]);
   const doFamilia = useMemo(() => (familia === "geral" ? doFiltro : paradasDaFamilia(doFiltro, familia)), [doFiltro, familia]);
   const recorte = useCallback((ignorar?: DimensaoSelecao) => filtrarSelecao(doFamilia, sel, base.locais, ignorar), [doFamilia, sel, base]);
@@ -66,6 +68,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   const velho = useMemo(() => ultimoDiaVelho(paradas, hoje), [paradas, hoje]);
   const novos = useMemo(() => (familia === "manutencao" ? apontNovos(doFiltro) : []), [doFiltro, familia]);
   const { dentro, fora } = useMemo(() => separarFora(resumir(recorte("local"), base.locais)), [recorte, base]);
+  const pontos = useMemo(() => pontosDoCalor(recorte("local")), [recorte]);
   const servicos = useMemo(() => porServico(recorte("servico")), [recorte]);
   const horas = useMemo(() => porHora(recorte("hora")), [recorte]);
 
@@ -76,8 +79,8 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
     setSel((s) => ({ ...s, servico: null }));
   };
   const escolherSupervisor = (s: string) => setFiltros((f) => ({ ...f, supervisor: f.supervisor === s ? null : s }));
-  const clicarBolha = useCallback((chave: string) => alternar("local", chave), [alternar]);
-  // pelo ranking: aproxima o mapa só quando o lugar tem bolha ("Longe da região" não tem coordenada)
+  const clicarArea = useCallback((chave: string) => alternar("local", chave), [alternar]);
+  // pelo ranking: aproxima o mapa só quando o lugar tem coordenada ("Longe da região" não tem)
   const escolherLugar = (chave: string) => {
     const r = dentro.find((x) => x.local.chave === chave);
     if (sel.local !== chave && r && pronto) pronto.mapa.flyTo([r.local.lat, r.local.lng], Math.max(pronto.mapa.getZoom(), 16), { duration: 0.6 });
@@ -89,6 +92,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
     if (!pronto) return;
     pronto.mapa.getContainer().classList.add("mapa-analise");
     pronto.mapa.zoomControl.remove();
+    if (!pronto.mapa.getPane(PAINEL_MASCARA)) pronto.mapa.createPane(PAINEL_MASCARA).style.zIndex = "350";
     const g = pronto.L.layerGroup().addTo(pronto.mapa);
     camada.current = g;
     const aoZoom = () => setZoom(pronto.mapa.getZoom());
@@ -106,8 +110,8 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
     pronto.mapa.fitBounds(pronto.L.polygon(usina).getBounds(), { padding: [12, 12] });
   }, [pronto, usina, plantas]);
   useEffect(() => {
-    if (pronto && camada.current) desenharBolhas(pronto.L, camada.current, pronto.mapa, { plantas, areas, resumos: dentro, principais, sel: sel.local, aoClicar: clicarBolha });
-  }, [pronto, plantas, areas, dentro, principais, sel.local, zoom, clicarBolha]);
+    if (pronto && camada.current) desenharCalor(pronto.L, camada.current, pronto.mapa, { plantas, buracos, areas, resumos: dentro, pontos, sel: sel.local, aoClicar: clicarArea });
+  }, [pronto, plantas, buracos, areas, dentro, pontos, sel.local, zoom, clicarArea]);
 
   const lugares: ItemBarra[] = lugaresDoGrafico(dentro, fora, sel.local).map((r) => ({
     chave: r.local.chave,
@@ -122,7 +126,6 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
     valor: s.n,
     texto: s.n.toLocaleString("pt-BR"),
     dica: `${s.nome}, ${s.n} ${s.n === 1 ? "parada" : "paradas"}, ${fmtHoras(s.min)}`,
-    marca: s.nome === OUTROS ? undefined : corDoServico(s.nome, principais),
     clicavel: s.nome !== OUTROS,
   }));
   const etiquetas: Etiqueta[] = [];
@@ -130,7 +133,6 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   if (sel.servico) etiquetas.push({ dim: "servico", texto: sel.servico });
   if (sel.hora != null) etiquetas.push({ dim: "hora", texto: `${sel.hora}h` });
   if (sel.placa) etiquetas.push({ dim: "placa", texto: sel.placa });
-  const legenda = principais.length ? [...principais.map((n) => ({ rotulo: n, cor: corDoServico(n, principais) })), { rotulo: "Outros / sem apontamento", cor: COR_OUTROS }] : [];
 
   // tabela ainda não criada (SQL não rodado): o Supabase responde em inglês técnico
   const aviso = erro
@@ -155,7 +157,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
       <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,3fr)_minmax(340px,2fr)] lg:grid-rows-[minmax(0,1fr)]">
         <div className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-borda lg:h-full">
           <div ref={ref} className="absolute inset-0" />
-          <Legenda itens={legenda} />
+          <LegendaCalor />
           {(aviso || semHistorico) && (
             <div className="absolute left-1/2 top-1/2 z-[600] w-[min(380px,calc(100%-24px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-borda bg-superficie/95 p-1 shadow-xl">
               {aviso ? <Aviso tipo="erro">{aviso}</Aviso> : <Vazio titulo="O histórico ainda não foi enviado">Rode o “Enviar Historico ao Site.bat” no PC.</Vazio>}

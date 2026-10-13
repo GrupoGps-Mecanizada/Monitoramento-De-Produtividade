@@ -91,6 +91,8 @@ export const paradasAnalise = () => {
     p("10", "EGC2985", 18 * 3600, "ATERRO CONTROLADO", -19.4, -42.4, { secondary_motor_on: 30 }),
     // a mais de 50 km: vai para a linha "Longe da região"
     p("10", "EGC2985", 20 * 3600, "GALPÃO LONGE", -9.8, -34.1, { secondary_motor_on: 20 }),
+    // Mata CDP e USIPA saem da análise
+    p("10", "EGC2985", 10 * 3600, "MATA CDP", -19.47, -42.52, { stopped: 60 }),
   ];
 };
 
