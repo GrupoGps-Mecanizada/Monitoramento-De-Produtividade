@@ -1,4 +1,5 @@
 import { diaMenos, minutos, porHora, type Local, type ParadaNoLocal } from "./analise";
+import { picoDuasHoras } from "./assuntos";
 import { fmtHoras } from "./formato";
 
 /** Famílias de apontamento do tablet (subabas da Análise). "sem" = paradas sem nenhum apontamento. */
@@ -133,11 +134,7 @@ export function frases({ rotulo, atual, anterior, dias, hoje, locais }: { rotulo
   if (total <= 0) return out;
   const [top] = rankingPlacas(atual, 1);
   if (top && top.min / total > CONCENTRACAO) out.push(`A placa ${top.nome} sozinha soma ${Math.round((top.min / total) * 100)}% do tempo.`);
-  // janela de 2 horas com mais minutos; no empate, a que começa na hora mais cheia (parada só às 8h = "das 8h às 10h")
-  const h = porHora(atual);
-  const janela = (i: number) => h[i] + h[i + 1];
-  let pico = 0;
-  for (let i = 1; i < 23; i++) if (janela(i) > janela(pico) || (janela(i) === janela(pico) && h[i] > h[pico])) pico = i;
+  const pico = picoDuasHoras(porHora(atual));
   out.push(`O pico é das ${pico}h às ${pico + 2}h.`);
   const lugar = new Map<string, number>();
   for (const p of atual) {
