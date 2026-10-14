@@ -1,10 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { prepararDados } from "./apoio";
+import { cronoFolhas, prepararDados } from "./apoio";
 
 test("Cronoanálise: turno, raio-x, conferência com frase e horas por colaborador", async ({ page }) => {
   const gravacoes = await prepararDados(page);
   await page.goto("/cronoanalise/");
-  await expect(page.getByLabel("Turno da cronoanálise")).toContainText("Letra A (Supervisor Teste)");
+  // filtros separados: data, letra, turno, vaga, tipo e supervisor; com um turno só, ele abre direto (sem o seletor de turno)
+  for (const f of ["Data", "Letra", "Turno", "Vaga", "Tipo", "Supervisor"]) await expect(page.getByLabel(f, { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Supervisor", { exact: true })).toContainText("Supervisor Teste");
+  await expect(page.getByLabel("Turno da cronoanálise")).toHaveCount(0);
   await expect(page.getByText("Raio-x do turno")).toBeVisible();
   await expect(page.getByText("João Teste").first()).toBeVisible();
   // produzindo 08:20–08:40 com a bomba (motor 2º) desligada: vira frase
@@ -55,4 +58,24 @@ test("Cronoanálise: sem botões nem barra de zoom e sem textos de ajuda; arrast
     await page.mouse.up();
     await expect(janela).not.toHaveText(antes!);
   }
+});
+
+test("Cronoanálise: filtros em cascata; letra e supervisor vêm da escala quando a folha não traz", async ({ page }) => {
+  // 2º turno: ontem à noite, Vácuo AV-02, sem letra e sem supervisor na folha
+  const d = new Date(Date.now() - 86400000);
+  const ontem = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const noite = { data: ontem, turno: null, horario: "19–07", area: "Área Teste", nome: "Ana Noite", papel: "Motorista", placa: "EGC2993", vaga: "AV-02", equip: "Vácuo",
+    hi: "20:00", hf: "21:00", cod: 32, descricao: "Hidrojateamento – Pistola", cls: "Produzindo", obs: null, supervisor: null, kit: null };
+  await prepararDados(page, { crono: [...cronoFolhas(), noite] });
+  await page.goto("/cronoanalise/");
+  // dois turnos com os filtros vazios: aparece o seletor do turno
+  await expect(page.getByLabel("Turno da cronoanálise")).toBeVisible();
+  await page.getByLabel("Tipo", { exact: true }).selectOption("AV");
+  await expect(page.getByText("Ana Noite").first()).toBeVisible();
+  await expect(page.getByLabel("Turno da cronoanálise")).toHaveCount(0);
+  // a letra veio da escala e o supervisor, da letra (nunca vazio)
+  await expect(page.getByLabel("Letra", { exact: true }).locator("option")).toHaveText(["Todas as letras", /^Letra [ABCD]$/]);
+  await expect(page.getByLabel("Supervisor", { exact: true })).toContainText(/Ozias|Matusalem|Israel|Fabio/);
+  // a vaga só oferece o que existe com o tipo escolhido
+  await expect(page.getByLabel("Vaga", { exact: true }).locator("option")).toHaveText(["Todas as vagas", "AV-02"]);
 });

@@ -142,7 +142,7 @@ export const REGIMES = [{ id: 1, nome: "ADM", ativo: true }, { id: 2, nome: "4X4
  * tiles do mapa. Devolve a lista de tentativas de gravação: os testes exigem que fique vazia (só a tela
  * Equipamentos grava, e o teste dela confere o que foi enviado). `matriz`: troca a matriz de equipamentos.
  */
-export async function prepararDados(page: Page, opcoes: { matriz?: ReturnType<typeof matrizBanco>; analise?: unknown[]; analiseSemTabela?: boolean; eventos?: unknown[]; excessos?: unknown[]; medicao?: ReturnType<typeof medicao>; medicaoSemTabela?: boolean } = {}): Promise<string[]> {
+export async function prepararDados(page: Page, opcoes: { matriz?: ReturnType<typeof matrizBanco>; analise?: unknown[]; analiseSemTabela?: boolean; eventos?: unknown[]; excessos?: unknown[]; medicao?: ReturnType<typeof medicao>; medicaoSemTabela?: boolean; crono?: unknown[] } = {}): Promise<string[]> {
   const gravacoes: string[] = [];
   await page.route(/arcgisonline\.com|tile\.openstreetmap\.org/, (r) => r.abort());
   await page.route("**/rest/v1/**", async (route) => {
@@ -165,7 +165,7 @@ export async function prepararDados(page: Page, opcoes: { matriz?: ReturnType<ty
     if (tabela === "loc_dias") return json([{ dia: hoje() }]);
     if (tabela === "loc_historico") return json([{ resultado: historico(), baixado_em: minutosAtras(60), fechado: true }]);
     if (tabela === "timeline_motor_vaga") return json(motorGauss());
-    if (tabela === "crono_registros") return json(cronoFolhas());
+    if (tabela === "crono_registros") return json(opcoes.crono ?? cronoFolhas());
     if (tabela === "demoras_categorizadas") return json(tablet());
     if (tabela === "analise_excessos") return json(opcoes.excessos ?? []);
     if (tabela === "analise_paradas") {

@@ -7,6 +7,7 @@ import { corDoTom } from "@/lib/cores";
 import { useFolhas, useTelemetriaDoTurno } from "@/lib/dados/cronoanalise";
 import { CLASSES, conferir, montarTurnos, padraoVagaGauss, rankingAtividades, relogio, resumoPessoas, type Classe, type Conferencia, type TurnoCrono } from "@/lib/dominio/cronoanalise";
 import { diaBR, fmtHoras } from "@/lib/dominio/formato";
+import { FILTRO_CRONO_VAZIO, completarTurno, filtrarTurnos, opcoesDoFiltro, type FiltroCrono } from "@/lib/dominio/filtros-crono";
 import { STATUS_GAUSS } from "@/lib/dominio/gauss-dia";
 import { deslocarJanela, type Janela } from "@/lib/dominio/trilhas";
 import type { Tom } from "@/lib/tipos";
@@ -23,9 +24,12 @@ const rotuloTurno = (t: TurnoCrono) =>
  */
 export function Cronoanalise() {
   const { linhas, erro } = useFolhas();
-  const turnos = useMemo(() => montarTurnos(linhas ?? []), [linhas]);
+  // letra e supervisor que a folha não trouxe vêm da escala (segundo cérebro: "Regimes, turnos e supervisores")
+  const turnos = useMemo(() => montarTurnos(linhas ?? []).map(completarTurno), [linhas]);
+  const [filtro, setFiltro] = useState<FiltroCrono>(FILTRO_CRONO_VAZIO);
+  const filtrados = useMemo(() => filtrarTurnos(turnos, filtro), [turnos, filtro]);
   const [escolhido, setEscolhido] = useState<string | null>(null);
-  const turno = turnos.find((t) => t.chave === escolhido) ?? turnos[0] ?? null;
+  const turno = filtrados.find((t) => t.chave === escolhido) ?? filtrados[0] ?? null;
 
   const tele = useTelemetriaDoTurno(turno);
   const conf = useMemo(() => (turno ? conferir(turno, tele.motor, tele.tablet) : null), [turno, tele.motor, tele.tablet]);
@@ -33,33 +37,63 @@ export function Cronoanalise() {
 
   if (erro) return <Moldura><Aviso tipo="erro">Não foi possível ler a cronoanálise: {erro}</Aviso></Moldura>;
   if (!linhas) return <Moldura><Vazio titulo="Carregando as folhas da cronoanálise…" /></Moldura>;
-  if (!turno) return <Moldura><Vazio titulo="Nenhuma folha lançada" /></Moldura>;
+  if (!turnos.length) return <Moldura><Vazio titulo="Nenhuma folha lançada" /></Moldura>;
+
+  const mudar = (p: Partial<FiltroCrono>) => setFiltro((f) => ({ ...f, ...p }));
+  const filtroSelect = (campo: keyof FiltroCrono, rotulo: string, todas: string, nome: (v: string) => string = (v) => v) => (
+    <Selecao aria-label={rotulo} value={filtro[campo] ?? ""} onChange={(e) => mudar({ [campo]: e.target.value || null })} className="w-auto min-w-[120px]">
+      <option value="">{todas}</option>
+      {opcoesDoFiltro(turnos, filtro, campo).map((v) => (
+        <option key={v} value={v}>
+          {nome(v)}
+        </option>
+      ))}
+    </Selecao>
+  );
 
   return (
     <Moldura>
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-borda bg-superficie p-3 shadow-sm">
-        <Selecao value={turno.chave} onChange={(e) => setEscolhido(e.target.value)} aria-label="Turno da cronoanálise" className="min-w-0 flex-1 md:max-w-xl">
-          {turnos.map((t) => (
-            <option key={t.chave} value={t.chave}>
-              {rotuloTurno(t)}
-            </option>
-          ))}
-        </Selecao>
-        <span className="text-xs text-suave md:ml-auto">
-          {relogio(turno, 0)}–{relogio(turno, turno.duracao)}
-          {turno.area ? ` · ${turno.area}` : ""}
-          {turno.kit ? ` · kit ${turno.kit}` : ""}
-        </span>
+        {filtroSelect("data", "Data", "Todas as datas", diaBR)}
+        {filtroSelect("letra", "Letra", "Todas as letras", (v) => `Letra ${v}`)}
+        {filtroSelect("periodo", "Turno", "Dia e noite", (v) => (v === "noite" ? "Noite" : "Dia"))}
+        {filtroSelect("vaga", "Vaga", "Todas as vagas")}
+        {filtroSelect("tipo", "Tipo", "Todos os tipos")}
+        {filtroSelect("supervisor", "Supervisor", "Todos os supervisores")}
+        {filtrados.length > 1 && turno && (
+          <Selecao value={turno.chave} onChange={(e) => setEscolhido(e.target.value)} aria-label="Turno da cronoanálise" className="min-w-0 flex-1 md:max-w-md">
+            {filtrados.map((t) => (
+              <option key={t.chave} value={t.chave}>
+                {rotuloTurno(t)}
+              </option>
+            ))}
+          </Selecao>
+        )}
+        {turno && (
+          <span className="text-xs text-suave md:ml-auto">
+            {relogio(turno, 0)}–{relogio(turno, turno.duracao)}
+            {turno.area ? ` · ${turno.area}` : ""}
+            {turno.kit ? ` · kit ${turno.kit}` : ""}
+          </span>
+        )}
       </div>
+      {!turno ? <Vazio titulo="Nada neste filtro." /> : <Turno turno={turno} conf={conf} tele={tele} />}
+      <Ranking itens={ranking} turnos={turnos.length} />
+    </Moldura>
+  );
+}
 
+/** O turno escolhido: avisos, raio-x, conferência e colaboradores. */
+function Turno({ turno, conf, tele }: { turno: TurnoCrono; conf: Conferencia | null; tele: ReturnType<typeof useTelemetriaDoTurno> }) {
+  return (
+    <>
       {tele.erro && <Aviso tipo="erro">Não foi possível ler o motor e o tablet: {tele.erro}</Aviso>}
       {!padraoVagaGauss(turno.vaga, turno.equip) && <Aviso tipo="alerta">A folha não tem a vaga com número (ex.: AP-01): sem ela, o motor do GAUSS não aparece.</Aviso>}
 
       <RaioX key={turno.chave} turno={turno} conf={conf} carregando={tele.carregando} />
       {conf && <Conferir turno={turno} conf={conf} carregando={tele.carregando} />}
       <Colaboradores turno={turno} />
-      <Ranking itens={ranking} turnos={turnos.length} />
-    </Moldura>
+    </>
   );
 }
 

@@ -1,6 +1,7 @@
 # CHANGELOG · Monitoramento de Localização
 
 ## Sistema mais limpo · 14/10/2026 (não publicado)
+- **Filtros da Cronoanálise separados:** Data, Letra, Turno (dia/noite), Vaga, Tipo (AP/AV/HV/AS) e Supervisor, em cascata (cada um só oferece o que existe com os outros). Folha sem letra recebe a letra pela escala 4x4 e o supervisor pela letra (regra do segundo cérebro, 14/10/2026). O seletor do turno só aparece quando mais de um bate.
 - **Menu em 3 categorias:** Ao vivo (Localização, Alertas), Análises (Análise, Dia da frota, Timeline, Cronoanálise) e Cadastros (Equipamentos). A categoria abre a lista das telas e mostra a tela aberta; no celular, a barra de baixo tem as 3 categorias e a busca.
 - **Largura total:** Alertas, Exceções, Dia da frota, Cronoanálise e a faixa da Timeline usam a página de canto a canto.
 - **Cronoanálise limpa:** saíram os botões de zoom (+, −, ◀ ▶, Turno inteiro): a rodinha do mouse aproxima e afasta e arrastar o raio-x anda no tempo; saíram os textos de ajuda e as explicações longas dos números.
