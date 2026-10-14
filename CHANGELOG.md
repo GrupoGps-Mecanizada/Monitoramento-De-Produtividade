@@ -9,6 +9,7 @@
 - **Uma linha só** no topo: abas, período e filtros (também na Disponibilidade).
 - **Mapa de satélite normal com as cercas nas cores do GAUSS** (como na Localização; plantas tracejadas), no lugar das bolhas. Passar o mouse numa cerca mostra nome e horas paradas; clicar filtra o resto. (O mapa de calor chegou a ser feito e saiu a pedido do dono.)
 - **Mata CDP e USIPA** saem do mapa e das contas (como o Pátio da base).
+- **Abas de assunto** ao lado do mapa: **Status do motor** (padrão: horas paradas, % com motor ligado, status que mais pesa; clicar num status faz placas, lugares e hora pesarem só ele), **Motor secundário** (bomba do Alta Pressão: horas, % do tempo, placa campeã, lugares, placas e hora) e **Apontamentos** (a Visão geral e as famílias de antes).
 
 ## Medição oficial na Análise · 13/10/2026 (não publicado)
 - **Aba Disponibilidade** na Análise (a aba Paradas continua sendo a padrão): os números **oficiais** dos boletins de medição GPS já fechados. Escolha do ciclo, selo Oficial, placar (DF da frota, horas indisponíveis, pior vaga), vagas da pior DF para a melhor com o motivo que mais pesou e, ao clicar, o detalhe: DF por dia, horas por motivo, motor secundário ligado (timeline de motor), placas, conferência eventos × boletim e cada indisponibilidade (placa, início, fim, motivo).
