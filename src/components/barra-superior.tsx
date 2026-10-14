@@ -7,14 +7,15 @@ import { MARCA } from "@/lib/marca";
 import { MENU, telaAtiva } from "@/lib/menu";
 import { avisarBarraAoPortal, portalSGE, useNoPortal } from "@/lib/portal";
 import { useTema } from "@/lib/tema";
-import { CAMINHOS, Icone } from "./icones";
+import { CAMINHOS } from "./icones";
 import { IndicadorVivo } from "./indicador-vivo";
+import { MenuCategorias, MenuCelular } from "./menu-categorias";
 import { abrirPaleta } from "./paleta";
 import { cx } from "./ui";
 
 /**
- * Barra superior "Campo" (a mesma do SST): logo, telas com ícone num trilho próprio, leitura ao vivo,
- * busca Ctrl K e tema. No celular: cabeçalho compacto + barra inferior com as telas e a busca.
+ * Barra superior "Campo" (a mesma do SST): logo, menu em 3 categorias (Ao vivo, Análises, Cadastros), leitura ao vivo,
+ * busca Ctrl K e tema. No celular: cabeçalho compacto + barra inferior com as categorias e a busca.
  * Dentro do Portal SGE: a barra do portal some, a logo volta ao início do portal e aparece "Sair".
  */
 export function BarraSuperior() {
@@ -85,28 +86,7 @@ export function BarraSuperior() {
           </span>
         </Link>
         <span aria-hidden className="mx-3 h-7 w-px shrink-0 bg-nav-borda lg:mx-5" />
-        <nav aria-label="Menu principal" className="flex min-w-0 items-center gap-1 rounded-xl border border-white/[0.06] bg-white/[0.03] p-1">
-          {MENU.map((m) => {
-            const ativo = telaAtiva(caminho, m.href);
-            return (
-              <Link
-                key={m.href}
-                href={m.href}
-                aria-current={ativo ? "page" : undefined}
-                aria-label={m.rotulo}
-                title={m.rotulo}
-                className={cx(
-                  "flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 text-[13.5px] font-medium transition-colors hover:no-underline",
-                  ativo ? "bg-nav-ativo text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" : "text-nav-suave hover:bg-nav-hover hover:text-white",
-                )}
-              >
-                <Icone nome={m.icone} className={cx("h-[17px] w-[17px]", ativo ? "text-[#8fb1f5]" : "opacity-80")} />
-                {/* abaixo de 1280px só os ícones (5 telas não cabem com o nome) */}
-                <span className="hidden xl:inline">{m.rotulo}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        <MenuCategorias />
         <div className="flex-1" />
         {/* com 5 telas no menu, a leitura ao vivo e a busca encolhem em telas médias para não encavalar */}
         <span className="hidden min-[1600px]:contents">
@@ -148,26 +128,7 @@ export function BarraSuperior() {
         {botaoTema}
         {botaoSair}
       </header>
-      <nav aria-label="Telas" className="fixed inset-x-0 bottom-0 z-[1000] flex h-16 border-t border-borda bg-superficie pb-[env(safe-area-inset-bottom)] md:hidden">
-        {MENU.map((m) => {
-          const ativo = telaAtiva(caminho, m.href);
-          return (
-            <Link
-              key={m.href}
-              href={m.href}
-              aria-current={ativo ? "page" : undefined}
-              className={cx("flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold hover:no-underline", ativo ? "text-link" : "text-suave")}
-            >
-              <Icone nome={m.icone} className="h-[21px] w-[21px]" />
-              {m.curto}
-            </Link>
-          );
-        })}
-        <button type="button" onClick={abrirPaleta} className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold text-suave">
-          {iconeBusca("h-[21px] w-[21px]")}
-          Buscar
-        </button>
-      </nav>
+      <MenuCelular buscar={abrirPaleta} iconeBusca={iconeBusca("h-[21px] w-[21px]")} />
     </>
   );
 }
