@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { prepararDados } from "./apoio";
+import { paradasAnalise, prepararDados } from "./apoio";
 
 test("Análise: painel com mapa e gráficos que se filtram, período no topo ao lado das abas", async ({ page }) => {
   const gravacoes = await prepararDados(page);
@@ -186,7 +186,6 @@ test("Análise: subabas por família com frases, apontamentos, quem mais para e 
   await expect(filtrando.getByRole("button", { name: "Tirar filtro: Aguardando Área" })).toBeVisible();
   await familias.getByRole("tab", { name: "Aguardando" }).click();
   await expect(filtrando).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Lugares" })).toHaveCount(0);
   // frases (30 dias: sem comparação); só o caminhão 10 na OFICINA às 8h
   const frases = page.getByRole("list", { name: "Frases automáticas" });
   await expect(frases).toContainText("Aguardando somou 1h00 em 1 parada.");
@@ -210,6 +209,43 @@ test("Análise: subabas por família com frases, apontamentos, quem mais para e 
   await expect(page.getByRole("list", { name: "Frases automáticas" })).toContainText("Sem apontamento somou");
   await expect(page.getByRole("region", { name: "Por apontamento" })).toHaveCount(0);
   expect(gravacoes).toEqual([]);
+});
+
+test("Análise › Apontamentos: família no mesmo molde (números, lugares, quando para) e supervisor escolhido continua na lista", async ({ page }) => {
+  const gravacoes = await prepararDados(page);
+  await page.goto("/analise/");
+  await page.getByRole("tablist", { name: "Assunto" }).getByRole("tab", { name: "Apontamentos" }).click();
+  await page.getByRole("tablist", { name: "Família" }).getByRole("tab", { name: "Aguardando" }).click();
+  const numeros = page.getByRole("region", { name: "Números" });
+  await expect(numeros).toContainText("1h00");
+  await expect(numeros).toContainText("Aguardando Área");
+  await expect(page.getByRole("region", { name: "Lugares" })).toContainText("OFICINA");
+  await expect(page.getByRole("region", { name: "Quando para" }).getByRole("button", { name: /8h, 1h00/ })).toBeVisible();
+  // supervisor: vira o filtro do topo e continua na lista, marcado
+  const sup = page.getByRole("region", { name: "Supervisores" }).getByRole("button").first();
+  const nome = (await sup.getAttribute("aria-label"))!.split(",")[0];
+  await sup.click();
+  await expect(page.getByLabel("Supervisor", { exact: true })).toHaveValue(nome);
+  await expect(page.getByRole("region", { name: "Supervisores" }).getByRole("button", { name: new RegExp(`^${nome},`) })).toHaveAttribute("aria-pressed", "true");
+  expect(gravacoes).toEqual([]);
+});
+
+test("Análise: histórico parado avisa o último dia e não compara com o período anterior", async ({ page }) => {
+  const dia = (n: number) => {
+    const d = new Date(Date.now() - n * 86400000);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  // a mesma parada de Aguardando Área há 10 dias (período atual de 15) e há 20 dias (período anterior)
+  const [aguardando] = paradasAnalise();
+  await prepararDados(page, { analise: [{ ...aguardando, dia: dia(10) }, { ...aguardando, dia: dia(20) }] });
+  await page.goto("/analise/");
+  await page.getByRole("tablist", { name: "Período" }).getByRole("tab", { name: "15 dias" }).click();
+  await page.getByRole("tablist", { name: "Assunto" }).getByRole("tab", { name: "Apontamentos" }).click();
+  await page.getByRole("tablist", { name: "Família" }).getByRole("tab", { name: "Aguardando" }).click();
+  await expect(page.getByText(`Último dia com dados: ${dia(10).split("-").reverse().join("/")}`)).toBeVisible();
+  const frases = page.getByRole("list", { name: "Frases automáticas" });
+  await expect(frases).toContainText("Aguardando somou 1h00 em 1 parada.");
+  await expect(frases).not.toContainText("anteriores");
 });
 
 test("Análise: sem histórico enviado, avisa em vez de quebrar", async ({ page }) => {

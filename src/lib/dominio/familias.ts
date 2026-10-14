@@ -1,4 +1,4 @@
-import { diaMenos, minutos, porHora, type Local, type ParadaNoLocal } from "./analise";
+import { diaMenos, minutos, normalizarNome, porHora, type Local, type ParadaNoLocal } from "./analise";
 import { picoDuasHoras } from "./assuntos";
 import { fmtHoras } from "./formato";
 
@@ -28,9 +28,8 @@ const TABELA: Record<Exclude<Familia, "sem">, string[]> = {
   manutencao: ["Pequenas manutenções", "Condições Climáticas (chuva, etc)"],
 };
 
-/** Nome sem acento, minúsculo, com espaços simples e sem o " - LM" do fim (o tablet varia). */
-export const normalizar = (s: string) =>
-  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim().replace(/ - lm$/, "");
+/** Nome sem acento, minúsculo, com espaços simples e sem o " - LM" do fim (a regra mora em analise.ts, que a seleção também usa). */
+export const normalizar = normalizarNome;
 
 const FAMILIA_DO_NOME = new Map<string, Familia>(
   (Object.entries(TABELA) as [Familia, string[]][]).flatMap(([f, nomes]) => nomes.map((n) => [normalizar(n), f] as const)),

@@ -70,13 +70,20 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   const doFamilia = useMemo(() => (assunto !== "apontamentos" || familia === "geral" ? doFiltro : paradasDaFamilia(doFiltro, familia)), [doFiltro, familia, assunto]);
   const recorte = useCallback((ignorar?: DimensaoSelecao | DimensaoSelecao[]) => filtrarSelecao(doFamilia, sel, base.locais, ignorar), [doFamilia, sel, base]);
   // mesmo recorte no período anterior de mesmo tamanho (só cabe nos 30 dias guardados: 7 e 15)
+  const velho = useMemo(() => ultimoDiaVelho(paradas, hoje), [paradas, hoje]);
   const anterior = useMemo(() => {
     const n = Number(periodo);
-    if (assunto !== "apontamentos" || familia === "geral" || n * 2 > DIAS_GUARDADOS) return null;
+    // com o histórico parado, o período atual tem dias faltando: comparar inventaria uma queda
+    if (velho || assunto !== "apontamentos" || familia === "geral" || n * 2 > DIAS_GUARDADOS) return null;
     const ps = filtrar(base.paradas, { hoje: diaMenos(hoje, n), periodo: n, ...filtros, faixas: [], diasSemana: [] });
     return filtrarSelecao(paradasDaFamilia(ps, familia), sel, base.locais);
+  }, [base, hoje, periodo, filtros, familia, sel, assunto, velho]);
+  // ranking de supervisores: sem o filtro de supervisor, para o escolhido aparecer marcado entre os outros
+  const recorteSupervisores = useCallback(() => {
+    if (assunto !== "apontamentos" || familia === "geral") return [];
+    const ps = filtrar(base.paradas, { hoje, periodo: Number(periodo), ...filtros, supervisor: null, faixas: [], diasSemana: [] });
+    return filtrarSelecao(paradasDaFamilia(ps, familia), sel, base.locais);
   }, [base, hoje, periodo, filtros, familia, sel, assunto]);
-  const velho = useMemo(() => ultimoDiaVelho(paradas, hoje), [paradas, hoje]);
   const novos = useMemo(() => (assunto === "apontamentos" && familia === "manutencao" ? apontNovos(doFiltro) : []), [doFiltro, familia, assunto]);
   const { dentro, fora } = useMemo(() => separarFora(resumir(recorte("local"), base.locais)), [recorte, base]);
   const servicos = useMemo(() => porServico(recorte("servico")), [recorte]);
@@ -217,6 +224,8 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
                 <PainelFamilia
                   familia={familia}
                   recorte={recorte}
+                  recorteSupervisores={recorteSupervisores}
+                  escolherQuando={escolherQuando}
                   anterior={anterior}
                   dias={Number(periodo)}
                   hoje={hoje}

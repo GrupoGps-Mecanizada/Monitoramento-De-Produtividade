@@ -253,6 +253,10 @@ describe("painel: seleção cruzada, serviços, horas e placar", () => {
     expect(filtrarSelecao(paradas, sel({ dia: 0 }), locais)).toEqual([]);
     expect(filtrarSelecao(paradas, sel({ dia: 0, hora: 3 }), locais, ["hora", "dia"])).toHaveLength(3);
   });
+  it("serviço: o nome escolhido acha as variações do tablet (maiúsculas, acento, ' - LM')", () => {
+    const { paradas: ps, locais: ls } = montarLocais([p({ apont: ["AGUARDANDO AREA"] }), p({ apont: ["Aguardando Área - LM"] }), p({ apont: ["Refeição Motorista"] })], AREAS, equip, usina);
+    expect(filtrarSelecao(ps, sel({ servico: "Aguardando Área" }), ls)).toHaveLength(2);
+  });
   it("placa: filtra pela placa; ignorar 'placa' devolve todas", () => {
     expect(filtrarSelecao(paradas, sel({ placa: "EGC2993" }), locais).map((x) => x.placa)).toEqual(["EGC2993"]);
     expect(filtrarSelecao(paradas, sel({ placa: "EGC2993" }), locais, "placa")).toHaveLength(3);
