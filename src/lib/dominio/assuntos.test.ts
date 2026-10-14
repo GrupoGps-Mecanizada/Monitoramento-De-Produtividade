@@ -117,8 +117,14 @@ describe("visualização: grade, faixas e placas por status", () => {
   });
   it("placas por status: partes na ordem fixa, ordenadas pelo destaque e depois pelo total", () => {
     const r = placasPorStatus(paradas, "stopped");
-    expect(r.map((l) => [l.nome, l.destaque, l.total])).toEqual([["EGC2985", 140, 240], ["EGC2993", 0, 60]]);
+    expect(r.map((l) => [l.nome, l.destaque, l.total])).toEqual([["EGC2985", 140, 240], ["EAM3257", 0, 60], ["EGC2993", 0, 60]]);
     expect(r[0].partes.map((x) => x.cod)).toEqual(["stopped", "secondary_motor_on"]);
-    expect(placasPorStatus(paradas, "off").map((l) => l.nome)).toEqual(["EGC2993", "EGC2985"]);
+    expect(placasPorStatus(paradas, "off").map((l) => l.nome)).toEqual(["EGC2993", "EGC2985", "EAM3257"]);
+  });
+  it("placa sem dado de motor não some: o tempo parado entra como 'Sem dados de bordo'", () => {
+    const r = placasPorStatus(paradas, "stopped");
+    const hiper = r.find((l) => l.nome === "EAM3257");
+    expect(hiper).toMatchObject({ destaque: 0, total: 60 });
+    expect(hiper?.partes).toEqual([{ cod: "no_data", rotulo: "Sem dados de bordo", min: 60 }]);
   });
 });

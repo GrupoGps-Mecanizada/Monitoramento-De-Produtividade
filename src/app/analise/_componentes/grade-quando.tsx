@@ -4,7 +4,7 @@ import { cx } from "@/components/ui";
 import { DIAS_CURTOS } from "@/lib/dominio/analise";
 import { faixaDe, faixasDe } from "@/lib/dominio/assuntos";
 import { fmtHoras } from "@/lib/dominio/formato";
-import { corDaFaixa } from "./cores-analise";
+import { corDaFaixa, textoSobreFaixa } from "./cores-analise";
 
 /** seg a dom (a semana de trabalho primeiro) */
 const LINHAS = [1, 2, 3, 4, 5, 6, 0];
@@ -43,7 +43,7 @@ export function GradeQuando({ grade, hora, dia, escolher, vazio }: { grade: numb
                     title={`${DIAS_CURTOS[d]} ${h}h · ${fmtHoras(v)}`}
                     onClick={() => escolher(d, h)}
                     className={cx("flex h-6 items-center justify-center rounded-[3px] text-[9px] font-semibold leading-none", escolhido && "ring-2 ring-texto", hora != null && !escolhido && "opacity-40")}
-                    style={{ background: v > 0 ? corDaFaixa(f, limites.length + 1) : "var(--superficie-2)", color: f >= 2 ? "#fff" : "var(--texto)" }}
+                    style={{ background: v > 0 ? corDaFaixa(f, limites.length + 1) : "var(--superficie-2)", color: textoSobreFaixa(f, limites.length + 1) }}
                   >
                     {fortes.has(v) && v > 0 ? `${Math.round(v / 60)}h` : ""}
                   </button>
