@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useZoomRoda } from "@/components/historico/zoom-roda";
-import { Aviso, SecaoTitulo, Selecao, Selo, Vazio } from "@/components/ui";
+import { Aviso, SecaoTitulo, Selecao, Vazio } from "@/components/ui";
 import { corDoTom } from "@/lib/cores";
 import { useFolhas, useTelemetriaDoTurno } from "@/lib/dados/cronoanalise";
 import { CLASSES, conferir, montarTurnos, padraoVagaGauss, rankingAtividades, relogio, resumoPessoas, type Classe, type Conferencia, type TurnoCrono } from "@/lib/dominio/cronoanalise";
@@ -56,7 +56,6 @@ export function Cronoanalise() {
       {!padraoVagaGauss(turno.vaga, turno.equip) && <Aviso tipo="alerta">A folha não tem a vaga com número (ex.: AP-01): sem ela, o motor do GAUSS não aparece.</Aviso>}
 
       <RaioX key={turno.chave} turno={turno} conf={conf} carregando={tele.carregando} />
-      {conf && <Conferir turno={turno} conf={conf} carregando={tele.carregando} />}
       <Colaboradores turno={turno} />
       <Ranking itens={ranking} turnos={turnos.length} />
     </Moldura>
@@ -213,49 +212,6 @@ function RaioX({ turno, conf, carregando }: { turno: TurnoCrono; conf: Conferenc
         </div>
       </div>
       <p className="mt-2 text-[11px] text-suave">Passe o mouse num pedaço para ver a atividade, o horário e a observação da folha. Aproxime para ler os nomes dentro das caixas.</p>
-    </Cartao>
-  );
-}
-
-// ---------- conferência ----------
-
-function Numero({ titulo, valor, sub }: { titulo: string; valor: string; sub: string }) {
-  return (
-    <div className="rounded-lg border border-borda bg-superficie-2 px-3 py-2.5">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-suave">{titulo}</p>
-      <p className="mt-0.5 text-2xl font-bold tabular-nums">{valor}</p>
-      <p className="text-[11px] text-suave">{sub}</p>
-    </div>
-  );
-}
-
-function Conferir({ turno, conf, carregando }: { turno: TurnoCrono; conf: Conferencia; carregando: boolean }) {
-  const regra = conf.produtivo ? (STATUS_GAUSS[conf.produtivo]?.rotulo ?? conf.produtivo).toLowerCase() : null;
-  return (
-    <Cartao titulo="Conferência: folha × motor × tablet">
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        <Numero titulo="Folha e motor batem" valor={conf.concordancia == null ? "—" : `${conf.concordancia}%`} sub={regra ? `produzindo na folha × ${regra}, minuto a minuto` : "este tipo não tem regra de produtivo"} />
-        <Numero titulo="Produzindo na folha" valor={fmtHoras(conf.minEquipeProduzindo)} sub={`de ${fmtHoras(conf.minFolha)} com folha preenchida`} />
-        <Numero titulo="Motor produtivo" valor={regra ? fmtHoras(conf.minMotorProdutivo) : "—"} sub={regra ? `${regra} (GAUSS)` : "sem regra"} />
-        <Numero titulo="Tablet confere" valor={conf.tabletConfere == null ? "—" : `${conf.tabletConfere}%`} sub={`${fmtHoras(conf.minTablet)} apontadas no tablet`} />
-      </div>
-      <p className="mb-2 mt-4 text-[13px] font-semibold">O que não bate</p>
-      {carregando ? (
-        <p className="text-sm text-suave">Lendo o motor e o tablet…</p>
-      ) : !conf.frases.length ? (
-        <p className="text-sm text-suave">Nada fora do esperado: a folha, o motor e o tablet contam a mesma história neste turno.</p>
-      ) : (
-        <ul className="space-y-1.5">
-          {conf.frases.map((f, i) => (
-            <li key={i} className="flex flex-wrap items-start gap-2 text-[13px]">
-              <Selo tom={f.tom} className="tabular-nums">
-                {relogio(turno, f.a)}–{relogio(turno, f.b)}
-              </Selo>
-              <span className="min-w-0 flex-1">{f.texto}</span>
-            </li>
-          ))}
-        </ul>
-      )}
     </Cartao>
   );
 }
