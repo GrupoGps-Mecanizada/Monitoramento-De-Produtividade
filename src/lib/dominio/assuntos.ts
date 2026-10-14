@@ -26,7 +26,9 @@ export interface Linha {
   min: number;
 }
 const somaPeso = (ps: ParadaNoLocal[], peso: Peso) => ps.reduce((s, p) => s + peso(p), 0);
-const somaMotor = (p: ParadaNoLocal) => Object.values(p.motor).reduce((s, m) => s + m, 0);
+/** "Sem dados de bordo" não é dado de motor: fica fora da base dos %. */
+const SEM_DADO = "no_data";
+const somaMotor = (p: ParadaNoLocal) => Object.entries(p.motor).reduce((s, [cod, m]) => (cod === SEM_DADO ? s : s + m), 0);
 
 /** Soma o peso por chave (só paradas com peso), do maior ao menor, top n. */
 function somarPorPeso(ps: ParadaNoLocal[], chave: (p: ParadaNoLocal) => string, nome: (k: string) => string, peso: Peso, n: number): Linha[] {

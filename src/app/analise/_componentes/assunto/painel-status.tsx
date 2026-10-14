@@ -21,12 +21,15 @@ export const itemLinha = (l: Linha): ItemBarra => ({ chave: l.chave, rotulo: l.n
 
 /** Status do motor: horas paradas, % ligado e o status que mais pesa; clicar num status faz placas, lugares e hora pesarem só ele. */
 export function PainelStatus({ recorte, locais, sel, alternar, vazio }: PropsAssunto) {
-  const [status, setStatus] = useState<string | null>(null);
+  const [escolhido, setStatus] = useState<string | null>(null);
   const todas = recorte();
   const n = numerosStatus(todas);
+  const somas = somarStatus(todas);
+  // o status escolhido que some com um filtro deixa de valer (senão ficaria preso, sem barra para desmarcar)
+  const status = escolhido && somas.some((s) => s.cod === escolhido) ? escolhido : null;
   const peso = status ? pesoStatus(status) : pesoParado;
   const rotulo = status ? rotuloStatus(status) : "Tempo parado";
-  const porStatus: ItemBarra[] = somarStatus(todas).map((s) => ({ chave: s.cod, rotulo: s.rotulo, valor: s.min, texto: fmtHoras(s.min), dica: `${s.rotulo}, ${fmtHoras(s.min)}` }));
+  const porStatus: ItemBarra[] = somas.map((s) => ({ chave: s.cod, rotulo: s.rotulo, valor: s.min, texto: fmtHoras(s.min), dica: `${s.rotulo}, ${fmtHoras(s.min)}` }));
   return (
     <div className="flex flex-col gap-2">
       <Numeros

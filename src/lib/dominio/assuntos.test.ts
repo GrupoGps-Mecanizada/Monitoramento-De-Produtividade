@@ -67,6 +67,12 @@ describe("status do motor", () => {
     const semMotor = paradas.filter((x) => x.placa === "EAM3257");
     expect(numerosStatus(semMotor)).toEqual({ parado: 60, comMotor: 0, ligadoPct: null, maior: null });
   });
+  it("'Sem dados de bordo' não conta como dado de motor: sozinho dá '—'; junto, fica fora da base do %", () => {
+    const ps = montarLocais([p({ motor: { no_data: 60 } }), p({ ini: 10 * H, fim: 11 * H, motor: { stopped: 30, no_data: 30 } })], AREAS, equip, AREAS[0].polygon).paradas;
+    expect(numerosStatus(ps.slice(0, 1)).ligadoPct).toBeNull();
+    expect(numerosStatus(ps).ligadoPct).toBe(1);
+    expect(numerosMotor2(ps.slice(0, 1)).pct).toBeNull();
+  });
 });
 
 describe("motor secundário", () => {

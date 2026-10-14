@@ -94,6 +94,11 @@ test("Análise: Status do motor (padrão) e Motor secundário com números, fras
   await expect(page.getByRole("region", { name: "Placas" })).toContainText("1h30");
   await porStatus.getByRole("button", { name: /^Motor 2º ligado/ }).click();
   await expect(page.getByRole("region", { name: "Placas" }).getByRole("button")).toHaveCount(2);
+  // status escolhido que some com um filtro não fica preso: volta a pesar o tempo parado
+  await porStatus.getByRole("button", { name: /^Motor 2º ligado/ }).click();
+  await page.getByLabel("Tipo").selectOption("as");
+  await expect(page.getByRole("region", { name: "Placas" })).toContainText("ASP12");
+  await page.getByLabel("Tipo").selectOption("");
   // serviço escolhido em Apontamentos sai ao trocar de assunto
   await assunto.getByRole("tab", { name: "Apontamentos" }).click();
   await page.getByRole("region", { name: "Por serviço" }).getByRole("button", { name: /^Aguardando Área/ }).click();
