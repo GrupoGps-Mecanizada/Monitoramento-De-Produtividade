@@ -10,6 +10,7 @@
 - **Mapa de satélite normal com as cercas nas cores do GAUSS** (como na Localização; plantas tracejadas), no lugar das bolhas. Passar o mouse numa cerca mostra nome e horas paradas; clicar filtra o resto. (O mapa de calor chegou a ser feito e saiu a pedido do dono.)
 - **Mata CDP e USIPA** saem do mapa e das contas (como o Pátio da base).
 - **Abas de assunto** ao lado do mapa: **Status do motor** (padrão: horas paradas, % com motor ligado, status que mais pesa; clicar num status faz placas, lugares e hora pesarem só ele), **Motor secundário** (bomba do Alta Pressão: horas, % do tempo, placa campeã, lugares, placas e hora) e **Apontamentos** (a Visão geral e as famílias de antes).
+- **Visualização inteligente** (pesquisa de 14/10/2026): seletor **Cor do mapa** (Da cerca | Tempo parado: 5 tons de azul e as horas escritas nas cercas que mais pesam), grade **Quando para** (dia da semana × hora, clicável: filtra hora e dia) no lugar de "Hora do dia" e, em Status do motor, **barra por placa dividida por status** com o destaque e o total.
 - **Ocultar gráficos:** botão no fim da linha de filtros; o mapa ocupa a tela inteira e as cercas continuam filtrando. A escolha fica guardada no navegador.
 
 ## Medição oficial na Análise · 13/10/2026 (não publicado)
