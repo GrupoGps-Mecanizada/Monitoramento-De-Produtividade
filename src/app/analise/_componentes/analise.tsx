@@ -64,7 +64,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   const doFiltro = useMemo(() => filtrar(base.paradas, { hoje, periodo: Number(periodo), ...filtros, faixas: [], diasSemana: [] }), [base, hoje, periodo, filtros]);
   // a família só filtra dentro de Apontamentos
   const doFamilia = useMemo(() => (assunto !== "apontamentos" || familia === "geral" ? doFiltro : paradasDaFamilia(doFiltro, familia)), [doFiltro, familia, assunto]);
-  const recorte = useCallback((ignorar?: DimensaoSelecao) => filtrarSelecao(doFamilia, sel, base.locais, ignorar), [doFamilia, sel, base]);
+  const recorte = useCallback((ignorar?: DimensaoSelecao | DimensaoSelecao[]) => filtrarSelecao(doFamilia, sel, base.locais, ignorar), [doFamilia, sel, base]);
   // mesmo recorte no período anterior de mesmo tamanho (só cabe nos 30 dias guardados: 7 e 15)
   const anterior = useMemo(() => {
     const n = Number(periodo);

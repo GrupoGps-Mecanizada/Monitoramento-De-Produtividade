@@ -1,4 +1,4 @@
-import { CHAVE_FORA, horaDe, minutos, type Local, type ParadaNoLocal } from "./analise";
+import { CHAVE_FORA, diaDaSemana, horaDe, minutos, type Local, type ParadaNoLocal } from "./analise";
 import { fmtHoras } from "./formato";
 import { STATUS_GAUSS } from "./gauss-dia";
 
@@ -115,4 +115,57 @@ export function frasesAssunto({ rotulo, paradas, peso, locais }: { rotulo: strin
   const [lugar] = lugaresPorPeso(com, locais, peso, 1);
   if (lugar) out.push(`Onde mais acontece: ${lugar.nome}, ${fmtHoras(lugar.min)}.`);
   return out;
+}
+
+/** Peso por dia da semana (linha 0 = domingo) e hora de início (coluna 0–23): a grade "Quando para". */
+export function gradeHoraDia(ps: ParadaNoLocal[], peso: Peso): number[][] {
+  const g = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
+  for (const p of ps) g[diaDaSemana(p.dia)][horaDe(p.ini)] += peso(p);
+  return g;
+}
+
+/** Limites de até 5 faixas (quintis dos valores acima de 0, sem repetir): valor ≤ limites[i] cai na faixa i. */
+export function faixasDe(valores: number[]): number[] {
+  const vs = valores.filter((v) => v > 0).sort((a, b) => a - b);
+  if (!vs.length) return [];
+  return [...new Set([0.2, 0.4, 0.6, 0.8].map((q) => vs[Math.floor(q * (vs.length - 1))]))];
+}
+/** Faixa do valor: 0 (até o 1º limite) ... limites.length (acima do último). */
+export function faixaDe(v: number, limites: number[]): number {
+  let i = 0;
+  while (i < limites.length && v > limites[i]) i++;
+  return i;
+}
+
+/** Ordem fixa dos status nas barras (a cor segue o status, nunca a posição). */
+export const ORDEM_STATUS = ["stopped", "on", MOTOR2, "categorized_stop", "off", "main_switch_off", "maintenance", "out_of_plant", "not_appropriated", "no_data"];
+const posStatus = (cod: string) => {
+  const i = ORDEM_STATUS.indexOf(cod);
+  return i < 0 ? ORDEM_STATUS.length : i;
+};
+export interface PlacaStatus {
+  chave: string;
+  nome: string;
+  /** minutos de motor (todos os status) */
+  total: number;
+  /** minutos do status em destaque */
+  destaque: number;
+  partes: StatusSoma[];
+}
+/** Placas com o tempo de cada status do motor, ordenadas pelo status em destaque e depois pelo total (top n). */
+export function placasPorStatus(ps: ParadaNoLocal[], destaque: string, n = 10): PlacaStatus[] {
+  const m = new Map<string, Map<string, number>>();
+  for (const p of ps) {
+    const partes = m.get(p.placa) ?? new Map<string, number>();
+    for (const [cod, min] of Object.entries(p.motor)) if (min > 0) partes.set(cod, (partes.get(cod) ?? 0) + min);
+    m.set(p.placa, partes);
+  }
+  return [...m]
+    .map(([placa, partes]) => {
+      const lista = [...partes].map(([cod, min]) => ({ cod, rotulo: rotuloStatus(cod), min })).sort((a, b) => posStatus(a.cod) - posStatus(b.cod));
+      return { chave: placa, nome: placa, total: lista.reduce((s, x) => s + x.min, 0), destaque: partes.get(destaque) ?? 0, partes: lista };
+    })
+    .filter((l) => l.total > 0)
+    .sort((a, b) => b.destaque - a.destaque || b.total - a.total || a.nome.localeCompare(b.nome))
+    .slice(0, n);
 }
