@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Veiculo } from "../tipos";
 import { CHAVE_FORA, equipDaFrota, montarLocais, type ParadaAnalise } from "./analise";
 import {
-  MOTOR2, frasesAssunto, lugaresPorPeso, numerosMotor2, numerosStatus, paradasMotor2, pesoParado, pesoStatus, picoDuasHoras, placasPorPeso, porHoraPeso, somarStatus,
+  MOTOR2, faixaDe, faixasDe, frasesAssunto, gradeHoraDia, lugaresPorPeso, numerosMotor2, numerosStatus, paradasMotor2, pesoParado, pesoStatus, picoDuasHoras, placasPorPeso, placasPorStatus, porHoraPeso, somarStatus,
 } from "./assuntos";
 
 const H = 3600;
@@ -98,5 +98,27 @@ describe("frases do assunto", () => {
     const f = frasesAssunto({ rotulo: "Bomba ligada", paradas: paradas.filter((x) => x.area === "GALPÃO LONGE"), peso: pesoStatus(MOTOR2), locais });
     expect(f[f.length - 1]).toBe("Onde mais acontece: Longe da região, 1h00.");
     expect(frasesAssunto({ rotulo: "X", paradas, peso: () => 0, locais })).toEqual([]);
+  });
+});
+
+describe("visualização: grade, faixas e placas por status", () => {
+  it("grade dia da semana × hora pelo peso (2026-10-01 = quinta)", () => {
+    const g = gradeHoraDia(paradas, pesoParado);
+    expect(g).toHaveLength(7);
+    expect(g[4]).toHaveLength(24);
+    expect([g[4][8], g[4][14], g[4][10], g[4][20]]).toEqual([60, 120, 60, 60]);
+    expect(g[0].every((x) => x === 0)).toBe(true);
+  });
+  it("faixas: quintis dos valores > 0 sem repetir; faixaDe dá 0..n", () => {
+    expect(faixasDe([10, 20, 30, 40, 50, 0])).toEqual([10, 20, 30, 40]);
+    expect(faixasDe([5, 5, 5])).toEqual([5]);
+    expect(faixasDe([0, 0])).toEqual([]);
+    expect([faixaDe(10, [10, 20, 30, 40]), faixaDe(11, [10, 20, 30, 40]), faixaDe(99, [10, 20, 30, 40]), faixaDe(7, [])]).toEqual([0, 1, 4, 0]);
+  });
+  it("placas por status: partes na ordem fixa, ordenadas pelo destaque e depois pelo total", () => {
+    const r = placasPorStatus(paradas, "stopped");
+    expect(r.map((l) => [l.nome, l.destaque, l.total])).toEqual([["EGC2985", 140, 240], ["EGC2993", 0, 60]]);
+    expect(r[0].partes.map((x) => x.cod)).toEqual(["stopped", "secondary_motor_on"]);
+    expect(placasPorStatus(paradas, "off").map((l) => l.nome)).toEqual(["EGC2993", "EGC2985"]);
   });
 });

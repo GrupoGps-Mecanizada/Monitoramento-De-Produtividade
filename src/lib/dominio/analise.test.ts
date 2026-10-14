@@ -4,7 +4,7 @@ import {
   areasDaRegiao, contornoDaUsina, plantasDaRegiao, separarFora, totais,
   categoriaPeloNome, diaDaSemana, diaMenos, equipDaFrota, faixaDe, filtrar, montarLocais, ordemDeDesenho, ranking, resumir, temRegra, valoresDaParada,
   CHAVE_FORA, OUTROS, SELECAO_VAZIA, filtrarSelecao, horaDe, lugaresDoGrafico, placar, porHora, porServico, raioDaBolha, servicosPrincipais, ultimoDiaVelho,
-  ehExcluidaDaAnalise, plantasExcluidas, semExcluidas,
+  DIAS_CURTOS, ehExcluidaDaAnalise, plantasExcluidas, semExcluidas,
   type FiltroAnalise, type ParadaAnalise, type ResumoLocal,
 } from "./analise";
 
@@ -245,6 +245,13 @@ describe("painel: seleção cruzada, serviços, horas e placar", () => {
     expect(filtrarSelecao(paradas, sel({ servico: "Transbordo" }), locais)).toHaveLength(1);
     expect(filtrarSelecao(paradas, sel({ hora: 14 }), locais).map((x) => x.ini)).toEqual([14 * H]);
     expect(filtrarSelecao(paradas, sel({ local: "ALTO FORNO 3" }), locais)).toHaveLength(2);
+  });
+  it("dia da semana: filtra; ignorar uma lista pula hora e dia juntos", () => {
+    // 2026-10-01 é quinta (4)
+    expect(DIAS_CURTOS[4]).toBe("qui");
+    expect(filtrarSelecao(paradas, sel({ dia: 4 }), locais)).toHaveLength(3);
+    expect(filtrarSelecao(paradas, sel({ dia: 0 }), locais)).toEqual([]);
+    expect(filtrarSelecao(paradas, sel({ dia: 0, hora: 3 }), locais, ["hora", "dia"])).toHaveLength(3);
   });
   it("placa: filtra pela placa; ignorar 'placa' devolve todas", () => {
     expect(filtrarSelecao(paradas, sel({ placa: "EGC2993" }), locais).map((x) => x.placa)).toEqual(["EGC2993"]);

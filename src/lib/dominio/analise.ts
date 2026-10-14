@@ -381,27 +381,33 @@ export function totais(rs: ResumoLocal[]) {
   return t;
 }
 
-/** Clique no painel: o lugar (bolha ou ranking), o serviço (apontamento), a hora de início e a placa escolhidos. */
+/** Clique no painel: o lugar (bolha ou ranking), o serviço (apontamento), a hora de início, a placa e o dia da semana escolhidos. */
 export interface SelecaoCruzada {
   local: string | null;
   servico: string | null;
   hora: number | null;
   placa: string | null;
+  /** 0 = domingo ... 6 = sábado */
+  dia: number | null;
 }
 export type DimensaoSelecao = keyof SelecaoCruzada;
-export const SELECAO_VAZIA: SelecaoCruzada = { local: null, servico: null, hora: null, placa: null };
+export const SELECAO_VAZIA: SelecaoCruzada = { local: null, servico: null, hora: null, placa: null, dia: null };
+/** Nome curto do dia da semana (0 = domingo). */
+export const DIAS_CURTOS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 /** Hora (0–23) do início da parada. */
 export const horaDe = (ini: number) => Math.min(23, Math.floor(ini / H));
 
-/** Paradas da seleção. `ignorar` pula uma dimensão: o gráfico dela mostra todas as opções e destaca a escolhida. */
-export function filtrarSelecao(paradas: ParadaNoLocal[], sel: SelecaoCruzada, locais: Map<string, Local>, ignorar?: DimensaoSelecao): ParadaNoLocal[] {
+/** Paradas da seleção. `ignorar` pula uma dimensão (ou várias, como hora e dia da grade): o gráfico dela mostra todas e destaca a escolhida. */
+export function filtrarSelecao(paradas: ParadaNoLocal[], sel: SelecaoCruzada, locais: Map<string, Local>, ignorar?: DimensaoSelecao | DimensaoSelecao[]): ParadaNoLocal[] {
+  const pula = (d: DimensaoSelecao) => (Array.isArray(ignorar) ? ignorar.includes(d) : ignorar === d);
   const noLocal = (p: ParadaNoLocal) => (sel.local === CHAVE_FORA ? locais.get(p.local)?.naRegiao === false : p.local === sel.local);
   return paradas.filter(
     (p) =>
-      (ignorar === "local" || !sel.local || noLocal(p)) &&
-      (ignorar === "servico" || !sel.servico || p.apont.includes(sel.servico)) &&
-      (ignorar === "hora" || sel.hora == null || horaDe(p.ini) === sel.hora) &&
-      (ignorar === "placa" || !sel.placa || p.placa === sel.placa),
+      (pula("local") || !sel.local || noLocal(p)) &&
+      (pula("servico") || !sel.servico || p.apont.includes(sel.servico)) &&
+      (pula("hora") || sel.hora == null || horaDe(p.ini) === sel.hora) &&
+      (pula("placa") || !sel.placa || p.placa === sel.placa) &&
+      (pula("dia") || sel.dia == null || diaDaSemana(p.dia) === sel.dia),
   );
 }
 
