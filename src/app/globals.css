@@ -370,6 +370,8 @@ textarea:focus {
 .mapa-analise.leaflet-container { background: #000; }
 .area-cerca { cursor: pointer; }
 .area-selecionada { stroke: #fff; stroke-width: 3px; }
+/* modos de dados (Quanto parou, O que parou): satélite cinza e escuro para as cores das áreas aparecerem */
+.mapa-analise.fundo-apagado .leaflet-tile-pane { filter: grayscale(90%) brightness(0.55); }
 .rotulo-horas { background: none; border: 0; }
 .rotulo-horas > span {
   position: absolute; transform: translate(-50%, -50%); white-space: nowrap; pointer-events: none;

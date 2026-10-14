@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Veiculo } from "../tipos";
 import { equipDaFrota, montarLocais, type ParadaAnalise } from "./analise";
 import {
-  SEM_SUPERVISOR, apontNovos, familiaDe, frases, normalizar, paradasDaFamilia, porApontamento, porDia, rankingPlacas, rankingSupervisores,
+  SEM_SUPERVISOR, apontNovos, familiaDe, normalizar, paradasDaFamilia, porApontamento, porDia, rankingPlacas, rankingSupervisores,
 } from "./familias";
 
 const H = 3600;
@@ -17,7 +17,7 @@ const p = (o: Partial<ParadaAnalise>): ParadaAnalise => ({ dia: "2026-10-01", ve
 const montar = (ps: ParadaAnalise[]) => montarLocais(ps, AREAS, equip, usina);
 
 // a1 2h Aguardando Área; a2 1h variação do nome + Refeição; a3 30 min semáforo (outro caminhão); b1 DDS sem " - LM"; b2 apontamento novo; b3 sem apontamento
-const { paradas, locais } = montar([
+const { paradas } = montar([
   p({ apont: ["Aguardando Área"], ini: 14 * H, fim: 16 * H }),
   p({ dia: "2026-10-03", apont: ["AGUARDANDO AREA", "Refeição Motorista"], ini: 15 * H, fim: 16 * H }),
   p({ dia: "2026-10-03", veiculo_id: "2", placa: "EGC2993", apont: ["Aguardando semáforo/cancela"], ini: 8 * H, fim: 8 * H + 1800 }),
@@ -79,40 +79,5 @@ describe("famílias de apontamento", () => {
       { dia: "2026-10-02", min: 0 },
       { dia: "2026-10-03", min: 90 },
     ]);
-  });
-});
-
-describe("frases automáticas", () => {
-  const base = { rotulo: "Aguardando", atual: aguardando, anterior: null, dias: 30, hoje: "2026-10-08", locais };
-  it("sem período anterior (30 dias): total, concentração, pico e lugar", () => {
-    expect(frases(base)).toEqual([
-      "Aguardando somou 3h30 em 3 paradas.",
-      "A placa EGC2985 sozinha soma 86% do tempo.",
-      "O pico é das 14h às 16h.",
-      "Onde mais acontece: ALTO FORNO 3, 3h30.",
-    ]);
-  });
-  it("com período anterior: compara a média por dia, sem o dia de hoje (incompleto); anterior zerado não compara", () => {
-    // atual: 210 min em 01/10 e 03/10; hoje = 08/10 → 6 dias completos = 35 min/dia
-    const ant = (min: number) => paradasDaFamilia(montar([p({ dia: "2026-09-28", apont: ["Aguardando Área"], ini: 0, fim: min * 60 })]).paradas, "aguardando");
-    const sete = { ...base, dias: 7, hoje: "2026-10-08" };
-    expect(frases({ ...sete, anterior: ant(196) })[0]).toBe("Aguardando somou 3h30 em 3 paradas, 25% a mais por dia que nos 7 dias anteriores.");
-    expect(frases({ ...sete, anterior: ant(490) })[0]).toBe("Aguardando somou 3h30 em 3 paradas, 50% a menos por dia que nos 7 dias anteriores.");
-    expect(frases({ ...sete, anterior: ant(245) })[0]).toBe("Aguardando somou 3h30 em 3 paradas, igual por dia aos 7 dias anteriores.");
-    expect(frases({ ...sete, anterior: [] })[0]).toBe("Aguardando somou 3h30 em 3 paradas.");
-  });
-  it("as paradas de hoje entram no total, mas não na comparação", () => {
-    const comHoje = [...aguardando, ...paradasDaFamilia(montar([p({ dia: "2026-10-08", apont: ["Aguardando Área"], ini: 0, fim: 600 * 60 })]).paradas, "aguardando")];
-    const ant = paradasDaFamilia(montar([p({ dia: "2026-09-28", apont: ["Aguardando Área"], ini: 0, fim: 245 * 60 })]).paradas, "aguardando");
-    expect(frases({ ...base, atual: comHoje, dias: 7, hoje: "2026-10-08", anterior: ant })[0]).toBe("Aguardando somou 13h30 em 4 paradas, igual por dia aos 7 dias anteriores.");
-  });
-  it("concentração de até 20% não vira frase; 1 parada no singular", () => {
-    const cinco = paradasDaFamilia(montar(["P1", "P2", "P3", "P4", "P5"].map((placa) => p({ placa, apont: ["Aguardando Área"] }))).paradas, "aguardando");
-    const f = frases({ ...base, atual: cinco });
-    expect(f.some((x) => x.startsWith("A placa"))).toBe(false);
-    expect(frases({ ...base, atual: aguardando.slice(0, 1) })[0]).toBe("Aguardando somou 2h00 em 1 parada.");
-  });
-  it("sem paradas: nenhuma frase", () => {
-    expect(frases({ ...base, atual: [] })).toEqual([]);
   });
 });

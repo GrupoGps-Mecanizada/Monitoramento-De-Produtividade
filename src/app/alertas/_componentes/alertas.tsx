@@ -66,7 +66,7 @@ export function Alertas({ topo }: { topo?: ReactNode } = {}) {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] space-y-4 px-4 pb-24 pt-5 md:px-8 md:pb-10 md:pt-7">
+    <div className="w-full space-y-4 px-4 pb-24 pt-5 md:px-8 md:pb-10 md:pt-7">
       {topo}
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
         {cartoes.map((c) => (

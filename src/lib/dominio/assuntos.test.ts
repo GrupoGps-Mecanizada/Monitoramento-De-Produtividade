@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Veiculo } from "../tipos";
 import { CHAVE_FORA, equipDaFrota, montarLocais, type ParadaAnalise } from "./analise";
 import {
-  MOTOR2, faixaDe, faixasDe, frasesAssunto, gradeHoraDia, lugaresPorPeso, numerosMotor2, numerosStatus, paradasMotor2, pesoParado, pesoStatus, picoDuasHoras, placasPorPeso, placasPorStatus, porHoraPeso, somarStatus,
+  MOTOR2, faixaDe, faixasDe, gradeHoraDia, lugaresPorPeso, numerosMotor2, numerosStatus, paradasMotor2, pesoParado, pesoStatus, placasPorPeso, placasPorStatus, porHoraPeso, somarStatus,
 } from "./assuntos";
 
 const H = 3600;
@@ -44,13 +44,9 @@ describe("assuntos: pesos e somas", () => {
       { chave: "ALTO FORNO 3", nome: "ALTO FORNO 3", n: 1, min: 40 },
     ]);
   });
-  it("por hora pelo peso e pico de 2 horas (empate: a janela que começa na hora mais cheia)", () => {
+  it("por hora pelo peso", () => {
     const h = porHoraPeso(paradas, pesoStatus("stopped"));
     expect([h[8], h[14], h[15]]).toEqual([20, 120, 0]);
-    expect(picoDuasHoras(h)).toBe(14);
-    const so8 = Array<number>(24).fill(0);
-    so8[8] = 60;
-    expect(picoDuasHoras(so8)).toBe(8);
   });
 });
 
@@ -82,22 +78,6 @@ describe("motor secundário", () => {
   it("números: horas de bomba, % do tempo com dado de motor e a placa campeã; sem dado, '—'", () => {
     expect(numerosMotor2(paradas)).toEqual({ bomba: 100, pct: 100 / 240, campea: { chave: "EGC2985", nome: "EGC2985", n: 2, min: 100 } });
     expect(numerosMotor2(paradas.filter((x) => x.placa === "EGC2993"))).toEqual({ bomba: 0, pct: null, campea: null });
-  });
-});
-
-describe("frases do assunto", () => {
-  it("total, concentração, pico e lugar pelo peso", () => {
-    expect(frasesAssunto({ rotulo: "Parado ligado", paradas, peso: pesoStatus("stopped"), locais })).toEqual([
-      "Parado ligado: 2h20 em 2 paradas.",
-      "A placa EGC2985 sozinha soma 100% desse tempo.",
-      "O pico é das 14h às 16h.",
-      "Onde mais acontece: ALTO FORNO 3, 2h20.",
-    ]);
-  });
-  it("lugar longe vira 'Longe da região'; sem peso, nenhuma frase", () => {
-    const f = frasesAssunto({ rotulo: "Bomba ligada", paradas: paradas.filter((x) => x.area === "GALPÃO LONGE"), peso: pesoStatus(MOTOR2), locais });
-    expect(f[f.length - 1]).toBe("Onde mais acontece: Longe da região, 1h00.");
-    expect(frasesAssunto({ rotulo: "X", paradas, peso: () => 0, locais })).toEqual([]);
   });
 });
 

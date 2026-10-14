@@ -1,13 +1,15 @@
 "use client";
 
 import { cx } from "@/components/ui";
-import { rotuloStatus, type PlacaStatus } from "@/lib/dominio/assuntos";
+import { ORDEM_STATUS, rotuloStatus, type PlacaStatus } from "@/lib/dominio/assuntos";
 import { fmtHoras } from "@/lib/dominio/formato";
-import { CINZAS, COR_DESTAQUE } from "./cores-analise";
+import { corDoStatus } from "./cores-analise";
 
-/** Uma barra por placa dividida pelo tempo de cada status; o status em destaque em azul, os outros em cinza; destaque e total escritos. */
+/** Uma barra por placa dividida pelo tempo de cada status, cada um na sua cor (a da Timeline); o status em destaque ordena e vem escrito com o total. */
 export function BarrasStatus({ linhas, destaque, selecionada, escolher, vazio }: { linhas: PlacaStatus[]; destaque: string; selecionada: string | null; escolher: (placa: string) => void; vazio: string }) {
   const rotulo = rotuloStatus(destaque);
+  // legenda: os status que aparecem nas barras, na ordem fixa
+  const presentes = [...new Map(linhas.flatMap((l) => l.partes).map((p) => [p.cod, p] as const)).values()].sort((a, b) => ORDEM_STATUS.indexOf(a.cod) - ORDEM_STATUS.indexOf(b.cod));
   return (
     <section aria-label="Placas" className="rounded-xl border border-borda bg-superficie p-3">
       <h2 className="text-xs font-semibold uppercase tracking-wider text-suave">
@@ -19,7 +21,6 @@ export function BarrasStatus({ linhas, destaque, selecionada, escolher, vazio }:
         <>
           <ul className="mt-2 grid gap-1">
             {linhas.map((l) => {
-              let cinza = 0;
               return (
                 <li key={l.chave}>
                   <button
@@ -37,7 +38,7 @@ export function BarrasStatus({ linhas, destaque, selecionada, escolher, vazio }:
                     </span>
                     <span aria-hidden className="flex h-2.5 gap-[2px] overflow-hidden rounded-full">
                       {l.partes.map((p) => (
-                        <span key={p.cod} title={`${p.rotulo}: ${fmtHoras(p.min)}`} className="h-full first:rounded-l-full last:rounded-r-full" style={{ width: `${(p.min / l.total) * 100}%`, background: p.cod === destaque ? COR_DESTAQUE : CINZAS[cinza++ % CINZAS.length] }} />
+                        <span key={p.cod} title={`${p.rotulo}: ${fmtHoras(p.min)}`} className="h-full first:rounded-l-full last:rounded-r-full" style={{ width: `${(p.min / l.total) * 100}%`, background: corDoStatus(p.cod) }} />
                       ))}
                     </span>
                   </button>
@@ -45,9 +46,13 @@ export function BarrasStatus({ linhas, destaque, selecionada, escolher, vazio }:
               );
             })}
           </ul>
-          <p className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-suave">
-            <span className="flex items-center gap-1"><i aria-hidden className="h-2.5 w-2.5 rounded-sm" style={{ background: COR_DESTAQUE }} />{rotulo}</span>
-            <span className="flex items-center gap-1"><i aria-hidden className="h-2.5 w-2.5 rounded-sm" style={{ background: CINZAS[0] }} />outros status (passe o mouse)</span>
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-suave">
+            {presentes.map((p) => (
+              <span key={p.cod} className={cx("flex items-center gap-1", p.cod === destaque && "font-semibold text-texto")}>
+                <i aria-hidden className="h-2.5 w-2.5 rounded-sm" style={{ background: corDoStatus(p.cod) }} />
+                {p.rotulo}
+              </span>
+            ))}
           </p>
         </>
       )}

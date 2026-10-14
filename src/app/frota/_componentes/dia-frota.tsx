@@ -40,7 +40,7 @@ export function DiaFrota() {
   const dias = useMemo(() => ultimosDias(30), []);
 
   return (
-    <div className="mx-auto w-full max-w-[1300px] space-y-3 px-3 pb-24 pt-4 md:px-6 md:pb-10 md:pt-6">
+    <div className="w-full space-y-3 px-3 pb-24 pt-4 md:px-6 md:pb-10 md:pt-6">
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-borda bg-superficie p-3 shadow-sm">
         <Selecao value={dia} onChange={(e) => setDia(e.target.value)} aria-label="Dia" className="w-40">
           {dias.map((d) => (

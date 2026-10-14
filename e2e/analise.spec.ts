@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { prepararDados } from "./apoio";
+import { paradasAnalise, prepararDados } from "./apoio";
 
 test("Análise: painel com mapa e gráficos que se filtram, período no topo ao lado das abas", async ({ page }) => {
   const gravacoes = await prepararDados(page);
@@ -76,7 +76,7 @@ test("Análise: satélite normal com as cercas nas cores delas, área clicável;
   expect(gravacoes).toEqual([]);
 });
 
-test("Análise: Status do motor (padrão) e Motor secundário com números, frases e gráficos", async ({ page }) => {
+test("Análise: Status do motor (padrão) e Motor secundário com números e gráficos, sem cartão de frases", async ({ page }) => {
   const gravacoes = await prepararDados(page);
   await page.goto("/analise/");
   const assunto = page.getByRole("tablist", { name: "Assunto" });
@@ -86,9 +86,13 @@ test("Análise: Status do motor (padrão) e Motor secundário com números, fras
   await expect(numeros).toContainText("5h00");
   await expect(numeros).toContainText("100%");
   await expect(numeros).toContainText("Parado ligado");
-  await expect(page.getByRole("list", { name: "Frases automáticas" })).toContainText("Tempo parado: 5h00 em 5 paradas.");
+  // painel limpo: sem o cartão "O que os dados dizem"
+  await expect(page.getByRole("region", { name: "O que os dados dizem" })).toHaveCount(0);
   // escolher um status: placas pesam só ele; clicar de novo volta
   const porStatus = page.getByRole("region", { name: "Por status" });
+  // cada status na cor da Timeline: a barra do status e a parte dele na barra da placa
+  await expect(porStatus.getByRole("button", { name: /^Parado ligado/ }).locator("span > span").last()).toHaveAttribute("style", /--warn-dot/);
+  await expect(page.getByRole("region", { name: "Placas" }).locator('[title^="Parado ligado:"]').first()).toHaveAttribute("style", /--warn-dot/);
   await porStatus.getByRole("button", { name: /^Motor 2º ligado/ }).click();
   await expect(page.getByRole("region", { name: "Placas" }).getByRole("button").first()).toHaveAccessibleName(/^EGC2985, Motor 2º ligado 1h30 de/);
   await porStatus.getByRole("button", { name: /^Motor 2º ligado/ }).click();
@@ -100,12 +104,16 @@ test("Análise: Status do motor (padrão) e Motor secundário com números, fras
   await page.getByLabel("Tipo").selectOption("");
   // serviço escolhido em Apontamentos sai ao trocar de assunto
   await assunto.getByRole("tab", { name: "Apontamentos" }).click();
+  // o apontamento leva a cor da família (Aguardando = laranja)
+  await expect(page.getByRole("region", { name: "Por serviço" }).getByRole("button", { name: /^Aguardando Área/ }).locator("span > span").last()).toHaveAttribute("style", /--serie-2/);
   await page.getByRole("region", { name: "Por serviço" }).getByRole("button", { name: /^Aguardando Área/ }).click();
   await assunto.getByRole("tab", { name: "Motor secundário" }).click();
   await expect(page.getByRole("group", { name: "Filtrando" })).toHaveCount(0);
   // motor 2º: só o Alta Pressão (bomba 40 + 30 + 20 min = 1h30)
   await expect(page.getByRole("region", { name: "Números" })).toContainText("1h30");
   await expect(page.getByRole("region", { name: "Números" })).toContainText("EGC2985");
+  // a bomba no ciano do motor 2º
+  await expect(page.getByRole("region", { name: "Lugares" }).getByRole("button").first().locator("span > span").last()).toHaveAttribute("style", /--motor2/);
   await expect(page.getByRole("region", { name: "Lugares" }).getByRole("button").first()).toHaveAccessibleName(/^OFICINA/);
   // filtro de tipo que esvazia: "—" e aviso, sem quebrar
   await page.getByLabel("Tipo").selectOption("as");
@@ -142,11 +150,11 @@ test("Análise: cor do mapa por tempo parado com as horas nas cercas; grade 'Qua
   await page.goto("/analise/");
   const cor = page.getByRole("tablist", { name: "Cor do mapa" });
   await expect(cor.getByRole("tab", { name: "Da cerca" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator('[aria-label="Legenda do tempo parado"]')).toHaveCount(0);
-  await cor.getByRole("tab", { name: "Tempo parado" }).click();
+  await expect(page.locator('[aria-label="Legenda do mapa"]')).toHaveCount(0);
+  await cor.getByRole("tab", { name: "Quanto parou" }).click();
   // a legenda fica só no computador (no celular ela tamparia o mapa)
-  if (test.info().project.name !== "celular") await expect(page.locator('[aria-label="Legenda do tempo parado"]')).toBeVisible();
-  else await expect(page.locator('[aria-label="Legenda do tempo parado"]')).toBeAttached();
+  if (test.info().project.name !== "celular") await expect(page.locator('[aria-label="Legenda do mapa"]')).toBeVisible();
+  else await expect(page.locator('[aria-label="Legenda do mapa"]')).toBeAttached();
   await expect(page.locator(".mapa-analise .rotulo-horas").first()).toBeAttached();
   // grade: o quadradinho das 14h (PATIO) vira duas etiquetas: hora e dia; clicar de novo desfaz
   const filtrando = page.getByRole("group", { name: "Filtrando" });
@@ -158,14 +166,44 @@ test("Análise: cor do mapa por tempo parado com as horas nas cercas; grade 'Qua
   await expect(filtrando).toHaveCount(0);
   // a escolha da cor fica guardada
   await page.reload();
-  await expect(page.getByRole("tablist", { name: "Cor do mapa" }).getByRole("tab", { name: "Tempo parado" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tablist", { name: "Cor do mapa" }).getByRole("tab", { name: "Quanto parou" })).toHaveAttribute("aria-selected", "true");
+  // o mapa segue a aba: na bomba, a legenda diz o que mede
+  if (test.info().project.name !== "celular") {
+    await expect(page.locator('[aria-label="Legenda do mapa"]')).toContainText("Tempo parado");
+    await page.getByRole("tablist", { name: "Assunto" }).getByRole("tab", { name: "Motor secundário" }).click();
+    await expect(page.locator('[aria-label="Legenda do mapa"]')).toContainText("Bomba ligada");
+    await page.getByRole("tablist", { name: "Assunto" }).getByRole("tab", { name: "Status do motor" }).click();
+  }
   // filtro que esvazia: a grade avisa
   await page.getByLabel("Tipo").selectOption("hv");
   await expect(page.getByRole("region", { name: "Quando para" })).toContainText("Nada neste filtro.");
   expect(gravacoes).toEqual([]);
 });
 
-test("Análise: subabas por família com frases, apontamentos, quem mais para e tendência", async ({ page }) => {
+test("Análise: mapa 'O que parou' pinta cada cerca pelo que mais pesou; satélite apagado nos modos de dados", async ({ page }) => {
+  const gravacoes = await prepararDados(page);
+  await page.goto("/analise/");
+  const cor = page.getByRole("tablist", { name: "Cor do mapa" });
+  const mapa = page.locator(".mapa-analise");
+  await expect(mapa).not.toHaveClass(/fundo-apagado/);
+  await cor.getByRole("tab", { name: "O que parou" }).click();
+  await expect(mapa).toHaveClass(/fundo-apagado/);
+  // OFICINA: motor 2º 40 x parado ligado 20; PATIO: parado ligado
+  if (test.info().project.name !== "celular") {
+    const legenda = page.locator('[aria-label="Legenda do mapa"]');
+    await expect(legenda).toContainText("Motor 2º ligado");
+    await expect(legenda).toContainText("Parado ligado");
+  }
+  // na bomba só há uma medida: o "O que parou" sai e o mapa mostra o "Quanto parou"
+  await page.getByRole("tablist", { name: "Assunto" }).getByRole("tab", { name: "Motor secundário" }).click();
+  await expect(cor.getByRole("tab", { name: "O que parou" })).toHaveCount(0);
+  if (test.info().project.name !== "celular") await expect(page.locator('[aria-label="Legenda do mapa"]')).toContainText("Bomba ligada");
+  await cor.getByRole("tab", { name: "Da cerca" }).click();
+  await expect(mapa).not.toHaveClass(/fundo-apagado/);
+  expect(gravacoes).toEqual([]);
+});
+
+test("Análise: subabas por família com apontamentos, quem mais para e tendência", async ({ page }) => {
   const gravacoes = await prepararDados(page);
   await page.goto("/analise/");
   await page.getByRole("tablist", { name: "Assunto" }).getByRole("tab", { name: "Apontamentos" }).click();
@@ -179,13 +217,9 @@ test("Análise: subabas por família com frases, apontamentos, quem mais para e 
   await expect(filtrando.getByRole("button", { name: "Tirar filtro: Aguardando Área" })).toBeVisible();
   await familias.getByRole("tab", { name: "Aguardando" }).click();
   await expect(filtrando).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Lugares" })).toHaveCount(0);
-  // frases (30 dias: sem comparação); só o caminhão 10 na OFICINA às 8h
-  const frases = page.getByRole("list", { name: "Frases automáticas" });
-  await expect(frases).toContainText("Aguardando somou 1h00 em 1 parada.");
-  await expect(frases).toContainText("A placa EGC2985 sozinha soma 100% do tempo.");
-  await expect(frases).toContainText("O pico é das 8h às 10h.");
-  await expect(frases).toContainText("Onde mais acontece: OFICINA, 1h00.");
+  // painel limpo: sem frases; números da família (só o caminhão 10 na OFICINA às 8h)
+  await expect(page.getByRole("region", { name: "O que os dados dizem" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Números" })).toContainText("1h00");
   // por apontamento e placa viram etiquetas
   await page.getByRole("region", { name: "Por apontamento" }).getByRole("button", { name: /^Aguardando Área/ }).click();
   await expect(filtrando.getByRole("button", { name: "Tirar filtro: Aguardando Área" })).toBeVisible();
@@ -197,12 +231,46 @@ test("Análise: subabas por família com frases, apontamentos, quem mais para e 
   // família sem paradas: avisa em todas as seções, sem quebrar
   await familias.getByRole("tab", { name: "Pausas e pessoas" }).click();
   await expect(page.getByText("Nada neste filtro.").first()).toBeVisible();
-  await expect(frases).toHaveCount(0);
   // sem apontamento: sem o gráfico "Por apontamento"
   await familias.getByRole("tab", { name: "Sem apontamento" }).click();
-  await expect(page.getByRole("list", { name: "Frases automáticas" })).toContainText("Sem apontamento somou");
+  await expect(page.getByRole("region", { name: "Números" })).toContainText("Horas paradas");
   await expect(page.getByRole("region", { name: "Por apontamento" })).toHaveCount(0);
   expect(gravacoes).toEqual([]);
+});
+
+test("Análise › Apontamentos: família no mesmo molde (números, lugares, quando para) e supervisor escolhido continua na lista", async ({ page }) => {
+  const gravacoes = await prepararDados(page);
+  await page.goto("/analise/");
+  await page.getByRole("tablist", { name: "Assunto" }).getByRole("tab", { name: "Apontamentos" }).click();
+  await page.getByRole("tablist", { name: "Família" }).getByRole("tab", { name: "Aguardando" }).click();
+  const numeros = page.getByRole("region", { name: "Números" });
+  await expect(numeros).toContainText("1h00");
+  await expect(numeros).toContainText("Aguardando Área");
+  await expect(page.getByRole("region", { name: "Lugares" })).toContainText("OFICINA");
+  await expect(page.getByRole("region", { name: "Quando para" }).getByRole("button", { name: /8h, 1h00/ })).toBeVisible();
+  // supervisor: vira o filtro do topo e continua na lista, marcado
+  const sup = page.getByRole("region", { name: "Supervisores" }).getByRole("button").first();
+  const nome = (await sup.getAttribute("aria-label"))!.split(",")[0];
+  await sup.click();
+  await expect(page.getByLabel("Supervisor", { exact: true })).toHaveValue(nome);
+  await expect(page.getByRole("region", { name: "Supervisores" }).getByRole("button", { name: new RegExp(`^${nome},`) })).toHaveAttribute("aria-pressed", "true");
+  expect(gravacoes).toEqual([]);
+});
+
+test("Análise: histórico parado avisa o último dia com dados", async ({ page }) => {
+  const dia = (n: number) => {
+    const d = new Date(Date.now() - n * 86400000);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  // a mesma parada de Aguardando Área há 10 dias (período atual de 15) e há 20 dias (período anterior)
+  const [aguardando] = paradasAnalise();
+  await prepararDados(page, { analise: [{ ...aguardando, dia: dia(10) }, { ...aguardando, dia: dia(20) }] });
+  await page.goto("/analise/");
+  await page.getByRole("tablist", { name: "Período" }).getByRole("tab", { name: "15 dias" }).click();
+  await page.getByRole("tablist", { name: "Assunto" }).getByRole("tab", { name: "Apontamentos" }).click();
+  await page.getByRole("tablist", { name: "Família" }).getByRole("tab", { name: "Aguardando" }).click();
+  await expect(page.getByText(`Último dia com dados: ${dia(10).split("-").reverse().join("/")}`)).toBeVisible();
+  await expect(page.getByRole("region", { name: "Números" })).toContainText("1h00");
 });
 
 test("Análise: sem histórico enviado, avisa em vez de quebrar", async ({ page }) => {

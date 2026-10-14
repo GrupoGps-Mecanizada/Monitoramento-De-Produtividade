@@ -1,5 +1,12 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Sistema mais limpo · 14/10/2026 (não publicado)
+- **Mapa com diferenciação** (pesquisa de 14/10/2026: Esri, ColorBrewer, Penn State): botão **Da cerca | Quanto parou | O que parou**. "Quanto parou" usa 5 tons sólidos da cor da aba (claro = pouco, escuro = muito); "O que parou" pinta cada área pela categoria que mais pesou (status em 6 grupos + cinza, família, ou apontamento da família), forte quando passa da metade, fraco quando venceu por pouco e cinza quando é misto; passar o mouse mostra a divisão. Nos dois modos o satélite fica cinza e escuro.
+- **Filtros da Cronoanálise separados:** Data, Letra, Turno (dia/noite), Vaga, Tipo (AP/AV/HV/AS) e Supervisor, em cascata (cada um só oferece o que existe com os outros). Folha sem letra recebe a letra pela escala 4x4 e o supervisor pela letra (regra do segundo cérebro, 14/10/2026). O seletor do turno só aparece quando mais de um bate.
+- **Menu em 3 categorias:** Ao vivo (Localização, Alertas), Análises (Análise, Dia da frota, Timeline, Cronoanálise) e Cadastros (Equipamentos). A categoria abre a lista das telas e mostra a tela aberta; no celular, a barra de baixo tem as 3 categorias e a busca.
+- **Largura total:** Alertas, Exceções, Dia da frota, Cronoanálise e a faixa da Timeline usam a página de canto a canto.
+- **Cronoanálise limpa:** saíram os botões de zoom (+, −, ◀ ▶, Turno inteiro): a rodinha do mouse aproxima e afasta e arrastar o raio-x anda no tempo; saíram os textos de ajuda e as explicações longas dos números.
+
 ## Cronoanálise sem a conferência · 14/10/2026
 - Saiu a seção **"Conferência: folha × motor × tablet"** (percentuais e frases), a pedido do dono. Ficam o raio-x com zoom, os apontamentos dos colaboradores e o ranking das atividades.
 
@@ -28,6 +35,9 @@
 - **Mata CDP e USIPA** saem do mapa e das contas (como o Pátio da base).
 - **Abas de assunto** ao lado do mapa: **Status do motor** (padrão: horas paradas, % com motor ligado, status que mais pesa; clicar num status faz placas, lugares e hora pesarem só ele), **Motor secundário** (bomba do Alta Pressão: horas, % do tempo, placa campeã, lugares, placas e hora) e **Apontamentos** (a Visão geral e as famílias de antes).
 - **Visualização inteligente** (pesquisa de 14/10/2026): seletor **Cor do mapa** (Da cerca | Tempo parado: 5 tons de azul e as horas escritas nas cercas que mais pesam), grade **Quando para** (dia da semana × hora, clicável: filtra hora e dia) no lugar de "Hora do dia" e, em Status do motor, **barra por placa dividida por status** com o destaque e o total.
+- **Cores por assunto** (pedido do dono, 14/10/2026): cada status do motor na cor da Timeline (verde ligado, amarelo parado ligado, ciano motor 2º, vermelho desligado, laranja manutenção, cinza sem dado), as barras por placa coloridas por status com legenda, cada apontamento na cor da família (Aguardando laranja, Pausas verde, Logística azul, Preparação âmbar, Manutenção rosa) e lugares/grade na cor do que está sendo medido (ciano na bomba, a cor do status escolhido, a da família).
+- **Apontamentos no mesmo molde** das outras abas: cada família com números (horas, paradas, o que mais pesa), frases, por apontamento, placas e supervisores, lugares, grade Quando para e tendência por dia. Correções: sem comparação com o período anterior quando o histórico parou (antes inventava uma queda); o serviço escolhido acha as variações do nome do tablet; o supervisor escolhido continua na lista, marcado.
+- **Mapa na cor da aba e painel limpo** (pedido do dono): o modo "Pelo tempo" do mapa mostra o mesmo dado e a mesma cor da aba aberta (tempo parado em azul, bomba em ciano, o status escolhido na cor dele, a família na cor dela), com a legenda dizendo o que mede. Saíram os cartões "O que os dados dizem" de todas as abas.
 - **Ocultar gráficos:** botão no fim da linha de filtros; o mapa ocupa a tela inteira e as cercas continuam filtrando. A escolha fica guardada no navegador.
 
 ## Medição oficial na Análise · 13/10/2026 (não publicado)

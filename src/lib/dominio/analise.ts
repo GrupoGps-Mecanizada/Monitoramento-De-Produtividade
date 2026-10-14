@@ -392,6 +392,9 @@ export interface SelecaoCruzada {
 }
 export type DimensaoSelecao = keyof SelecaoCruzada;
 export const SELECAO_VAZIA: SelecaoCruzada = { local: null, servico: null, hora: null, placa: null, dia: null };
+/** Nome de apontamento sem acento, minúsculo, com espaços simples e sem o " - LM" do fim (o tablet varia). */
+export const normalizarNome = (s: string) =>
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim().replace(/ - lm$/, "");
 /** Nome curto do dia da semana (0 = domingo). */
 export const DIAS_CURTOS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 /** Hora (0–23) do início da parada. */
@@ -399,12 +402,14 @@ export const horaDe = (ini: number) => Math.min(23, Math.floor(ini / H));
 
 /** Paradas da seleção. `ignorar` pula uma dimensão (ou várias, como hora e dia da grade): o gráfico dela mostra todas e destaca a escolhida. */
 export function filtrarSelecao(paradas: ParadaNoLocal[], sel: SelecaoCruzada, locais: Map<string, Local>, ignorar?: DimensaoSelecao | DimensaoSelecao[]): ParadaNoLocal[] {
+  // o serviço escolhido acha as variações do nome que o tablet manda
+  const servico = sel.servico ? normalizarNome(sel.servico) : null;
   const pula = (d: DimensaoSelecao) => (Array.isArray(ignorar) ? ignorar.includes(d) : ignorar === d);
   const noLocal = (p: ParadaNoLocal) => (sel.local === CHAVE_FORA ? locais.get(p.local)?.naRegiao === false : p.local === sel.local);
   return paradas.filter(
     (p) =>
       (pula("local") || !sel.local || noLocal(p)) &&
-      (pula("servico") || !sel.servico || p.apont.includes(sel.servico)) &&
+      (pula("servico") || !servico || p.apont.some((a) => normalizarNome(a) === servico)) &&
       (pula("hora") || sel.hora == null || horaDe(p.ini) === sel.hora) &&
       (pula("placa") || !sel.placa || p.placa === sel.placa) &&
       (pula("dia") || sel.dia == null || diaDaSemana(p.dia) === sel.dia),

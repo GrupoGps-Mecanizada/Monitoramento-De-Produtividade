@@ -2,13 +2,14 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useZoomRoda } from "@/components/historico/zoom-roda";
-import { Aviso, SecaoTitulo, Selecao, Vazio } from "@/components/ui";
+import { Aviso, SecaoTitulo, Selecao, Vazio, cx } from "@/components/ui";
 import { corDoTom } from "@/lib/cores";
 import { useFolhas, useTelemetriaDoTurno } from "@/lib/dados/cronoanalise";
 import { CLASSES, conferir, montarTurnos, padraoVagaGauss, rankingAtividades, relogio, resumoPessoas, type Classe, type Conferencia, type TurnoCrono } from "@/lib/dominio/cronoanalise";
 import { diaBR, fmtHoras } from "@/lib/dominio/formato";
+import { FILTRO_CRONO_VAZIO, completarTurno, filtrarTurnos, opcoesDoFiltro, type FiltroCrono } from "@/lib/dominio/filtros-crono";
 import { STATUS_GAUSS } from "@/lib/dominio/gauss-dia";
-import { deslocarJanela, zoomJanela, type Janela } from "@/lib/dominio/trilhas";
+import { deslocarJanela, type Janela } from "@/lib/dominio/trilhas";
 import type { Tom } from "@/lib/tipos";
 
 const ORDEM_CLASSES: Classe[] = ["produzindo", "necessario", "improdutivo", "sem"];
@@ -23,9 +24,12 @@ const rotuloTurno = (t: TurnoCrono) =>
  */
 export function Cronoanalise() {
   const { linhas, erro } = useFolhas();
-  const turnos = useMemo(() => montarTurnos(linhas ?? []), [linhas]);
+  // letra e supervisor que a folha não trouxe vêm da escala (segundo cérebro: "Regimes, turnos e supervisores")
+  const turnos = useMemo(() => montarTurnos(linhas ?? []).map(completarTurno), [linhas]);
+  const [filtro, setFiltro] = useState<FiltroCrono>(FILTRO_CRONO_VAZIO);
+  const filtrados = useMemo(() => filtrarTurnos(turnos, filtro), [turnos, filtro]);
   const [escolhido, setEscolhido] = useState<string | null>(null);
-  const turno = turnos.find((t) => t.chave === escolhido) ?? turnos[0] ?? null;
+  const turno = filtrados.find((t) => t.chave === escolhido) ?? filtrados[0] ?? null;
 
   const tele = useTelemetriaDoTurno(turno);
   const conf = useMemo(() => (turno ? conferir(turno, tele.motor, tele.tablet) : null), [turno, tele.motor, tele.tablet]);
@@ -33,37 +37,67 @@ export function Cronoanalise() {
 
   if (erro) return <Moldura><Aviso tipo="erro">Não foi possível ler a cronoanálise: {erro}</Aviso></Moldura>;
   if (!linhas) return <Moldura><Vazio titulo="Carregando as folhas da cronoanálise…" /></Moldura>;
-  if (!turno) return <Moldura><Vazio titulo="Nenhuma folha lançada">Lance as folhas no sistema Cronoanálise e elas aparecem aqui.</Vazio></Moldura>;
+  if (!turnos.length) return <Moldura><Vazio titulo="Nenhuma folha lançada" /></Moldura>;
+
+  const mudar = (p: Partial<FiltroCrono>) => setFiltro((f) => ({ ...f, ...p }));
+  const filtroSelect = (campo: keyof FiltroCrono, rotulo: string, todas: string, nome: (v: string) => string = (v) => v) => (
+    <Selecao aria-label={rotulo} value={filtro[campo] ?? ""} onChange={(e) => mudar({ [campo]: e.target.value || null })} className="w-auto min-w-[120px]">
+      <option value="">{todas}</option>
+      {opcoesDoFiltro(turnos, filtro, campo).map((v) => (
+        <option key={v} value={v}>
+          {nome(v)}
+        </option>
+      ))}
+    </Selecao>
+  );
 
   return (
     <Moldura>
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-borda bg-superficie p-3 shadow-sm">
-        <Selecao value={turno.chave} onChange={(e) => setEscolhido(e.target.value)} aria-label="Turno da cronoanálise" className="min-w-0 flex-1 md:max-w-xl">
-          {turnos.map((t) => (
-            <option key={t.chave} value={t.chave}>
-              {rotuloTurno(t)}
-            </option>
-          ))}
-        </Selecao>
-        <span className="text-xs text-suave md:ml-auto">
-          {turnos.length} turno{turnos.length === 1 ? "" : "s"} com folha lançada · {relogio(turno, 0)}–{relogio(turno, turno.duracao)}
-          {turno.area ? ` · ${turno.area}` : ""}
-          {turno.kit ? ` · kit ${turno.kit}` : ""}
-        </span>
+        {filtroSelect("data", "Data", "Todas as datas", diaBR)}
+        {filtroSelect("letra", "Letra", "Todas as letras", (v) => `Letra ${v}`)}
+        {filtroSelect("periodo", "Turno", "Dia e noite", (v) => (v === "noite" ? "Noite" : "Dia"))}
+        {filtroSelect("vaga", "Vaga", "Todas as vagas")}
+        {filtroSelect("tipo", "Tipo", "Todos os tipos")}
+        {filtroSelect("supervisor", "Supervisor", "Todos os supervisores")}
+        {filtrados.length > 1 && turno && (
+          <Selecao value={turno.chave} onChange={(e) => setEscolhido(e.target.value)} aria-label="Turno da cronoanálise" className="min-w-0 flex-1 md:max-w-md">
+            {filtrados.map((t) => (
+              <option key={t.chave} value={t.chave}>
+                {rotuloTurno(t)}
+              </option>
+            ))}
+          </Selecao>
+        )}
+        {turno && (
+          <span className="text-xs text-suave md:ml-auto">
+            {relogio(turno, 0)}–{relogio(turno, turno.duracao)}
+            {turno.area ? ` · ${turno.area}` : ""}
+            {turno.kit ? ` · kit ${turno.kit}` : ""}
+          </span>
+        )}
       </div>
-
-      {tele.erro && <Aviso tipo="erro">Não foi possível ler o motor e o tablet: {tele.erro}</Aviso>}
-      {!padraoVagaGauss(turno.vaga, turno.equip) && <Aviso tipo="alerta">A folha não tem a vaga com número (ex.: AP-01): sem ela, o motor do GAUSS não aparece.</Aviso>}
-
-      <RaioX key={turno.chave} turno={turno} conf={conf} carregando={tele.carregando} />
-      <Colaboradores turno={turno} />
+      {!turno ? <Vazio titulo="Nada neste filtro." /> : <Turno turno={turno} conf={conf} tele={tele} />}
       <Ranking itens={ranking} turnos={turnos.length} />
     </Moldura>
   );
 }
 
+/** O turno escolhido: avisos, raio-x, conferência e colaboradores. */
+function Turno({ turno, conf, tele }: { turno: TurnoCrono; conf: Conferencia | null; tele: ReturnType<typeof useTelemetriaDoTurno> }) {
+  return (
+    <>
+      {tele.erro && <Aviso tipo="erro">Não foi possível ler o motor e o tablet: {tele.erro}</Aviso>}
+      {!padraoVagaGauss(turno.vaga, turno.equip) && <Aviso tipo="alerta">A folha não tem a vaga com número (ex.: AP-01): sem ela, o motor do GAUSS não aparece.</Aviso>}
+
+      <RaioX key={turno.chave} turno={turno} conf={conf} carregando={tele.carregando} />
+      <Colaboradores turno={turno} />
+    </>
+  );
+}
+
 function Moldura({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto w-full max-w-[1300px] space-y-3 px-3 pb-24 pt-4 md:px-6 md:pb-10 md:pt-6">{children}</div>;
+  return <div className="w-full space-y-3 px-3 pb-24 pt-4 md:px-6 md:pb-10 md:pt-6">{children}</div>;
 }
 
 function Cartao({ titulo, acao, children }: { titulo: string; acao?: React.ReactNode; children: React.ReactNode }) {
@@ -79,16 +113,8 @@ function Cartao({ titulo, acao, children }: { titulo: string; acao?: React.React
 
 type Pedaco = { a: number; b: number; tom: Tom; texto: string; titulo: string };
 
-function BotaoZoom({ rotulo, onClick, desativado, children }: { rotulo: string; onClick: () => void; desativado: boolean; children: React.ReactNode }) {
-  return (
-    <button type="button" onClick={onClick} disabled={desativado} aria-label={rotulo} title={rotulo} className="grid h-7 w-7 place-items-center rounded-md border border-borda text-sm font-bold disabled:opacity-40">
-      {children}
-    </button>
-  );
-}
-
 function RaioX({ turno, conf, carregando }: { turno: TurnoCrono; conf: Conferencia | null; carregando: boolean }) {
-  // zoom: janela visível dentro do turno (rodinha do mouse, botões ou Shift + rodinha para andar)
+  // zoom: janela visível dentro do turno (rodinha do mouse; arrastar ou Shift + rodinha anda no tempo)
   const inteiro: Janela = [0, turno.duracao];
   const [janela, setJanela] = useState<Janela>(inteiro);
   const areaRef = useRef<HTMLDivElement>(null);
@@ -107,19 +133,32 @@ function RaioX({ turno, conf, carregando }: { turno: TurnoCrono; conf: Conferenc
     for (let s = Math.ceil((ja + zero) / passo) * passo - zero; s <= jb; s += passo) r.push(s);
     return r;
   }, [turno, ja, jb, visivel]);
-  const meio = (ja + jb) / 2;
+  // arrastar com o mouse anda no tempo (no celular o dedo continua rolando a página)
+  const arrasto = useRef<{ x: number; janela: Janela } | null>(null);
+  const aoApertar = (e: React.PointerEvent) => {
+    if (e.pointerType !== "mouse" || e.button !== 0 || zoom <= 1) return;
+    arrasto.current = { x: e.clientX, janela };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const aoMover = (e: React.PointerEvent) => {
+    const d = arrasto.current;
+    const largura = reguaRef.current?.getBoundingClientRect().width;
+    if (!d || !largura) return;
+    setJanela(deslocarJanela(d.janela, (-(e.clientX - d.x) / largura) * (d.janela[1] - d.janela[0]), turno.duracao));
+  };
+  const aoSoltar = () => {
+    arrasto.current = null;
+  };
   const intervalo = (p: { a: number; b: number }) => `${relogio(turno, p.a)}–${relogio(turno, p.b)}`;
 
   const faixas: { rotulo: string; sub?: string; pedacos: Pedaco[]; vazio?: string }[] = [
     {
       rotulo: "Motor (GAUSS)",
-      sub: conf?.produtivo ? `produtivo = ${STATUS_GAUSS[conf.produtivo]?.rotulo ?? conf.produtivo}` : "tipo sem regra de produtivo",
       pedacos: (conf?.motor ?? []).map((x) => ({ a: x.a, b: x.b, tom: x.tom, texto: x.rotulo, titulo: `${x.rotulo} · ${intervalo(x)}` })),
       vazio: carregando ? "carregando…" : "sem dados do GAUSS neste turno",
     },
     {
       rotulo: "Tablet",
-      sub: "apontamentos de parada",
       pedacos: (conf?.tablet ?? []).map((x) => ({ a: x.a, b: x.b, tom: "reg", texto: x.categoria, titulo: `${x.categoria} · ${intervalo(x)}` })),
       vazio: carregando ? "carregando…" : "nenhum apontamento",
     },
@@ -153,19 +192,12 @@ function RaioX({ turno, conf, carregando }: { turno: TurnoCrono; conf: Conferenc
           </li>
         ))}
       </ul>
-      <div className="mb-2 flex flex-wrap items-center gap-1.5 text-xs">
-        <BotaoZoom rotulo="Afastar" onClick={() => setJanela(zoomJanela(janela, meio, 1.5, turno.duracao))} desativado={zoom <= 1}>−</BotaoZoom>
-        <BotaoZoom rotulo="Aproximar" onClick={() => setJanela(zoomJanela(janela, meio, 0.66, turno.duracao))} desativado={visivel <= 600}>+</BotaoZoom>
-        <BotaoZoom rotulo="Voltar no tempo" onClick={() => setJanela(deslocarJanela(janela, -visivel / 3, turno.duracao))} desativado={ja <= 0}>◀</BotaoZoom>
-        <BotaoZoom rotulo="Avançar no tempo" onClick={() => setJanela(deslocarJanela(janela, visivel / 3, turno.duracao))} desativado={jb >= turno.duracao}>▶</BotaoZoom>
-        <button type="button" onClick={() => setJanela(inteiro)} disabled={zoom <= 1} className="rounded-md border border-borda px-2 py-1 font-semibold disabled:opacity-40">
-          Turno inteiro
-        </button>
-        <span className="text-suave">
-          {zoom > 1 ? `${relogio(turno, ja)}–${relogio(turno, jb)} · zoom ${zoom.toFixed(1)}×` : "Rodinha do mouse sobre as faixas: aproxima e afasta. Shift + rodinha: anda para os lados."}
-        </span>
-      </div>
-      <div className="overflow-x-auto" ref={areaRef}>
+      {zoom > 1 && (
+        <p aria-label="Janela visível" className="mb-2 text-xs tabular-nums text-suave">
+          {relogio(turno, ja)}–{relogio(turno, jb)}
+        </p>
+      )}
+      <div className={cx("overflow-x-auto", zoom > 1 && "cursor-grab active:cursor-grabbing")} ref={areaRef} aria-label="Faixas do raio-x" onPointerDown={aoApertar} onPointerMove={aoMover} onPointerUp={aoSoltar} onPointerCancel={aoSoltar}>
         <div className="min-w-[720px]">
           <div className="grid grid-cols-[170px_1fr] gap-3">
             <span />
@@ -211,7 +243,6 @@ function RaioX({ turno, conf, carregando }: { turno: TurnoCrono; conf: Conferenc
           ))}
         </div>
       </div>
-      <p className="mt-2 text-[11px] text-suave">Passe o mouse num pedaço para ver a atividade, o horário e a observação da folha. Aproxime para ler os nomes dentro das caixas.</p>
     </Cartao>
   );
 }
