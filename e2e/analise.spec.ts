@@ -151,7 +151,7 @@ test("Análise: cor do mapa por tempo parado com as horas nas cercas; grade 'Qua
   const cor = page.getByRole("tablist", { name: "Cor do mapa" });
   await expect(cor.getByRole("tab", { name: "Da cerca" })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator('[aria-label="Legenda do mapa"]')).toHaveCount(0);
-  await cor.getByRole("tab", { name: "Pelo tempo" }).click();
+  await cor.getByRole("tab", { name: "Quanto parou" }).click();
   // a legenda fica só no computador (no celular ela tamparia o mapa)
   if (test.info().project.name !== "celular") await expect(page.locator('[aria-label="Legenda do mapa"]')).toBeVisible();
   else await expect(page.locator('[aria-label="Legenda do mapa"]')).toBeAttached();
@@ -166,7 +166,7 @@ test("Análise: cor do mapa por tempo parado com as horas nas cercas; grade 'Qua
   await expect(filtrando).toHaveCount(0);
   // a escolha da cor fica guardada
   await page.reload();
-  await expect(page.getByRole("tablist", { name: "Cor do mapa" }).getByRole("tab", { name: "Pelo tempo" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tablist", { name: "Cor do mapa" }).getByRole("tab", { name: "Quanto parou" })).toHaveAttribute("aria-selected", "true");
   // o mapa segue a aba: na bomba, a legenda diz o que mede
   if (test.info().project.name !== "celular") {
     await expect(page.locator('[aria-label="Legenda do mapa"]')).toContainText("Tempo parado");
@@ -177,6 +177,29 @@ test("Análise: cor do mapa por tempo parado com as horas nas cercas; grade 'Qua
   // filtro que esvazia: a grade avisa
   await page.getByLabel("Tipo").selectOption("hv");
   await expect(page.getByRole("region", { name: "Quando para" })).toContainText("Nada neste filtro.");
+  expect(gravacoes).toEqual([]);
+});
+
+test("Análise: mapa 'O que parou' pinta cada cerca pelo que mais pesou; satélite apagado nos modos de dados", async ({ page }) => {
+  const gravacoes = await prepararDados(page);
+  await page.goto("/analise/");
+  const cor = page.getByRole("tablist", { name: "Cor do mapa" });
+  const mapa = page.locator(".mapa-analise");
+  await expect(mapa).not.toHaveClass(/fundo-apagado/);
+  await cor.getByRole("tab", { name: "O que parou" }).click();
+  await expect(mapa).toHaveClass(/fundo-apagado/);
+  // OFICINA: motor 2º 40 x parado ligado 20; PATIO: parado ligado
+  if (test.info().project.name !== "celular") {
+    const legenda = page.locator('[aria-label="Legenda do mapa"]');
+    await expect(legenda).toContainText("Motor 2º ligado");
+    await expect(legenda).toContainText("Parado ligado");
+  }
+  // na bomba só há uma medida: o "O que parou" sai e o mapa mostra o "Quanto parou"
+  await page.getByRole("tablist", { name: "Assunto" }).getByRole("tab", { name: "Motor secundário" }).click();
+  await expect(cor.getByRole("tab", { name: "O que parou" })).toHaveCount(0);
+  if (test.info().project.name !== "celular") await expect(page.locator('[aria-label="Legenda do mapa"]')).toContainText("Bomba ligada");
+  await cor.getByRole("tab", { name: "Da cerca" }).click();
+  await expect(mapa).not.toHaveClass(/fundo-apagado/);
   expect(gravacoes).toEqual([]);
 });
 

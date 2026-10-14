@@ -12,6 +12,7 @@ import {
   DIAS_CURTOS, porServico, resumir, semExcluidas, separarFora, ultimoDiaVelho,
   type DimensaoSelecao, type ParadaNoLocal, type Periodo, type SelecaoCruzada,
 } from "@/lib/dominio/analise";
+import { porApontamentoDa, porFamilia, porStatus, predominioPorLugar, type Categorizar } from "@/lib/dominio/predominio";
 import { ASSUNTOS, MOTOR2, faixasDe, gradeHoraDia, lugaresPorPeso, paradasMotor2, pesoParado, pesoStatus, rotuloStatus, somarStatus, type Assunto, type Peso } from "@/lib/dominio/assuntos";
 import { ABAS_FAMILIA, ROTULO_FAMILIA, apontNovos, paradasDaFamilia, type AbaFamilia } from "@/lib/dominio/familias";
 import { diaBR, diaLocal, fmtHoras } from "@/lib/dominio/formato";
@@ -22,7 +23,7 @@ import { AbasAssunto } from "./assunto/abas-assunto";
 import { PainelMotor2 } from "./assunto/painel-motor2";
 import { PainelStatus } from "./assunto/painel-status";
 import { desenharCercas } from "./camada-analise";
-import { COR_PARADO, corDaFamilia, corDoApontamento, corDoStatus, resolverCor } from "./cores-analise";
+import { CATEGORIAS_FAMILIA, CATEGORIAS_STATUS, COR_PARADO, categoriasDaFamilia, corDaFamilia, corDoApontamento, corDoStatus, resolverCor, type Categorias } from "./cores-analise";
 import { PainelFamilia } from "./familia/painel-familia";
 import { SubabasFamilia } from "./familia/subabas-familia";
 import { GraficoBarras, type ItemBarra } from "./grafico-barras";
@@ -35,6 +36,10 @@ import { LegendaTempo } from "./legenda-tempo";
  * a Visão geral ou o painel da família de apontamento escolhida.
  * Clicar numa área, num lugar, num serviço, numa hora ou numa placa filtra o resto; cada gráfico aplica as escolhas dos outros e marca a sua.
  */
+/** Cor do mapa: a do GAUSS, quanto parou (5 tons) ou o que mais pesou em cada área. */
+const MODOS_MAPA = ["cerca", "quanto", "oque"] as const;
+type ModoMapa = (typeof MODOS_MAPA)[number];
+
 export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }) {
   const { retrato } = useRetrato();
   const { paradas, carregando, erro } = useParadasAnalise();
@@ -51,7 +56,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   const [graficos, setGraficos] = useOpcao<"mostrar" | "ocultar">("mon-analise-graficos", ["mostrar", "ocultar"], "mostrar");
   const comGraficos = graficos === "mostrar";
   // cor das cercas: a do GAUSS (padrão, pedido do dono) ou 5 tons de azul pelo tempo parado
-  const [cor, setCor] = useOpcao<"cerca" | "tempo">("mon-analise-cor", ["cerca", "tempo"], "cerca");
+  const [cor, setCor] = useOpcao<ModoMapa>("mon-analise-cor", MODOS_MAPA, "cerca");
   const [familia, setFamilia] = useOpcao<AbaFamilia>("mon-analise-familia", ABAS_FAMILIA, "geral");
 
   useEffect(() => {
@@ -94,6 +99,23 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
     return lugaresPorPeso(medida.so ? medida.so(ps) : ps, base.locais, medida.peso, Infinity);
   }, [recorte, medida, base]);
   const limitesTempo = useMemo(() => faixasDe(valoresMapa.map((l) => l.min)), [valoresMapa]);
+  // mapa "O que parou": as categorias da aba aberta (status, famílias ou os apontamentos da família); com uma medida só, não há
+  const categorias = useMemo((): (Categorias & { cat: Categorizar }) | null => {
+    if (assunto === "status" && !statusAtivo) return { ...CATEGORIAS_STATUS, cat: porStatus };
+    if (assunto === "apontamentos") return familia === "geral" ? { ...CATEGORIAS_FAMILIA, cat: porFamilia } : { ...categoriasDaFamilia(familia), cat: porApontamentoDa(familia) };
+    return null;
+  }, [assunto, statusAtivo, familia]);
+  const modoMapa: ModoMapa = cor === "oque" && !categorias ? "quanto" : cor;
+  const porLugar = useMemo(() => (categorias && modoMapa === "oque" ? predominioPorLugar(recorte("local"), base.locais, categorias.cat) : null), [categorias, modoMapa, recorte, base]);
+  // legenda do "O que parou": só as categorias que venceram em alguma área, na ordem fixa; e o cinza do misto
+  const legendaCategorias = useMemo(() => {
+    if (!categorias || !porLugar) return null;
+    const venceram = new Set([...porLugar.values()].filter((p) => p.nivel !== "misto").map((p) => p.cat));
+    const lista = categorias.ordem.filter((c) => venceram.has(c)).map((c) => ({ nome: categorias.nome(c), cor: categorias.cor(c) }));
+    const novos = [...venceram].filter((c) => !categorias.ordem.includes(c)).map((c) => ({ nome: categorias.nome(c), cor: categorias.cor(c) }));
+    const misto = [...porLugar.values()].some((p) => p.nivel === "misto") ? [{ nome: "Misto (ninguém chega a 40%)", cor: "#9aa3ad" }] : [];
+    return [...lista, ...novos, ...misto];
+  }, [categorias, porLugar]);
 
   const alternar = useCallback(<K extends DimensaoSelecao,>(k: K, v: SelecaoCruzada[K]) => setSel((s) => ({ ...s, [k]: s[k] === v ? null : v })), []);
   // o serviço escolhido é de uma família: trocar de subaba tira a etiqueta
@@ -139,8 +161,19 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
     pronto.mapa.fitBounds(pronto.L.polygon(usina).getBounds(), { padding: [12, 12] });
   }, [pronto, usina, plantas]);
   useEffect(() => {
-    if (pronto && camada.current) desenharCercas(pronto.L, camada.current, pronto.mapa, { plantas, areas, resumos: dentro, sel: sel.local, modo: cor, medida: { valores: valoresMapa, cor: resolverCor(medida.cor), rotulo: medida.rotulo }, aoClicar: clicarArea });
-  }, [pronto, plantas, areas, dentro, sel.local, cor, valoresMapa, medida, zoom, clicarArea]);
+    if (pronto && camada.current) desenharCercas(pronto.L, camada.current, pronto.mapa, {
+        plantas,
+        areas,
+        resumos: dentro,
+        sel: sel.local,
+        modo: modoMapa,
+        medida: { valores: valoresMapa, cor: resolverCor(medida.cor), rotulo: medida.rotulo },
+        predominio: categorias && porLugar ? { porLugar, nome: categorias.nome, cor: (c) => resolverCor(categorias.cor(c)) } : null,
+        aoClicar: clicarArea,
+      });
+    // modos de dados: o satélite fica cinza e escuro para as cores aparecerem
+    pronto?.mapa.getContainer().classList.toggle("fundo-apagado", modoMapa !== "cerca");
+  }, [pronto, plantas, areas, dentro, sel.local, modoMapa, valoresMapa, medida, categorias, porLugar, zoom, clicarArea]);
 
   const lugares: ItemBarra[] = lugaresDoGrafico(dentro, fora, sel.local).map((r) => ({
     chave: r.local.chave,
@@ -195,10 +228,15 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
       <div className={cx("grid min-h-0 flex-1 gap-2 lg:grid-rows-[minmax(0,1fr)]", comGraficos && "lg:grid-cols-[minmax(0,3fr)_minmax(340px,2fr)]")}>
         <div className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-borda lg:h-full">
           <div ref={ref} className="absolute inset-0" />
-          <div className="absolute left-2 top-2 z-[500] w-[230px]">
-            <Segmentado<"cerca" | "tempo"> rotulo="Cor do mapa" valor={cor} mudar={setCor} opcoes={[{ id: "cerca", rotulo: "Da cerca" }, { id: "tempo", rotulo: "Pelo tempo" }]} />
+          <div className="absolute left-2 top-2 z-[500] w-[340px] max-w-[calc(100%-16px)]">
+            <Segmentado<ModoMapa>
+              rotulo="Cor do mapa"
+              valor={modoMapa}
+              mudar={setCor}
+              opcoes={[{ id: "cerca", rotulo: "Da cerca" }, { id: "quanto", rotulo: "Quanto parou" }, ...(categorias ? [{ id: "oque" as const, rotulo: "O que parou" }] : [])]}
+            />
           </div>
-          {cor === "tempo" && <LegendaTempo limites={limitesTempo} cor={medida.cor} rotulo={medida.rotulo} />}
+          {modoMapa !== "cerca" && <LegendaTempo limites={limitesTempo} cor={resolverCor(medida.cor)} rotulo={medida.rotulo} categorias={modoMapa === "oque" ? legendaCategorias : null} />}
           {(aviso || semHistorico) && (
             <div className="absolute left-1/2 top-1/2 z-[600] w-[min(380px,calc(100%-24px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-borda bg-superficie/95 p-1 shadow-xl">
               {aviso ? <Aviso tipo="erro">{aviso}</Aviso> : <Vazio titulo="O histórico ainda não foi enviado">Rode o “Enviar Historico ao Site.bat” no PC.</Vazio>}

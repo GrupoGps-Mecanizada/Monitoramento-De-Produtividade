@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { corDaFamilia, corDoApontamento, corDoStatus, fundoDaFaixa, opacidadeDaFaixa, textoDaFaixa } from "./cores-analise";
+import { corDaFamilia, corDoApontamento, corDoStatus, fundoDaFaixa, opacidadeDaFaixa, rampaDaCor, textoDaFaixa } from "./cores-analise";
 
 describe("cores da análise", () => {
   it("mapa na cor da medida: a força do tom cresce com a faixa; uma faixa só fica no meio", () => {
@@ -26,5 +26,8 @@ describe("cores da análise", () => {
     expect(fundoDaFaixa(4, 5, "var(--motor2)")).toBe("color-mix(in srgb, var(--motor2) 100%, var(--superficie))");
     expect(fundoDaFaixa(0, 1, "var(--motor2)")).toBe("color-mix(in srgb, var(--motor2) 60%, var(--superficie))");
     expect([textoDaFaixa(4, 5, "var(--serie-1)"), textoDaFaixa(1, 5, "var(--serie-1)"), textoDaFaixa(4, 5, "var(--warn-dot)")]).toEqual(["#fff", "var(--texto)", "#0d1b2a"]);
+  });
+  it("rampa sólida de 5 tons da cor: clara → a própria cor → escura (para o mapa 'Quanto parou')", () => {
+    expect(rampaDaCor("#2a78d6")).toEqual(["#bfd7f3", "#8ab5e8", "#5593de", "#2a78d6", "#1d5496"]);
   });
 });

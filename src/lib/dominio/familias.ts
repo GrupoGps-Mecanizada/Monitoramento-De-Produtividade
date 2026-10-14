@@ -24,6 +24,9 @@ const TABELA: Record<Exclude<Familia, "sem">, string[]> = {
   manutencao: ["Pequenas manutenções", "Condições Climáticas (chuva, etc)"],
 };
 
+/** Os apontamentos de uma família, na ordem fixa da tabela (a cor de cada um segue essa ordem). */
+export const apontamentosDa = (f: Familia): string[] => (f === "sem" ? [] : TABELA[f]);
+
 /** Nome sem acento, minúsculo, com espaços simples e sem o " - LM" do fim (a regra mora em analise.ts, que a seleção também usa). */
 export const normalizar = normalizarNome;
 
