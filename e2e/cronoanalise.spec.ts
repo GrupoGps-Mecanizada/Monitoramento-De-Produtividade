@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { cronoFolhas, prepararDados } from "./apoio";
 
-test("Cronoanálise: turno, raio-x, conferência com frase e horas por colaborador", async ({ page }) => {
+test("Cronoanálise: turno, raio-x e horas por colaborador", async ({ page }) => {
   const gravacoes = await prepararDados(page);
   await page.goto("/cronoanalise/");
   // filtros separados: data, letra, turno, vaga, tipo e supervisor; com um turno só, ele abre direto (sem o seletor de turno)
@@ -10,10 +10,8 @@ test("Cronoanálise: turno, raio-x, conferência com frase e horas por colaborad
   await expect(page.getByLabel("Turno da cronoanálise")).toHaveCount(0);
   await expect(page.getByText("Raio-x do turno")).toBeVisible();
   await expect(page.getByText("João Teste").first()).toBeVisible();
-  // produzindo 08:20–08:40 com a bomba (motor 2º) desligada: vira frase
-  await expect(page.getByText(/A folha diz produzindo — João/)).toBeVisible();
-  // refeição no tablet e na folha: bate, não vira frase
-  await expect(page.getByText(/Tablet: "Refeição Motorista"/)).toHaveCount(0);
+  // a seção de conferência saiu a pedido do dono (14/10/2026)
+  await expect(page.getByText(/Conferência: folha/)).toHaveCount(0);
   await expect(page.getByText("Apontamentos dos colaboradores")).toBeVisible();
   await expect(page.getByText("Hidrojateamento – Pistola").first()).toBeVisible();
   expect(gravacoes).toEqual([]);

@@ -7,6 +7,9 @@
 - **Largura total:** Alertas, Exceções, Dia da frota, Cronoanálise e a faixa da Timeline usam a página de canto a canto.
 - **Cronoanálise limpa:** saíram os botões de zoom (+, −, ◀ ▶, Turno inteiro): a rodinha do mouse aproxima e afasta e arrastar o raio-x anda no tempo; saíram os textos de ajuda e as explicações longas dos números.
 
+## Cronoanálise sem a conferência · 14/10/2026
+- Saiu a seção **"Conferência: folha × motor × tablet"** (percentuais e frases), a pedido do dono. Ficam o raio-x com zoom, os apontamentos dos colaboradores e o ranking das atividades.
+
 ## Cronoanálise: zoom no raio-x · 14/10/2026
 - **Rodinha do mouse** sobre as faixas aproxima e afasta, no ponto do mouse. Shift + rodinha (ou o touchpad na horizontal) anda para os lados. Também há os botões − + ◀ ▶ e "Turno inteiro", que servem no celular.
 - Aproximando, aparece o **nome dentro de cada caixa**, mesmo quando ela começa antes da parte visível, e a régua passa a marcar 30, 15 ou 5 minutos.

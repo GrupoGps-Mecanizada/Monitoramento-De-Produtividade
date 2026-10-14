@@ -40,3 +40,6 @@ jobs:
           path: out
       - id: deploy
         uses: actions/deploy-pages@v4
+        with:
+          # o padrão (10 min) esgotou 3 vezes em 14/10/2026 com o GitHub Pages lento
+          timeout: 1800000
