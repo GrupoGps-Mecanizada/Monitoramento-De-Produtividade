@@ -16,8 +16,8 @@ test("Cronoanálise: turno, raio-x, conferência com frase e horas por colaborad
   expect(gravacoes).toEqual([]);
 });
 
-test("Cronoanálise: rodinha do mouse aproxima o raio-x e mostra os nomes nas caixas", async ({ page }, info) => {
-  test.skip(info.project.name === "celular", "rodinha do mouse só no computador; no celular há os botões");
+test("Cronoanálise: rodinha do mouse aproxima o raio-x e mostra os nomes nas caixas; afastar volta ao turno inteiro", async ({ page }, info) => {
+  test.skip(info.project.name === "celular", "rodinha do mouse só no computador");
   await prepararDados(page);
   await page.goto("/cronoanalise/");
   const caixa = page.locator("span[title^='32 · Hidrojateamento']");
@@ -26,18 +26,33 @@ test("Cronoanálise: rodinha do mouse aproxima o raio-x e mostra os nomes nas ca
   const r = (await caixa.boundingBox())!;
   await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
   for (let i = 0; i < 8; i++) await page.mouse.wheel(0, -100);
-  await expect(page.getByText(/zoom \d/)).toBeVisible();
+  await expect(page.getByLabel("Janela visível")).toBeVisible();
   await expect(caixa).toContainText("Hidrojateamento");
   if (process.env.FOTO_ZOOM) await page.screenshot({ path: process.env.FOTO_ZOOM, fullPage: false });
-  await page.getByRole("button", { name: "Turno inteiro" }).click();
+  for (let i = 0; i < 20; i++) await page.mouse.wheel(0, 100);
   await expect(caixa).toHaveText("");
+  await expect(page.getByLabel("Janela visível")).toHaveCount(0);
 });
 
-test("Cronoanálise: botões de zoom (celular)", async ({ page }) => {
+test("Cronoanálise: sem botões nem barra de zoom e sem textos de ajuda; arrastar anda no tempo", async ({ page }, info) => {
   await prepararDados(page);
   await page.goto("/cronoanalise/");
-  for (let i = 0; i < 5; i++) await page.getByRole("button", { name: "Aproximar" }).click();
-  await expect(page.getByText(/zoom \d/)).toBeVisible();
-  await page.getByRole("button", { name: "Turno inteiro" }).click();
-  await expect(page.getByText(/zoom \d/)).toHaveCount(0);
+  await expect(page.getByText("Raio-x do turno")).toBeVisible();
+  for (const b of ["Aproximar", "Afastar", "Turno inteiro", "Voltar no tempo", "Avançar no tempo"]) await expect(page.getByRole("button", { name: b })).toHaveCount(0);
+  await expect(page.getByLabel("Zoom do raio-x")).toHaveCount(0);
+  await expect(page.getByRole("slider")).toHaveCount(0);
+  await expect(page.getByText(/Passe o mouse|Rodinha do mouse|Aproxime para ler/)).toHaveCount(0);
+  // arrastar para a esquerda anda para a frente no tempo (só no computador: no celular o dedo rola a página)
+  if (info.project.name !== "celular") {
+    const faixa = (await page.getByLabel("Faixas do raio-x").boundingBox())!;
+    await page.mouse.move(faixa.x + faixa.width * 0.6, faixa.y + 40);
+    for (let i = 0; i < 6; i++) await page.mouse.wheel(0, -100);
+    const janela = page.getByLabel("Janela visível");
+    await expect(janela).toBeVisible();
+    const antes = await janela.textContent();
+    await page.mouse.down();
+    await page.mouse.move(faixa.x + faixa.width * 0.3, faixa.y + 40, { steps: 8 });
+    await page.mouse.up();
+    await expect(janela).not.toHaveText(antes!);
+  }
 });

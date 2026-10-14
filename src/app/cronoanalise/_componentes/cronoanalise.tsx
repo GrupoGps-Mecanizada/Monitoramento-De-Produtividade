@@ -2,13 +2,13 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useZoomRoda } from "@/components/historico/zoom-roda";
-import { Aviso, SecaoTitulo, Selecao, Selo, Vazio } from "@/components/ui";
+import { Aviso, SecaoTitulo, Selecao, Selo, Vazio, cx } from "@/components/ui";
 import { corDoTom } from "@/lib/cores";
 import { useFolhas, useTelemetriaDoTurno } from "@/lib/dados/cronoanalise";
 import { CLASSES, conferir, montarTurnos, padraoVagaGauss, rankingAtividades, relogio, resumoPessoas, type Classe, type Conferencia, type TurnoCrono } from "@/lib/dominio/cronoanalise";
 import { diaBR, fmtHoras } from "@/lib/dominio/formato";
 import { STATUS_GAUSS } from "@/lib/dominio/gauss-dia";
-import { deslocarJanela, zoomJanela, type Janela } from "@/lib/dominio/trilhas";
+import { deslocarJanela, type Janela } from "@/lib/dominio/trilhas";
 import type { Tom } from "@/lib/tipos";
 
 const ORDEM_CLASSES: Classe[] = ["produzindo", "necessario", "improdutivo", "sem"];
@@ -33,7 +33,7 @@ export function Cronoanalise() {
 
   if (erro) return <Moldura><Aviso tipo="erro">Não foi possível ler a cronoanálise: {erro}</Aviso></Moldura>;
   if (!linhas) return <Moldura><Vazio titulo="Carregando as folhas da cronoanálise…" /></Moldura>;
-  if (!turno) return <Moldura><Vazio titulo="Nenhuma folha lançada">Lance as folhas no sistema Cronoanálise e elas aparecem aqui.</Vazio></Moldura>;
+  if (!turno) return <Moldura><Vazio titulo="Nenhuma folha lançada" /></Moldura>;
 
   return (
     <Moldura>
@@ -46,7 +46,7 @@ export function Cronoanalise() {
           ))}
         </Selecao>
         <span className="text-xs text-suave md:ml-auto">
-          {turnos.length} turno{turnos.length === 1 ? "" : "s"} com folha lançada · {relogio(turno, 0)}–{relogio(turno, turno.duracao)}
+          {relogio(turno, 0)}–{relogio(turno, turno.duracao)}
           {turno.area ? ` · ${turno.area}` : ""}
           {turno.kit ? ` · kit ${turno.kit}` : ""}
         </span>
@@ -80,16 +80,8 @@ function Cartao({ titulo, acao, children }: { titulo: string; acao?: React.React
 
 type Pedaco = { a: number; b: number; tom: Tom; texto: string; titulo: string };
 
-function BotaoZoom({ rotulo, onClick, desativado, children }: { rotulo: string; onClick: () => void; desativado: boolean; children: React.ReactNode }) {
-  return (
-    <button type="button" onClick={onClick} disabled={desativado} aria-label={rotulo} title={rotulo} className="grid h-7 w-7 place-items-center rounded-md border border-borda text-sm font-bold disabled:opacity-40">
-      {children}
-    </button>
-  );
-}
-
 function RaioX({ turno, conf, carregando }: { turno: TurnoCrono; conf: Conferencia | null; carregando: boolean }) {
-  // zoom: janela visível dentro do turno (rodinha do mouse, botões ou Shift + rodinha para andar)
+  // zoom: janela visível dentro do turno (rodinha do mouse; arrastar ou Shift + rodinha anda no tempo)
   const inteiro: Janela = [0, turno.duracao];
   const [janela, setJanela] = useState<Janela>(inteiro);
   const areaRef = useRef<HTMLDivElement>(null);
@@ -108,19 +100,32 @@ function RaioX({ turno, conf, carregando }: { turno: TurnoCrono; conf: Conferenc
     for (let s = Math.ceil((ja + zero) / passo) * passo - zero; s <= jb; s += passo) r.push(s);
     return r;
   }, [turno, ja, jb, visivel]);
-  const meio = (ja + jb) / 2;
+  // arrastar com o mouse anda no tempo (no celular o dedo continua rolando a página)
+  const arrasto = useRef<{ x: number; janela: Janela } | null>(null);
+  const aoApertar = (e: React.PointerEvent) => {
+    if (e.pointerType !== "mouse" || e.button !== 0 || zoom <= 1) return;
+    arrasto.current = { x: e.clientX, janela };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const aoMover = (e: React.PointerEvent) => {
+    const d = arrasto.current;
+    const largura = reguaRef.current?.getBoundingClientRect().width;
+    if (!d || !largura) return;
+    setJanela(deslocarJanela(d.janela, (-(e.clientX - d.x) / largura) * (d.janela[1] - d.janela[0]), turno.duracao));
+  };
+  const aoSoltar = () => {
+    arrasto.current = null;
+  };
   const intervalo = (p: { a: number; b: number }) => `${relogio(turno, p.a)}–${relogio(turno, p.b)}`;
 
   const faixas: { rotulo: string; sub?: string; pedacos: Pedaco[]; vazio?: string }[] = [
     {
       rotulo: "Motor (GAUSS)",
-      sub: conf?.produtivo ? `produtivo = ${STATUS_GAUSS[conf.produtivo]?.rotulo ?? conf.produtivo}` : "tipo sem regra de produtivo",
       pedacos: (conf?.motor ?? []).map((x) => ({ a: x.a, b: x.b, tom: x.tom, texto: x.rotulo, titulo: `${x.rotulo} · ${intervalo(x)}` })),
       vazio: carregando ? "carregando…" : "sem dados do GAUSS neste turno",
     },
     {
       rotulo: "Tablet",
-      sub: "apontamentos de parada",
       pedacos: (conf?.tablet ?? []).map((x) => ({ a: x.a, b: x.b, tom: "reg", texto: x.categoria, titulo: `${x.categoria} · ${intervalo(x)}` })),
       vazio: carregando ? "carregando…" : "nenhum apontamento",
     },
@@ -154,19 +159,12 @@ function RaioX({ turno, conf, carregando }: { turno: TurnoCrono; conf: Conferenc
           </li>
         ))}
       </ul>
-      <div className="mb-2 flex flex-wrap items-center gap-1.5 text-xs">
-        <BotaoZoom rotulo="Afastar" onClick={() => setJanela(zoomJanela(janela, meio, 1.5, turno.duracao))} desativado={zoom <= 1}>−</BotaoZoom>
-        <BotaoZoom rotulo="Aproximar" onClick={() => setJanela(zoomJanela(janela, meio, 0.66, turno.duracao))} desativado={visivel <= 600}>+</BotaoZoom>
-        <BotaoZoom rotulo="Voltar no tempo" onClick={() => setJanela(deslocarJanela(janela, -visivel / 3, turno.duracao))} desativado={ja <= 0}>◀</BotaoZoom>
-        <BotaoZoom rotulo="Avançar no tempo" onClick={() => setJanela(deslocarJanela(janela, visivel / 3, turno.duracao))} desativado={jb >= turno.duracao}>▶</BotaoZoom>
-        <button type="button" onClick={() => setJanela(inteiro)} disabled={zoom <= 1} className="rounded-md border border-borda px-2 py-1 font-semibold disabled:opacity-40">
-          Turno inteiro
-        </button>
-        <span className="text-suave">
-          {zoom > 1 ? `${relogio(turno, ja)}–${relogio(turno, jb)} · zoom ${zoom.toFixed(1)}×` : "Rodinha do mouse sobre as faixas: aproxima e afasta. Shift + rodinha: anda para os lados."}
-        </span>
-      </div>
-      <div className="overflow-x-auto" ref={areaRef}>
+      {zoom > 1 && (
+        <p aria-label="Janela visível" className="mb-2 text-xs tabular-nums text-suave">
+          {relogio(turno, ja)}–{relogio(turno, jb)}
+        </p>
+      )}
+      <div className={cx("overflow-x-auto", zoom > 1 && "cursor-grab active:cursor-grabbing")} ref={areaRef} aria-label="Faixas do raio-x" onPointerDown={aoApertar} onPointerMove={aoMover} onPointerUp={aoSoltar} onPointerCancel={aoSoltar}>
         <div className="min-w-[720px]">
           <div className="grid grid-cols-[170px_1fr] gap-3">
             <span />
@@ -212,7 +210,6 @@ function RaioX({ turno, conf, carregando }: { turno: TurnoCrono; conf: Conferenc
           ))}
         </div>
       </div>
-      <p className="mt-2 text-[11px] text-suave">Passe o mouse num pedaço para ver a atividade, o horário e a observação da folha. Aproxime para ler os nomes dentro das caixas.</p>
     </Cartao>
   );
 }
@@ -234,16 +231,16 @@ function Conferir({ turno, conf, carregando }: { turno: TurnoCrono; conf: Confer
   return (
     <Cartao titulo="Conferência: folha × motor × tablet">
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        <Numero titulo="Folha e motor batem" valor={conf.concordancia == null ? "—" : `${conf.concordancia}%`} sub={regra ? `produzindo na folha × ${regra}, minuto a minuto` : "este tipo não tem regra de produtivo"} />
-        <Numero titulo="Produzindo na folha" valor={fmtHoras(conf.minEquipeProduzindo)} sub={`de ${fmtHoras(conf.minFolha)} com folha preenchida`} />
-        <Numero titulo="Motor produtivo" valor={regra ? fmtHoras(conf.minMotorProdutivo) : "—"} sub={regra ? `${regra} (GAUSS)` : "sem regra"} />
-        <Numero titulo="Tablet confere" valor={conf.tabletConfere == null ? "—" : `${conf.tabletConfere}%`} sub={`${fmtHoras(conf.minTablet)} apontadas no tablet`} />
+        <Numero titulo="Folha e motor batem" valor={conf.concordancia == null ? "—" : `${conf.concordancia}%`} sub={regra ? `× ${regra}` : "sem regra"} />
+        <Numero titulo="Produzindo na folha" valor={fmtHoras(conf.minEquipeProduzindo)} sub={`de ${fmtHoras(conf.minFolha)}`} />
+        <Numero titulo="Motor produtivo" valor={regra ? fmtHoras(conf.minMotorProdutivo) : "—"} sub={regra ?? "sem regra"} />
+        <Numero titulo="Tablet confere" valor={conf.tabletConfere == null ? "—" : `${conf.tabletConfere}%`} sub={`${fmtHoras(conf.minTablet)} no tablet`} />
       </div>
       <p className="mb-2 mt-4 text-[13px] font-semibold">O que não bate</p>
       {carregando ? (
-        <p className="text-sm text-suave">Lendo o motor e o tablet…</p>
+        <p className="text-sm text-suave">Carregando…</p>
       ) : !conf.frases.length ? (
-        <p className="text-sm text-suave">Nada fora do esperado: a folha, o motor e o tablet contam a mesma história neste turno.</p>
+        <p className="text-sm text-suave">Tudo bate.</p>
       ) : (
         <ul className="space-y-1.5">
           {conf.frases.map((f, i) => (

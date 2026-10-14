@@ -1,5 +1,10 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Sistema mais limpo · 14/10/2026 (não publicado)
+- **Menu em 3 categorias:** Ao vivo (Localização, Alertas), Análises (Análise, Dia da frota, Timeline, Cronoanálise) e Cadastros (Equipamentos). A categoria abre a lista das telas e mostra a tela aberta; no celular, a barra de baixo tem as 3 categorias e a busca.
+- **Largura total:** Alertas, Exceções, Dia da frota, Cronoanálise e a faixa da Timeline usam a página de canto a canto.
+- **Cronoanálise limpa:** saíram os botões de zoom (+, −, ◀ ▶, Turno inteiro): a rodinha do mouse aproxima e afasta e arrastar o raio-x anda no tempo; saíram os textos de ajuda e as explicações longas dos números.
+
 ## Cronoanálise: zoom no raio-x · 14/10/2026
 - **Rodinha do mouse** sobre as faixas aproxima e afasta, no ponto do mouse. Shift + rodinha (ou o touchpad na horizontal) anda para os lados. Também há os botões − + ◀ ▶ e "Turno inteiro", que servem no celular.
 - Aproximando, aparece o **nome dentro de cada caixa**, mesmo quando ela começa antes da parte visível, e a régua passa a marcar 30, 15 ou 5 minutos.
