@@ -22,6 +22,7 @@ import { AbasAssunto } from "./assunto/abas-assunto";
 import { PainelMotor2 } from "./assunto/painel-motor2";
 import { PainelStatus } from "./assunto/painel-status";
 import { desenharCercas } from "./camada-analise";
+import { corDoApontamento } from "./cores-analise";
 import { PainelFamilia } from "./familia/painel-familia";
 import { SubabasFamilia } from "./familia/subabas-familia";
 import { GraficoBarras, type ItemBarra } from "./grafico-barras";
@@ -141,6 +142,9 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
     valor: s.n,
     texto: s.n.toLocaleString("pt-BR"),
     dica: `${s.nome}, ${s.n} ${s.n === 1 ? "parada" : "paradas"}, ${fmtHoras(s.min)}`,
+    // cada apontamento na cor da família dele
+    marca: s.nome === OUTROS ? undefined : corDoApontamento(s.nome),
+    cor: s.nome === OUTROS ? "var(--neu-dot)" : corDoApontamento(s.nome),
     clicavel: s.nome !== OUTROS,
   }));
   const etiquetas: Etiqueta[] = [];

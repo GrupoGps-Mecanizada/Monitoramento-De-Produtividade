@@ -5,6 +5,7 @@ import type { DimensaoSelecao, Local, ParadaNoLocal, SelecaoCruzada } from "@/li
 import { ROTULO_FAMILIA, SEM_SUPERVISOR, frases, porApontamento, porDia, rankingPlacas, rankingSupervisores, type Familia, type LinhaRanking } from "@/lib/dominio/familias";
 import { fmtHoras } from "@/lib/dominio/formato";
 import { Frases } from "../assunto/frases";
+import { corDaFamilia } from "../cores-analise";
 import { GraficoBarras, type ItemBarra } from "../grafico-barras";
 import { GraficoDias } from "./grafico-dias";
 
@@ -38,6 +39,8 @@ export function PainelFamilia({
   vazio: string;
 }) {
   const todas = recorte();
+  // os gráficos da família na cor dela
+  const cor = corDaFamilia(familia);
   const textos = frases({ rotulo: ROTULO_FAMILIA[familia], atual: todas, anterior, dias, hoje, locais });
   const apont: ItemBarra[] = porApontamento(recorte("servico"), familia).map((s) => ({
     chave: s.nome,
@@ -50,12 +53,12 @@ export function PainelFamilia({
     <div className="flex flex-col gap-2">
       {novos.length > 0 && <Aviso tipo="alerta">Apontamento novo sem família: {novos.join(", ")}</Aviso>}
       <Frases textos={textos} vazio={vazio} />
-      {familia !== "sem" && <GraficoBarras titulo="Por apontamento" sub="horas paradas" itens={apont} selecionada={sel.servico} escolher={(n) => alternar("servico", n)} vazio={vazio} />}
+      {familia !== "sem" && <GraficoBarras titulo="Por apontamento" sub="horas paradas" itens={apont} selecionada={sel.servico} escolher={(n) => alternar("servico", n)} vazio={vazio} cor={cor} />}
       <div className="grid gap-2 2xl:grid-cols-2">
-        <GraficoBarras titulo="Placas" sub="quem mais para" itens={rankingPlacas(recorte("placa")).map((r) => itemRanking(r))} selecionada={sel.placa} escolher={(c) => alternar("placa", c)} vazio={vazio} />
-        <GraficoBarras titulo="Supervisores" sub="quem mais para" itens={rankingSupervisores(todas).map((r) => itemRanking(r, r.chave !== SEM_SUPERVISOR))} selecionada={supervisor} escolher={escolherSupervisor} vazio={vazio} />
+        <GraficoBarras titulo="Placas" sub="quem mais para" itens={rankingPlacas(recorte("placa")).map((r) => itemRanking(r))} selecionada={sel.placa} escolher={(c) => alternar("placa", c)} vazio={vazio} cor={cor} />
+        <GraficoBarras titulo="Supervisores" sub="quem mais para" itens={rankingSupervisores(todas).map((r) => itemRanking(r, r.chave !== SEM_SUPERVISOR))} selecionada={supervisor} escolher={escolherSupervisor} vazio={vazio} cor={cor} />
       </div>
-      <GraficoDias dias={porDia(todas, hoje, dias)} vazio={vazio} />
+      <GraficoDias dias={porDia(todas, hoje, dias)} vazio={vazio} cor={cor} />
     </div>
   );
 }

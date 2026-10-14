@@ -4,17 +4,17 @@ import { cx } from "@/components/ui";
 import { DIAS_CURTOS } from "@/lib/dominio/analise";
 import { faixaDe, faixasDe } from "@/lib/dominio/assuntos";
 import { fmtHoras } from "@/lib/dominio/formato";
-import { corDaFaixa, textoSobreFaixa } from "./cores-analise";
+import { COR_PARADO, fundoDaFaixa, textoDaFaixa } from "./cores-analise";
 
 /** seg a dom (a semana de trabalho primeiro) */
 const LINHAS = [1, 2, 3, 4, 5, 6, 0];
 const COM_NUMERO = 5;
 
 /**
- * "Quando para": dia da semana × hora de início, mais escuro = mais tempo. Os 5 quadradinhos mais fortes mostram as horas;
+ * "Quando para": dia da semana × hora de início, na cor da medida (mais forte = mais tempo). Os 5 quadradinhos mais fortes mostram as horas;
  * passar o mouse mostra o valor de qualquer um; clicar escolhe hora e dia (clicar de novo desfaz).
  */
-export function GradeQuando({ grade, hora, dia, escolher, vazio }: { grade: number[][]; hora: number | null; dia: number | null; escolher: (dia: number, hora: number) => void; vazio: string }) {
+export function GradeQuando({ grade, hora, dia, escolher, vazio, cor = COR_PARADO }: { grade: number[][]; hora: number | null; dia: number | null; escolher: (dia: number, hora: number) => void; vazio: string; cor?: string }) {
   const valores = grade.flat();
   const limites = faixasDe(valores);
   const fortes = new Set([...valores].filter((v) => v > 0).sort((a, b) => b - a).slice(0, COM_NUMERO));
@@ -43,7 +43,7 @@ export function GradeQuando({ grade, hora, dia, escolher, vazio }: { grade: numb
                     title={`${DIAS_CURTOS[d]} ${h}h · ${fmtHoras(v)}`}
                     onClick={() => escolher(d, h)}
                     className={cx("flex h-6 items-center justify-center rounded-[3px] text-[9px] font-semibold leading-none", escolhido && "ring-2 ring-texto", hora != null && !escolhido && "opacity-40")}
-                    style={{ background: v > 0 ? corDaFaixa(f, limites.length + 1) : "var(--superficie-2)", color: textoSobreFaixa(f, limites.length + 1) }}
+                    style={{ background: v > 0 ? fundoDaFaixa(f, limites.length + 1, cor) : "var(--superficie-2)", color: textoDaFaixa(f, limites.length + 1, cor) }}
                   >
                     {fortes.has(v) && v > 0 ? `${Math.round(v / 60)}h` : ""}
                   </button>

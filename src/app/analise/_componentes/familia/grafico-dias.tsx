@@ -3,7 +3,7 @@
 import { diaBR, fmtHoras } from "@/lib/dominio/formato";
 
 /** Colunas com as horas paradas em cada dia do período (dia sem parada fica vazio, para não esconder buracos). */
-export function GraficoDias({ dias, vazio }: { dias: { dia: string; min: number }[]; vazio: string }) {
+export function GraficoDias({ dias, vazio, cor }: { dias: { dia: string; min: number }[]; vazio: string; cor?: string }) {
   const max = Math.max(0, ...dias.map((d) => d.min));
   return (
     <section aria-label="Tendência por dia" className="rounded-xl border border-borda bg-superficie p-3">
@@ -17,7 +17,7 @@ export function GraficoDias({ dias, vazio }: { dias: { dia: string; min: number 
           <ol aria-label="Dias" className="mt-2 flex h-24 items-end gap-[2px]">
             {dias.map((d) => (
               <li key={d.dia} aria-label={`${diaBR(d.dia)}, ${fmtHoras(d.min)}`} title={`${diaBR(d.dia)}: ${fmtHoras(d.min)}`} className="flex h-full flex-1 items-end">
-                <span className="block w-full rounded-t-[4px] bg-primaria" style={{ height: `${d.min > 0 ? Math.max(3, (d.min / max) * 100) : 0}%` }} />
+                <span className="block w-full rounded-t-[4px] bg-primaria" style={{ height: `${d.min > 0 ? Math.max(3, (d.min / max) * 100) : 0}%`, background: cor }} />
               </li>
             ))}
           </ol>

@@ -6,6 +6,7 @@ import { frasesAssunto, gradeHoraDia, lugaresPorPeso, numerosStatus, pesoParado,
 import { fmtHoras } from "@/lib/dominio/formato";
 import { GraficoBarras, type ItemBarra } from "../grafico-barras";
 import { BarrasStatus } from "../barras-status";
+import { COR_PARADO, corDoStatus } from "../cores-analise";
 import { GradeQuando } from "../grade-quando";
 import { Frases } from "./frases";
 import { Numeros, pct } from "./numeros";
@@ -32,7 +33,9 @@ export function PainelStatus({ recorte, locais, sel, alternar, escolherQuando, v
   const status = escolhido && somas.some((s) => s.cod === escolhido) ? escolhido : null;
   const peso = status ? pesoStatus(status) : pesoParado;
   const rotulo = status ? rotuloStatus(status) : "Tempo parado";
-  const porStatus: ItemBarra[] = somas.map((s) => ({ chave: s.cod, rotulo: s.rotulo, valor: s.min, texto: fmtHoras(s.min), dica: `${s.rotulo}, ${fmtHoras(s.min)}` }));
+  const porStatus: ItemBarra[] = somas.map((s) => ({ chave: s.cod, rotulo: s.rotulo, valor: s.min, texto: fmtHoras(s.min), dica: `${s.rotulo}, ${fmtHoras(s.min)}`, marca: corDoStatus(s.cod), cor: corDoStatus(s.cod) }));
+  // lugares e grade na cor do que está sendo medido: o status escolhido ou o tempo parado
+  const cor = status ? corDoStatus(status) : COR_PARADO;
   return (
     <div className="flex flex-col gap-2">
       <Numeros
@@ -45,8 +48,8 @@ export function PainelStatus({ recorte, locais, sel, alternar, escolherQuando, v
       <Frases textos={frasesAssunto({ rotulo, paradas: todas, peso, locais })} vazio={vazio} />
       <GraficoBarras titulo="Por status" sub="horas de cada status do GAUSS nas paradas" itens={porStatus} selecionada={status} escolher={(c) => setStatus((s) => (s === c ? null : c))} vazio={vazio} />
       <BarrasStatus linhas={placasPorStatus(recorte("placa"), status ?? "stopped")} destaque={status ?? "stopped"} selecionada={sel.placa} escolher={(c) => alternar("placa", c)} vazio={vazio} />
-      <GraficoBarras titulo="Lugares" sub={rotulo.toLowerCase()} itens={lugaresPorPeso(recorte("local"), locais, peso).map(itemLinha)} selecionada={sel.local} escolher={(c) => alternar("local", c)} vazio={vazio} />
-      <GradeQuando grade={gradeHoraDia(recorte(["hora", "dia"]), peso)} hora={sel.hora} dia={sel.dia} escolher={escolherQuando} vazio={vazio} />
+      <GraficoBarras titulo="Lugares" sub={rotulo.toLowerCase()} itens={lugaresPorPeso(recorte("local"), locais, peso).map(itemLinha)} selecionada={sel.local} escolher={(c) => alternar("local", c)} vazio={vazio} cor={cor} />
+      <GradeQuando grade={gradeHoraDia(recorte(["hora", "dia"]), peso)} hora={sel.hora} dia={sel.dia} escolher={escolherQuando} vazio={vazio} cor={cor} />
     </div>
   );
 }

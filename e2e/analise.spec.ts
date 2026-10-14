@@ -89,6 +89,9 @@ test("Análise: Status do motor (padrão) e Motor secundário com números, fras
   await expect(page.getByRole("list", { name: "Frases automáticas" })).toContainText("Tempo parado: 5h00 em 5 paradas.");
   // escolher um status: placas pesam só ele; clicar de novo volta
   const porStatus = page.getByRole("region", { name: "Por status" });
+  // cada status na cor da Timeline: a barra do status e a parte dele na barra da placa
+  await expect(porStatus.getByRole("button", { name: /^Parado ligado/ }).locator("span > span").last()).toHaveAttribute("style", /--warn-dot/);
+  await expect(page.getByRole("region", { name: "Placas" }).locator('[title^="Parado ligado:"]').first()).toHaveAttribute("style", /--warn-dot/);
   await porStatus.getByRole("button", { name: /^Motor 2º ligado/ }).click();
   await expect(page.getByRole("region", { name: "Placas" }).getByRole("button").first()).toHaveAccessibleName(/^EGC2985, Motor 2º ligado 1h30 de/);
   await porStatus.getByRole("button", { name: /^Motor 2º ligado/ }).click();
@@ -100,12 +103,16 @@ test("Análise: Status do motor (padrão) e Motor secundário com números, fras
   await page.getByLabel("Tipo").selectOption("");
   // serviço escolhido em Apontamentos sai ao trocar de assunto
   await assunto.getByRole("tab", { name: "Apontamentos" }).click();
+  // o apontamento leva a cor da família (Aguardando = laranja)
+  await expect(page.getByRole("region", { name: "Por serviço" }).getByRole("button", { name: /^Aguardando Área/ }).locator("span > span").last()).toHaveAttribute("style", /--serie-2/);
   await page.getByRole("region", { name: "Por serviço" }).getByRole("button", { name: /^Aguardando Área/ }).click();
   await assunto.getByRole("tab", { name: "Motor secundário" }).click();
   await expect(page.getByRole("group", { name: "Filtrando" })).toHaveCount(0);
   // motor 2º: só o Alta Pressão (bomba 40 + 30 + 20 min = 1h30)
   await expect(page.getByRole("region", { name: "Números" })).toContainText("1h30");
   await expect(page.getByRole("region", { name: "Números" })).toContainText("EGC2985");
+  // a bomba no ciano do motor 2º
+  await expect(page.getByRole("region", { name: "Lugares" }).getByRole("button").first().locator("span > span").last()).toHaveAttribute("style", /--motor2/);
   await expect(page.getByRole("region", { name: "Lugares" }).getByRole("button").first()).toHaveAccessibleName(/^OFICINA/);
   // filtro de tipo que esvazia: "—" e aviso, sem quebrar
   await page.getByLabel("Tipo").selectOption("as");

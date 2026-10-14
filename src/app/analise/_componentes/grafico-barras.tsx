@@ -11,10 +11,12 @@ export interface ItemBarra {
   dica: string;
   marca?: string;
   clicavel?: boolean;
+  /** cor da barra (senão, a do gráfico ou a primária) */
+  cor?: string;
 }
 
 /** Barras horizontais com o número escrito ao lado. Clicar escolhe (ou desfaz); com uma escolhida, as outras ficam apagadas. */
-export function GraficoBarras({ titulo, sub, itens, selecionada, escolher, vazio }: { titulo: string; sub: string; itens: ItemBarra[]; selecionada: string | null; escolher: (chave: string) => void; vazio: string }) {
+export function GraficoBarras({ titulo, sub, itens, selecionada, escolher, vazio, cor }: { titulo: string; sub: string; itens: ItemBarra[]; selecionada: string | null; escolher: (chave: string) => void; vazio: string; cor?: string }) {
   const max = Math.max(0, ...itens.map((i) => i.valor));
   return (
     <section aria-label={titulo} className="rounded-xl border border-borda bg-superficie p-3">
@@ -46,7 +48,7 @@ export function GraficoBarras({ titulo, sub, itens, selecionada, escolher, vazio
                 </span>
                 <b className="tabular-nums text-texto">{i.texto}</b>
                 <span aria-hidden className="col-span-2 mt-0.5 h-1.5 rounded-full bg-superficie-2">
-                  <span className="block h-full rounded-full bg-primaria" style={{ width: `${max > 0 ? Math.max(2, (i.valor / max) * 100) : 0}%` }} />
+                  <span className="block h-full rounded-full bg-primaria" style={{ width: `${max > 0 ? Math.max(2, (i.valor / max) * 100) : 0}%`, background: i.cor ?? cor }} />
                 </span>
               </button>
             </li>
