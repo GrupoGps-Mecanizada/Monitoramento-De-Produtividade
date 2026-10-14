@@ -3,7 +3,7 @@
 import type * as Leaflet from "leaflet";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMapa } from "@/components/mapa/use-mapa";
-import { Aviso, Vazio } from "@/components/ui";
+import { Aviso, Botao, Vazio, cx } from "@/components/ui";
 import { useParadasAnalise } from "@/lib/dados/analise";
 import { lerCercas } from "@/lib/dados/leituras";
 import { useRetrato } from "@/lib/dados/use-retrato";
@@ -45,6 +45,9 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   // o zoom muda quais nomes de planta cabem no mapa
   const [zoom, setZoom] = useState(0);
   const [assunto, setAssunto] = useOpcao<Assunto>("mon-analise-assunto", ASSUNTOS, "status");
+  // os gráficos podem sair da tela: o mapa ocupa tudo (a escolha fica neste navegador)
+  const [graficos, setGraficos] = useOpcao<"mostrar" | "ocultar">("mon-analise-graficos", ["mostrar", "ocultar"], "mostrar");
+  const comGraficos = graficos === "mostrar";
   const [familia, setFamilia] = useOpcao<AbaFamilia>("mon-analise-familia", ABAS_FAMILIA, "geral");
 
   useEffect(() => {
@@ -154,6 +157,11 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2 lg:overflow-hidden">
       <BarraFiltros
         topo={topo}
+        fim={
+          <Botao variante="secundaria" aria-pressed={!comGraficos} onClick={() => setGraficos(comGraficos ? "ocultar" : "mostrar")}>
+            {comGraficos ? "Ocultar gráficos" : "Mostrar gráficos"}
+          </Botao>
+        }
         filtros={filtros}
         mudarFiltros={(p) => setFiltros((f) => ({ ...f, ...p }))}
         equip={[...equip.values()]}
@@ -161,7 +169,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
         tirar={(d) => setSel((s) => ({ ...s, [d]: null }))}
         limpar={() => setSel(SELECAO_VAZIA)}
       />
-      <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,3fr)_minmax(340px,2fr)] lg:grid-rows-[minmax(0,1fr)]">
+      <div className={cx("grid min-h-0 flex-1 gap-2 lg:grid-rows-[minmax(0,1fr)]", comGraficos && "lg:grid-cols-[minmax(0,3fr)_minmax(340px,2fr)]")}>
         <div className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-borda lg:h-full">
           <div ref={ref} className="absolute inset-0" />
           {(aviso || semHistorico) && (
@@ -170,45 +178,47 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-2 lg:min-h-0 lg:overflow-y-auto">
-          <AbasAssunto valor={assunto} mudar={trocarAssunto} />
-          {velho && (
-            <p role="status" className="px-1 text-xs font-medium text-suave">
-              Último dia com dados: {diaBR(velho)}
-            </p>
-          )}
-          {assunto === "status" ? (
-            <PainelStatus recorte={recorte} locais={base.locais} sel={sel} alternar={alternar} vazio={vazio} />
-          ) : assunto === "motor2" ? (
-            <PainelMotor2 recorte={recorte} locais={base.locais} sel={sel} alternar={alternar} vazio={vazio} />
-          ) : (
-            <>
-              <SubabasFamilia valor={familia} mudar={trocarFamilia} />
-            {familia === "geral" ? (
-              <>
-                <GraficoBarras titulo="Lugares" sub="mais tempo parado" itens={lugares} selecionada={sel.local} escolher={escolherLugar} vazio={vazio} />
-                <GraficoBarras titulo="Por serviço" sub="paradas com o apontamento" itens={itensServico} selecionada={sel.servico} escolher={(n) => alternar("servico", n)} vazio={vazio} />
-                <GraficoHoras minutos={horas} selecionada={sel.hora} escolher={(h) => alternar("hora", h)} vazio={vazio} />
-              </>
-            ) : (
-              <PainelFamilia
-                familia={familia}
-                recorte={recorte}
-                anterior={anterior}
-                dias={Number(periodo)}
-                hoje={hoje}
-                locais={base.locais}
-                novos={novos}
-                sel={sel}
-                alternar={alternar}
-                supervisor={filtros.supervisor}
-                escolherSupervisor={escolherSupervisor}
-                vazio={vazio}
-              />
+        {comGraficos && (
+          <div className="flex flex-col gap-2 lg:min-h-0 lg:overflow-y-auto">
+            <AbasAssunto valor={assunto} mudar={trocarAssunto} />
+            {velho && (
+              <p role="status" className="px-1 text-xs font-medium text-suave">
+                Último dia com dados: {diaBR(velho)}
+              </p>
             )}
-            </>
-          )}
-        </div>
+            {assunto === "status" ? (
+              <PainelStatus recorte={recorte} locais={base.locais} sel={sel} alternar={alternar} vazio={vazio} />
+            ) : assunto === "motor2" ? (
+              <PainelMotor2 recorte={recorte} locais={base.locais} sel={sel} alternar={alternar} vazio={vazio} />
+            ) : (
+              <>
+                <SubabasFamilia valor={familia} mudar={trocarFamilia} />
+              {familia === "geral" ? (
+                <>
+                  <GraficoBarras titulo="Lugares" sub="mais tempo parado" itens={lugares} selecionada={sel.local} escolher={escolherLugar} vazio={vazio} />
+                  <GraficoBarras titulo="Por serviço" sub="paradas com o apontamento" itens={itensServico} selecionada={sel.servico} escolher={(n) => alternar("servico", n)} vazio={vazio} />
+                  <GraficoHoras minutos={horas} selecionada={sel.hora} escolher={(h) => alternar("hora", h)} vazio={vazio} />
+                </>
+              ) : (
+                <PainelFamilia
+                  familia={familia}
+                  recorte={recorte}
+                  anterior={anterior}
+                  dias={Number(periodo)}
+                  hoje={hoje}
+                  locais={base.locais}
+                  novos={novos}
+                  sel={sel}
+                  alternar={alternar}
+                  supervisor={filtros.supervisor}
+                  escolherSupervisor={escolherSupervisor}
+                  vazio={vazio}
+                />
+              )}
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -115,6 +115,29 @@ test("Análise: Status do motor (padrão) e Motor secundário com números, fras
   expect(gravacoes).toEqual([]);
 });
 
+test("Análise: ocultar e mostrar os gráficos; o mapa ocupa a tela e a escolha fica guardada", async ({ page }) => {
+  const gravacoes = await prepararDados(page);
+  await page.goto("/analise/");
+  const mapa = page.locator(".mapa-analise");
+  await expect(page.getByRole("tablist", { name: "Assunto" })).toBeVisible();
+  const antes = (await mapa.boundingBox())!.width;
+  await page.getByRole("button", { name: "Ocultar gráficos" }).click();
+  await expect(page.getByRole("tablist", { name: "Assunto" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Números" })).toHaveCount(0);
+  // no computador o mapa ganha a largura da coluna (no celular ele já ocupa a largura toda)
+  if (test.info().project.name !== "celular") await expect.poll(async () => (await mapa.boundingBox())!.width).toBeGreaterThan(antes + 100);
+  // clicar na cerca continua filtrando com os gráficos ocultos
+  await page.getByRole("button", { name: "OFICINA", exact: true }).click();
+  await expect(page.getByRole("group", { name: "Filtrando" }).getByRole("button", { name: "Tirar filtro: OFICINA" })).toBeVisible();
+  // a escolha fica guardada neste navegador
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Mostrar gráficos" })).toBeVisible();
+  await expect(page.getByRole("tablist", { name: "Assunto" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Mostrar gráficos" }).click();
+  await expect(page.getByRole("tablist", { name: "Assunto" })).toBeVisible();
+  expect(gravacoes).toEqual([]);
+});
+
 test("Análise: subabas por família com frases, apontamentos, quem mais para e tendência", async ({ page }) => {
   const gravacoes = await prepararDados(page);
   await page.goto("/analise/");

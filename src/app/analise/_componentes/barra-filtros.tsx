@@ -23,6 +23,7 @@ const distintos = (xs: (string | null)[]) => [...new Set(xs.filter((x): x is str
 /** Uma linha: abas e período (vêm de fora em `topo`), tipo, supervisor e regime; embaixo, as etiquetas do que foi clicado ("Servitec ×") e "Limpar tudo". */
 export function BarraFiltros({
   topo,
+  fim,
   filtros,
   mudarFiltros,
   equip,
@@ -31,6 +32,8 @@ export function BarraFiltros({
   limpar,
 }: {
   topo: ReactNode;
+  /** no fim da linha, encostado à direita (ex.: ocultar gráficos) */
+  fim?: ReactNode;
   filtros: FiltrosTopo;
   mudarFiltros: (p: Partial<FiltrosTopo>) => void;
   equip: EquipAnalise[];
@@ -62,6 +65,7 @@ export function BarraFiltros({
             <option key={s}>{s}</option>
           ))}
         </Selecao>
+        {fim && <div className="ml-auto">{fim}</div>}
       </div>
       {etiquetas.length > 0 && (
         <div role="group" aria-label="Filtrando" className="flex flex-wrap items-center gap-1.5 text-xs">
