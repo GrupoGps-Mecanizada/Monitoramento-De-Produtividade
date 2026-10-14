@@ -8,12 +8,12 @@ import { useParadasAnalise } from "@/lib/dados/analise";
 import { lerCercas } from "@/lib/dados/leituras";
 import { useRetrato } from "@/lib/dados/use-retrato";
 import {
-  CHAVE_FORA, OUTROS, SELECAO_VAZIA, areasDaRegiao, contornoDaUsina, diaMenos, equipDaFrota, filtrar, filtrarSelecao, lugaresDoGrafico, montarLocais, plantasDaRegiao, plantasExcluidas,
+  CHAVE_FORA, OUTROS, SELECAO_VAZIA, areasDaRegiao, contornoDaUsina, equipDaFrota, filtrar, filtrarSelecao, lugaresDoGrafico, montarLocais, plantasDaRegiao, plantasExcluidas,
   DIAS_CURTOS, porServico, resumir, semExcluidas, separarFora, ultimoDiaVelho,
-  type DimensaoSelecao, type Periodo, type SelecaoCruzada,
+  type DimensaoSelecao, type ParadaNoLocal, type Periodo, type SelecaoCruzada,
 } from "@/lib/dominio/analise";
-import { ASSUNTOS, faixasDe, gradeHoraDia, pesoParado, type Assunto } from "@/lib/dominio/assuntos";
-import { ABAS_FAMILIA, DIAS_GUARDADOS, apontNovos, paradasDaFamilia, type AbaFamilia } from "@/lib/dominio/familias";
+import { ASSUNTOS, MOTOR2, faixasDe, gradeHoraDia, lugaresPorPeso, paradasMotor2, pesoParado, pesoStatus, rotuloStatus, somarStatus, type Assunto, type Peso } from "@/lib/dominio/assuntos";
+import { ABAS_FAMILIA, ROTULO_FAMILIA, apontNovos, paradasDaFamilia, type AbaFamilia } from "@/lib/dominio/familias";
 import { diaBR, diaLocal, fmtHoras } from "@/lib/dominio/formato";
 import { useOpcao } from "@/lib/hooks";
 import type { Cerca } from "@/lib/tipos";
@@ -22,7 +22,7 @@ import { AbasAssunto } from "./assunto/abas-assunto";
 import { PainelMotor2 } from "./assunto/painel-motor2";
 import { PainelStatus } from "./assunto/painel-status";
 import { desenharCercas } from "./camada-analise";
-import { corDoApontamento } from "./cores-analise";
+import { COR_PARADO, corDaFamilia, corDoApontamento, corDoStatus, resolverCor } from "./cores-analise";
 import { PainelFamilia } from "./familia/painel-familia";
 import { SubabasFamilia } from "./familia/subabas-familia";
 import { GraficoBarras, type ItemBarra } from "./grafico-barras";
@@ -69,15 +69,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   // a família só filtra dentro de Apontamentos
   const doFamilia = useMemo(() => (assunto !== "apontamentos" || familia === "geral" ? doFiltro : paradasDaFamilia(doFiltro, familia)), [doFiltro, familia, assunto]);
   const recorte = useCallback((ignorar?: DimensaoSelecao | DimensaoSelecao[]) => filtrarSelecao(doFamilia, sel, base.locais, ignorar), [doFamilia, sel, base]);
-  // mesmo recorte no período anterior de mesmo tamanho (só cabe nos 30 dias guardados: 7 e 15)
   const velho = useMemo(() => ultimoDiaVelho(paradas, hoje), [paradas, hoje]);
-  const anterior = useMemo(() => {
-    const n = Number(periodo);
-    // com o histórico parado, o período atual tem dias faltando: comparar inventaria uma queda
-    if (velho || assunto !== "apontamentos" || familia === "geral" || n * 2 > DIAS_GUARDADOS) return null;
-    const ps = filtrar(base.paradas, { hoje: diaMenos(hoje, n), periodo: n, ...filtros, faixas: [], diasSemana: [] });
-    return filtrarSelecao(paradasDaFamilia(ps, familia), sel, base.locais);
-  }, [base, hoje, periodo, filtros, familia, sel, assunto, velho]);
   // ranking de supervisores: sem o filtro de supervisor, para o escolhido aparecer marcado entre os outros
   const recorteSupervisores = useCallback(() => {
     if (assunto !== "apontamentos" || familia === "geral") return [];
@@ -87,7 +79,21 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   const novos = useMemo(() => (assunto === "apontamentos" && familia === "manutencao" ? apontNovos(doFiltro) : []), [doFiltro, familia, assunto]);
   const { dentro, fora } = useMemo(() => separarFora(resumir(recorte("local"), base.locais)), [recorte, base]);
   const servicos = useMemo(() => porServico(recorte("servico")), [recorte]);
-  const limitesTempo = useMemo(() => faixasDe(dentro.map((r) => r.parado)), [dentro]);
+  // status escolhido no gráfico "Por status": vale até sumir com um filtro (senão ficaria preso, sem barra para desmarcar)
+  const [statusEscolhido, setStatus] = useState<string | null>(null);
+  const statusAtivo = useMemo(() => (statusEscolhido && somarStatus(recorte()).some((s) => s.cod === statusEscolhido) ? statusEscolhido : null), [statusEscolhido, recorte]);
+  // o que o mapa mede no modo "Pelo tempo": o mesmo dado e a mesma cor da aba aberta
+  const medida = useMemo((): { peso: Peso; cor: string; rotulo: string; so?: (ps: ParadaNoLocal[]) => ParadaNoLocal[] } => {
+    if (assunto === "motor2") return { peso: pesoStatus(MOTOR2), cor: corDoStatus(MOTOR2), rotulo: "Bomba ligada", so: paradasMotor2 };
+    if (assunto === "status" && statusAtivo) return { peso: pesoStatus(statusAtivo), cor: corDoStatus(statusAtivo), rotulo: rotuloStatus(statusAtivo) };
+    if (assunto === "apontamentos" && familia !== "geral") return { peso: pesoParado, cor: corDaFamilia(familia), rotulo: ROTULO_FAMILIA[familia] };
+    return { peso: pesoParado, cor: COR_PARADO, rotulo: "Tempo parado" };
+  }, [assunto, statusAtivo, familia]);
+  const valoresMapa = useMemo(() => {
+    const ps = recorte("local");
+    return lugaresPorPeso(medida.so ? medida.so(ps) : ps, base.locais, medida.peso, Infinity);
+  }, [recorte, medida, base]);
+  const limitesTempo = useMemo(() => faixasDe(valoresMapa.map((l) => l.min)), [valoresMapa]);
 
   const alternar = useCallback(<K extends DimensaoSelecao,>(k: K, v: SelecaoCruzada[K]) => setSel((s) => ({ ...s, [k]: s[k] === v ? null : v })), []);
   // o serviço escolhido é de uma família: trocar de subaba tira a etiqueta
@@ -133,8 +139,8 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
     pronto.mapa.fitBounds(pronto.L.polygon(usina).getBounds(), { padding: [12, 12] });
   }, [pronto, usina, plantas]);
   useEffect(() => {
-    if (pronto && camada.current) desenharCercas(pronto.L, camada.current, pronto.mapa, { plantas, areas, resumos: dentro, sel: sel.local, modo: cor, aoClicar: clicarArea });
-  }, [pronto, plantas, areas, dentro, sel.local, cor, zoom, clicarArea]);
+    if (pronto && camada.current) desenharCercas(pronto.L, camada.current, pronto.mapa, { plantas, areas, resumos: dentro, sel: sel.local, modo: cor, medida: { valores: valoresMapa, cor: resolverCor(medida.cor), rotulo: medida.rotulo }, aoClicar: clicarArea });
+  }, [pronto, plantas, areas, dentro, sel.local, cor, valoresMapa, medida, zoom, clicarArea]);
 
   const lugares: ItemBarra[] = lugaresDoGrafico(dentro, fora, sel.local).map((r) => ({
     chave: r.local.chave,
@@ -190,9 +196,9 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
         <div className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-borda lg:h-full">
           <div ref={ref} className="absolute inset-0" />
           <div className="absolute left-2 top-2 z-[500] w-[230px]">
-            <Segmentado<"cerca" | "tempo"> rotulo="Cor do mapa" valor={cor} mudar={setCor} opcoes={[{ id: "cerca", rotulo: "Da cerca" }, { id: "tempo", rotulo: "Tempo parado" }]} />
+            <Segmentado<"cerca" | "tempo"> rotulo="Cor do mapa" valor={cor} mudar={setCor} opcoes={[{ id: "cerca", rotulo: "Da cerca" }, { id: "tempo", rotulo: "Pelo tempo" }]} />
           </div>
-          {cor === "tempo" && <LegendaTempo limites={limitesTempo} />}
+          {cor === "tempo" && <LegendaTempo limites={limitesTempo} cor={medida.cor} rotulo={medida.rotulo} />}
           {(aviso || semHistorico) && (
             <div className="absolute left-1/2 top-1/2 z-[600] w-[min(380px,calc(100%-24px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-borda bg-superficie/95 p-1 shadow-xl">
               {aviso ? <Aviso tipo="erro">{aviso}</Aviso> : <Vazio titulo="O histórico ainda não foi enviado">Rode o “Enviar Historico ao Site.bat” no PC.</Vazio>}
@@ -208,7 +214,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
               </p>
             )}
             {assunto === "status" ? (
-              <PainelStatus recorte={recorte} locais={base.locais} sel={sel} alternar={alternar} escolherQuando={escolherQuando} vazio={vazio} />
+              <PainelStatus recorte={recorte} locais={base.locais} sel={sel} alternar={alternar} escolherQuando={escolherQuando} vazio={vazio} status={statusAtivo} setStatus={setStatus} />
             ) : assunto === "motor2" ? (
               <PainelMotor2 recorte={recorte} locais={base.locais} sel={sel} alternar={alternar} escolherQuando={escolherQuando} vazio={vazio} />
             ) : (
@@ -226,7 +232,6 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
                   recorte={recorte}
                   recorteSupervisores={recorteSupervisores}
                   escolherQuando={escolherQuando}
-                  anterior={anterior}
                   dias={Number(periodo)}
                   hoje={hoje}
                   locais={base.locais}

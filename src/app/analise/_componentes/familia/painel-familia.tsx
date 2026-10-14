@@ -2,10 +2,9 @@
 
 import { Aviso } from "@/components/ui";
 import type { DimensaoSelecao, Local, ParadaNoLocal, SelecaoCruzada } from "@/lib/dominio/analise";
-import { ROTULO_FAMILIA, SEM_SUPERVISOR, frases, porApontamento, porDia, rankingPlacas, rankingSupervisores, type Familia, type LinhaRanking } from "@/lib/dominio/familias";
+import { SEM_SUPERVISOR, porApontamento, porDia, rankingPlacas, rankingSupervisores, type Familia, type LinhaRanking } from "@/lib/dominio/familias";
 import { gradeHoraDia, lugaresPorPeso, pesoParado } from "@/lib/dominio/assuntos";
 import { fmtHoras } from "@/lib/dominio/formato";
-import { Frases } from "../assunto/frases";
 import { Numeros } from "../assunto/numeros";
 import { itemLinha } from "../assunto/painel-status";
 import { corDaFamilia } from "../cores-analise";
@@ -23,9 +22,9 @@ const itemRanking = (r: LinhaRanking, clicavel = true): ItemBarra => ({
   clicavel,
 });
 
-/** Coluna da direita com uma família escolhida, no molde das outras abas: números, frases, por apontamento, quem mais para, lugares, quando para e tendência por dia. */
+/** Coluna da direita com uma família escolhida, no molde das outras abas: números, por apontamento, quem mais para, lugares, quando para e tendência por dia. */
 export function PainelFamilia({
-  familia, recorte, recorteSupervisores, anterior, dias, hoje, locais, novos, sel, alternar, escolherQuando, supervisor, escolherSupervisor, vazio,
+  familia, recorte, recorteSupervisores, dias, hoje, locais, novos, sel, alternar, escolherQuando, supervisor, escolherSupervisor, vazio,
 }: {
   familia: Familia;
   /** paradas da família com as escolhas feitas; `ignorar` pula uma dimensão (o gráfico dela mostra todas e marca a escolhida) */
@@ -34,8 +33,6 @@ export function PainelFamilia({
   recorteSupervisores: () => ParadaNoLocal[];
   /** clique na grade: escolhe (ou desfaz) hora e dia da semana juntos */
   escolherQuando: (dia: number, hora: number) => void;
-  /** mesmo recorte no período anterior; null = não existe (30 dias) */
-  anterior: ParadaNoLocal[] | null;
   dias: number;
   hoje: string;
   locais: Map<string, Local>;
@@ -52,7 +49,6 @@ export function PainelFamilia({
   // números: horas e paradas da família e o que mais pesa (em "Sem apontamento", o lugar)
   const total = todas.reduce((n, p) => n + pesoParado(p), 0);
   const topo = familia === "sem" ? lugaresPorPeso(todas, locais, pesoParado, 1)[0] : porApontamento(todas, familia)[0];
-  const textos = frases({ rotulo: ROTULO_FAMILIA[familia], atual: todas, anterior, dias, hoje, locais });
   const apont: ItemBarra[] = porApontamento(recorte("servico"), familia).map((s) => ({
     chave: s.nome,
     rotulo: s.nome,
@@ -70,7 +66,6 @@ export function PainelFamilia({
           { rotulo: "Mais pesa", valor: topo?.nome ?? "—", sub: topo ? fmtHoras(topo.min) : undefined },
         ]}
       />
-      <Frases textos={textos} vazio={vazio} />
       {familia !== "sem" && <GraficoBarras titulo="Por apontamento" sub="horas paradas" itens={apont} selecionada={sel.servico} escolher={(n) => alternar("servico", n)} vazio={vazio} cor={cor} />}
       <div className="grid gap-2 2xl:grid-cols-2">
         <GraficoBarras titulo="Placas" sub="quem mais para" itens={rankingPlacas(recorte("placa")).map((r) => itemRanking(r))} selecionada={sel.placa} escolher={(c) => alternar("placa", c)} vazio={vazio} cor={cor} />

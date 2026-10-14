@@ -1,5 +1,4 @@
 import { CHAVE_FORA, diaDaSemana, horaDe, minutos, type Local, type ParadaNoLocal } from "./analise";
-import { fmtHoras } from "./formato";
 import { STATUS_GAUSS } from "./gauss-dia";
 
 /** Abas de assunto da coluna da direita (a Disponibilidade entra na Parte D). */
@@ -62,14 +61,6 @@ export function porHoraPeso(ps: ParadaNoLocal[], peso: Peso): number[] {
   for (const p of ps) h[horaDe(p.ini)] += peso(p);
   return h;
 }
-/** Hora de início da janela de 2 horas com mais minutos; no empate, a que começa na hora mais cheia (parada só às 8h = 8). */
-export function picoDuasHoras(h: number[]): number {
-  const janela = (i: number) => h[i] + h[i + 1];
-  let pico = 0;
-  for (let i = 1; i < 23; i++) if (janela(i) > janela(pico) || (janela(i) === janela(pico) && h[i] > h[pico])) pico = i;
-  return pico;
-}
-
 export interface StatusSoma {
   cod: string;
   rotulo: string;
@@ -99,22 +90,6 @@ export function numerosMotor2(ps: ParadaNoLocal[]) {
   const comMotor = base.reduce((s, p) => s + somaMotor(p), 0);
   const bomba = somaPeso(base, pesoStatus(MOTOR2));
   return { bomba, pct: comMotor > 0 ? bomba / comMotor : null, campea: placasPorPeso(base, pesoStatus(MOTOR2), 1)[0] ?? null };
-}
-
-const CONCENTRACAO = 0.2;
-/** Conclusões curtas pelo peso (só as que têm dado): total, placa que concentra, pico de 2 horas e lugar. */
-export function frasesAssunto({ rotulo, paradas, peso, locais }: { rotulo: string; paradas: ParadaNoLocal[]; peso: Peso; locais: Map<string, Local> }): string[] {
-  const com = paradas.filter((p) => peso(p) > 0);
-  const total = somaPeso(com, peso);
-  if (total <= 0) return [];
-  const out = [`${rotulo}: ${fmtHoras(total)} em ${com.length} ${com.length === 1 ? "parada" : "paradas"}.`];
-  const [top] = placasPorPeso(com, peso, 1);
-  if (top && top.min / total > CONCENTRACAO) out.push(`A placa ${top.nome} sozinha soma ${Math.round((top.min / total) * 100)}% desse tempo.`);
-  const pico = picoDuasHoras(porHoraPeso(com, peso));
-  out.push(`O pico é das ${pico}h às ${pico + 2}h.`);
-  const [lugar] = lugaresPorPeso(com, locais, peso, 1);
-  if (lugar) out.push(`Onde mais acontece: ${lugar.nome}, ${fmtHoras(lugar.min)}.`);
-  return out;
 }
 
 /** Peso por dia da semana (linha 0 = domingo) e hora de início (coluna 0–23): a grade "Quando para". */

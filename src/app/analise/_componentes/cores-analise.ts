@@ -3,13 +3,14 @@ import { familiaDe, type Familia } from "@/lib/dominio/familias";
 import { fmtHoras } from "@/lib/dominio/formato";
 import { statusGauss } from "@/lib/dominio/gauss-dia";
 
-/** Rampa sequencial azul (validada para daltonismo): claro = pouco, escuro = muito. */
-export const RAMPA_AZUL = ["#cde2fb", "#86b6ef", "#3987e5", "#1c5cab", "#0d366b"];
-/** Cor da faixa i de n faixas, espalhada pela rampa (uma faixa só fica no tom do meio). */
-const indiceNaRampa = (i: number, n: number) => (n <= 1 ? 2 : Math.round((i * (RAMPA_AZUL.length - 1)) / (n - 1)));
-export const corDaFaixa = (i: number, n: number) => RAMPA_AZUL[indiceNaRampa(i, n)];
-/** Texto legível sobre a faixa, pela cor real: branco do 3º tom em diante, azul quase preto nos dois mais claros (nos dois temas). */
-export const textoSobreFaixa = (i: number, n: number) => (indiceNaRampa(i, n) >= 2 ? "#fff" : "#0d1b2a");
+/** Força do tom de cada faixa no mapa (a cor é a da medida; mais forte = mais tempo; uma faixa só fica no meio). */
+const OPACIDADE = [0.25, 0.4, 0.55, 0.7, 0.85];
+export const opacidadeDaFaixa = (i: number, n: number) => OPACIDADE[n <= 1 ? 2 : Math.round((i * (OPACIDADE.length - 1)) / (n - 1))];
+/** O Leaflet desenha em SVG com cor fixa: troca "var(--x)" pelo valor atual do token (tema claro ou escuro). */
+export function resolverCor(cor: string): string {
+  const m = /^var\((--[\w-]+)\)$/.exec(cor);
+  return m ? getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || "#888888" : cor;
+}
 /** Rótulo de cada faixa a partir dos limites (minutos): "até 2h00", "2h00 a 5h00", ..., "mais de 20h00". */
 export function rotulosDasFaixas(limites: number[]): string[] {
   if (!limites.length) return [];
