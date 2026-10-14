@@ -41,7 +41,7 @@ test("Análise: painel com mapa e gráficos que se filtram, período no topo ao 
   await page.getByRole("button", { name: "Limpar tudo" }).click();
   await expect(filtrando).toHaveCount(0);
   // hora do dia: só a parada que começou às 14h (PATIO)
-  await page.getByRole("region", { name: "Hora do dia" }).getByRole("button", { name: /^14h,/ }).click();
+  await page.getByRole("region", { name: "Quando para" }).getByRole("button", { name: /14h, 1h00/ }).click();
   await expect(lugares.getByRole("button")).toHaveCount(1);
   await filtrando.getByRole("button", { name: "Tirar filtro: 14h" }).click();
   // lugar pelo ranking; "Longe da região" troca o lugar escolhido
@@ -90,8 +90,7 @@ test("Análise: Status do motor (padrão) e Motor secundário com números, fras
   // escolher um status: placas pesam só ele; clicar de novo volta
   const porStatus = page.getByRole("region", { name: "Por status" });
   await porStatus.getByRole("button", { name: /^Motor 2º ligado/ }).click();
-  await expect(page.getByRole("region", { name: "Placas" }).getByRole("button")).toHaveCount(1);
-  await expect(page.getByRole("region", { name: "Placas" })).toContainText("1h30");
+  await expect(page.getByRole("region", { name: "Placas" }).getByRole("button").first()).toHaveAccessibleName(/^EGC2985, Motor 2º ligado 1h30 de/);
   await porStatus.getByRole("button", { name: /^Motor 2º ligado/ }).click();
   await expect(page.getByRole("region", { name: "Placas" }).getByRole("button")).toHaveCount(2);
   // status escolhido que some com um filtro não fica preso: volta a pesar o tempo parado
@@ -135,6 +134,34 @@ test("Análise: ocultar e mostrar os gráficos; o mapa ocupa a tela e a escolha 
   await expect(page.getByRole("tablist", { name: "Assunto" })).toHaveCount(0);
   await page.getByRole("button", { name: "Mostrar gráficos" }).click();
   await expect(page.getByRole("tablist", { name: "Assunto" })).toBeVisible();
+  expect(gravacoes).toEqual([]);
+});
+
+test("Análise: cor do mapa por tempo parado com as horas nas cercas; grade 'Quando para' filtra hora e dia", async ({ page }) => {
+  const gravacoes = await prepararDados(page);
+  await page.goto("/analise/");
+  const cor = page.getByRole("tablist", { name: "Cor do mapa" });
+  await expect(cor.getByRole("tab", { name: "Da cerca" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[aria-label="Legenda do tempo parado"]')).toHaveCount(0);
+  await cor.getByRole("tab", { name: "Tempo parado" }).click();
+  // a legenda fica só no computador (no celular ela tamparia o mapa)
+  if (test.info().project.name !== "celular") await expect(page.locator('[aria-label="Legenda do tempo parado"]')).toBeVisible();
+  else await expect(page.locator('[aria-label="Legenda do tempo parado"]')).toBeAttached();
+  await expect(page.locator(".mapa-analise .rotulo-horas").first()).toBeAttached();
+  // grade: o quadradinho das 14h (PATIO) vira duas etiquetas: hora e dia; clicar de novo desfaz
+  const filtrando = page.getByRole("group", { name: "Filtrando" });
+  const quadro = page.getByRole("region", { name: "Quando para" }).getByRole("button", { name: /14h, 1h00/ });
+  await quadro.click();
+  await expect(filtrando.getByRole("button", { name: "Tirar filtro: 14h" })).toBeVisible();
+  await expect(filtrando.getByRole("button", { name: /^Tirar filtro: (dom|seg|ter|qua|qui|sex|sáb)$/ })).toBeVisible();
+  await quadro.click();
+  await expect(filtrando).toHaveCount(0);
+  // a escolha da cor fica guardada
+  await page.reload();
+  await expect(page.getByRole("tablist", { name: "Cor do mapa" }).getByRole("tab", { name: "Tempo parado" })).toHaveAttribute("aria-selected", "true");
+  // filtro que esvazia: a grade avisa
+  await page.getByLabel("Tipo").selectOption("hv");
+  await expect(page.getByRole("region", { name: "Quando para" })).toContainText("Nada neste filtro.");
   expect(gravacoes).toEqual([]);
 });
 

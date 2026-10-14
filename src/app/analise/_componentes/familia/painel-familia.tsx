@@ -24,7 +24,7 @@ export function PainelFamilia({
 }: {
   familia: Familia;
   /** paradas da família com as escolhas feitas; `ignorar` pula uma dimensão (o gráfico dela mostra todas e marca a escolhida) */
-  recorte: (ignorar?: DimensaoSelecao) => ParadaNoLocal[];
+  recorte: (ignorar?: DimensaoSelecao | DimensaoSelecao[]) => ParadaNoLocal[];
   /** mesmo recorte no período anterior; null = não existe (30 dias) */
   anterior: ParadaNoLocal[] | null;
   dias: number;

@@ -157,7 +157,9 @@ export function placasPorStatus(ps: ParadaNoLocal[], destaque: string, n = 10): 
   const m = new Map<string, Map<string, number>>();
   for (const p of ps) {
     const partes = m.get(p.placa) ?? new Map<string, number>();
-    for (const [cod, min] of Object.entries(p.motor)) if (min > 0) partes.set(cod, (partes.get(cod) ?? 0) + min);
+    // parada sem nenhum dado de motor: o tempo parado entra como "Sem dados de bordo" (senão a placa sumiria da lista)
+    const motor = Object.keys(p.motor).length ? p.motor : { [SEM_DADO]: minutos(p) };
+    for (const [cod, min] of Object.entries(motor)) if (min > 0) partes.set(cod, (partes.get(cod) ?? 0) + min);
     m.set(p.placa, partes);
   }
   return [...m]
