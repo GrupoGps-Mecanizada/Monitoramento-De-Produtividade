@@ -1,5 +1,14 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Cronoanálise × telemetria · 14/10/2026 (não publicado; ramo `cronoanalise`)
+- **Tela nova "Cronoanálise"** no menu (depois da Análise). Lê as folhas do sistema Cronoanálise (`crono_registros`) e cruza com a timeline de motor do GAUSS e com o tablet. Tudo vem do Supabase: nenhuma consulta nova ao GAUSS.
+- **Escolha do turno:** dia, dia ou noite, letra (com o supervisor) e vaga. Abre no mais recente.
+- **Raio-x do turno:** linhas do tempo alinhadas de 18:40 a 06:40 (ou de 06:40 a 18:40): Motor (cores do GAUSS), Tablet e uma linha por colaborador (Produzindo, Improdutivo necessário, Improdutivo, Sem código). Passar o mouse mostra a atividade, o horário e a observação da folha.
+- **Conferência:** percentual de concordância entre a folha e o motor, minuto a minuto (Alta Pressão = motor 2º; Alto Vácuo = parado ligado), horas produzindo na folha, motor produtivo e quanto o tablet confere com a folha. Frases automáticas onde não bate: produzindo na folha com o motor parado, bomba ligada sem ninguém produzindo e apontamento do tablet diferente da folha.
+- **Apontamentos dos colaboradores:** horas de cada pessoa por classificação e as principais atividades, mais o ranking das atividades que mais tomam tempo em todos os turnos lançados. Os nomes aparecem (decisão do dono, 14/10/2026).
+- O motor é cruzado pela **vaga da folha** (a timeline do GAUSS é gravada por vaga, e o caminhão pode trocar de vaga).
+- `montarStatusGauss` e `montarTablet` aceitam outra régua de tempo (o turno, que passa da meia-noite), sem mudar o resultado das outras telas.
+
 ## Análise mais limpa · 13/10/2026 (não publicado)
 - **Saiu o placar** da aba Paradas (Produtivo, % Produtivo, Parado, Serviços), a pedido do dono.
 - **O período (7, 15, 30 dias) subiu para o topo**, ao lado de "Paradas | Disponibilidade". Só aparece em Paradas: a Disponibilidade segue o período do boletim oficial.

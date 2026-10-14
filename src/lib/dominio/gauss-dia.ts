@@ -72,11 +72,11 @@ export function segNoDia(ts: string, dia: string): number {
  * Faixa de status do GAUSS sem sobreposição. A extração grava o mesmo período mais de uma vez e a captura mais nova
  * corrige a anterior (ex.: às 09:38 a bomba "parou" às 09:32; às 19:28 o GAUSS já sabia que ficou ligada até 09:36).
  * Em cada instante vale a linha gravada por último; empate: a que começou depois, depois a que termina depois.
- * Trechos vizinhos iguais viram um só.
+ * Trechos vizinhos iguais viram um só. `paraSeg` troca a régua (padrão: segundos do dia; a Cronoanálise usa o turno).
  */
-export function montarStatusGauss(linhas: LinhaMotorGauss[], dia: string): BlocoGauss[] {
+export function montarStatusGauss(linhas: LinhaMotorGauss[], dia: string, paraSeg: (ts: string) => number = (ts) => segNoDia(ts, dia)): BlocoGauss[] {
   const crus = linhas
-    .map((l) => ({ a: segNoDia(l.inicio, dia), b: segNoDia(l.fim, dia), chave: `${l.gravado ?? ""}|${l.inicio.replace("T", " ")}|${l.fim.replace("T", " ")}`, l }))
+    .map((l) => ({ a: paraSeg(l.inicio), b: paraSeg(l.fim), chave: `${l.gravado ?? ""}|${l.inicio.replace("T", " ")}|${l.fim.replace("T", " ")}`, l }))
     .filter((x) => x.b > x.a);
   const cortes = [...new Set(crus.flatMap((x) => [x.a, x.b]))].sort((p, q) => p - q);
   const blocos: BlocoGauss[] = [];
@@ -97,13 +97,13 @@ export function montarStatusGauss(linhas: LinhaMotorGauss[], dia: string): Bloco
 }
 
 /** Apontamentos do tablet no dia, do mais cedo para o mais tarde, sem repetir (a extração pode gravar duas vezes). */
-export function montarTablet(linhas: LinhaTablet[], dia: string, agoraSeg = DIA): ApontamentoTablet[] {
+export function montarTablet(linhas: LinhaTablet[], dia: string, agoraSeg = DIA, paraSeg: (ts: string) => number = (ts) => segNoDia(ts, dia)): ApontamentoTablet[] {
   const vistos = new Map<string, ApontamentoTablet>();
   for (const l of linhas) {
     const cod = String(l.demora_cod);
-    const a = segNoDia(l.inicio, dia);
+    const a = paraSeg(l.inicio);
     // sem fim = ainda aberto: vai até agora (ou o fim do dia, se o dia já passou)
-    const b = l.fim ? segNoDia(l.fim, dia) : agoraSeg;
+    const b = l.fim ? paraSeg(l.fim) : agoraSeg;
     if (b <= a && l.fim) continue;
     vistos.set(cod, { cod, a, b: Math.max(b, a), categoria: l.categoria_demora.trim(), motorista: l.motorista && l.motorista !== "--" ? l.motorista : null, aberto: !l.fim });
   }

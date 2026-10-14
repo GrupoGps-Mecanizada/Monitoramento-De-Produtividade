@@ -5,6 +5,7 @@ export const MENU: { href: string; rotulo: string; curto: string; icone: IconeNo
   { href: "/", rotulo: "Localização", curto: "Mapa", icone: "mapa" },
   { href: "/frota", rotulo: "Dia da frota", curto: "Frota", icone: "frota" },
   { href: "/analise", rotulo: "Análise", curto: "Análise", icone: "analise" },
+  { href: "/cronoanalise", rotulo: "Cronoanálise", curto: "Crono", icone: "crono" },
   { href: "/timeline", rotulo: "Timeline", curto: "Timeline", icone: "timeline" },
   { href: "/equipamentos", rotulo: "Equipamentos", curto: "Equip.", icone: "equipamentos" },
   { href: "/alertas", rotulo: "Alertas", curto: "Alertas", icone: "alertas" },
