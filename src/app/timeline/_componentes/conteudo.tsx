@@ -107,7 +107,7 @@ export function ConteudoHistorico(props: PropsConteudo) {
       <BotaoFunil abrir={abrirOpcoes} />
       {/* embaixo: linhas do dia e ◀ ▶ ▶ (o degradê é só para os botões aparecerem sobre qualquer mapa) */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[600] bg-gradient-to-t from-black/55 via-black/20 to-transparent px-4 pb-2 pt-12">
-        <div className="pointer-events-auto mx-auto max-w-5xl">
+        <div className="pointer-events-auto w-full">
           {(janela[0] > 0 || janela[1] < DIA) && (
             <div className="mb-1 flex items-center justify-center gap-2 text-[11px] tabular-nums text-white/85">
               Zoom {rotuloMarca(janela[0])} – {rotuloMarca(janela[1])}

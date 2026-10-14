@@ -64,7 +64,7 @@ export function Cronoanalise() {
 }
 
 function Moldura({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto w-full max-w-[1300px] space-y-3 px-3 pb-24 pt-4 md:px-6 md:pb-10 md:pt-6">{children}</div>;
+  return <div className="w-full space-y-3 px-3 pb-24 pt-4 md:px-6 md:pb-10 md:pt-6">{children}</div>;
 }
 
 function Cartao({ titulo, acao, children }: { titulo: string; acao?: React.ReactNode; children: React.ReactNode }) {

@@ -61,7 +61,7 @@ export function Excecoes({ topo }: { topo?: ReactNode }) {
       : [...new Set(lista.map((x) => x.veiculo))].map((id) => ({ chave: id, titulo: <TituloEquip v={porVeiculo.get(id)} />, itens: lista.filter((x) => x.veiculo === id) }));
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] space-y-4 px-4 pb-24 pt-5 md:px-8 md:pb-10 md:pt-7">
+    <div className="w-full space-y-4 px-4 pb-24 pt-5 md:px-8 md:pb-10 md:pt-7">
       {topo}
       <section aria-label="Resumo das exceções" className="space-y-3 rounded-xl border border-borda bg-superficie p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
