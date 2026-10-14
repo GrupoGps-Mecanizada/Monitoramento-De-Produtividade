@@ -73,6 +73,19 @@ export const tablet = () => {
   return [{ demora_cod: 1, inicio: `${d} 08:25:00`, fim: `${d} 08:35:00`, categoria_demora: "Refeição Motorista", motorista: "--", concluido: "NÃO" }];
 };
 
+/** Folhas da cronoanálise (crono_registros), dados falsos: turno A de dia, hoje, AP-01. Produzindo 08:20–08:40 com a bomba parada. */
+export const cronoFolhas = () => {
+  const linha = (nome: string, papel: string, hi: string, hf: string, cod: number, descricao: string, cls: string) => ({
+    data: hoje(), turno: "A", horario: "07–19", area: "Área Teste", nome, papel, placa: "EGC2985", vaga: "AP-01", equip: "Alta Pressão",
+    hi, hf, cod, descricao, cls, obs: null, supervisor: "Supervisor Teste", kit: "CR-9999",
+  });
+  return [
+    linha("João Teste", "Motorista", "06:40", "08:20", 3, "Trajeto (Bica/Área/Vest./Garagem)", "Improdutivo necessário"),
+    linha("João Teste", "Motorista", "08:20", "08:40", 32, "Hidrojateamento – Pistola", "Produzindo"),
+    linha("Maria Teste", "Operador 1", "08:00", "08:40", 5, "Almoço / Refeição", "Improdutivo necessário"),
+  ];
+};
+
 /** Paradas da análise (analise_paradas): ontem, no PATIO e na OFICINA, do caminhão 10 (Alta Pressão) e do aspirador 40. */
 export const paradasAnalise = () => {
   const d = new Date(Date.now() - 86400000);
@@ -152,6 +165,7 @@ export async function prepararDados(page: Page, opcoes: { matriz?: ReturnType<ty
     if (tabela === "loc_dias") return json([{ dia: hoje() }]);
     if (tabela === "loc_historico") return json([{ resultado: historico(), baixado_em: minutosAtras(60), fechado: true }]);
     if (tabela === "timeline_motor_vaga") return json(motorGauss());
+    if (tabela === "crono_registros") return json(cronoFolhas());
     if (tabela === "demoras_categorizadas") return json(tablet());
     if (tabela === "analise_excessos") return json(opcoes.excessos ?? []);
     if (tabela === "analise_paradas") {
