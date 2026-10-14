@@ -2,25 +2,28 @@
 
 import { useState } from "react";
 import type { DimensaoSelecao, Local, ParadaNoLocal, SelecaoCruzada } from "@/lib/dominio/analise";
-import { frasesAssunto, lugaresPorPeso, numerosStatus, pesoParado, pesoStatus, placasPorPeso, porHoraPeso, rotuloStatus, somarStatus, type Linha } from "@/lib/dominio/assuntos";
+import { frasesAssunto, gradeHoraDia, lugaresPorPeso, numerosStatus, pesoParado, pesoStatus, placasPorStatus, rotuloStatus, somarStatus, type Linha } from "@/lib/dominio/assuntos";
 import { fmtHoras } from "@/lib/dominio/formato";
 import { GraficoBarras, type ItemBarra } from "../grafico-barras";
-import { GraficoHoras } from "../grafico-horas";
+import { BarrasStatus } from "../barras-status";
+import { GradeQuando } from "../grade-quando";
 import { Frases } from "./frases";
 import { Numeros, pct } from "./numeros";
 
 export interface PropsAssunto {
   /** paradas com as escolhas feitas; `ignorar` pula uma dimensão (o gráfico dela mostra todas e marca a escolhida) */
-  recorte: (ignorar?: DimensaoSelecao) => ParadaNoLocal[];
+  recorte: (ignorar?: DimensaoSelecao | DimensaoSelecao[]) => ParadaNoLocal[];
   locais: Map<string, Local>;
   sel: SelecaoCruzada;
   alternar: (d: "local" | "placa" | "hora", v: string | number) => void;
+  /** clique na grade: escolhe (ou desfaz) hora e dia da semana juntos */
+  escolherQuando: (dia: number, hora: number) => void;
   vazio: string;
 }
 export const itemLinha = (l: Linha): ItemBarra => ({ chave: l.chave, rotulo: l.nome, valor: l.min, texto: fmtHoras(l.min), dica: `${l.nome}, ${fmtHoras(l.min)} em ${l.n} ${l.n === 1 ? "parada" : "paradas"}` });
 
 /** Status do motor: horas paradas, % ligado e o status que mais pesa; clicar num status faz placas, lugares e hora pesarem só ele. */
-export function PainelStatus({ recorte, locais, sel, alternar, vazio }: PropsAssunto) {
+export function PainelStatus({ recorte, locais, sel, alternar, escolherQuando, vazio }: PropsAssunto) {
   const [escolhido, setStatus] = useState<string | null>(null);
   const todas = recorte();
   const n = numerosStatus(todas);
@@ -41,9 +44,9 @@ export function PainelStatus({ recorte, locais, sel, alternar, vazio }: PropsAss
       />
       <Frases textos={frasesAssunto({ rotulo, paradas: todas, peso, locais })} vazio={vazio} />
       <GraficoBarras titulo="Por status" sub="horas de cada status do GAUSS nas paradas" itens={porStatus} selecionada={status} escolher={(c) => setStatus((s) => (s === c ? null : c))} vazio={vazio} />
-      <GraficoBarras titulo="Placas" sub={rotulo.toLowerCase()} itens={placasPorPeso(recorte("placa"), peso).map(itemLinha)} selecionada={sel.placa} escolher={(c) => alternar("placa", c)} vazio={vazio} />
+      <BarrasStatus linhas={placasPorStatus(recorte("placa"), status ?? "stopped")} destaque={status ?? "stopped"} selecionada={sel.placa} escolher={(c) => alternar("placa", c)} vazio={vazio} />
       <GraficoBarras titulo="Lugares" sub={rotulo.toLowerCase()} itens={lugaresPorPeso(recorte("local"), locais, peso).map(itemLinha)} selecionada={sel.local} escolher={(c) => alternar("local", c)} vazio={vazio} />
-      <GraficoHoras minutos={porHoraPeso(recorte("hora"), peso)} selecionada={sel.hora} escolher={(h) => alternar("hora", h)} vazio={vazio} />
+      <GradeQuando grade={gradeHoraDia(recorte(["hora", "dia"]), peso)} hora={sel.hora} dia={sel.dia} escolher={escolherQuando} vazio={vazio} />
     </div>
   );
 }

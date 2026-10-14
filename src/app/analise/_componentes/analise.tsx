@@ -3,16 +3,16 @@
 import type * as Leaflet from "leaflet";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMapa } from "@/components/mapa/use-mapa";
-import { Aviso, Botao, Vazio, cx } from "@/components/ui";
+import { Aviso, Botao, Segmentado, Vazio, cx } from "@/components/ui";
 import { useParadasAnalise } from "@/lib/dados/analise";
 import { lerCercas } from "@/lib/dados/leituras";
 import { useRetrato } from "@/lib/dados/use-retrato";
 import {
   CHAVE_FORA, OUTROS, SELECAO_VAZIA, areasDaRegiao, contornoDaUsina, diaMenos, equipDaFrota, filtrar, filtrarSelecao, lugaresDoGrafico, montarLocais, plantasDaRegiao, plantasExcluidas,
-  porHora, porServico, resumir, semExcluidas, separarFora, ultimoDiaVelho,
+  DIAS_CURTOS, porServico, resumir, semExcluidas, separarFora, ultimoDiaVelho,
   type DimensaoSelecao, type Periodo, type SelecaoCruzada,
 } from "@/lib/dominio/analise";
-import { ASSUNTOS, type Assunto } from "@/lib/dominio/assuntos";
+import { ASSUNTOS, faixasDe, gradeHoraDia, pesoParado, type Assunto } from "@/lib/dominio/assuntos";
 import { ABAS_FAMILIA, DIAS_GUARDADOS, apontNovos, paradasDaFamilia, type AbaFamilia } from "@/lib/dominio/familias";
 import { diaBR, diaLocal, fmtHoras } from "@/lib/dominio/formato";
 import { useOpcao } from "@/lib/hooks";
@@ -25,7 +25,8 @@ import { desenharCercas } from "./camada-analise";
 import { PainelFamilia } from "./familia/painel-familia";
 import { SubabasFamilia } from "./familia/subabas-familia";
 import { GraficoBarras, type ItemBarra } from "./grafico-barras";
-import { GraficoHoras } from "./grafico-horas";
+import { GradeQuando } from "./grade-quando";
+import { LegendaTempo } from "./legenda-tempo";
 
 /**
  * Painel da Análise (desenhos: docs/superpowers/specs/2026-10-10-painel-analise-design.md e 2026-10-13-analise-satelite-calor-design.md):
@@ -48,6 +49,8 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   // os gráficos podem sair da tela: o mapa ocupa tudo (a escolha fica neste navegador)
   const [graficos, setGraficos] = useOpcao<"mostrar" | "ocultar">("mon-analise-graficos", ["mostrar", "ocultar"], "mostrar");
   const comGraficos = graficos === "mostrar";
+  // cor das cercas: a do GAUSS (padrão, pedido do dono) ou 5 tons de azul pelo tempo parado
+  const [cor, setCor] = useOpcao<"cerca" | "tempo">("mon-analise-cor", ["cerca", "tempo"], "cerca");
   const [familia, setFamilia] = useOpcao<AbaFamilia>("mon-analise-familia", ABAS_FAMILIA, "geral");
 
   useEffect(() => {
@@ -76,7 +79,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   const novos = useMemo(() => (assunto === "apontamentos" && familia === "manutencao" ? apontNovos(doFiltro) : []), [doFiltro, familia, assunto]);
   const { dentro, fora } = useMemo(() => separarFora(resumir(recorte("local"), base.locais)), [recorte, base]);
   const servicos = useMemo(() => porServico(recorte("servico")), [recorte]);
-  const horas = useMemo(() => porHora(recorte("hora")), [recorte]);
+  const limitesTempo = useMemo(() => faixasDe(dentro.map((r) => r.parado)), [dentro]);
 
   const alternar = useCallback(<K extends DimensaoSelecao,>(k: K, v: SelecaoCruzada[K]) => setSel((s) => ({ ...s, [k]: s[k] === v ? null : v })), []);
   // o serviço escolhido é de uma família: trocar de subaba tira a etiqueta
@@ -90,6 +93,8 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
     setSel((s) => ({ ...s, servico: null }));
   };
   const escolherSupervisor = (s: string) => setFiltros((f) => ({ ...f, supervisor: f.supervisor === s ? null : s }));
+  // grade "Quando para": hora e dia juntos; o mesmo quadradinho de novo desfaz
+  const escolherQuando = (dia: number, hora: number) => setSel((s) => (s.dia === dia && s.hora === hora ? { ...s, dia: null, hora: null } : { ...s, dia, hora }));
   const clicarArea = useCallback((chave: string) => alternar("local", chave), [alternar]);
   // pelo ranking: aproxima o mapa só quando o lugar tem coordenada ("Longe da região" não tem)
   const escolherLugar = (chave: string) => {
@@ -120,8 +125,8 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
     pronto.mapa.fitBounds(pronto.L.polygon(usina).getBounds(), { padding: [12, 12] });
   }, [pronto, usina, plantas]);
   useEffect(() => {
-    if (pronto && camada.current) desenharCercas(pronto.L, camada.current, pronto.mapa, { plantas, areas, resumos: dentro, sel: sel.local, aoClicar: clicarArea });
-  }, [pronto, plantas, areas, dentro, sel.local, zoom, clicarArea]);
+    if (pronto && camada.current) desenharCercas(pronto.L, camada.current, pronto.mapa, { plantas, areas, resumos: dentro, sel: sel.local, modo: cor, aoClicar: clicarArea });
+  }, [pronto, plantas, areas, dentro, sel.local, cor, zoom, clicarArea]);
 
   const lugares: ItemBarra[] = lugaresDoGrafico(dentro, fora, sel.local).map((r) => ({
     chave: r.local.chave,
@@ -143,6 +148,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   if (sel.servico) etiquetas.push({ dim: "servico", texto: sel.servico });
   if (sel.hora != null) etiquetas.push({ dim: "hora", texto: `${sel.hora}h` });
   if (sel.placa) etiquetas.push({ dim: "placa", texto: sel.placa });
+  if (sel.dia != null) etiquetas.push({ dim: "dia", texto: DIAS_CURTOS[sel.dia] });
 
   // tabela ainda não criada (SQL não rodado): o Supabase responde em inglês técnico
   const aviso = erro
@@ -172,6 +178,10 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
       <div className={cx("grid min-h-0 flex-1 gap-2 lg:grid-rows-[minmax(0,1fr)]", comGraficos && "lg:grid-cols-[minmax(0,3fr)_minmax(340px,2fr)]")}>
         <div className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-borda lg:h-full">
           <div ref={ref} className="absolute inset-0" />
+          <div className="absolute left-2 top-2 z-[500] w-[230px]">
+            <Segmentado<"cerca" | "tempo"> rotulo="Cor do mapa" valor={cor} mudar={setCor} opcoes={[{ id: "cerca", rotulo: "Da cerca" }, { id: "tempo", rotulo: "Tempo parado" }]} />
+          </div>
+          {cor === "tempo" && <LegendaTempo limites={limitesTempo} />}
           {(aviso || semHistorico) && (
             <div className="absolute left-1/2 top-1/2 z-[600] w-[min(380px,calc(100%-24px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-borda bg-superficie/95 p-1 shadow-xl">
               {aviso ? <Aviso tipo="erro">{aviso}</Aviso> : <Vazio titulo="O histórico ainda não foi enviado">Rode o “Enviar Historico ao Site.bat” no PC.</Vazio>}
@@ -187,9 +197,9 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
               </p>
             )}
             {assunto === "status" ? (
-              <PainelStatus recorte={recorte} locais={base.locais} sel={sel} alternar={alternar} vazio={vazio} />
+              <PainelStatus recorte={recorte} locais={base.locais} sel={sel} alternar={alternar} escolherQuando={escolherQuando} vazio={vazio} />
             ) : assunto === "motor2" ? (
-              <PainelMotor2 recorte={recorte} locais={base.locais} sel={sel} alternar={alternar} vazio={vazio} />
+              <PainelMotor2 recorte={recorte} locais={base.locais} sel={sel} alternar={alternar} escolherQuando={escolherQuando} vazio={vazio} />
             ) : (
               <>
                 <SubabasFamilia valor={familia} mudar={trocarFamilia} />
@@ -197,7 +207,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
                 <>
                   <GraficoBarras titulo="Lugares" sub="mais tempo parado" itens={lugares} selecionada={sel.local} escolher={escolherLugar} vazio={vazio} />
                   <GraficoBarras titulo="Por serviço" sub="paradas com o apontamento" itens={itensServico} selecionada={sel.servico} escolher={(n) => alternar("servico", n)} vazio={vazio} />
-                  <GraficoHoras minutos={horas} selecionada={sel.hora} escolher={(h) => alternar("hora", h)} vazio={vazio} />
+                  <GradeQuando grade={gradeHoraDia(recorte(["hora", "dia"]), pesoParado)} hora={sel.hora} dia={sel.dia} escolher={escolherQuando} vazio={vazio} />
                 </>
               ) : (
                 <PainelFamilia
