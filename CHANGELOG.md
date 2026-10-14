@@ -1,5 +1,10 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Cronoanálise: zoom no raio-x · 14/10/2026
+- **Rodinha do mouse** sobre as faixas aproxima e afasta, no ponto do mouse. Shift + rodinha (ou o touchpad na horizontal) anda para os lados. Também há os botões − + ◀ ▶ e "Turno inteiro", que servem no celular.
+- Aproximando, aparece o **nome dentro de cada caixa**, mesmo quando ela começa antes da parte visível, e a régua passa a marcar 30, 15 ou 5 minutos.
+- A peça de zoom da Timeline (`zoom-roda.ts`) passou a aceitar outra régua (o turno de 12 h), sem mudar o comportamento na Timeline.
+
 ## Cronoanálise × telemetria · 14/10/2026 (não publicado; ramo `cronoanalise`)
 - **Tela nova "Cronoanálise"** no menu (depois da Análise). Lê as folhas do sistema Cronoanálise (`crono_registros`) e cruza com a timeline de motor do GAUSS e com o tablet. Tudo vem do Supabase: nenhuma consulta nova ao GAUSS.
 - **Escolha do turno:** dia, dia ou noite, letra (com o supervisor) e vaga. Abre no mais recente.

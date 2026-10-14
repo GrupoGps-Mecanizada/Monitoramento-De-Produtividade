@@ -15,3 +15,29 @@ test("Cronoanálise: turno, raio-x, conferência com frase e horas por colaborad
   await expect(page.getByText("Hidrojateamento – Pistola").first()).toBeVisible();
   expect(gravacoes).toEqual([]);
 });
+
+test("Cronoanálise: rodinha do mouse aproxima o raio-x e mostra os nomes nas caixas", async ({ page }, info) => {
+  test.skip(info.project.name === "celular", "rodinha do mouse só no computador; no celular há os botões");
+  await prepararDados(page);
+  await page.goto("/cronoanalise/");
+  const caixa = page.locator("span[title^='32 · Hidrojateamento']");
+  await expect(caixa).toHaveText("");
+  // aproxima no ponto da caixa (08:20–08:40)
+  const r = (await caixa.boundingBox())!;
+  await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
+  for (let i = 0; i < 8; i++) await page.mouse.wheel(0, -100);
+  await expect(page.getByText(/zoom \d/)).toBeVisible();
+  await expect(caixa).toContainText("Hidrojateamento");
+  if (process.env.FOTO_ZOOM) await page.screenshot({ path: process.env.FOTO_ZOOM, fullPage: false });
+  await page.getByRole("button", { name: "Turno inteiro" }).click();
+  await expect(caixa).toHaveText("");
+});
+
+test("Cronoanálise: botões de zoom (celular)", async ({ page }) => {
+  await prepararDados(page);
+  await page.goto("/cronoanalise/");
+  for (let i = 0; i < 5; i++) await page.getByRole("button", { name: "Aproximar" }).click();
+  await expect(page.getByText(/zoom \d/)).toBeVisible();
+  await page.getByRole("button", { name: "Turno inteiro" }).click();
+  await expect(page.getByText(/zoom \d/)).toHaveCount(0);
+});

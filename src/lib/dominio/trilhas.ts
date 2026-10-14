@@ -61,10 +61,10 @@ export const rotuloMarca = (s: number) => (s % HORA ? `${pad(Math.floor(s / HORA
 /** Menor janela do zoom pela rodinha do mouse: 10 min. */
 export const JANELA_MIN = 600;
 
-/** Encaixa uma janela de tamanho `tam` começando em `a` dentro do dia. */
-function encaixar(a: number, tam: number): Janela {
-  const t = Math.min(DIA, Math.max(JANELA_MIN, tam));
-  const ini = Math.min(DIA - t, Math.max(0, a));
+/** Encaixa uma janela de tamanho `tam` começando em `a` dentro do dia (ou de 0 a `limite`, ex.: um turno). */
+function encaixar(a: number, tam: number, limite = DIA): Janela {
+  const t = Math.min(limite, Math.max(JANELA_MIN, tam));
+  const ini = Math.min(limite - t, Math.max(0, a));
   return [Math.round(ini), Math.round(ini + t)];
 }
 
@@ -72,14 +72,14 @@ function encaixar(a: number, tam: number): Janela {
  * Zoom pela rodinha do mouse: fator < 1 aproxima, > 1 afasta. O instante `centro` (onde está o mouse) fica no mesmo
  * lugar da tela. Nunca menos de 10 min nem mais que o dia inteiro.
  */
-export function zoomJanela([a, b]: Janela, centro: number, fator: number): Janela {
+export function zoomJanela([a, b]: Janela, centro: number, fator: number, limite = DIA): Janela {
   const tam = (b - a) * fator;
   const f = b > a ? (centro - a) / (b - a) : 0.5;
-  return encaixar(centro - f * Math.min(DIA, Math.max(JANELA_MIN, tam)), tam);
+  return encaixar(centro - f * Math.min(limite, Math.max(JANELA_MIN, tam)), tam, limite);
 }
 
 /** Arrasta a janela para os lados (rodinha na horizontal ou Shift + rodinha), sem sair do dia. */
-export const deslocarJanela = ([a, b]: Janela, seg: number): Janela => encaixar(a + seg, b - a);
+export const deslocarJanela = ([a, b]: Janela, seg: number, limite = DIA): Janela => encaixar(a + seg, b - a, limite);
 
 /** "Ampliar o foco": o período com 5% de folga de cada lado, no mínimo 30 min, sem sair do dia. */
 export function ampliar([ini, fim]: Janela): Janela {
