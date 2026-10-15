@@ -7,7 +7,7 @@ import { regimeDoEquip } from "../regras-frota";
 import { supervisorDaParada } from "../supervisor-vaga";
 import type { ConfigRegra, Politica } from "./config";
 import { familiasNoPeriodo, fracaoSemSinal, janelaDoAlerta, repeticoes, type HistoricoAlerta, type Situacao } from "./contexto";
-import { destinoDaNota, excessoMin, notaDoAlerta, type Destino, type Motivo } from "./nota";
+import { destinoDaNota, excessoMin, notaDoAlerta, type ContextoNota, type Destino, type Motivo } from "./nota";
 
 /** O coletor vê as áreas a cada 5-10 min: só dá como terminado o que acabou há mais que isso. */
 export const FOLGA_FIM_S = 600;
@@ -37,6 +37,8 @@ export interface LinhaAlerta {
   situacao: Situacao;
   nota: number;
   motivos: Motivo[];
+  /** o que entrou na nota: o simulador da tela recalcula com outra configuração */
+  contexto: ContextoNota;
   destino: Destino;
   contagem: number;
   resolvido_em: string | null;
@@ -86,13 +88,14 @@ export function montarAlertas(x: EntradaMontar): LinhaAlerta[] {
     const chave = chaveDoAlerta(e, x.dia);
     const ant = anteriores.get(chave) ?? null;
     const j = janelaDoAlerta(e, x.agoraSeg);
-    const { nota, motivos } = notaDoAlerta(cfg, {
+    const contexto: ContextoNota = {
       excessoMin: excessoMin(e, x.agoraSeg),
       repeticoes: repeticoes(x.historico, e.regra, v.vaga, x.dia, chave, e.ref),
       familias: familiasNoPeriodo(x.tablet, v.placa, x.dia, j),
       fracaoSemSinal: fracaoSemSinal(x.eventos, v.id, x.dia, j),
       presumido: regimeDoEquip(v.equip.regime, v.vaga).presumido,
-    });
+    };
+    const { nota, motivos } = notaDoAlerta(cfg, contexto);
     const situacao = situacaoNova(ant?.situacao ?? null, ant?.resolvido_por ?? null, terminou(e, x.agoraSeg), silenciado(e));
     const jaResolvido = ant?.situacao === "resolvido" && situacao === "resolvido";
     out.push({
@@ -112,6 +115,7 @@ export function montarAlertas(x: EntradaMontar): LinhaAlerta[] {
       situacao,
       nota,
       motivos,
+      contexto,
       destino: destinoDaNota(nota, x.politica),
       contagem: (ant?.contagem ?? 0) + 1,
       resolvido_em: situacao !== "resolvido" ? null : jaResolvido ? (ant?.resolvido_em ?? x.agoraIso) : x.agoraIso,

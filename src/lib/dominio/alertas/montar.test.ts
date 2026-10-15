@@ -92,6 +92,10 @@ describe("montar alertas", () => {
     expect(a.nota).toBe(55);
     expect(a.motivos.at(-1)?.texto).toBe("Regime presumido (ADM)");
   });
+  it("grava o contexto da nota (o simulador recalcula com ele)", () => {
+    const [a] = montarAlertas(entrada({ agoraSeg: 13 * H }));
+    expect(a.contexto).toEqual({ excessoMin: 70, repeticoes: 0, familias: [], fracaoSemSinal: 0, presumido: false });
+  });
   it("dia fechado (agoraSeg null): tudo resolvido", () => {
     const [a] = montarAlertas(entrada({ agoraSeg: null, excecoes: [exc({ regra: "saida_tarde", ini: 8 * H, fim: null, ref: 7 * H + 45 * 60 })] }));
     expect(a.situacao).toBe("resolvido");
