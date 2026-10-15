@@ -6,11 +6,12 @@ import type { AlertaGravado } from "@/lib/dominio/alertas/gestao";
 import { REGRAS, ROTULO_REGRA } from "@/lib/dominio/excecoes";
 import { rotuloDia } from "@/lib/dominio/formato";
 import { CartaoAlerta } from "./cartao";
+import { BotoesAvaliacao } from "./fila";
 
 const MAX_LINHAS = 300;
 
 /** 90 dias de alertas, do mais novo para o mais antigo, com filtros. */
-export function Historico({ alertas, hoje }: { alertas: AlertaGravado[]; hoje: string }) {
+export function Historico({ alertas, hoje, email, aoMudar }: { alertas: AlertaGravado[]; hoje: string; email: string | null; aoMudar: () => void }) {
   const [dia, setDia] = useState("");
   const [regra, setRegra] = useState("");
   const [situacao, setSituacao] = useState("");
@@ -61,7 +62,7 @@ export function Historico({ alertas, hoje }: { alertas: AlertaGravado[]; hoje: s
       {lista.length ? (
         <ul>
           {lista.slice(0, MAX_LINHAS).map((a) => (
-            <CartaoAlerta key={a.id} a={a} hoje={hoje} />
+            <CartaoAlerta key={a.id} a={a} hoje={hoje} acoes={<BotoesAvaliacao a={a} email={email} aoMudar={aoMudar} />} />
           ))}
         </ul>
       ) : (

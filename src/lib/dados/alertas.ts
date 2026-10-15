@@ -6,11 +6,10 @@ import { configCompleta, politicaCompleta, type ConfigRegra, type Politica } fro
 import type { AlertaGravado, Avaliacao } from "../dominio/alertas/gestao";
 import type { RegraExcecao } from "../dominio/excecoes";
 import { diaMenos } from "../dominio/analise";
+import { colunasAlertas } from "./colunas";
 import { ok } from "../supabase/cliente";
 import { dbLogado } from "../supabase/sessao";
 
-const COLUNAS =
-  "id, chave, regra, veiculo_id, placa, vaga, supervisor, dia, ini, fim, ref, local, detalhe, situacao, nota, motivos, contexto, destino, avaliacao, contagem, visto_por, visto_em, resolvido_em, resolvido_por, ultimo_aviso_em, detectado_em, atualizado_em";
 const PAGINA = 1000;
 const MAX = 20000;
 const agoraIso = () => new Date().toISOString();
@@ -42,11 +41,11 @@ export interface SilencioGravado {
   criado_em: string;
 }
 
-export async function lerAlertas(desde: string): Promise<AlertaGravado[]> {
+export async function lerAlertas(desde: string, logado: boolean): Promise<AlertaGravado[]> {
   const out: AlertaGravado[] = [];
   for (let de = 0; de < MAX; de += PAGINA) {
     // id desempata: as páginas não repetem nem pulam linhas
-    const pag = ((await ok(dbLogado().from("alertas").select(COLUNAS).gte("dia", desde).order("dia", { ascending: false }).order("id").range(de, de + PAGINA - 1))) ?? []) as AlertaGravado[];
+    const pag = ((await ok(dbLogado().from("alertas").select(colunasAlertas(logado)).gte("dia", desde).order("dia", { ascending: false }).order("id").range(de, de + PAGINA - 1))) ?? []) as unknown as AlertaGravado[];
     out.push(...pag);
     if (pag.length < PAGINA) break;
   }
@@ -112,14 +111,14 @@ export async function lerFilaEnvio(): Promise<{ pendentes: number; erros: number
 }
 
 /** Alertas dos últimos 90 dias e a configuração; relê a cada 5 min e depois de cada ação (recarregar). */
-export function useGestaoDados(hoje: string): { alertas: AlertaGravado[]; config: ConfigGestao | null; erro: string | null; recarregar: () => void } {
+export function useGestaoDados(hoje: string, logado: boolean): { alertas: AlertaGravado[]; config: ConfigGestao | null; erro: string | null; recarregar: () => void } {
   const [estado, setEstado] = useState<{ alertas: AlertaGravado[]; config: ConfigGestao | null; erro: string | null }>({ alertas: [], config: null, erro: null });
   const [versao, setVersao] = useState(0);
   const recarregar = useCallback(() => setVersao((v) => v + 1), []);
   useEffect(() => {
     let vivo = true;
     const ler = () =>
-      Promise.all([lerAlertas(diaMenos(hoje, 89)), lerConfig()]).then(
+      Promise.all([lerAlertas(diaMenos(hoje, 89), logado), lerConfig()]).then(
         ([alertas, config]) => vivo && setEstado({ alertas, config, erro: null }),
         (e: unknown) => vivo && setEstado((s) => ({ ...s, erro: e instanceof Error ? e.message : String(e) })),
       );
@@ -129,6 +128,6 @@ export function useGestaoDados(hoje: string): { alertas: AlertaGravado[]; config
       vivo = false;
       clearInterval(t);
     };
-  }, [hoje, versao]);
+  }, [hoje, logado, versao]);
   return { ...estado, recarregar };
 }

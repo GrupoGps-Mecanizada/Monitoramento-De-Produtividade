@@ -24,6 +24,8 @@ test("Gestão de alertas: fila com nota e motivos, histórico, simulador e desti
   await expect(fila.getByRole("button", { name: "Visto" })).toBeDisabled();
   await page.getByRole("tab", { name: "Histórico" }).click();
   await expect(page.getByRole("region", { name: "Histórico de alertas" })).toContainText("Ociosidade");
+  // avaliar também no histórico (os alertas saem da fila logo), mas só com login
+  await expect(page.getByRole("region", { name: "Histórico de alertas" }).getByRole("button", { name: "Não era problema" }).first()).toBeDisabled();
   await page.getByRole("tab", { name: "Filtro inteligente" }).click();
   await expect(page.getByRole("region", { name: "Simulador" })).toContainText("2 alertas");
   await expect(page.getByRole("button", { name: "Salvar" })).toBeDisabled();

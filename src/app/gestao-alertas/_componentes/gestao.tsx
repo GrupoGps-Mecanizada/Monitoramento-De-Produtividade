@@ -62,8 +62,8 @@ export function Gestao() {
   const sessao = useSessao();
   const [aba, setAba] = useState<Aba>("fila");
   const [hoje] = useState(() => diaLocal());
-  const { alertas, config, erro, recarregar } = useGestaoDados(hoje);
   const logado = !!sessao.email;
+  const { alertas, config, erro, recarregar } = useGestaoDados(hoje, logado);
   return (
     <div className="w-full space-y-4 px-4 pb-24 pt-5 md:px-8 md:pb-10 md:pt-7">
       <div className="flex flex-wrap items-center gap-3">
@@ -91,7 +91,7 @@ export function Gestao() {
         </Aviso>
       )}
       {aba === "fila" && <Fila alertas={alertas} hoje={hoje} email={sessao.email} aoMudar={recarregar} />}
-      {aba === "historico" && <Historico alertas={alertas} hoje={hoje} />}
+      {aba === "historico" && <Historico alertas={alertas} hoje={hoje} email={sessao.email} aoMudar={recarregar} />}
       {aba === "filtro" && (config ? <Filtro key={JSON.stringify(config)} alertas={alertas} config={config} hoje={hoje} logado={logado} aoSalvar={recarregar} /> : !erro && <p>Carregando…</p>)}
       {aba === "destinos" && <Destinos logado={logado} />}
       {aba === "saude" && <Saude alertas={alertas} logado={logado} />}

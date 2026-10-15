@@ -9,6 +9,28 @@ import { CartaoAlerta, ROTULO_DESTINO } from "./cartao";
 
 const DIAS_SILENCIO = [1, 3, 7, 30];
 
+/** Era / Não era problema: alimenta as sugestões do filtro. Na Fila e no Histórico; só com login. */
+export function BotoesAvaliacao({ a, email, aoMudar }: { a: AlertaGravado; email: string | null; aoMudar: () => void }) {
+  const [erro, setErro] = useState<string | null>(null);
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {(["problema", "nao_era_problema"] as Avaliacao[]).map((v) => (
+        <Botao
+          key={v}
+          tamanho="mini"
+          variante="discreta"
+          disabled={!email || a.avaliacao === v}
+          title={email ? undefined : "Entre para usar as ações"}
+          onClick={() => void avaliar(a.id, v).then(aoMudar, (e: unknown) => setErro(e instanceof Error ? e.message : String(e)))}
+        >
+          {v === "problema" ? "Era problema" : "Não era problema"}
+        </Botao>
+      ))}
+      {erro && <Aviso tipo="erro">{erro}</Aviso>}
+    </div>
+  );
+}
+
 function Acoes({ a, email, aoMudar }: { a: AlertaGravado; email: string | null; aoMudar: () => void }) {
   const [silencio, setSilencio] = useState(false);
   const [motivo, setMotivo] = useState("");
@@ -33,13 +55,7 @@ function Acoes({ a, email, aoMudar }: { a: AlertaGravado; email: string | null; 
           Silenciar
         </Botao>
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        {(["problema", "nao_era_problema"] as Avaliacao[]).map((v) => (
-          <Botao key={v} tamanho="mini" variante="discreta" disabled={travado || a.avaliacao === v} title={dica} onClick={() => void fazer(avaliar(a.id, v))}>
-            {v === "problema" ? "Era problema" : "Não era problema"}
-          </Botao>
-        ))}
-      </div>
+      <BotoesAvaliacao a={a} email={email} aoMudar={aoMudar} />
       {silencio && !travado && (
         <div className="flex flex-wrap items-center gap-1.5">
           <Entrada placeholder="Motivo (ex.: em manutenção)" value={motivo} onChange={(e) => setMotivo(e.target.value)} aria-label="Motivo do silêncio" className="w-48" />
