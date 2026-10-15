@@ -1,5 +1,9 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Gestão de alertas · 15/10/2026 (não publicado; ramo `alertas-whatsapp`)
+- Tela nova **Gestão de alertas** (menu Ao vivo): Fila com nota e "Por que essa nota?", ações (Visto, Resolver, Silenciar, Era/Não era problema), Histórico de 90 dias, Filtro inteligente com simulador dos últimos 7 dias e sugestões, Destinatários e Saúde.
+- Ver não pede login; agir, salvar o filtro e ver telefones pede e-mail e senha (Supabase Auth, cadastro aberto desligado). Permissões por coluna em `supabase/alertas.sql`.
+
 ## Alertas guardados com nota · 15/10/2026 (não publicado; ramo `alertas-whatsapp`)
 - Etapa 1 do P-026: cada exceção do dia vira um alerta único na tabela `alertas` (SQL `supabase/alertas.sql`), com nota 0–100, os motivos e o destino (WhatsApp, resumo ou só tela). Regras puras em `src/lib/dominio/alertas/`; detector no coletor a cada 10 min (`coletor/alertas.ts`). Ainda sem tela de gestão e sem WhatsApp.
 
