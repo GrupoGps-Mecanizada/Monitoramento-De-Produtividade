@@ -9,6 +9,7 @@ export const MENU: { href: string; rotulo: string; curto: string; icone: IconeNo
   { href: "/timeline", rotulo: "Timeline", curto: "Timeline", icone: "timeline" },
   { href: "/equipamentos", rotulo: "Equipamentos", curto: "Equip.", icone: "equipamentos" },
   { href: "/alertas", rotulo: "Alertas", curto: "Alertas", icone: "alertas" },
+  { href: "/gestao-alertas", rotulo: "Gestão de alertas", curto: "Gestão", icone: "opcoes" },
 ];
 
 /** A tela atual é esta? (o site usa barra no fim do endereço: /timeline/) */
@@ -17,7 +18,7 @@ export const telaAtiva = (caminho: string, href: string) => (href === "/" ? cami
 type ItemMenu = (typeof MENU)[number];
 /** Categorias do menu (barra superior e barra do celular): as telas agrupadas para caber e organizar o espaço. */
 export const CATEGORIAS: { id: string; rotulo: string; icone: IconeNome; telas: string[] }[] = [
-  { id: "ao-vivo", rotulo: "Ao vivo", icone: "mapa", telas: ["/", "/alertas"] },
+  { id: "ao-vivo", rotulo: "Ao vivo", icone: "mapa", telas: ["/", "/alertas", "/gestao-alertas"] },
   { id: "analises", rotulo: "Análises", icone: "analise", telas: ["/analise", "/frota", "/timeline", "/cronoanalise"] },
   { id: "cadastros", rotulo: "Cadastros", icone: "equipamentos", telas: ["/equipamentos"] },
 ];
