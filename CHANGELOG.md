@@ -1,5 +1,9 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Análise: supervisor pela vaga · 15/10/2026 (não publicado; ramo `crono-telemetria-placa`)
+- O supervisor passa a ser o **da vaga em que o caminhão estava naquele dia**, não o da placa (os caminhões rodam entre as vagas). Regra do segundo cérebro: Junior Pereira (AP 02–06, 09, 10), Donizete (AV 02–06, Hipervácuo 01 e 02), Genésio (aspiradores, Brooks, Hipervácuo 03 e 04); vagas 24 h (AP/AV 01 e 08) pelo supervisor da letra do 4x4 no horário da parada; AP/AV 07 (16 h) sem supervisor.
+- A vaga de cada dia vem da view nova `vaga_do_dia` (SQL `supabase/2026-10-15_vaga-do-dia.sql`). Sem a view, vale o supervisor da matriz.
+
 ## Cronoanálise: motor pela placa quando o GAUSS não tem a vaga · 15/10/2026 (não publicado; ramo `crono-telemetria-placa`)
 - Quando a vaga do GAUSS não tem o caminhão no turno (S/ VAGA, ex.: EAM3256 em 13/10) ou a folha não tem vaga com número, o motor vem **pela placa**: montado com os eventos do mapa ao vivo (`loc_eventos`: abertura do dia, troca de status, sinal perdido/retomado, motor 2º do caminhão). Nenhuma consulta nova ao GAUSS.
 - A tela avisa quando o motor veio pela placa (menos preciso: leituras de minutos) e quando nem a vaga nem a placa têm dados.

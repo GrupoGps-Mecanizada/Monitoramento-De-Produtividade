@@ -4,7 +4,7 @@ import type * as Leaflet from "leaflet";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMapa } from "@/components/mapa/use-mapa";
 import { Aviso, Botao, Segmentado, Vazio, cx } from "@/components/ui";
-import { useParadasAnalise } from "@/lib/dados/analise";
+import { useParadasAnalise, useVagaDoDia } from "@/lib/dados/analise";
 import { lerCercas } from "@/lib/dados/leituras";
 import { useRetrato } from "@/lib/dados/use-retrato";
 import {
@@ -43,6 +43,7 @@ type ModoMapa = (typeof MODOS_MAPA)[number];
 export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }) {
   const { retrato } = useRetrato();
   const { paradas, carregando, erro } = useParadasAnalise();
+  const vagaDoDia = useVagaDoDia();
   const { ref, pronto } = useMapa(14, true);
   const camada = useRef<Leaflet.LayerGroup | null>(null);
   const [cercas, setCercas] = useState<Cerca[]>([]);
@@ -69,7 +70,9 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   const areas = useMemo(() => areasDaRegiao(validas.filter((c) => c.tipo === "area"), usina), [validas, usina]);
   const plantas = useMemo(() => plantasDaRegiao(validas), [validas]);
   const equip = useMemo(() => equipDaFrota(retrato?.veiculos ?? []), [retrato]);
-  const base = useMemo(() => montarLocais(paradas, validas.filter((c) => c.tipo === "area"), equip, usina, excluidas), [paradas, validas, equip, usina, excluidas]);
+  const base = useMemo(() => montarLocais(paradas, validas.filter((c) => c.tipo === "area"), equip, usina, excluidas, vagaDoDia), [paradas, validas, equip, usina, excluidas, vagaDoDia]);
+  // supervisores do filtro: os das paradas (pela vaga) e os da matriz
+  const equipDoFiltro = useMemo(() => [...new Map(base.paradas.map((p) => [p.equip.supervisor, p.equip])).values(), ...equip.values()], [base, equip]);
   const doFiltro = useMemo(() => filtrar(base.paradas, { hoje, periodo: Number(periodo), ...filtros, faixas: [], diasSemana: [] }), [base, hoje, periodo, filtros]);
   // a família só filtra dentro de Apontamentos
   const doFamilia = useMemo(() => (assunto !== "apontamentos" || familia === "geral" ? doFiltro : paradasDaFamilia(doFiltro, familia)), [doFiltro, familia, assunto]);
@@ -220,7 +223,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
         }
         filtros={filtros}
         mudarFiltros={(p) => setFiltros((f) => ({ ...f, ...p }))}
-        equip={[...equip.values()]}
+        equip={equipDoFiltro}
         etiquetas={etiquetas}
         tirar={(d) => setSel((s) => ({ ...s, [d]: null }))}
         limpar={() => setSel(SELECAO_VAZIA)}

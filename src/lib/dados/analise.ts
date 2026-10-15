@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import type { ParadaAnalise } from "../dominio/analise";
 import { diaLocal } from "../dominio/formato";
+import { mapaVagaDoDia, type VagaDoDia } from "../dominio/supervisor-vaga";
 import { db, ok } from "../supabase/cliente";
 import { validarParadasAnalise } from "./esquemas";
 
@@ -71,4 +72,41 @@ export function useParadasAnalise(): { paradas: ParadaAnalise[]; carregando: boo
     };
   }, []);
   return estado;
+}
+
+/**
+ * Em que vaga cada caminhão esteve em cada dia (view vaga_do_dia, da timeline de motor por vaga): o supervisor é da
+ * vaga, não da placa. Uma leitura por aba. Sem a view (SQL não rodado) ou com falha, volta vazio e vale a matriz.
+ */
+let cacheVagas: Promise<Map<string, string>> | null = null;
+export function lerVagaDoDia(c: SupabaseClient = db()): Promise<Map<string, string>> {
+  const d = new Date();
+  d.setDate(d.getDate() - 31);
+  cacheVagas ??= (async () => {
+    const linhas: VagaDoDia[] = [];
+    for (let de = 0; de < MAX; de += PAGINA) {
+      const pag = (await ok(
+        c.from("vaga_do_dia").select("dia, veiculo_id, vaga_nome, minutos").gte("dia", diaLocal(d)).order("dia").order("veiculo_id").order("vaga_nome").range(de, de + PAGINA - 1),
+      )) as VagaDoDia[];
+      linhas.push(...pag.map((l) => ({ ...l, minutos: Number(l.minutos) })));
+      if (pag.length < PAGINA) break;
+    }
+    return mapaVagaDoDia(linhas);
+  })().catch(() => {
+    cacheVagas = null;
+    return new Map<string, string>();
+  });
+  return cacheVagas;
+}
+
+export function useVagaDoDia(): Map<string, string> {
+  const [mapa, setMapa] = useState<Map<string, string>>(() => new Map());
+  useEffect(() => {
+    let vivo = true;
+    lerVagaDoDia().then((m) => vivo && setMapa(m));
+    return () => {
+      vivo = false;
+    };
+  }, []);
+  return mapa;
 }
