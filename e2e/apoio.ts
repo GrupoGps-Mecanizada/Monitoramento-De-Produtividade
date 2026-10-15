@@ -142,7 +142,7 @@ export const REGIMES = [{ id: 1, nome: "ADM", ativo: true }, { id: 2, nome: "4X4
  * tiles do mapa. Devolve a lista de tentativas de gravação: os testes exigem que fique vazia (só a tela
  * Equipamentos grava, e o teste dela confere o que foi enviado). `matriz`: troca a matriz de equipamentos.
  */
-export async function prepararDados(page: Page, opcoes: { matriz?: ReturnType<typeof matrizBanco>; analise?: unknown[]; analiseSemTabela?: boolean; eventos?: unknown[]; excessos?: unknown[]; medicao?: ReturnType<typeof medicao>; medicaoSemTabela?: boolean; crono?: unknown[] } = {}): Promise<string[]> {
+export async function prepararDados(page: Page, opcoes: { alertas?: unknown[]; matriz?: ReturnType<typeof matrizBanco>; analise?: unknown[]; analiseSemTabela?: boolean; eventos?: unknown[]; excessos?: unknown[]; medicao?: ReturnType<typeof medicao>; medicaoSemTabela?: boolean; crono?: unknown[] } = {}): Promise<string[]> {
   const gravacoes: string[] = [];
   await page.route(/arcgisonline\.com|tile\.openstreetmap\.org/, (r) => r.abort());
   await page.route("**/rest/v1/**", async (route) => {
@@ -182,6 +182,8 @@ export async function prepararDados(page: Page, opcoes: { matriz?: ReturnType<ty
       if (tabela === "medicao_indisp_evento") return json(m.eventos);
       if (tabela === "medicao_vaga_dia") return json(m.dias);
     }
+    if (tabela === "alertas") return json(opcoes.alertas ?? []);
+    if (tabela === "alerta_regra" || tabela === "alerta_politica" || tabela === "alerta_silencio") return json([]);
     return json([]);
   });
   return gravacoes;
