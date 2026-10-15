@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FILTROS_PADRAO, agrupar, contarCartoes, etiquetas, filtrar, opcoes, type FiltrosAlertas } from "./fila";
+import { FILTROS_PADRAO, VISOES, agrupar, contarCartoes, contarVisoes, etiquetas, filtrar, opcoes, ordenar, visaoAtual, type FiltrosAlertas } from "./fila";
 import type { AlertaGravado } from "./gestao";
 
 const HOJE = "2026-10-15";
@@ -90,4 +90,30 @@ describe("agrupar", () => {
     expect(agrupar(xs, "equipamento", "nota").map((x) => x.titulo)).toEqual(["EGC2985", "DSY6472", "EAM3257"]);
     expect(agrupar(xs, "regra", "nota").map((x) => x.titulo)).toEqual(["Saída tarde do Pátio", "Motor desligado 1 h", "Ociosidade"]);
   });
+});
+
+describe("visões salvas", () => {
+  it("cada visão aplica cartão e atalho; contam com os outros filtros (período, supervisor...)", () => {
+    expect(contarVisoes(BASE, f({ periodo: "7" }), HOJE)).toEqual({ fila: 3, whatsapp: 4, graves: 2, sem_avaliacao: 4, resolvidos: 1, todos: 5 });
+    expect(contarVisoes(BASE, f({ supervisor: "Donizete" }), HOJE)).toMatchObject({ fila: 1, todos: 2 });
+  });
+  it("visão atual a partir dos filtros; combinação fora das visões = null", () => {
+    expect(visaoAtual(f())).toBe("fila");
+    expect(visaoAtual(f({ cartao: null, atalho: "graves" }))).toBe("graves");
+    expect(visaoAtual(f({ cartao: "fila", atalho: "graves" }))).toBeNull();
+    expect(VISOES.map((v) => v.id)).toEqual(["fila", "whatsapp", "graves", "sem_avaliacao", "resolvidos", "todos"]);
+  });
+});
+
+describe("ordenar pela coluna", () => {
+  const xs = filtrar(BASE, f({ periodo: "7", cartao: null }), HOJE);
+  it("nota (maior primeiro) e o inverso", () => {
+    expect(ordenar(xs, "nota", "desc").map((a) => a.id)).toEqual([1, 5, 4, 2, 3]);
+    expect(ordenar(xs, "nota", "asc").map((a) => a.id)).toEqual([3, 2, 4, 5, 1]);
+  });
+  it("placa e supervisor em ordem alfabética (vazio por último)", () => {
+    expect(ordenar(xs, "placa", "asc").map((a) => a.placa)).toEqual(["DSY6472", "EAM3257", "EGC2985", "EGC2985", "EGC2985"]);
+    expect(ordenar([...xs, ...filtrar(BASE, f({ periodo: "30", cartao: null, supervisor: "" }), HOJE)], "supervisor", "asc").map((a) => a.supervisor).at(-1)).toBeNull();
+  });
+  it("hora: mais recente primeiro", () => expect(ordenar(xs, "hora", "desc").map((a) => a.id)).toEqual([1, 2, 3, 4, 5]));
 });

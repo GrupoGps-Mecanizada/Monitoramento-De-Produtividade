@@ -139,3 +139,36 @@ export function agrupar(alertas: AlertaGravado[], por: Agrupar, ordem: Ordem): G
     .map(([k, itens]) => ({ chave: k, titulo: titulo(k), itens: [...itens].sort(ordem === "nota" ? porNota : porHora), notaMax: Math.max(...itens.map((a) => a.nota)) }))
     .sort((p, q) => q.notaMax - p.notaMax || p.titulo.localeCompare(q.titulo));
 }
+
+/** Visões salvas (abas com contagem): cada uma é um cartão e/ou um atalho pronto. */
+export type Visao = "fila" | "whatsapp" | "graves" | "sem_avaliacao" | "resolvidos" | "todos";
+export const VISOES: { id: Visao; rotulo: string; filtro: Pick<FiltrosAlertas, "cartao" | "atalho"> }[] = [
+  { id: "fila", rotulo: "Na fila", filtro: { cartao: "fila", atalho: null } },
+  { id: "whatsapp", rotulo: "WhatsApp", filtro: { cartao: "whatsapp", atalho: null } },
+  { id: "graves", rotulo: "Graves", filtro: { cartao: null, atalho: "graves" } },
+  { id: "sem_avaliacao", rotulo: "Sem avaliação", filtro: { cartao: null, atalho: "sem_avaliacao" } },
+  { id: "resolvidos", rotulo: "Resolvidos", filtro: { cartao: "resolvidos", atalho: null } },
+  { id: "todos", rotulo: "Todos", filtro: { cartao: null, atalho: null } },
+];
+
+/** Quantos alertas cada visão teria com os outros filtros (período, regra, supervisor, destino, busca). */
+export function contarVisoes(alertas: AlertaGravado[], f: FiltrosAlertas, hoje: string): Record<Visao, number> {
+  return Object.fromEntries(VISOES.map((v) => [v.id, filtrar(alertas, { ...f, ...v.filtro }, hoje).length])) as Record<Visao, number>;
+}
+export const visaoAtual = (f: FiltrosAlertas): Visao | null => VISOES.find((v) => v.filtro.cartao === f.cartao && v.filtro.atalho === f.atalho)?.id ?? null;
+
+export type Coluna = "nota" | "hora" | "placa" | "regra" | "supervisor";
+/** Ordena pela coluna clicada na tabela; vazio sempre por último. */
+export function ordenar(alertas: AlertaGravado[], col: Coluna, dir: "asc" | "desc"): AlertaGravado[] {
+  const s = dir === "asc" ? 1 : -1;
+  const texto = (a: AlertaGravado) => (col === "placa" ? a.placa : col === "regra" ? rotuloRegra(a.regra) : (a.supervisor ?? ""));
+  const cmp = (p: AlertaGravado, q: AlertaGravado): number => {
+    if (col === "nota") return s * (p.nota - q.nota) || porHora(p, q);
+    if (col === "hora") return dir === "desc" ? porHora(p, q) : -porHora(p, q);
+    const tp = texto(p);
+    const tq = texto(q);
+    if (!tp !== !tq) return tp ? -1 : 1;
+    return s * tp.localeCompare(tq) || porNota(p, q);
+  };
+  return [...alertas].sort(cmp);
+}

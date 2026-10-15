@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Gaveta } from "@/components/gaveta";
-import { Aviso, Botao, Chip, Entrada, Selecao, Selo, Vazio } from "@/components/ui";
+import { Aviso, Botao, Chip, Entrada, Selecao, Selo, Vazio, cx } from "@/components/ui";
 import { apagarDestino, apagarSilencio, lerDestinos, lerSilencios, salvarDestino, type Destinatario, type SilencioGravado } from "@/lib/dados/alertas";
 import { normalizarTelefone } from "@/lib/dominio/alertas/gestao";
 import { REGRAS, ROTULO_REGRA, type RegraExcecao } from "@/lib/dominio/excecoes";
@@ -13,13 +12,16 @@ const TIPOS: Destinatario["tipo"][] = ["supervisor", "coordenador", "grupo", "te
 const ROTULO_TIPO: Record<Destinatario["tipo"], string> = { supervisor: "Supervisor", coordenador: "Coordenador", grupo: "Grupo do WhatsApp", teste: "Teste (modo teste)" };
 const SUPERVISORES = ["Junior Pereira", "Donizete", "Genésio"];
 const telVisivel = (t: string | null) => (t ? t.replace(/^55(\d{2})(\d{4,5})(\d{4})$/, "($1) $2-$3") : "");
+const titulo = "text-[11px] font-semibold uppercase tracking-wider text-suave";
 
+/** Cadastro/edição ao lado da tabela (modelo 32). */
 function Formulario({ inicial, fechar, aoSalvar }: { inicial: Destinatario; fechar: () => void; aoSalvar: () => void }) {
   const [d, setD] = useState(inicial);
   const [telefone, setTelefone] = useState(telVisivel(inicial.telefone));
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const grupo = d.tipo === "grupo";
+  const nomeTela = inicial.id ? `Editar ${inicial.nome}` : "Novo destinatário";
   async function salvar() {
     const nome = d.nome.trim();
     const tel = grupo ? null : normalizarTelefone(telefone);
@@ -39,22 +41,14 @@ function Formulario({ inicial, fechar, aoSalvar }: { inicial: Destinatario; fech
   }
   const alternar = (r: RegraExcecao) => setD({ ...d, regras: d.regras.includes(r) ? d.regras.filter((x) => x !== r) : [...d.regras, r] });
   return (
-    <Gaveta
-      titulo={inicial.id ? `Editar ${inicial.nome}` : "Novo destinatário"}
-      fechar={fechar}
-      largura="min(480px, 100vw)"
-      rodape={
-        <div className="flex gap-2">
-          <Botao disabled={salvando} onClick={() => void salvar()}>
-            Salvar
-          </Botao>
-          <Botao variante="secundaria" onClick={fechar}>
-            Cancelar
-          </Botao>
-        </div>
-      }
-    >
-      <div className="space-y-4 p-5 text-[13px]">
+    <aside aria-label={nomeTela} className="min-w-0 lg:sticky lg:top-4 lg:self-start lg:border-l lg:border-borda lg:pl-6">
+      <header className="flex items-start gap-3 pb-4">
+        <h2 className="flex-1 text-lg font-semibold">{nomeTela}</h2>
+        <button type="button" onClick={fechar} aria-label="Fechar" className="grid h-8 w-8 place-items-center rounded-lg text-suave hover:bg-superficie-2 hover:text-texto">
+          ×
+        </button>
+      </header>
+      <div className="space-y-4 text-[13px]">
         <label className="flex flex-col gap-1">
           <span className="text-suave">Nome</span>
           <Entrada value={d.nome} maxLength={60} onChange={(e) => setD({ ...d, nome: e.target.value })} />
@@ -113,13 +107,21 @@ function Formulario({ inicial, fechar, aoSalvar }: { inicial: Destinatario; fech
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={d.ativo} onChange={(e) => setD({ ...d, ativo: e.target.checked })} /> Ativo
         </label>
+        <div className="flex gap-2 pt-2">
+          <Botao disabled={salvando} onClick={() => void salvar()}>
+            Salvar
+          </Botao>
+          <Botao variante="discreta" onClick={fechar}>
+            Cancelar
+          </Botao>
+        </div>
         {erro && <Aviso tipo="erro">{erro}</Aviso>}
       </div>
-    </Gaveta>
+    </aside>
   );
 }
 
-/** Aba Destinatários: quem recebe (tabela, edição em gaveta) e os silêncios valendo. Telefone é dado pessoal: só com login. */
+/** Aba Destinatários: quem recebe (tabela sem grade, edição ao lado) e os silêncios valendo. Telefone é dado pessoal: só com login. */
 export function Destinos({ logado }: { logado: boolean }) {
   const [lista, setLista] = useState<Destinatario[]>([]);
   const [silencios, setSilencios] = useState<SilencioGravado[]>([]);
@@ -141,76 +143,77 @@ export function Destinos({ logado }: { logado: boolean }) {
   const tentar = (p: Promise<unknown>) => p.then(ler, (e: unknown) => setErro(erroTexto(e)));
   if (!logado) return <Vazio titulo="Entre para ver e editar quem recebe">Os telefones são dados pessoais: só aparecem para quem entrou com e-mail e senha.</Vazio>;
   return (
-    <div className="space-y-4">
-      {erro && <Aviso tipo="erro">{erro}</Aviso>}
-      <section aria-label="Destinatários" className="overflow-x-auto rounded-xl border border-borda bg-superficie shadow-sm">
-        <div className="flex items-center justify-between border-b border-borda p-3">
-          <p className="font-semibold">Quem recebe</p>
-          <Botao tamanho="mini" onClick={() => setEditando(NOVO)}>
-            + Destinatário
-          </Botao>
-        </div>
-        {lista.length ? (
-          <table className="w-full text-[13px]">
-            <thead className="text-left text-xs text-suave">
-              <tr className="border-b border-borda">
-                <th className="px-3 py-2 font-medium">Nome</th>
-                <th className="px-3 py-2 font-medium">Tipo</th>
-                <th className="px-3 py-2 font-medium">Contato</th>
-                <th className="px-3 py-2 font-medium">Regras</th>
-                <th className="px-3 py-2 font-medium">Não perturbe</th>
-                <th className="px-3 py-2 font-medium">Resumo</th>
-                <th className="px-3 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((d) => (
-                <tr key={d.id} className="border-b border-borda last:border-b-0">
-                  <td className="px-3 py-2 font-medium">
-                    {d.nome} {!d.ativo && <Selo tom="na">Inativo</Selo>}
-                  </td>
-                  <td className="px-3 py-2">
-                    {ROTULO_TIPO[d.tipo]}
-                    {d.supervisor && <span className="text-suave"> · {d.supervisor}</span>}
-                  </td>
-                  <td className="px-3 py-2 tabular-nums">{telVisivel(d.telefone) || d.grupo_id}</td>
-                  <td className="px-3 py-2 text-suave">{d.regras.length ? `${d.regras.length} regra(s)` : "Todas"}</td>
-                  <td className="px-3 py-2 text-suave">{d.nao_perturbe_ini ? `${d.nao_perturbe_ini.slice(0, 5)}–${d.nao_perturbe_fim?.slice(0, 5) ?? ""}` : "—"}</td>
-                  <td className="px-3 py-2">{d.resumo_diario ? "Sim" : "—"}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-right">
-                    <Botao tamanho="mini" variante="secundaria" onClick={() => setEditando(d)}>
-                      Editar
-                    </Botao>{" "}
-                    <Botao tamanho="mini" variante="discreta" onClick={() => d.id && confirm(`Apagar ${d.nome}?`) && void tentar(apagarDestino(d.id))}>
-                      Apagar
-                    </Botao>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <Vazio titulo="Ninguém cadastrado ainda">Comece por você mesmo, como “Teste”: no modo teste, tudo vai só para ele.</Vazio>
-        )}
-      </section>
-      <section aria-label="Silêncios" className="rounded-xl border border-borda bg-superficie shadow-sm">
-        <p className="border-b border-borda p-3 font-semibold">Silêncios valendo</p>
-        <ul className="divide-y divide-borda text-[13px]">
-          {silencios.map((s) => (
-            <li key={s.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
-              <span>
-                {s.veiculo_id ? `Equipamento ${s.veiculo_id}` : "Todos"} · {s.regra ? (ROTULO_REGRA[s.regra as RegraExcecao] ?? s.regra) : "todas as regras"} · até {quando(s.ate)} ·{" "}
-                <span className="text-suave">{s.motivo}</span>
-              </span>
-              <Botao tamanho="mini" variante="discreta" className="ml-auto" onClick={() => void tentar(apagarSilencio(s.id))}>
-                Tirar silêncio
-              </Botao>
-            </li>
-          ))}
-          {!silencios.length && <li className="px-3 py-2 text-suave">Nenhum silêncio valendo.</li>}
-        </ul>
-        <p className="border-t border-borda px-3 py-2 text-xs text-suave">Tirar o silêncio vale para os próximos alertas; os já silenciados ficam assim no histórico.</p>
-      </section>
+    <div className={cx("grid gap-6", editando && "lg:grid-cols-[minmax(0,1fr)_420px]")}>
+      <div className="min-w-0 space-y-10">
+        {erro && <Aviso tipo="erro">{erro}</Aviso>}
+        <section aria-label="Destinatários" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className={titulo}>Quem recebe</p>
+            <button type="button" className="text-[13px] font-medium text-link hover:underline" onClick={() => setEditando(NOVO)}>
+              + Destinatário
+            </button>
+          </div>
+          {lista.length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-[13px]">
+                <thead className="text-left text-[11px] uppercase tracking-wider text-suave">
+                  <tr className="border-b border-borda">
+                    <th className="py-2 pr-3 font-medium">Nome</th>
+                    <th className="px-3 py-2 font-medium">Tipo</th>
+                    <th className="px-3 py-2 font-medium">Contato</th>
+                    <th className="px-3 py-2 font-medium">Regras</th>
+                    <th className="px-3 py-2 font-medium">Não perturbe</th>
+                    <th className="px-3 py-2 font-medium">Resumo</th>
+                    <th className="px-3 py-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {lista.map((d) => (
+                    <tr key={d.id} onClick={() => setEditando(d)} className={cx("cursor-pointer border-b border-borda/60 hover:bg-superficie-2", editando?.id === d.id && "bg-primaria-suave hover:bg-primaria-suave")}>
+                      <td className="py-2 pr-3 font-medium">
+                        {d.nome} {!d.ativo && <Selo tom="na">Inativo</Selo>}
+                      </td>
+                      <td className="px-3 py-2">
+                        {ROTULO_TIPO[d.tipo]}
+                        {d.supervisor && <span className="text-suave"> · {d.supervisor}</span>}
+                      </td>
+                      <td className="px-3 py-2 tabular-nums">{telVisivel(d.telefone) || d.grupo_id}</td>
+                      <td className="px-3 py-2 text-suave">{d.regras.length ? `${d.regras.length} regra(s)` : "Todas"}</td>
+                      <td className="px-3 py-2 text-suave">{d.nao_perturbe_ini ? `${d.nao_perturbe_ini.slice(0, 5)}–${d.nao_perturbe_fim?.slice(0, 5) ?? ""}` : "—"}</td>
+                      <td className="px-3 py-2">{d.resumo_diario ? "Sim" : "—"}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                        <button type="button" className="text-[13px] text-suave hover:text-texto" onClick={() => d.id && confirm(`Apagar ${d.nome}?`) && void tentar(apagarDestino(d.id))}>
+                          Apagar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <Vazio titulo="Ninguém cadastrado ainda">Comece por você mesmo, como “Teste”: no modo teste, tudo vai só para ele.</Vazio>
+          )}
+        </section>
+        <section aria-label="Silêncios" className="space-y-2">
+          <p className={titulo}>Silêncios valendo</p>
+          <ul className="divide-y divide-borda/60 border-y border-borda/60 text-[13px]">
+            {silencios.map((s) => (
+              <li key={s.id} className="flex flex-wrap items-center gap-2 py-2">
+                <span>
+                  {s.veiculo_id ? `Equipamento ${s.veiculo_id}` : "Todos"} · {s.regra ? (ROTULO_REGRA[s.regra as RegraExcecao] ?? s.regra) : "todas as regras"} · até {quando(s.ate)} ·{" "}
+                  <span className="text-suave">{s.motivo}</span>
+                </span>
+                <button type="button" className="ml-auto text-[13px] font-medium text-link hover:underline" onClick={() => void tentar(apagarSilencio(s.id))}>
+                  Tirar silêncio
+                </button>
+              </li>
+            ))}
+            {!silencios.length && <li className="py-2 text-suave">Nenhum silêncio valendo.</li>}
+          </ul>
+          <p className="text-xs text-suave">Tirar o silêncio vale para os próximos alertas; os já silenciados ficam assim no histórico.</p>
+        </section>
+      </div>
       {editando && <Formulario key={editando.id ?? "novo"} inicial={editando} fechar={() => setEditando(null)} aoSalvar={ler} />}
     </div>
   );

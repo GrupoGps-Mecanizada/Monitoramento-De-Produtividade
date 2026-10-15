@@ -9,36 +9,43 @@ const alerta = (o: Record<string, unknown>) => ({
   contexto: { excessoMin: 25, repeticoes: 0, familias: [], fracaoSemSinal: 0, presumido: false }, ...o,
 });
 
-test("Gestão de alertas: cartões que filtram, lista agrupada, gaveta com o porquê, simulador e destinatários protegidos; sem login nada grava", async ({ page }) => {
-  const alertas = [alerta({}), alerta({ id: 2, chave: "k2", regra: "ocioso", placa: "EAM3257", nota: 30, destino: "resumo", situacao: "resolvido", detalhe: "40 min", motivos: [{ texto: "Peso da regra", pontos: 30 }] })];
+test("Gestão de alertas: visões com contagem, números em linha, + Filtro, tabela e detalhe ao lado; sem login nada grava", async ({ page }) => {
+  const alertas = [alerta({}), alerta({ id: 2, chave: "k2", regra: "ocioso", placa: "EAM3257", supervisor: "Donizete", nota: 30, destino: "resumo", situacao: "resolvido", detalhe: "40 min", motivos: [{ texto: "Peso da regra", pontos: 30 }] })];
   const gravacoes = await prepararDados(page, { alertas });
   await page.goto("/gestao-alertas/");
-  await expect(page.getByRole("tab", { name: "Alertas" })).toHaveAttribute("aria-selected", "true");
-  const resumo = page.getByRole("group", { name: "Resumo" });
-  await expect(resumo.getByRole("button", { name: /Na fila/ })).toHaveAttribute("aria-pressed", "true");
-  await expect(resumo.getByRole("button", { name: /Na fila/ })).toContainText("1");
+  await expect(page.getByRole("tab", { name: "Alertas", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: /^Na fila/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: /^Na fila/ })).toContainText("1");
   const lista = page.getByRole("region", { name: "Lista de alertas" });
   await expect(lista).toContainText("EGC2985");
-  await expect(lista).toContainText("Junior Pereira");
   await expect(lista).not.toContainText("EAM3257");
-  // o cartão Resolvidos filtra a lista
-  await resumo.getByRole("button", { name: /Resolvidos/ }).click();
+  // a visão Resolvidos troca a lista
+  await page.getByRole("tab", { name: /^Resolvidos/ }).click();
   await expect(lista).toContainText("EAM3257");
   await expect(lista).not.toContainText("EGC2985");
-  await resumo.getByRole("button", { name: /Resolvidos/ }).click();
-  // atalho e etiqueta
-  await page.getByRole("button", { name: "Sem avaliação" }).click();
-  await expect(page.getByRole("button", { name: "Tirar filtro: Sem avaliação" })).toBeVisible();
-  await page.getByRole("button", { name: "Limpar" }).click();
-  // gaveta: o porquê da nota e as ações pedem login
-  await lista.getByRole("button", { name: /EGC2985/ }).click();
-  const gaveta = page.getByRole("dialog", { name: "EGC2985 · Saída tarde do Pátio" });
-  await expect(gaveta).toContainText("Passou de 15 min");
-  await expect(gaveta).toContainText("Entre (botão no topo)");
-  await gaveta.getByRole("button", { name: "Fechar" }).click();
+  await page.getByRole("tab", { name: /^Todos/ }).click();
+  // + Filtro: escolhe o supervisor e vira pílula removível
+  await page.getByRole("button", { name: "Adicionar filtro" }).click();
+  await page.getByRole("menuitem", { name: /Junior Pereira/ }).click();
+  await expect(lista).not.toContainText("EAM3257");
+  await page.getByRole("button", { name: "Tirar filtro: Junior Pereira" }).click();
+  await expect(lista).toContainText("EAM3257");
+  if (process.env.FOTO) await page.screenshot({ path: process.env.FOTO + "-lista.png" });
+  // detalhe ao lado: o porquê da nota e as ações pedem login
+  await lista.getByRole("button", { name: "EGC2985" }).click();
+  const detalhe = page.getByRole("complementary", { name: "EGC2985 · Saída tarde do Pátio" });
+  await expect(detalhe).toContainText("Passou de 15 min");
+  await expect(detalhe).toContainText("Entre (botão no topo)");
+  if (process.env.FOTO) await page.screenshot({ path: process.env.FOTO + "-detalhe.png" });
+  await detalhe.getByRole("button", { name: "Fechar" }).click();
   await page.getByRole("tab", { name: "Filtro inteligente" }).click();
   await expect(page.getByRole("region", { name: "Simulador" })).toContainText("2 alertas");
+  // sem login dá para simular: desligar a saída tarde tira o alerta do WhatsApp, mas Salvar continua travado
+  await page.getByRole("checkbox", { name: "Ligar Saída tarde do Pátio" }).uncheck();
+  await expect(page.getByRole("region", { name: "Simulador" })).toContainText("antes 1");
+  await expect(page.getByRole("region", { name: "Salvar" })).toContainText("1 mudança não salva");
   await expect(page.getByRole("button", { name: "Salvar" })).toBeDisabled();
+  if (process.env.FOTO) await page.screenshot({ path: process.env.FOTO + "-filtro.png" });
   await page.getByRole("tab", { name: "Destinatários" }).click();
   await expect(page.getByText(/Entre para ver/)).toBeVisible();
   expect(gravacoes).toEqual([]);

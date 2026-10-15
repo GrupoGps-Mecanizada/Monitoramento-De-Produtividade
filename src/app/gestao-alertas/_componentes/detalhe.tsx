@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Gaveta } from "@/components/gaveta";
 import { Aviso, Botao, Campos, Entrada, Selecao, Selo } from "@/components/ui";
 import { corDoTom } from "@/lib/cores";
 import { avaliar, marcarVisto, resolver, silenciar } from "@/lib/dados/alertas";
@@ -131,15 +130,22 @@ export function DetalheAlerta({
   const semana = todos.filter((x) => x.veiculo_id === a.veiculo_id && x.id !== a.id && x.dia >= diaMenos(hoje, 6)).sort((p, q) => q.dia.localeCompare(p.dia) || q.ini - p.ini);
   const coordenador = a.nota >= NOTA_GRAVE;
   return (
-    <Gaveta
-      titulo={`${a.placa} · ${rotuloRegra(a.regra)}`}
-      sub={`${rotuloDia(a.dia, hoje)} ${hm(a.ini)}${a.fim != null ? `–${hm(a.fim)}` : ""} · ${a.detalhe}`}
-      fechar={fechar}
-      modal={false}
-      ajustavel="gestao-alerta"
-      largura="min(520px, 100vw)"
-    >
-      <div className="space-y-5 p-5">
+    <aside aria-label={`${a.placa} · ${rotuloRegra(a.regra)}`} className="min-w-0 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:border-l lg:border-borda lg:pl-6">
+      <header className="flex items-start gap-3 pb-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-semibold leading-snug">
+            {a.placa} · {rotuloRegra(a.regra)}
+          </h2>
+          <p className="text-sm text-suave">
+            {rotuloDia(a.dia, hoje)} {hm(a.ini)}
+            {a.fim != null && `–${hm(a.fim)}`} · {a.detalhe}
+          </p>
+        </div>
+        <button type="button" onClick={fechar} aria-label="Fechar" title="Fechar (Esc)" className="grid h-8 w-8 place-items-center rounded-lg text-suave hover:bg-superficie-2 hover:text-texto">
+          ×
+        </button>
+      </header>
+      <div className="space-y-6">
         <section aria-label="Nota" className="flex items-center gap-4">
           <NotaSelo a={a} grande />
           <div className="space-y-1">
@@ -199,6 +205,6 @@ export function DetalheAlerta({
           )}
         </section>
       </div>
-    </Gaveta>
+    </aside>
   );
 }

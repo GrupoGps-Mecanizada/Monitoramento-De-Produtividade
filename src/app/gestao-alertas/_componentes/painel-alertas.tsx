@@ -1,163 +1,157 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Aviso, Botao, Chip, Entrada, Segmentado, Selecao, Selo, Vazio, cx } from "@/components/ui";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Aviso, Vazio, cx } from "@/components/ui";
 import { marcarVistoVarios, resolverVarios } from "@/lib/dados/alertas";
 import {
-  ATALHOS,
-  CARTOES,
   FILTROS_PADRAO,
   PERIODOS,
   ROTULO_DESTINO,
   SEM_SUPERVISOR,
-  agrupar,
+  VISOES,
   contarCartoes,
+  contarVisoes,
   etiquetas,
   filtrar,
   opcoes,
+  ordenar,
   rotuloRegra,
-  type Agrupar,
+  visaoAtual,
   type Cartao,
+  type Coluna,
   type FiltrosAlertas,
-  type Ordem,
   type Periodo,
+  type Visao,
 } from "@/lib/dominio/alertas/fila";
 import type { AlertaGravado } from "@/lib/dominio/alertas/gestao";
 import type { Destino } from "@/lib/dominio/alertas/nota";
 import { fmtHora, rotuloDia } from "@/lib/dominio/formato";
-import { useOpcao } from "@/lib/hooks";
-import { NotaSelo, ROTULO_SITUACAO, TOM_SITUACAO, erroTexto } from "./comum";
+import { corDoTom } from "@/lib/cores";
+import { AbasTexto, NotaSelo, Pilula, ROTULO_SITUACAO, TOM_SITUACAO, erroTexto } from "./comum";
 import { DetalheAlerta } from "./detalhe";
 
-const AGRUPAR = ["supervisor", "equipamento", "regra", "nenhum"] as const;
-const ORDEM = ["nota", "hora"] as const;
 const MAX_LINHAS = 400;
 
-function Cartoes({ contas, ativo, mudar }: { contas: Record<Cartao, number>; ativo: Cartao | null; mudar: (c: Cartao | null) => void }) {
+/** "6 na fila · 3 WhatsApp · 2 resumo · 9 resolvidos · 1 silenciado" — cada número leva à visão dele (modelo 17). */
+function Numeros({ contas, ir }: { contas: Record<Cartao, number>; ir: (v: Visao | "resumo" | "silenciados") => void }) {
+  const itens: [number, string, Visao | "resumo" | "silenciados", boolean?][] = [
+    [contas.fila, "na fila", "fila"],
+    [contas.whatsapp, "vão para o WhatsApp", "whatsapp", true],
+    [contas.resumo, "só no resumo", "resumo"],
+    [contas.resolvidos, "resolvidos", "resolvidos"],
+    [contas.silenciados, contas.silenciados === 1 ? "silenciado" : "silenciados", "silenciados"],
+  ];
   return (
-    <div role="group" aria-label="Resumo" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-      {CARTOES.map((c) => (
-        <button
-          key={c.id}
-          type="button"
-          aria-pressed={ativo === c.id}
-          onClick={() => mudar(ativo === c.id ? null : c.id)}
-          className={cx(
-            "rounded-xl border p-3 text-left shadow-sm transition",
-            ativo === c.id ? "border-primaria bg-primaria-suave" : "border-borda bg-superficie hover:bg-superficie-2",
-          )}
-        >
-          <span className="block text-2xl font-bold tabular-nums">{contas[c.id]}</span>
-          <span className="text-[13px] text-suave">{c.rotulo}</span>
-        </button>
+    <p className="text-sm text-suave">
+      {itens.map(([n, t, v, forte], i) => (
+        <span key={v}>
+          {i > 0 && <span className="mx-2">·</span>}
+          <button type="button" onClick={() => ir(v)} className="hover:text-texto">
+            <b className="tabular-nums text-texto" style={forte && n ? { color: corDoTom("bad") } : undefined}>
+              {n}
+            </b>{" "}
+            {t}
+          </button>
+        </span>
       ))}
+    </p>
+  );
+}
+
+/** "+ Filtro": menu com regra, supervisor e destino, cada opção com a contagem (só o que existe com os outros filtros). */
+function MaisFiltro({ alertas, f, mudar, hoje }: { alertas: AlertaGravado[]; f: FiltrosAlertas; mudar: (p: Partial<FiltrosAlertas>) => void; hoje: string }) {
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!aberto) return;
+    const fora = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setAberto(false);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setAberto(false);
+    document.addEventListener("mousedown", fora);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", fora);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [aberto]);
+  const grupos: { dim: "regra" | "supervisor" | "destino"; titulo: string; texto: (v: string) => string }[] = [
+    { dim: "regra", titulo: "Regra", texto: rotuloRegra },
+    { dim: "supervisor", titulo: "Supervisor", texto: (v) => v || SEM_SUPERVISOR },
+    { dim: "destino", titulo: "Destino", texto: (v) => ROTULO_DESTINO[v as Destino] },
+  ];
+  return (
+    <div ref={ref} className="relative">
+      <Pilula tracejada onClick={() => setAberto((a) => !a)} rotulo="Adicionar filtro">
+        + Filtro
+      </Pilula>
+      {aberto && (
+        <div role="menu" className="absolute left-0 top-9 z-30 max-h-[60vh] w-72 overflow-y-auto rounded-xl border border-borda bg-superficie p-2 shadow-xl">
+          {grupos.map((g) => {
+            const ops = opcoes(alertas, f, hoje, g.dim);
+            return (
+              <div key={g.dim} className="py-1">
+                <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-suave">{g.titulo}</p>
+                {ops.length ? (
+                  ops.map((o) => (
+                    <button
+                      key={o.valor}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        mudar({ [g.dim]: o.valor });
+                        setAberto(false);
+                      }}
+                      className={cx("flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-[13px] hover:bg-superficie-2", (f[g.dim] ?? null) === o.valor && "font-semibold")}
+                    >
+                      <span className="truncate">{g.texto(o.valor)}</span>
+                      <span className="tabular-nums text-suave">{o.n}</span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="px-2 py-1 text-[13px] text-suave">Nada com os filtros atuais</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-function BarraFiltros({ alertas, f, mudar, hoje }: { alertas: AlertaGravado[]; f: FiltrosAlertas; mudar: (p: Partial<FiltrosAlertas>) => void; hoje: string }) {
-  const ops = (dim: "regra" | "supervisor" | "destino") => opcoes(alertas, f, hoje, dim);
-  const tags = etiquetas(f);
+function Cabecalho({ col, rotulo, ord, mudar, className }: { col: Coluna; rotulo: string; ord: { col: Coluna; dir: "asc" | "desc" }; mudar: (c: Coluna) => void; className?: string }) {
+  const ativo = ord.col === col;
   return (
-    <section aria-label="Filtros" className="space-y-2 rounded-xl border border-borda bg-superficie p-3 shadow-sm">
-      <div className="flex flex-wrap items-center gap-2">
-        <Entrada type="search" placeholder="Buscar placa, vaga, local ou supervisor" aria-label="Buscar" value={f.busca} onChange={(e) => mudar({ busca: e.target.value })} className="w-full sm:w-72" />
-        <Segmentado<Periodo> rotulo="Período" valor={f.periodo} mudar={(periodo) => mudar({ periodo })} opcoes={PERIODOS} />
-        <Selecao aria-label="Regra" value={f.regra ?? "*"} onChange={(e) => mudar({ regra: e.target.value === "*" ? null : e.target.value })} className="w-auto min-w-[180px]">
-          <option value="*">Todas as regras</option>
-          {ops("regra").map((o) => (
-            <option key={o.valor} value={o.valor}>
-              {rotuloRegra(o.valor)} ({o.n})
-            </option>
-          ))}
-        </Selecao>
-        <Selecao aria-label="Supervisor" value={f.supervisor ?? "*"} onChange={(e) => mudar({ supervisor: e.target.value === "*" ? null : e.target.value })} className="w-auto min-w-[180px]">
-          <option value="*">Todos os supervisores</option>
-          {ops("supervisor").map((o) => (
-            <option key={o.valor} value={o.valor}>
-              {o.valor || SEM_SUPERVISOR} ({o.n})
-            </option>
-          ))}
-        </Selecao>
-        <Selecao aria-label="Destino" value={f.destino ?? "*"} onChange={(e) => mudar({ destino: e.target.value === "*" ? null : (e.target.value as Destino) })} className="w-auto min-w-[160px]">
-          <option value="*">Todos os destinos</option>
-          {ops("destino").map((o) => (
-            <option key={o.valor} value={o.valor}>
-              {ROTULO_DESTINO[o.valor as Destino]} ({o.n})
-            </option>
-          ))}
-        </Selecao>
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5 text-xs">
-        <span className="text-suave">Atalhos:</span>
-        {ATALHOS.map((x) => (
-          <Chip key={x.id} ativo={f.atalho === x.id} onClick={() => mudar({ atalho: f.atalho === x.id ? null : x.id })}>
-            {x.rotulo}
-          </Chip>
-        ))}
-        {tags.length > 0 && (
-          <span role="group" aria-label="Filtrando" className="flex flex-wrap items-center gap-1.5 sm:ml-3">
-            <span className="text-suave">Filtrando:</span>
-            {tags.map((t) => (
-              <button
-                key={t.dim}
-                type="button"
-                onClick={() => mudar({ [t.dim]: t.dim === "busca" ? "" : null })}
-                aria-label={`Tirar filtro: ${t.texto}`}
-                className="inline-flex h-7 items-center gap-1 rounded-full border border-primaria/40 bg-primaria-suave px-2.5 font-medium text-texto"
-              >
-                {t.texto} <span aria-hidden>×</span>
-              </button>
-            ))}
-            <Botao tamanho="mini" variante="discreta" onClick={() => mudar({ regra: null, supervisor: null, destino: null, busca: "", atalho: null })}>
-              Limpar
-            </Botao>
-          </span>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function Linha({ a, hoje, marcado, marcar, abrir, aberto }: { a: AlertaGravado; hoje: string; marcado: boolean; marcar: (v: boolean) => void; abrir: () => void; aberto: boolean }) {
-  return (
-    <li className={cx("flex items-center gap-3 border-b border-borda px-3 py-2 text-[13px] last:border-b-0", aberto && "bg-primaria-suave")}>
-      <input type="checkbox" checked={marcado} onChange={(e) => marcar(e.target.checked)} aria-label={`Marcar ${a.placa} ${rotuloRegra(a.regra)}`} />
-      <button type="button" onClick={abrir} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-        <NotaSelo a={a} />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate">
-            <b>{a.placa}</b> · {rotuloRegra(a.regra)} · <span className="text-suave">{a.detalhe}</span>
-          </span>
-          <span className="block truncate text-xs text-suave">
-            {rotuloDia(a.dia, hoje)} {fmtHora(a.ini).slice(0, 5)}
-            {a.local && ` · ${a.local}`}
-            {a.supervisor && ` · ${a.supervisor}`}
-          </span>
+    <th className={cx("px-3 py-2 font-medium", className)} aria-sort={ativo ? (ord.dir === "asc" ? "ascending" : "descending") : undefined}>
+      <button type="button" onClick={() => mudar(col)} className={cx("inline-flex items-center gap-1 hover:text-texto", ativo && "text-texto")}>
+        {rotulo}
+        <span aria-hidden className="w-2">
+          {ativo ? (ord.dir === "asc" ? "↑" : "↓") : ""}
         </span>
-        <Selo tom={TOM_SITUACAO[a.situacao]} className="hidden sm:inline-flex">
-          {ROTULO_SITUACAO[a.situacao]}
-        </Selo>
       </button>
-    </li>
+    </th>
   );
 }
 
-/** Aba Alertas: cartões que filtram, filtros em cascata, lista agrupada, ações em lote e a gaveta do alerta. */
+/** Aba Alertas: visões em abas, números em linha, filtros em pílulas, tabela sem grade e o detalhe ao lado (modelos 9, 17, 26, 32 e 40). */
 export function PainelAlertas({ alertas, hoje, email, aoMudar }: { alertas: AlertaGravado[]; hoje: string; email: string | null; aoMudar: () => void }) {
   const [f, setF] = useState<FiltrosAlertas>(FILTROS_PADRAO);
-  const [por, setPor] = useOpcao<Agrupar>("mon-gestao-agrupar", AGRUPAR, "supervisor");
-  const [ordem, setOrdem] = useOpcao<Ordem>("mon-gestao-ordem", ORDEM, "nota");
-  const [fechados, setFechados] = useState<Set<string>>(new Set());
+  const [ord, setOrd] = useState<{ col: Coluna; dir: "asc" | "desc" }>({ col: "nota", dir: "desc" });
   const [marcados, setMarcados] = useState<Set<number>>(new Set());
   const [abertoId, setAbertoId] = useState<number | null>(null);
   const [lote, setLote] = useState<{ ocupado: boolean; erro: string | null }>({ ocupado: false, erro: null });
   const mudar = (p: Partial<FiltrosAlertas>) => setF((x) => ({ ...x, ...p }));
-  const contas = useMemo(() => contarCartoes(alertas, f, hoje), [alertas, f, hoje]);
-  const lista = useMemo(() => filtrar(alertas, f, hoje), [alertas, f, hoje]);
-  const grupos = useMemo(() => agrupar(lista.slice(0, MAX_LINHAS), por, ordem), [lista, por, ordem]);
+  const visoes = useMemo(() => contarVisoes(alertas, f, hoje), [alertas, f, hoje]);
+  const contas = useMemo(() => contarCartoes(alertas, { ...f, atalho: null }, hoje), [alertas, f, hoje]);
+  const lista = useMemo(() => ordenar(filtrar(alertas, f, hoje), ord.col, ord.dir), [alertas, f, hoje, ord]);
   const aberto = abertoId == null ? null : (alertas.find((a) => a.id === abertoId) ?? null);
   const selecionados = lista.filter((a) => marcados.has(a.id));
+  const tags = etiquetas(f).filter((t) => t.dim !== "atalho");
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && !e.defaultPrevented && setAbertoId(null);
+    document.addEventListener("keydown", esc);
+    return () => document.removeEventListener("keydown", esc);
+  }, []);
+  const irVisao = (v: Visao) => mudar(VISOES.find((x) => x.id === v)!.filtro);
   const marcar = (id: number, v: boolean) =>
     setMarcados((s) => {
       const n = new Set(s);
@@ -165,6 +159,7 @@ export function PainelAlertas({ alertas, hoje, email, aoMudar }: { alertas: Aler
       else n.delete(id);
       return n;
     });
+  const mudarOrdem = (col: Coluna) => setOrd((o) => (o.col === col ? { col, dir: o.dir === "asc" ? "desc" : "asc" } : { col, dir: col === "nota" || col === "hora" ? "desc" : "asc" }));
   const emLote = async (fazer: () => Promise<unknown>) => {
     setLote({ ocupado: true, erro: null });
     try {
@@ -176,114 +171,122 @@ export function PainelAlertas({ alertas, hoje, email, aoMudar }: { alertas: Aler
       setLote({ ocupado: false, erro: erroTexto(e) });
     }
   };
-  const alternarGrupo = (k: string) =>
-    setFechados((s) => {
-      const n = new Set(s);
-      if (n.has(k)) n.delete(k);
-      else n.add(k);
-      return n;
-    });
+  const visao = visaoAtual(f);
+  const visiveis = lista.slice(0, MAX_LINHAS);
+  const todosMarcados = visiveis.length > 0 && visiveis.every((a) => marcados.has(a.id));
+  const acao = "text-[13px] font-medium text-link hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:no-underline";
 
   return (
-    <div className="space-y-3">
-      <Cartoes contas={contas} ativo={f.cartao} mudar={(cartao) => mudar({ cartao })} />
-      <BarraFiltros alertas={alertas} f={f} mudar={mudar} hoje={hoje} />
-      <section aria-label="Lista de alertas" className="rounded-xl border border-borda bg-superficie shadow-sm">
-        <div className="flex flex-wrap items-center gap-2 border-b border-borda p-3">
-          <span className="text-sm">
-            <b className="tabular-nums">{lista.length}</b> {lista.length === 1 ? "alerta" : "alertas"}
-            {lista.length > MAX_LINHAS && <span className="text-suave"> (mostrando {MAX_LINHAS}; use os filtros)</span>}
+    <div className="space-y-5">
+      <AbasTexto<Visao> rotulo="Visões" valor={visao} mudar={irVisao} abas={VISOES.map((v) => ({ id: v.id, rotulo: v.rotulo, n: visoes[v.id] }))} />
+      <Numeros contas={contas} ir={(v) => (v === "resumo" ? mudar({ cartao: "resumo", atalho: null }) : v === "silenciados" ? mudar({ cartao: "silenciados", atalho: null }) : irVisao(v))} />
+      <div role="group" aria-label="Filtros" className="flex flex-wrap items-center gap-2">
+        <label className="inline-flex h-7 items-center gap-1 rounded-full border border-transparent bg-primaria-suave pl-3 pr-1 text-[13px]">
+          <span className="text-suave">Período</span>
+          <select aria-label="Período" value={f.periodo} onChange={(e) => mudar({ periodo: e.target.value as Periodo })} className="cursor-pointer appearance-none bg-transparent pr-1 font-medium text-texto outline-none">
+            {PERIODOS.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.rotulo}
+              </option>
+            ))}
+          </select>
+          <span aria-hidden className="text-suave">
+            ▾
           </span>
-          <span className="flex flex-wrap items-center gap-2 sm:ml-auto">
-            <Segmentado<Agrupar>
-              rotulo="Agrupar"
-              valor={por}
-              mudar={setPor}
-              opcoes={[
-                { id: "supervisor", rotulo: "Supervisor" },
-                { id: "equipamento", rotulo: "Equipamento" },
-                { id: "regra", rotulo: "Regra" },
-                { id: "nenhum", rotulo: "Sem grupo" },
-              ]}
-            />
-            <Segmentado<Ordem>
-              rotulo="Ordenar"
-              valor={ordem}
-              mudar={setOrdem}
-              opcoes={[
-                { id: "nota", rotulo: "Nota" },
-                { id: "hora", rotulo: "Hora" },
-              ]}
-            />
-          </span>
-        </div>
-        {selecionados.length > 0 && (
-          <div role="group" aria-label="Ações em lote" className="flex flex-wrap items-center gap-2 border-b border-borda bg-superficie-2 px-3 py-2 text-sm">
-            <b className="tabular-nums">{selecionados.length}</b> marcados
-            <Botao
-              tamanho="mini"
-              variante="secundaria"
-              disabled={!email || lote.ocupado}
-              title={email ? undefined : "Entre para usar as ações"}
-              onClick={() => email && void emLote(() => marcarVistoVarios(selecionados.map((a) => a.id), email))}
-            >
-              Marcar como visto
-            </Botao>
-            <Botao
-              tamanho="mini"
-              variante="secundaria"
-              disabled={!email || lote.ocupado}
-              title={email ? undefined : "Entre para usar as ações"}
-              onClick={() => void emLote(() => resolverVarios(selecionados.map((a) => a.id)))}
-            >
-              Resolver
-            </Botao>
-            <Botao tamanho="mini" variante="discreta" onClick={() => setMarcados(new Set())}>
-              Desmarcar
-            </Botao>
-            {lote.erro && <Aviso tipo="erro">{lote.erro}</Aviso>}
-          </div>
-        )}
-        {grupos.length ? (
-          grupos.map((g) => {
-            const fechado = fechados.has(g.chave);
-            const todosMarcados = g.itens.every((a) => marcados.has(a.id));
-            return (
-              <div key={g.chave}>
-                {por !== "nenhum" && (
-                  <div className="flex items-center gap-2 border-b border-borda bg-superficie-2/60 px-3 py-1.5 text-[13px]">
-                    <input
-                      type="checkbox"
-                      checked={todosMarcados}
-                      onChange={(e) => g.itens.forEach((a) => marcar(a.id, e.target.checked))}
-                      aria-label={`Marcar todos de ${g.titulo}`}
-                    />
-                    <button type="button" onClick={() => alternarGrupo(g.chave)} aria-expanded={!fechado} className="flex flex-1 items-center gap-2 text-left font-semibold">
-                      <span aria-hidden className={cx("inline-block transition", !fechado && "rotate-90")}>
-                        ›
-                      </span>
-                      {g.titulo}
-                      <span className="font-normal text-suave">
-                        · {g.itens.length} · nota máx. {g.notaMax}
-                      </span>
-                    </button>
-                  </div>
-                )}
-                {!fechado && (
-                  <ul>
-                    {g.itens.map((a) => (
-                      <Linha key={a.id} a={a} hoje={hoje} marcado={marcados.has(a.id)} marcar={(v) => marcar(a.id, v)} abrir={() => setAbertoId(a.id)} aberto={a.id === abertoId} />
-                    ))}
-                  </ul>
-                )}
-              </div>
-            );
-          })
-        ) : (
-          <Vazio titulo="Nenhum alerta com esses filtros">Troque o período, clique noutro cartão ou limpe os filtros.</Vazio>
-        )}
-      </section>
-      {aberto && <DetalheAlerta a={aberto} todos={alertas} hoje={hoje} email={email} fechar={() => setAbertoId(null)} abrir={(x) => setAbertoId(x.id)} aoMudar={aoMudar} />}
+        </label>
+        {tags.map((t) => (
+          <Pilula key={t.dim} ativa tirar={() => mudar({ [t.dim]: t.dim === "busca" ? "" : null })} rotulo={`Tirar filtro: ${t.texto}`}>
+            <span className="text-suave">{t.dim === "regra" ? "Regra" : t.dim === "supervisor" ? "Supervisor" : t.dim === "destino" ? "Destino" : "Busca"}</span>
+            {t.texto}
+          </Pilula>
+        ))}
+        <MaisFiltro alertas={alertas} f={f} mudar={mudar} hoje={hoje} />
+        <input
+          type="search"
+          aria-label="Buscar"
+          placeholder="Buscar placa, vaga, local…"
+          value={f.busca}
+          onChange={(e) => mudar({ busca: e.target.value })}
+          className="ml-auto h-8 w-full min-w-0 border-b border-transparent bg-transparent px-1 text-sm outline-none placeholder:text-suave focus:border-borda sm:w-64"
+        />
+      </div>
+
+      <div className={cx("grid gap-6", aberto && "lg:grid-cols-[minmax(0,1fr)_420px]")}>
+        <section aria-label="Lista de alertas" className="min-w-0">
+          {selecionados.length > 0 && (
+            <div role="group" aria-label="Ações em lote" className="mb-2 flex flex-wrap items-center gap-4 text-[13px]">
+              <span>
+                <b className="tabular-nums">{selecionados.length}</b> marcados
+              </span>
+              <button type="button" className={acao} disabled={!email || lote.ocupado} title={email ? undefined : "Entre para usar as ações"} onClick={() => email && void emLote(() => marcarVistoVarios(selecionados.map((a) => a.id), email))}>
+                Marcar como visto
+              </button>
+              <button type="button" className={acao} disabled={!email || lote.ocupado} title={email ? undefined : "Entre para usar as ações"} onClick={() => void emLote(() => resolverVarios(selecionados.map((a) => a.id)))}>
+                Resolver
+              </button>
+              <button type="button" className="text-[13px] text-suave hover:text-texto" onClick={() => setMarcados(new Set())}>
+                Desmarcar
+              </button>
+              {lote.erro && <Aviso tipo="erro">{lote.erro}</Aviso>}
+            </div>
+          )}
+          {visiveis.length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-[13px]">
+                <thead className="text-left text-[11px] uppercase tracking-wider text-suave">
+                  <tr className="border-b border-borda">
+                    <th className="w-8 py-2 pl-1">
+                      <input type="checkbox" checked={todosMarcados} onChange={(e) => visiveis.forEach((a) => marcar(a.id, e.target.checked))} aria-label="Marcar todos" />
+                    </th>
+                    <Cabecalho col="nota" rotulo="Nota" ord={ord} mudar={mudarOrdem} className="w-16" />
+                    <Cabecalho col="placa" rotulo="Placa" ord={ord} mudar={mudarOrdem} />
+                    <Cabecalho col="regra" rotulo="Regra" ord={ord} mudar={mudarOrdem} />
+                    <Cabecalho col="supervisor" rotulo="Supervisor" ord={ord} mudar={mudarOrdem} className={cx("hidden md:table-cell", aberto && "lg:hidden xl:table-cell")} />
+                    <Cabecalho col="hora" rotulo="Hora" ord={ord} mudar={mudarOrdem} />
+                    <th className={cx("hidden px-3 py-2 font-medium sm:table-cell", aberto && "lg:hidden")}>Situação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visiveis.map((a) => (
+                    <tr key={a.id} onClick={() => setAbertoId(a.id)} className={cx("cursor-pointer border-b border-borda/60 hover:bg-superficie-2", a.id === abertoId && "bg-primaria-suave hover:bg-primaria-suave")}>
+                      <td className="py-2 pl-1" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" checked={marcados.has(a.id)} onChange={(e) => marcar(a.id, e.target.checked)} aria-label={`Marcar ${a.placa} ${rotuloRegra(a.regra)}`} />
+                      </td>
+                      <td className="px-3 py-2">
+                        <NotaSelo a={a} />
+                      </td>
+                      <td className="px-3 py-2">
+                        <button type="button" onClick={() => setAbertoId(a.id)} className="font-semibold">
+                          {a.placa}
+                        </button>
+                      </td>
+                      <td className="max-w-[320px] px-3 py-2">
+                        <span className="block truncate">{rotuloRegra(a.regra)}</span>
+                        <span className="block truncate text-xs text-suave">{a.detalhe}</span>
+                      </td>
+                      <td className={cx("hidden px-3 py-2 text-suave md:table-cell", aberto && "lg:hidden xl:table-cell")}>{a.supervisor ?? "—"}</td>
+                      <td className="whitespace-nowrap px-3 py-2 tabular-nums text-suave">
+                        {f.periodo === "hoje" ? "" : `${rotuloDia(a.dia, hoje)} `}
+                        {fmtHora(a.ini).slice(0, 5)}
+                      </td>
+                      <td className={cx("hidden px-3 py-2 sm:table-cell", aberto && "lg:hidden")}>
+                        <span className="inline-flex items-center gap-1.5 text-suave">
+                          <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: corDoTom(TOM_SITUACAO[a.situacao]) }} />
+                          {ROTULO_SITUACAO[a.situacao]}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {lista.length > MAX_LINHAS && <p className="py-3 text-[13px] text-suave">Mostrando {MAX_LINHAS} de {lista.length}. Use os filtros para achar o resto.</p>}
+            </div>
+          ) : (
+            <Vazio titulo="Nenhum alerta aqui">Troque o período, escolha outra visão ou tire algum filtro.</Vazio>
+          )}
+        </section>
+        {aberto && <DetalheAlerta a={aberto} todos={alertas} hoje={hoje} email={email} fechar={() => setAbertoId(null)} abrir={(x) => setAbertoId(x.id)} aoMudar={aoMudar} />}
+      </div>
     </div>
   );
 }
