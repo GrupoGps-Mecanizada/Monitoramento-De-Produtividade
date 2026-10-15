@@ -1,5 +1,9 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Cronoanálise: motor pela placa quando o GAUSS não tem a vaga · 15/10/2026 (não publicado; ramo `crono-telemetria-placa`)
+- Quando a vaga do GAUSS não tem o caminhão no turno (S/ VAGA, ex.: EAM3256 em 13/10) ou a folha não tem vaga com número, o motor vem **pela placa**: montado com os eventos do mapa ao vivo (`loc_eventos`: abertura do dia, troca de status, sinal perdido/retomado, motor 2º do caminhão). Nenhuma consulta nova ao GAUSS.
+- A tela avisa quando o motor veio pela placa (menos preciso: leituras de minutos) e quando nem a vaga nem a placa têm dados.
+
 ## Sistema mais limpo · 14/10/2026 (não publicado)
 - **Mapa com diferenciação** (pesquisa de 14/10/2026: Esri, ColorBrewer, Penn State): botão **Da cerca | Quanto parou | O que parou**. "Quanto parou" usa 5 tons sólidos da cor da aba (claro = pouco, escuro = muito); "O que parou" pinta cada área pela categoria que mais pesou (status em 6 grupos + cinza, família, ou apontamento da família), forte quando passa da metade, fraco quando venceu por pouco e cinza quando é misto; passar o mouse mostra a divisão. Nos dois modos o satélite fica cinza e escuro.
 - **Filtros da Cronoanálise separados:** Data, Letra, Turno (dia/noite), Vaga, Tipo (AP/AV/HV/AS) e Supervisor, em cascata (cada um só oferece o que existe com os outros). Folha sem letra recebe a letra pela escala 4x4 e o supervisor pela letra (regra do segundo cérebro, 14/10/2026). O seletor do turno só aparece quando mais de um bate.

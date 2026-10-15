@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { classeDe, conferir, familiaDe, montarTurnos, padraoVagaGauss, periodoDoTurno, rankingAtividades, relogio, resumoPessoas, reguaDoTurno, segDaFolha, tipoDaVaga, unir, type LinhaCrono } from "./cronoanalise";
+import type { Evento } from "../tipos";
+import { classeDe, codigoDoStatus, conferir, familiaDe, montarTurnos, motorPelaPlaca, padraoVagaGauss, vagaTemMotor, periodoDoTurno, rankingAtividades, relogio, resumoPessoas, reguaDoTurno, segDaFolha, tipoDaVaga, unir, type LinhaCrono } from "./cronoanalise";
 
 const linha = (p: Partial<LinhaCrono>): LinhaCrono => ({
   data: "2026-10-07",
@@ -167,5 +168,44 @@ describe("colaboradores", () => {
   it("ranking de atividades", () => {
     const r = rankingAtividades(ts);
     expect(r[0]).toMatchObject({ descricao: "Hidrojateamento – Pistola", min: 180, pessoas: 2, turnos: 1 });
+  });
+});
+
+describe("motor pela placa (S/ VAGA no GAUSS)", () => {
+  // horário local: o teste monta o carimbo UTC a partir do horário local, como o coletor grava
+  const utc = (local: string) => new Date(local).toISOString();
+  const base = { id: "10", placa: "EAM3256", vaga: "[S/ VAGA]" };
+  const ev = (t: string, x: object) => ({ ...base, t: utc(t), ...x }) as Evento;
+  const eventos = [
+    ev("2026-10-13T00:05:00", { tipo: "abertura", status: "Desligado", area: "PATIO", sem_sinal: false }),
+    ev("2026-10-13T07:10:00", { tipo: "status", de: "Desligado", para: "Ligado", area: "PATIO", duracao_min: 400 }),
+    ev("2026-10-13T08:00:00", { tipo: "status", de: "Ligado", para: "Parado Ligado", area: "AF3", duracao_min: 50 }),
+    { ...ev("2026-10-13T08:30:00", { tipo: "status", de: "Desligado", para: "Ligado", area: "AF3", duracao_min: 30 }), id: "11", placa: "XYZ0001", motor2: true as const, principal_id: "10", principal: "EAM3256" } as Evento,
+    ev("2026-10-13T09:00:00", { tipo: "sinal_perdido", ultima_posicao: null, area: "AF3" }),
+    ev("2026-10-13T09:20:00", { tipo: "sinal_retomado", area: "AF3", sem_sinal_min: 20 }),
+    { ...ev("2026-10-13T10:00:00", { tipo: "status", de: "Ligado", para: "Desligado", area: "AF3", duracao_min: 90 }), placa: "OUT9999" },
+  ];
+
+  it("monta a faixa do caminhão e do motor 2º até o fim do turno", () => {
+    const r = motorPelaPlaca(eventos, "EAM-3256", "2026-10-13T18:40:00", new Date("2026-10-20T00:00:00"));
+    expect(r.map((l) => [l.inicio.slice(11, 16), l.fim.slice(11, 16), l.status])).toEqual([
+      ["00:05", "07:10", "off"],
+      ["07:10", "08:00", "on"],
+      ["08:00", "08:30", "stopped"],
+      ["08:30", "09:00", "secondary_motor_on"],
+      ["09:00", "09:20", "no_data"],
+      ["09:20", "18:40", "secondary_motor_on"],
+    ]);
+  });
+
+  it("turno de hoje: a faixa para no agora", () => {
+    const r = motorPelaPlaca(eventos.slice(0, 2), "EAM3256", "2026-10-13T18:40:00", new Date("2026-10-13T12:00:00"));
+    expect(r.at(-1)).toMatchObject({ status: "on", fim: "2026-10-13T12:00:00" });
+  });
+
+  it("textos de status e vaga sem o caminhão", () => {
+    expect(["Ligado", "Parado Ligado", "Desligado", "Em manutenção", "Sem comunicação"].map(codigoDoStatus)).toEqual(["on", "stopped", "off", "maintenance", "no_data"]);
+    expect(vagaTemMotor([{ status: "no_data" }])).toBe(false);
+    expect(vagaTemMotor([{ status: "no_data" }, { status: "off" }])).toBe(true);
   });
 });
