@@ -1,5 +1,8 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Alertas guardados com nota · 15/10/2026 (não publicado; ramo `alertas-whatsapp`)
+- Etapa 1 do P-026: cada exceção do dia vira um alerta único na tabela `alertas` (SQL `supabase/alertas.sql`), com nota 0–100, os motivos e o destino (WhatsApp, resumo ou só tela). Regras puras em `src/lib/dominio/alertas/`; detector no coletor a cada 10 min (`coletor/alertas.ts`). Ainda sem tela de gestão e sem WhatsApp.
+
 ## Análise: supervisor pela vaga · 15/10/2026 (não publicado; ramo `crono-telemetria-placa`)
 - O supervisor passa a ser o **da vaga em que o caminhão estava naquele dia**, não o da placa (os caminhões rodam entre as vagas). Regra do segundo cérebro: Junior Pereira (AP 02–06, 09, 10), Donizete (AV 02–06, Hipervácuo 01 e 02), Genésio (aspiradores, Brooks, Hipervácuo 03 e 04); vagas 24 h (AP/AV 01 e 08) pelo supervisor da letra do 4x4 no horário da parada; AP/AV 07 (16 h) sem supervisor.
 - A vaga de cada dia vem da view nova `vaga_do_dia` (SQL `supabase/2026-10-15_vaga-do-dia.sql`). Sem a view, vale o supervisor da matriz.
