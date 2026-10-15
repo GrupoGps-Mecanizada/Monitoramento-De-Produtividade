@@ -13,6 +13,7 @@ import { diaLocal, fmtHora, fmtHoras, idadeCurta, rotuloDia, ultimosDias } from 
 import { STATUS_GAUSS, statusGauss } from "@/lib/dominio/gauss-dia";
 import { vagaCurta } from "@/lib/dominio/veiculo";
 import { useAgora } from "@/lib/hooks";
+import { DiaVagas } from "./dia-vagas";
 
 const DIA = 86400;
 const pct = (s: number) => `${(Math.min(DIA, Math.max(0, s)) / DIA) * 100}%`;
@@ -31,8 +32,10 @@ export function DiaFrota() {
   const [hoje] = useState(() => diaLocal());
   const [dia, setDia] = useState(hoje);
   const [ordem, setOrdem] = useState<OrdemFrota>("tipo");
+  // por vaga = igual à tela "Timeline Tempo de Motor (Vaga)" do GAUSS (padrão, 15/10/2026); por equipamento = a de antes
+  const [visao, setVisao] = useState<"vaga" | "equip">("vaga");
   const ehHoje = dia === hoje;
-  const { linhas, gravadoEm, carregando, erro } = useMotorFrota(dia, ehHoje);
+  const { linhas, conferencias, gravadoEm, carregando, erro } = useMotorFrota(dia, ehHoje);
   // entradas e saídas de área (só o Supabase): separam o produtivo na base
   const { eventos } = useEventos(dia);
   const agoraSeg = ehHoje && agora ? (agora - new Date(`${dia}T00:00:00`).getTime()) / 1000 : null;
@@ -50,28 +53,43 @@ export function DiaFrota() {
           ))}
         </Selecao>
         <Segmentado
-          rotulo="Ordenar"
-          valor={ordem}
-          mudar={setOrdem}
+          rotulo="Visão"
+          valor={visao}
+          mudar={setVisao}
           opcoes={[
-            { id: "tipo", rotulo: "Por tipo" },
-            { id: "mais", rotulo: "Mais produtivo" },
-            { id: "menos", rotulo: "Menos produtivo" },
+            { id: "vaga", rotulo: "Por vaga (igual ao GAUSS)" },
+            { id: "equip", rotulo: "Por equipamento" },
           ]}
         />
+        {visao === "equip" && (
+          <Segmentado
+            rotulo="Ordenar"
+            valor={ordem}
+            mudar={setOrdem}
+            opcoes={[
+              { id: "tipo", rotulo: "Por tipo" },
+              { id: "mais", rotulo: "Mais produtivo" },
+              { id: "menos", rotulo: "Menos produtivo" },
+            ]}
+          />
+        )}
         <span className="text-xs text-suave md:ml-auto">{gravadoEm ? `timeline de motor do GAUSS · atualizada ${idadeCurta(gravadoEm, agora ?? undefined)}` : "timeline de motor do GAUSS"}</span>
-        <ul aria-label="Cores do motor" className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-xs text-suave">
-          {LEGENDA.map((e) => (
-            <li key={e.rotulo} className="flex items-center gap-1">
-              <i className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: corDoTom(e.tom) }} />
-              {e.rotulo}
-            </li>
-          ))}
-        </ul>
+        {visao === "equip" && (
+          <ul aria-label="Cores do motor" className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-xs text-suave">
+            {LEGENDA.map((e) => (
+              <li key={e.rotulo} className="flex items-center gap-1">
+                <i className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: corDoTom(e.tom) }} />
+                {e.rotulo}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       {erro && <Aviso tipo="erro">Não foi possível carregar: {erro}</Aviso>}
       {carregando && !linhas.length ? (
         <Vazio titulo="Carregando o dia da frota…" />
+      ) : visao === "vaga" ? (
+        <DiaVagas linhas={linhas} conferencias={conferencias} dia={dia} agoraSeg={agoraSeg} />
       ) : !grupos.length ? (
         <Vazio titulo="Nenhum equipamento">Aguardando a primeira leitura do coletor.</Vazio>
       ) : (

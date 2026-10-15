@@ -115,6 +115,35 @@ export async function paradasAoVivo(frota: Veiculo[], cercas: Cerca[], agora: Da
   return linhas.length;
 }
 
+/**
+ * Refaz as paradas já gravadas de um dia com o motor e o tablet corrigidos (reprocessamento de 15/10/2026). Onde e
+ * quando parou vem da rota do próprio caminhão e não muda; só o status do motor e os apontamentos de cada parada são
+ * recalculados. Nenhuma consulta ao GAUSS.
+ */
+export async function refazerParadasDoDia(frota: Veiculo[], cercas: Cerca[], dia: string): Promise<number> {
+  if (!(await tabelasProntas())) return 0;
+  type Gravada = { veiculo_id: string; placa: string; ini: number; fim: number; lat: number; lng: number; area: string | null; fonte: string };
+  const gravadas = await paginado<Gravada>((de, a) =>
+    db().from("analise_paradas").select("veiculo_id, placa, ini, fim, lat, lng, area, fonte").eq("dia", dia).order("veiculo_id").order("ini").range(de, a),
+  );
+  if (!gravadas.length) return 0;
+  const ctx = await lerContexto(dia);
+  const areas = cercas.filter((c) => c.tipo === "area");
+  const placaDe = new Map(frota.map((v) => [v.id, v.placa]));
+  const porVeiculo = new Map<string, Gravada[]>();
+  for (const g of gravadas) porVeiculo.set(g.veiculo_id, [...(porVeiculo.get(g.veiculo_id) ?? []), g]);
+  // tudo montado antes de apagar: um erro aqui não deixa o dia vazio
+  const linhas = [...porVeiculo].flatMap(([id, gs]) => {
+    const placa = placaDe.get(id) ?? gs[0].placa;
+    const novas = enriquecerParadas(gs, { id, placa }, { dia, areas, motor: ctx.motorDe(id), tablet: ctx.tabletDe(placa), fimDia: DIA });
+    // a área e a fonte ficam as de antes (a cerca pode ter mudado desde aquele dia)
+    return novas.map((p, i) => ({ ...p, placa: gs[i].placa, area: gs[i].area, fonte: gs[i].fonte }));
+  });
+  await ok(db().from("analise_paradas").delete().eq("dia", dia));
+  await emLotes(linhas, (lote) => db().from("analise_paradas").insert(lote));
+  return linhas.length;
+}
+
 /** Madrugada: rota completa de ontem de até 6 equipamentos por ciclo → paradas exatas, excessos e R2. */
 export async function rotinaNoturna(client: GaussFleetClient, frota: Veiculo[], cercas: Cerca[], agora: Date): Promise<string | null> {
   if (!(await tabelasProntas())) return null;

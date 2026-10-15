@@ -1,5 +1,14 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Timeline por vaga fiel ao GAUSS + reprocessamento · 15/10/2026 (não publicado; ramo `timeline-por-vaga`)
+- **Correção dos dados (causa do "apropriado no GAUSS e não no sistema"):** cada trecho da timeline de motor passa a guardar o **caminhão daquele trecho** (`vehicle_data` do GAUSS). Antes ia o caminhão que estava na vaga na hora da busca, e o dia inteiro da vaga caía num caminhão só (ex.: 15/10, AP-01 teve PUB2F80 e EAM-3253). Vale para tudo que lê `timeline_motor_vaga`: Dia da frota, Timeline, Cronoanálise, Medição, Análise (paradas) e a view `vaga_do_dia`.
+- **Todas as vagas da GPS** da lista do GAUSS são buscadas (antes, só as que a planilha dizia ter caminhão). A regra da vaga quieta usa o caminhão que o GAUSS diz estar na vaga.
+- **Troca do dia inteiro** a cada busca (função `substituir_timeline_vaga`, numa transação): trecho que o GAUSS corrigiu depois não sobra. Apontamento do tablet apagado no GAUSS sai do banco também.
+- **Reprocessamento** de 01/10 a 14/10, aos poucos (12 vagas por ciclo): timeline → tablet → paradas da Análise (estas só no Supabase, sem consultar o GAUSS). Liga e reinicia pela linha `reprocesso` do `loc_kv`.
+- **Dia da frota "Por vaga (igual ao GAUSS)"** (padrão): uma linha por vaga na ordem do GAUSS, mesmas cores e rótulos ("15/10 08:15 ~ 15/10 10:20"), régua 00–23, caminhões da vaga no dia, troca de caminhão marcada, clique no trecho abre a Timeline do caminhão. A visão antiga continua em "Por equipamento".
+- **Conferência com o GAUSS:** `timeline_conferencia` guarda o que o GAUSS mandou em cada vaga-dia; a tela marca "✓ igual ao GAUSS" ou avisa a diferença. Também avisa caminhão apropriado em duas vagas ao mesmo tempo no próprio GAUSS (15/10: DSY6475 em AP-09 e AP-10).
+- SQL: `supabase/2026-10-15_timeline-por-vaga.sql` (rodar antes de publicar).
+
 ## Análise: supervisor pela vaga · 15/10/2026 (não publicado; ramo `crono-telemetria-placa`)
 - O supervisor passa a ser o **da vaga em que o caminhão estava naquele dia**, não o da placa (os caminhões rodam entre as vagas). Regra do segundo cérebro: Junior Pereira (AP 02–06, 09, 10), Donizete (AV 02–06, Hipervácuo 01 e 02), Genésio (aspiradores, Brooks, Hipervácuo 03 e 04); vagas 24 h (AP/AV 01 e 08) pelo supervisor da letra do 4x4 no horário da parada; AP/AV 07 (16 h) sem supervisor.
 - A vaga de cada dia vem da view nova `vaga_do_dia` (SQL `supabase/2026-10-15_vaga-do-dia.sql`). Sem a view, vale o supervisor da matriz.
