@@ -7,14 +7,12 @@ import { diaLocal } from "@/lib/dominio/formato";
 import { useSessao, type Sessao } from "@/lib/supabase/sessao";
 import { Destinos } from "./destinos";
 import { Filtro } from "./filtro";
-import { Fila } from "./fila";
-import { Historico } from "./historico";
+import { PainelAlertas } from "./painel-alertas";
 import { Saude } from "./saude";
 
-type Aba = "fila" | "historico" | "filtro" | "destinos" | "saude";
+type Aba = "alertas" | "filtro" | "destinos" | "saude";
 const ABAS: { id: Aba; rotulo: string }[] = [
-  { id: "fila", rotulo: "Fila" },
-  { id: "historico", rotulo: "Histórico" },
+  { id: "alertas", rotulo: "Alertas" },
   { id: "filtro", rotulo: "Filtro inteligente" },
   { id: "destinos", rotulo: "Destinatários" },
   { id: "saude", rotulo: "Saúde" },
@@ -60,7 +58,7 @@ function Entrar({ s }: { s: Sessao }) {
 /** Gestão de alertas (P-026): o que o robô gravou, o que vai para o WhatsApp e quem recebe. */
 export function Gestao() {
   const sessao = useSessao();
-  const [aba, setAba] = useState<Aba>("fila");
+  const [aba, setAba] = useState<Aba>("alertas");
   const [hoje] = useState(() => diaLocal());
   const logado = !!sessao.email;
   const { alertas, config, erro, recarregar } = useGestaoDados(hoje, logado);
@@ -90,9 +88,8 @@ export function Gestao() {
           Não deu para ler os alertas ({erro}). Se for a primeira vez, rode o SQL <code>supabase/alertas.sql</code> no Supabase PRODUTIVIDADE.
         </Aviso>
       )}
-      {aba === "fila" && <Fila alertas={alertas} hoje={hoje} email={sessao.email} aoMudar={recarregar} />}
-      {aba === "historico" && <Historico alertas={alertas} hoje={hoje} email={sessao.email} aoMudar={recarregar} />}
-      {aba === "filtro" && (config ? <Filtro key={JSON.stringify(config)} alertas={alertas} config={config} hoje={hoje} logado={logado} aoSalvar={recarregar} /> : !erro && <p>Carregando…</p>)}
+      {aba === "alertas" && <PainelAlertas alertas={alertas} hoje={hoje} email={sessao.email} aoMudar={recarregar} />}
+      {aba === "filtro" && (config ? <Filtro alertas={alertas} config={config} hoje={hoje} logado={logado} aoSalvar={recarregar} /> : !erro && <p>Carregando…</p>)}
       {aba === "destinos" && <Destinos logado={logado} />}
       {aba === "saude" && <Saude alertas={alertas} logado={logado} />}
     </div>

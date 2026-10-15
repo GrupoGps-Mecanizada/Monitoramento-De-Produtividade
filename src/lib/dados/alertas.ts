@@ -79,6 +79,10 @@ export const salvarPolitica = (p: Politica) =>
 
 export const marcarVisto = (id: number, email: string) => ok(dbLogado().from("alertas").update({ situacao: "visto", visto_por: email, visto_em: agoraIso() }).eq("id", id).eq("situacao", "aberto"));
 export const resolver = (id: number) => ok(dbLogado().from("alertas").update({ situacao: "resolvido", resolvido_em: agoraIso(), resolvido_por: "gestor" }).eq("id", id));
+/** Ações em lote (vários alertas marcados na lista). */
+export const marcarVistoVarios = (ids: number[], email: string) =>
+  ok(dbLogado().from("alertas").update({ situacao: "visto", visto_por: email, visto_em: agoraIso() }).in("id", ids).eq("situacao", "aberto"));
+export const resolverVarios = (ids: number[]) => ok(dbLogado().from("alertas").update({ situacao: "resolvido", resolvido_em: agoraIso(), resolvido_por: "gestor" }).in("id", ids));
 export const avaliar = (id: number, v: Avaliacao) => ok(dbLogado().from("alertas").update({ avaliacao: v }).eq("id", id));
 
 /** Silencia este equipamento nesta regra por `dias` e marca o alerta como silenciado. */
