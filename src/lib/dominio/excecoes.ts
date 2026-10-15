@@ -40,6 +40,8 @@ export interface Excecao {
   /** segundos do dia pedido (início e fim; fim null = um instante, como a hora de saída) */
   ini: number;
   fim: number | null;
+  /** horário estável da ocorrência (segundos do dia): o limite na saída tarde e na chegada cedo, o início nas outras. A chave do alerta usa este. */
+  ref: number;
   local: string | null;
   /** texto curto: "saiu 08:10 · limite 07:45", "43 min" */
   detalhe: string;
@@ -186,21 +188,21 @@ export function excecoesDoDia(x: EntradaExcecoes): Excecao[] {
     const LOCAL_BASE = PATIO[0];
     const exps = expedientes(regime, base);
     const noExp = (a: number, b: number) => Math.max(0, ...exps.map((e) => Math.min(b, e.c) - Math.max(a, e.s)));
-    const add = (regra: RegraExcecao, ini: number, fimX: number | null, local: string | null, detalhe: string) =>
-      out.push({ regra, veiculo: v.id, ini: ini - DIA, fim: fimX == null ? null : fimX - DIA, local, detalhe, gravidade: GRAVIDADE[regra] });
+    const add = (regra: RegraExcecao, ini: number, fimX: number | null, local: string | null, detalhe: string, ref = ini) =>
+      out.push({ regra, veiculo: v.id, ini: ini - DIA, fim: fimX == null ? null : fimX - DIA, ref: ref - DIA, local, detalhe, gravidade: GRAVIDADE[regra] });
 
     if (!manut)
       for (const e of exps) {
         // 1. saída tarde: ainda no Pátio depois do horário (+ folga)
         if (noDia(e.s) && e.s + tol <= fim) {
           const p = idas.find((i) => i.a <= e.s + tol && e.s + tol < i.b);
-          if (p && p.b < Math.min(e.c, fim)) add("saida_tarde", p.b, null, LOCAL_BASE, `saiu ${hhmm(p.b)} · limite ${hhmm(e.s)}`);
-          else if (p) add("saida_tarde", e.s, null, LOCAL_BASE, `não saiu do Pátio · limite ${hhmm(e.s)}`);
+          if (p && p.b < Math.min(e.c, fim)) add("saida_tarde", p.b, null, LOCAL_BASE, `saiu ${hhmm(p.b)} · limite ${hhmm(e.s)}`, e.s);
+          else if (p) add("saida_tarde", e.s, null, LOCAL_BASE, `não saiu do Pátio · limite ${hhmm(e.s)}`, e.s);
         }
         // 2. chegada cedo: já de volta ao Pátio antes do horário (− folga), depois de ter saído no expediente
         if (noDia(e.c) && e.c <= fim) {
           const p = idas.find((i) => i.a < e.c - tol && e.c - tol < i.b);
-          if (p && p.a > e.s + tol) add("chegada_cedo", p.a, null, LOCAL_BASE, `chegou ${hhmm(p.a)} · limite ${hhmm(e.c)}`);
+          if (p && p.a > e.s + tol) add("chegada_cedo", p.a, null, LOCAL_BASE, `chegou ${hhmm(p.a)} · limite ${hhmm(e.c)}`, e.c);
         }
         // 3. ida ao Pátio no meio do expediente (entrou e saiu antes do horário de volta); se passou pela Servitec, conta lá (regra 4)
         for (const p of idas) if (!p.servitec && noDia(p.a) && p.a > e.s + tol && p.b < e.c - tol && p.b < fim) add("patio", p.a, p.b, LOCAL_BASE, dur(p.b - p.a));

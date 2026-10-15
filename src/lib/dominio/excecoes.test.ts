@@ -142,3 +142,19 @@ describe("velocidade (regra 10)", () => {
     expect(xs.map((x) => [x.regra, x.ini, x.detalhe])).toEqual([["velocidade", hs("10:00"), "48 km/h · limite 30 km/h"]]);
   });
 });
+
+describe("ref: horário estável para a chave do alerta", () => {
+  it("saída tarde e chegada cedo guardam o horário-limite; as outras, o início", () => {
+    const xs = excecoesDoDia(entrada()).filter((x) => x.veiculo === "1");
+    const ref = (r: string) => xs.find((x) => x.regra === r)?.ref;
+    expect(ref("saida_tarde")).toBe(hs("07:45"));
+    expect(ref("chegada_cedo")).toBe(hs("16:30"));
+    expect(ref("desligado")).toBe(hs("10:00"));
+  });
+  it("'ainda não saiu' e 'saiu' têm o mesmo ref", () => {
+    const antes = excecoesDoDia(entrada({ agoraSeg: hs("08:00") })).find((x) => x.veiculo === "1" && x.regra === "saida_tarde");
+    const depois = excecoesDoDia(entrada()).find((x) => x.veiculo === "1" && x.regra === "saida_tarde");
+    expect(antes?.detalhe).toMatch(/não saiu/);
+    expect(antes?.ref).toBe(depois?.ref);
+  });
+});
