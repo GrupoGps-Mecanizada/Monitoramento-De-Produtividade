@@ -31,6 +31,7 @@ import { GaussFleetClient, SESSAO_FILE, estatisticas } from "./gauss";
 import { HOJE_TTL_MS, baixarRota, diaFechado, mesclarPontos } from "./historico";
 import { buscarCercas, buscarPosicoes, listarVeiculos, type VeiculoCadastro } from "./location-online";
 import { coletarMotor } from "./motor-vaga";
+import { depsAlertasReais, detectarAlertas } from "./alertas";
 import { coletarMedicao, depsReais } from "./medicao";
 import { db, kvGet, kvSet, ok } from "./supabase";
 import { gravarPosicoes, paradasAoVivo, rotinaNoturna } from "./tempo-real";
@@ -200,6 +201,13 @@ async function main() {
       if (n != null) console.log(`✅ paradas ao vivo: ${n}`);
     } catch (e) {
       console.warn(`⚠ paradas ao vivo: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    // alertas (P-026): exceções do dia com nota, a cada 10 min; falha aqui (ex.: SQL ainda não rodado) não derruba o ciclo
+    try {
+      const a = await detectarAlertas(depsAlertasReais(), frota.veiculos, agora);
+      if (a) console.log(`✅ alertas: ${a}`);
+    } catch (e) {
+      console.warn(`⚠ alertas: ${e instanceof Error ? e.message : String(e)}`);
     }
     try {
       const r = await rotinaNoturna(client, frota.veiculos, cercas, agora);
