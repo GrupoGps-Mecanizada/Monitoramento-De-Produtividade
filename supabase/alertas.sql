@@ -76,6 +76,7 @@ create table if not exists public.alertas (
   situacao text not null default 'aberto' check (situacao in ('aberto', 'visto', 'resolvido', 'silenciado')),
   nota int not null check (nota between 0 and 100),
   motivos jsonb not null default '[]'::jsonb,
+  contexto jsonb,                   -- o que entrou na nota (o simulador recalcula com outra configuração)
   destino text not null check (destino in ('whatsapp', 'resumo', 'tela')),
   avaliacao text check (avaliacao in ('problema', 'nao_era_problema')),
   contagem int not null default 1,
@@ -88,6 +89,7 @@ create table if not exists public.alertas (
   atualizado_em timestamptz not null default now()
 );
 alter table public.alertas add column if not exists resolvido_por text check (resolvido_por in ('auto', 'gestor'));
+alter table public.alertas add column if not exists contexto jsonb;
 
 -- Trava: o detector calcula a situação com o que leu no começo do ciclo. Se o gestor resolveu, silenciou ou marcou
 -- "visto" nesse meio tempo, a gravação do detector não desfaz (vale a decisão de quem estava na tela).
@@ -145,7 +147,33 @@ drop policy if exists alertas_ler on public.alertas;
 create policy alertas_ler on public.alertas for select to anon, authenticated using (true);
 
 grant select on public.alerta_regra, public.alerta_politica, public.alerta_silencio, public.alertas to anon, authenticated;
-revoke all on public.alerta_destino, public.alerta_envios from anon, authenticated;
+revoke all on public.alerta_destino, public.alerta_envios from anon;
+
+-- Gestão (tela /gestao-alertas): só quem entrou com e-mail e senha. O cadastro aberto fica DESLIGADO no painel do
+-- Supabase (Authentication -> Sign In / Providers -> "Allow new users to sign up"): os usuários são criados à mão.
+-- O Supabase dá todas as permissões às tabelas novas; aqui elas são tiradas e devolvidas só por coluna.
+revoke insert, update, delete on public.alertas, public.alerta_regra, public.alerta_politica, public.alerta_silencio from anon, authenticated;
+grant update (situacao, visto_por, visto_em, resolvido_em, resolvido_por, avaliacao) on public.alertas to authenticated;
+grant update (ativa, peso, faixas, justificativas, lembrete_min, escalar_min, atualizado_em) on public.alerta_regra to authenticated;
+grant update (corte_whatsapp, corte_resumo, corte_coordenador, max_por_hora, modo_teste, resumo_hora, atualizado_em) on public.alerta_politica to authenticated;
+grant insert, delete on public.alerta_silencio to authenticated;
+grant select, insert, update, delete on public.alerta_destino to authenticated;
+grant select on public.alerta_envios to authenticated;
+
+drop policy if exists alertas_gerir on public.alertas;
+create policy alertas_gerir on public.alertas for update to authenticated using (true) with check (true);
+drop policy if exists alerta_regra_gerir on public.alerta_regra;
+create policy alerta_regra_gerir on public.alerta_regra for update to authenticated using (true) with check (true);
+drop policy if exists alerta_politica_gerir on public.alerta_politica;
+create policy alerta_politica_gerir on public.alerta_politica for update to authenticated using (true) with check (true);
+drop policy if exists alerta_silencio_criar on public.alerta_silencio;
+create policy alerta_silencio_criar on public.alerta_silencio for insert to authenticated with check (true);
+drop policy if exists alerta_silencio_apagar on public.alerta_silencio;
+create policy alerta_silencio_apagar on public.alerta_silencio for delete to authenticated using (true);
+drop policy if exists alerta_destino_gerir on public.alerta_destino;
+create policy alerta_destino_gerir on public.alerta_destino for all to authenticated using (true) with check (true);
+drop policy if exists alerta_envios_ler on public.alerta_envios;
+create policy alerta_envios_ler on public.alerta_envios for select to authenticated using (true);
 
 -- Padrões (spec 7A). "on conflict do nothing": rodar de novo não desfaz o que o gestor mudou na tela.
 insert into public.alerta_politica (id) values (1) on conflict (id) do nothing;
