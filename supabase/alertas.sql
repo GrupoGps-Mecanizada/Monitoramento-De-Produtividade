@@ -82,10 +82,31 @@ create table if not exists public.alertas (
   visto_por text,
   visto_em timestamptz,
   resolvido_em timestamptz,
+  resolvido_por text check (resolvido_por in ('auto', 'gestor')),  -- auto reabre se o problema voltar; gestor não
   ultimo_aviso_em timestamptz,
   detectado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now()
 );
+alter table public.alertas add column if not exists resolvido_por text check (resolvido_por in ('auto', 'gestor'));
+
+-- Trava: o detector calcula a situação com o que leu no começo do ciclo. Se o gestor resolveu, silenciou ou marcou
+-- "visto" nesse meio tempo, a gravação do detector não desfaz (vale a decisão de quem estava na tela).
+create or replace function public.alertas_manter_decisao() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if old.situacao = 'silenciado' or (old.situacao = 'resolvido' and old.resolvido_por = 'gestor') then
+    new.situacao := old.situacao;
+    new.resolvido_em := old.resolvido_em;
+    new.resolvido_por := old.resolvido_por;
+  elsif old.situacao = 'visto' and new.situacao = 'aberto' then
+    new.situacao := 'visto';
+  end if;
+  return new;
+end $$;
+drop trigger if exists alertas_manter_decisao on public.alertas;
+create trigger alertas_manter_decisao before update on public.alertas
+  for each row execute function public.alertas_manter_decisao();
+
 create index if not exists alertas_dia_idx on public.alertas (dia desc, situacao);
 create index if not exists alertas_regra_vaga_idx on public.alertas (regra, vaga, dia);
 

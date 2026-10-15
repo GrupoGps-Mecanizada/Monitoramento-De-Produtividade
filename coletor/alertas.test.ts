@@ -18,7 +18,7 @@ function falso(o: Partial<DepsAlertas> = {}) {
     marcarExecucao: async (iso) => void (ultima = iso),
     lerEntrada: async () => ({ eventos: EVENTOS, motor: [], tablet: [] }),
     lerConfig: async () => ({ regras: [], politica: null }),
-    lerHistorico: async () => [...banco.values()].map((l) => ({ chave: l.chave, regra: l.regra, vaga: l.vaga, dia: l.dia, situacao: l.situacao, resolvido_em: l.resolvido_em, contagem: l.contagem })),
+    lerHistorico: async () => [...banco.values()].map((l) => ({ chave: l.chave, regra: l.regra, vaga: l.vaga, dia: l.dia, ref: l.ref, situacao: l.situacao, resolvido_em: l.resolvido_em, resolvido_por: l.resolvido_por, contagem: l.contagem })),
     lerSilencios: async () => [],
     gravar: async (linhas) => linhas.forEach((l) => banco.set(l.chave, l)),
     fecharDiasAnteriores: async (hoje) => void fechados.push(hoje),

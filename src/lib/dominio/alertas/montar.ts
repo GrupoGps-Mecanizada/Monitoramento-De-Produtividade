@@ -9,8 +9,11 @@ import type { ConfigRegra, Politica } from "./config";
 import { familiasNoPeriodo, fracaoSemSinal, janelaDoAlerta, repeticoes, type HistoricoAlerta, type Situacao } from "./contexto";
 import { destinoDaNota, excessoMin, notaDoAlerta, type Destino, type Motivo } from "./nota";
 
-/** O coletor vê o motor a cada 10 min: só dá como terminado o que acabou há mais que isso. */
+/** O coletor vê as áreas a cada 5-10 min: só dá como terminado o que acabou há mais que isso. */
 export const FOLGA_FIM_S = 600;
+/** Desligado e ociosidade vêm da timeline de motor, e o coletor pula a vaga parada por até 1 h (MAX_QUIETA_MS): o fim fica velho. */
+export const FOLGA_MOTOR_S = 70 * 60;
+const DO_MOTOR = new Set(["desligado", "ocioso"]);
 
 export interface Silencio {
   veiculo_id: string | null;
@@ -37,6 +40,7 @@ export interface LinhaAlerta {
   destino: Destino;
   contagem: number;
   resolvido_em: string | null;
+  resolvido_por: "auto" | "gestor" | null;
   atualizado_em: string;
 }
 export interface EntradaMontar {
@@ -57,15 +61,17 @@ export interface EntradaMontar {
 
 export const chaveDoAlerta = (x: Excecao, dia: string) => `${x.regra}|${x.veiculo}|${dia}|${x.ref}`;
 
-export function situacaoNova(anterior: Situacao | null, terminou: boolean, silenciado: boolean): Situacao {
-  if (anterior === "resolvido" || anterior === "silenciado") return anterior;
+/** Silenciado e resolvido pelo gestor não reabrem; o resolvido automático reabre se o problema continua. */
+export function situacaoNova(anterior: Situacao | null, resolvidoPor: HistoricoAlerta["resolvido_por"], terminou: boolean, silenciado: boolean): Situacao {
+  if (anterior === "silenciado") return anterior;
+  if (anterior === "resolvido" && resolvidoPor !== "auto") return anterior;
   if (silenciado) return "silenciado";
   if (terminou) return "resolvido";
   return anterior === "visto" ? "visto" : "aberto";
 }
 
 /** Instante (saída tarde, chegada cedo) só termina com o dia; o resto, quando o fim ficou para trás. */
-const terminou = (x: Excecao, agoraSeg: number | null) => agoraSeg == null || (x.fim != null && x.fim < agoraSeg - FOLGA_FIM_S);
+const terminou = (x: Excecao, agoraSeg: number | null) => agoraSeg == null || (x.fim != null && x.fim < agoraSeg - (DO_MOTOR.has(x.regra) ? FOLGA_MOTOR_S : FOLGA_FIM_S));
 
 export function montarAlertas(x: EntradaMontar): LinhaAlerta[] {
   const porId = new Map(x.veiculos.map((v) => [v.id, v]));
@@ -79,15 +85,16 @@ export function montarAlertas(x: EntradaMontar): LinhaAlerta[] {
     if (!cfg?.ativa || !v?.equip) continue;
     const chave = chaveDoAlerta(e, x.dia);
     const ant = anteriores.get(chave) ?? null;
-    const j = janelaDoAlerta(e);
+    const j = janelaDoAlerta(e, x.agoraSeg);
     const { nota, motivos } = notaDoAlerta(cfg, {
       excessoMin: excessoMin(e, x.agoraSeg),
-      repeticoes: repeticoes(x.historico, e.regra, v.vaga, x.dia, chave),
+      repeticoes: repeticoes(x.historico, e.regra, v.vaga, x.dia, chave, e.ref),
       familias: familiasNoPeriodo(x.tablet, v.placa, x.dia, j),
       fracaoSemSinal: fracaoSemSinal(x.eventos, v.id, x.dia, j),
       presumido: regimeDoEquip(v.equip.regime, v.vaga).presumido,
     });
-    const situacao = situacaoNova(ant?.situacao ?? null, terminou(e, x.agoraSeg), silenciado(e));
+    const situacao = situacaoNova(ant?.situacao ?? null, ant?.resolvido_por ?? null, terminou(e, x.agoraSeg), silenciado(e));
+    const jaResolvido = ant?.situacao === "resolvido" && situacao === "resolvido";
     out.push({
       chave,
       regra: e.regra,
@@ -107,7 +114,8 @@ export function montarAlertas(x: EntradaMontar): LinhaAlerta[] {
       motivos,
       destino: destinoDaNota(nota, x.politica),
       contagem: (ant?.contagem ?? 0) + 1,
-      resolvido_em: ant?.resolvido_em ?? (situacao === "resolvido" ? x.agoraIso : null),
+      resolvido_em: situacao !== "resolvido" ? null : jaResolvido ? (ant?.resolvido_em ?? x.agoraIso) : x.agoraIso,
+      resolvido_por: situacao !== "resolvido" ? null : jaResolvido ? (ant?.resolvido_por ?? "auto") : "auto",
       atualizado_em: x.agoraIso,
     });
   }

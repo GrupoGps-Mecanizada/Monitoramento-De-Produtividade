@@ -81,14 +81,14 @@ export function depsAlertasReais(): DepsAlertas {
       ]);
       return { regras: (regras ?? []) as Partial<ConfigRegra>[], politica: politica as Partial<Politica> | null };
     },
-    lerHistorico: (desde) => paginar<HistoricoAlerta>((de, a) => db().from("alertas").select("chave, regra, vaga, dia, situacao, resolvido_em, contagem").gte("dia", desde).order("id").range(de, a)),
+    lerHistorico: (desde) => paginar<HistoricoAlerta>((de, a) => db().from("alertas").select("chave, regra, vaga, dia, ref, situacao, resolvido_em, resolvido_por, contagem").gte("dia", desde).order("id").range(de, a)),
     lerSilencios: async () => ((await ok(db().from("alerta_silencio").select("veiculo_id, regra, ate").gt("ate", new Date().toISOString()))) ?? []) as Silencio[],
     async gravar(linhas) {
       // on conflict (chave): só atualiza; detectado_em, visto_* e avaliacao (não enviados) ficam como estão
       for (let i = 0; i < linhas.length; i += 500) await ok(db().from("alertas").upsert(linhas.slice(i, i + 500), { onConflict: "chave" }));
     },
     async fecharDiasAnteriores(hoje) {
-      await ok(db().from("alertas").update({ situacao: "resolvido", resolvido_em: new Date().toISOString() }).lt("dia", hoje).in("situacao", ["aberto", "visto"]));
+      await ok(db().from("alertas").update({ situacao: "resolvido", resolvido_em: new Date().toISOString(), resolvido_por: "auto" }).lt("dia", hoje).in("situacao", ["aberto", "visto"]));
       await ok(db().from("alertas").delete().lt("dia", diaMenos(hoje, 90)));
       await ok(db().from("alerta_envios").delete().lt("criado_em", new Date(Date.now() - 90 * 86400000).toISOString()));
     },

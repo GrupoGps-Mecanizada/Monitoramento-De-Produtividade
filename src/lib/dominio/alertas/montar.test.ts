@@ -14,29 +14,42 @@ const entrada = (o: Partial<EntradaMontar> = {}): EntradaMontar => ({
   dia: D, agoraSeg: 12 * H, agoraIso: "2026-10-07T15:00:00.000Z", excecoes: [exc({})], veiculos: [veic("1", "EGC2985", "ALTA PRESSÃO - GPS - 02")],
   tablet: [], eventos: [], historico: [], silencios: [], regras: REGRAS_PADRAO, politica: POLITICA_PADRAO, ...o,
 });
-const hist = (chave: string, situacao: HistoricoAlerta["situacao"], o: Partial<HistoricoAlerta> = {}): HistoricoAlerta => ({ chave, regra: "desligado", vaga: "ALTA PRESSÃO - GPS - 02", dia: D, situacao, resolvido_em: null, contagem: 3, ...o });
+const hist = (chave: string, situacao: HistoricoAlerta["situacao"], o: Partial<HistoricoAlerta> = {}): HistoricoAlerta => ({ chave, regra: "desligado", vaga: "ALTA PRESSÃO - GPS - 02", dia: D, ref: 10 * H, situacao, resolvido_em: null, resolvido_por: null, contagem: 3, ...o });
 
 describe("chave", () => {
   it("regra|veiculo|dia|ref", () => expect(chaveDoAlerta(exc({}), D)).toBe(`desligado|1|${D}|36000`));
 });
 
 describe("situação", () => {
-  it("resolvido e silenciado não voltam a abrir", () => {
-    expect(situacaoNova("resolvido", false, false)).toBe("resolvido");
-    expect(situacaoNova("silenciado", false, false)).toBe("silenciado");
+  it("resolvido pelo gestor e silenciado não voltam a abrir", () => {
+    expect(situacaoNova("resolvido", "gestor", false, false)).toBe("resolvido");
+    expect(situacaoNova("silenciado", null, false, false)).toBe("silenciado");
   });
-  it("silêncio vale sobre aberto e visto", () => expect(situacaoNova("visto", false, true)).toBe("silenciado"));
+  it("resolvido automático reabre se o problema continua", () => expect(situacaoNova("resolvido", "auto", false, false)).toBe("aberto"));
+  it("silêncio vale sobre aberto e visto", () => expect(situacaoNova("visto", null, false, true)).toBe("silenciado"));
   it("terminou -> resolvido; visto fica visto; novo -> aberto", () => {
-    expect(situacaoNova("aberto", true, false)).toBe("resolvido");
-    expect(situacaoNova("visto", false, false)).toBe("visto");
-    expect(situacaoNova(null, false, false)).toBe("aberto");
+    expect(situacaoNova("aberto", null, true, false)).toBe("resolvido");
+    expect(situacaoNova("visto", null, false, false)).toBe("visto");
+    expect(situacaoNova(null, null, false, false)).toBe("aberto");
   });
 });
 
 describe("montar alertas", () => {
-  it("desligado de 70 min terminado há mais de 10 min: resolvido, nota 65, WhatsApp, supervisor pela vaga", () => {
-    const [a] = montarAlertas(entrada());
-    expect(a).toMatchObject({ chave: `desligado|1|${D}|36000`, placa: "EGC2985", supervisor: "Junior Pereira", situacao: "resolvido", nota: 65, destino: "whatsapp", contagem: 1, resolvido_em: "2026-10-07T15:00:00.000Z" });
+  it("desligado com fim parado há 30 min: continua aberto (o coletor pula a vaga desligada por até 1 h)", () => {
+    expect(montarAlertas(entrada({ agoraSeg: 11 * H + 40 * 60 }))[0].situacao).toBe("aberto");
+  });
+  it("resolvido automático que volta a aparecer: reabre e limpa a data de resolução", () => {
+    const [a] = montarAlertas(entrada({ agoraSeg: 11 * H + 10 * 60, historico: [hist(`desligado|1|${D}|36000`, "resolvido", { resolvido_em: "2026-10-07T14:30:00.000Z", resolvido_por: "auto" })] }));
+    expect(a).toMatchObject({ situacao: "aberto", resolvido_em: null, resolvido_por: null });
+  });
+  it("ainda não saiu com manutenção apontada depois do limite: a justificativa derruba a nota", () => {
+    const tablet = [{ placa: "EGC2985", demora_cod: 1, inicio: `${D} 08:00:00`, fim: null, categoria_demora: "Pequenas manutenções", motorista: null, concluido: null }];
+    const [a] = montarAlertas(entrada({ agoraSeg: 8 * H + 30 * 60, tablet, excecoes: [exc({ regra: "saida_tarde", ini: 7 * H + 45 * 60, fim: null, ref: 7 * H + 45 * 60, detalhe: "não saiu do Pátio" })] }));
+    expect(a.nota).toBe(35 + 55 - 40);
+  });
+  it("desligado de 70 min terminado há mais de 70 min: resolvido, nota 65, WhatsApp, supervisor pela vaga", () => {
+    const [a] = montarAlertas(entrada({ agoraSeg: 13 * H }));
+    expect(a).toMatchObject({ chave: `desligado|1|${D}|36000`, placa: "EGC2985", supervisor: "Junior Pereira", situacao: "resolvido", nota: 65, destino: "whatsapp", contagem: 1, resolvido_em: "2026-10-07T15:00:00.000Z", resolvido_por: "auto" });
   });
   it("ainda acontecendo (fim = agora): aberto", () => {
     const [a] = montarAlertas(entrada({ agoraSeg: 11 * H + 10 * 60 }));
@@ -55,8 +68,9 @@ describe("montar alertas", () => {
     expect(depois[0].chave).toBe(antes[0].chave);
   });
   it("resolvido pelo gestor não reabre e guarda a data de resolução", () => {
-    const [a] = montarAlertas(entrada({ agoraSeg: 11 * H + 10 * 60, historico: [hist(`desligado|1|${D}|36000`, "resolvido", { resolvido_em: "2026-10-07T14:30:00.000Z" })] }));
+    const [a] = montarAlertas(entrada({ agoraSeg: 11 * H + 10 * 60, historico: [hist(`desligado|1|${D}|36000`, "resolvido", { resolvido_em: "2026-10-07T14:30:00.000Z", resolvido_por: "gestor" })] }));
     expect(a.situacao).toBe("resolvido");
+    expect(a.resolvido_por).toBe("gestor");
     expect(a.resolvido_em).toBe("2026-10-07T14:30:00.000Z");
   });
   it("silêncio do equipamento ainda valendo: silenciado; vencido: não", () => {

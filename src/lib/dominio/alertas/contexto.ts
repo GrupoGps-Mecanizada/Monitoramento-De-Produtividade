@@ -12,8 +12,11 @@ export interface HistoricoAlerta {
   regra: string;
   vaga: string;
   dia: string;
+  ref: number;
   situacao: Situacao;
   resolvido_em: string | null;
+  /** "auto" = o detector viu o problema acabar (reabre se voltar); "gestor" = alguém resolveu na tela (não reabre) */
+  resolvido_por: "auto" | "gestor" | null;
   contagem: number;
 }
 
@@ -21,10 +24,14 @@ const segIso = (iso: string, dia: string) => (Date.parse(iso) - Date.parse(`${di
 // o GAUSS grava "AAAA-MM-DD HH:MM:SS" no horário local
 const segLocal = (ts: string, dia: string) => segIso(`${ts.slice(0, 10)}T${ts.slice(11, 19)}-03:00`, dia);
 
-/** Período que o alerta cobre: do limite à saída (saída tarde), da chegada ao limite (chegada cedo), ou ini–fim. Mínimo 1 min. */
-export function janelaDoAlerta(x: Excecao): { a: number; b: number } {
+/**
+ * Período que o alerta cobre: do limite à saída (saída tarde; ainda no Pátio = até agora), da chegada ao limite
+ * (chegada cedo), ou ini–fim. Mínimo 1 min.
+ */
+export function janelaDoAlerta(x: Excecao, agoraSeg: number | null): { a: number; b: number } {
   const a = Math.min(x.ini, x.ref);
-  const b = Math.max(x.fim ?? x.ini, x.ref);
+  let b = Math.max(x.fim ?? x.ini, x.ref);
+  if (x.regra === "saida_tarde" && x.ini <= x.ref && agoraSeg != null) b = Math.max(b, agoraSeg);
   return { a, b: Math.max(b, a + 60) };
 }
 
@@ -57,8 +64,11 @@ export function fracaoSemSinal(eventos: Evento[], veiculoId: string, dia: string
   return j.b > j.a ? soma / (j.b - j.a) : 0;
 }
 
-/** Quantas vezes a mesma regra aconteceu na mesma vaga nos 7 dias até `dia` (sem contar o próprio alerta). */
-export function repeticoes(historico: HistoricoAlerta[], regra: string, vaga: string, dia: string, chave: string): number {
+/**
+ * Quantas vezes a mesma regra aconteceu ANTES na mesma vaga nos 7 dias até `dia` (no próprio dia, só as de `ref`
+ * menor): um alerta novo à tarde não muda a nota do alerta da manhã.
+ */
+export function repeticoes(historico: HistoricoAlerta[], regra: string, vaga: string, dia: string, chave: string, ref: number): number {
   const desde = diaMenos(dia, 6);
-  return historico.filter((h) => h.regra === regra && h.vaga === vaga && h.chave !== chave && h.dia >= desde && h.dia <= dia).length;
+  return historico.filter((h) => h.regra === regra && h.vaga === vaga && h.chave !== chave && h.dia >= desde && (h.dia < dia || (h.dia === dia && h.ref < ref))).length;
 }
