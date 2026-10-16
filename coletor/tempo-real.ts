@@ -50,11 +50,14 @@ let prontas: boolean | null = null;
  */
 async function tabelasProntas(): Promise<boolean> {
   if (prontas != null) return prontas;
+  // conferidas uma vez, fica anotado no loc_kv: não testa as 3 tabelas a cada 5 min
+  if ((await kvGet<boolean>("tempo_real_pronto")) === true) return (prontas = true);
   try {
     await ok(db().from("analise_paradas").select("fonte").limit(1));
     await ok(db().from("analise_excessos").select("id").limit(1));
     await ok(db().from("loc_posicoes").select("veiculo_id").limit(1));
     prontas = true;
+    await kvSet("tempo_real_pronto", true);
   } catch {
     console.warn("⚠ tempo real desligado: rode supabase/tempo-real.sql no Supabase");
     prontas = false;

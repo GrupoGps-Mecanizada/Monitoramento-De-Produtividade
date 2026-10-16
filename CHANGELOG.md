@@ -1,5 +1,10 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Coletor: menos log no Supabase · 16/10/2026
+- O log do Supabase (1 GB/mês no plano grátis) chegou a 0,99 GB antes de fechar o mês. O coletor roda a cada 5 min e cada requisição vira uma linha de log.
+- As chaves do `loc_kv` que o ciclo lê (sessão, estado, cadastro, cercas, controles) vêm **numa requisição só** no início (`kvCarregar`), em vez de uma por chave (~13). Carga, retrato e sessão são gravados juntos no fim (3 → 1).
+- A conferência das 3 tabelas do tempo real fica anotada no `loc_kv` (`tempo_real_pronto`): não testa as tabelas a cada execução.
+- Nada muda na tela nem no que é coletado. SQL de reserva para pausar/religar o coletor: `supabase/2026-10-16_pausar-coletor.sql` e `supabase/2026-10-16_religar-coletor.sql`.
 ## Timeline por vaga fiel ao GAUSS + reprocessamento · 15/10/2026 (não publicado; ramo `timeline-por-vaga`)
 - **Correção dos dados (causa do "apropriado no GAUSS e não no sistema"):** cada trecho da timeline de motor passa a guardar o **caminhão daquele trecho** (`vehicle_data` do GAUSS). Antes ia o caminhão que estava na vaga na hora da busca, e o dia inteiro da vaga caía num caminhão só (ex.: 15/10, AP-01 teve PUB2F80 e EAM-3253). Vale para tudo que lê `timeline_motor_vaga`: Dia da frota, Timeline, Cronoanálise, Medição, Análise (paradas) e a view `vaga_do_dia`.
 - **Todas as vagas da GPS** da lista do GAUSS são buscadas (antes, só as que a planilha dizia ter caminhão). A regra da vaga quieta usa o caminhão que o GAUSS diz estar na vaga.
