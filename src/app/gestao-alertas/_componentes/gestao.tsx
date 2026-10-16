@@ -74,7 +74,9 @@ export function Gestao() {
           </span>
         </div>
       </header>
-      <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 pt-6 md:px-10 md:pt-8">
+      <div className="mx-auto w-full max-w-[1400px] px-4 pt-6 md:px-10 md:pt-8">
+        {/* folha branca do conteúdo: contraste com o fundo cinza (pedido do dono, 16/10/2026) */}
+        <div className="space-y-6 rounded-2xl border border-borda bg-superficie p-5 shadow-sm md:p-8">
       {erro && (
         <Aviso tipo="erro">
           Não deu para ler os alertas ({erro}). Se for a primeira vez, rode o SQL <code>supabase/alertas.sql</code> no Supabase PRODUTIVIDADE.
@@ -84,6 +86,7 @@ export function Gestao() {
       {aba === "filtro" && (config ? <Filtro alertas={alertas} config={config} hoje={hoje} logado={logado} aoSalvar={recarregar} /> : !erro && <p>Carregando…</p>)}
       {aba === "destinos" && <Destinos logado={logado} />}
       {aba === "saude" && <Saude alertas={alertas} logado={logado} />}
+        </div>
       </div>
     </div>
   );
