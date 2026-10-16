@@ -64,9 +64,24 @@ export function CampoNumero({
 }
 
 /** Abas de texto com sublinhado e contagem opcional (modelos 3 e 9 da galeria). */
-export function AbasTexto<T extends string>({ abas, valor, mudar, rotulo, grande }: { abas: { id: T; rotulo: string; n?: number }[]; valor: T | null; mudar: (v: T) => void; rotulo: string; grande?: boolean }) {
+export function AbasTexto<T extends string>({
+  abas,
+  valor,
+  mudar,
+  rotulo,
+  grande,
+  semLinha,
+}: {
+  abas: { id: T; rotulo: string; n?: number }[];
+  valor: T | null;
+  mudar: (v: T) => void;
+  rotulo: string;
+  grande?: boolean;
+  /** sem a linha de baixo (quando a faixa em volta já tem borda) */
+  semLinha?: boolean;
+}) {
   return (
-    <div role="tablist" aria-label={rotulo} className={cx("flex flex-wrap gap-x-6 gap-y-1 border-b border-borda", grande ? "text-[15px]" : "text-sm")}>
+    <div role="tablist" aria-label={rotulo} className={cx("flex flex-wrap gap-x-6 gap-y-1", !semLinha && "border-b border-borda", grande ? "text-[15px]" : "text-sm")}>
       {abas.map((a) => (
         <button
           key={a.id}
@@ -74,7 +89,7 @@ export function AbasTexto<T extends string>({ abas, valor, mudar, rotulo, grande
           role="tab"
           aria-selected={a.id === valor}
           onClick={() => mudar(a.id)}
-          className={cx("-mb-px border-b-2 pb-2 pt-1 font-medium transition", a.id === valor ? "border-texto text-texto" : "border-transparent text-suave hover:text-texto")}
+          className={cx("-mb-px border-b-2 pb-2.5 pt-1.5 font-medium transition", a.id === valor ? "border-texto text-texto" : "border-transparent text-suave hover:text-texto")}
         >
           {a.rotulo}
           {a.n != null && <span className="ml-1.5 font-normal tabular-nums text-suave">{a.n}</span>}

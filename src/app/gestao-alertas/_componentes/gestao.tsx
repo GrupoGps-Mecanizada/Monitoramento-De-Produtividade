@@ -64,16 +64,17 @@ export function Gestao() {
   const logado = !!sessao.email;
   const { alertas, config, erro, recarregar } = useGestaoDados(hoje, logado);
   return (
-    <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 pb-24 pt-6 md:px-10 md:pb-12 md:pt-10">
-      <header className="space-y-5">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-[28px] font-semibold tracking-tight">Gestão de alertas</h1>
-          <span className="ml-auto">
+    <div className="w-full pb-24 md:pb-12">
+      {/* faixa branca das abas: separa os títulos do fundo (pedido do dono, 16/10/2026) */}
+      <header className="border-b border-borda bg-superficie shadow-sm">
+        <div className="mx-auto flex max-w-[1400px] flex-wrap items-end gap-3 px-4 pt-3 md:px-10">
+          <AbasTexto<Aba> grande semLinha rotulo="Gestão de alertas" valor={aba} mudar={setAba} abas={ABAS} />
+          <span className="ml-auto pb-2">
             <Entrar s={sessao} />
           </span>
         </div>
-        <AbasTexto<Aba> grande rotulo="Gestão de alertas" valor={aba} mudar={setAba} abas={ABAS} />
       </header>
+      <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 pt-6 md:px-10 md:pt-8">
       {erro && (
         <Aviso tipo="erro">
           Não deu para ler os alertas ({erro}). Se for a primeira vez, rode o SQL <code>supabase/alertas.sql</code> no Supabase PRODUTIVIDADE.
@@ -83,6 +84,7 @@ export function Gestao() {
       {aba === "filtro" && (config ? <Filtro alertas={alertas} config={config} hoje={hoje} logado={logado} aoSalvar={recarregar} /> : !erro && <p>Carregando…</p>)}
       {aba === "destinos" && <Destinos logado={logado} />}
       {aba === "saude" && <Saude alertas={alertas} logado={logado} />}
+      </div>
     </div>
   );
 }
