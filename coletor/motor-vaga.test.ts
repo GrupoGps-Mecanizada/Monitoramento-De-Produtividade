@@ -42,8 +42,8 @@ describe("quais vagas buscar no ciclo de 10 min", () => {
   });
   it("as vagas que a Mecanizada opera, mesmo sem caminhão da planilha nela; nunca as de outras empresas", () => {
     const vagas = [AP1V, AV1V, { id: 9001, nome: "ALTA PRESSÃO - SERVITEC - 01" }, { id: 9002, nome: "CAMINHÃO BROOK - GPS - 02" }, { id: 9003, nome: "CAMINHÃO PIPA - GPS - 01" }, { id: 9004, nome: "ALTA PRESSÃO - GPS - 12" }];
-    // só as vagas que a Mecanizada opera (vagas-oficiais.ts): Pipa e AP-12, também da GPS, ficam de fora
-    expect(nomes(escolherVagas([], c2({}), agora, vagas))).toEqual([AP1, AV1, "CAMINHÃO BROOK - GPS - 02"]);
+    // só as 22 vagas do dono (vagas-oficiais.ts): Brook, Pipa e AP-12, também da GPS, ficam de fora
+    expect(nomes(escolherVagas([], c2({}), agora, vagas))).toEqual([AP1, AV1]);
   });
   it("controle antigo (antes de 15/10, caminhão errado nas linhas): busca todas de novo, sem a vaga quieta", () => {
     const antigo: ControleMotor = {
@@ -164,11 +164,11 @@ describe("lista de vagas do GAUSS (1 vez por dia)", () => {
       { id: 902, nome: "ASPIRADOR INDUSTRIAL - GPS - 03" },
     ]);
   });
-  it("junta com as conhecidas sem repetir; Brook e Aspirador passam a ser buscados", () => {
+  it("junta com as conhecidas sem repetir; Brook e Aspirador não são buscados (fora das 22 vagas do dono)", () => {
     const vagas = juntarVagas(lerVagasDoHtml(html));
     expect(vagas).toHaveLength(VAGAS.length + 2);
     const b = escolherVagas([], c2({}, null), agora, vagas);
-    expect(b?.map((x) => x.vaga.id).slice(-2)).toEqual([901, 902]);
+    expect(b?.map((x) => x.vaga.id)).toEqual(VAGAS.map((v) => v.id));
   });
   it("formato desconhecido: lista vazia (o coletor segue com as conhecidas)", () => {
     expect(lerVagasDoHtml("<div>nada</div>")).toEqual([]);

@@ -2,7 +2,7 @@
 
 ## Só as vagas que a Mecanizada opera · 16/10/2026
 - A lista do GAUSS tem 58 vagas da GPS; o coletor buscava todas (pesava no GAUSS e no tempo da execução) e o Dia da frota mostrava vagas que a Mecanizada não opera (AP 11 a 14, AV 09 a 11, Pipa, Mini Carregadeira, Moto Bomba...).
-- Agora vale a regra do segundo cérebro (Regimes, turnos e supervisores): Alta Pressão 01 (24 h), 02–06, 07 (16 h), 08 (24 h), 09 e 10; Auto Vácuo 01 (24 h), 02–06, 07 (16 h), 08 (24 h); Hiper Vácuo 01–04; Aspiradores e Brooks. Um lugar só: `src/lib/dominio/vagas-oficiais.ts` (coletor, reprocessamento e tela).
+- Agora valem só as **22 vagas do dono** (tela do GAUSS dele, 16/10/2026; as demais da GPS estão desativadas): Alta Pressão 01 (24 h), 02–06, 07 (16 h), 08 (24 h), 09 e 10; Auto Vácuo 01 (24 h), 02–06, 07 (16 h), 08 (24 h); Hiper Vácuo 01–04. Aspiradores e Brooks não entram. Um lugar só: `src/lib/dominio/vagas-oficiais.ts` (coletor, reprocessamento e tela).
 
 ## Coletor: timeline de motor não trava mais na virada do dia · 16/10/2026
 - Desde 00:05 de 16/10 toda execução passava de 8 min e era cancelada: na virada do dia cada vaga busca ontem e hoje (19 vagas × 2 no GAUSS) e o progresso só era gravado no fim, então cada execução recomeçava do zero.
