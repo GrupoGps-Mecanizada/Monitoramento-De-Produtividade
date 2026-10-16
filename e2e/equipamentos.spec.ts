@@ -50,6 +50,7 @@ test("Matriz manda no Monitoramento: desmobilizado some, em manutenção aparece
   );
   await prepararDados(page, { matriz });
   await page.goto("/frota/");
+  await page.getByRole("tab", { name: "Por equipamento" }).click();
   await expect(page.getByRole("link", { name: /EGC-2985/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /EGC-2984/ })).toHaveCount(0);
   // na Timeline o veículo é escolhido no funil

@@ -57,17 +57,34 @@ export const historico = () => {
   };
 };
 
-/** Timeline de motor do GAUSS (timeline_motor_vaga) e apontamentos do tablet (demoras_categorizadas) do veículo 10. */
+/**
+ * Timeline de motor do GAUSS (timeline_motor_vaga) e apontamentos do tablet (demoras_categorizadas) do veículo 10.
+ * Por vaga: o 10 (EGC-2985) estava na AP-01; o 20 (PUB2F80) entrou nela às 09:00 e a AP-08 ficou sem apropriação até 07:00.
+ */
+const AP8 = { vaga_id: 545, vaga_nome: "ALTA PRESSÃO - GPS - 08 - 24 HS" };
+const AP1 = { vaga_id: 530, vaga_nome: "ALTA PRESSÃO - GPS - 01 - 24 HS" };
 export const motorGauss = () => {
   const d = hoje();
+  const naAp1 = <T extends { placa_ou_codigo: string }>(l: T) => ({ ...AP1, placa: l.placa_ou_codigo === "10" ? "EGC-2985" : (null as string | null), cor: null as string | null, ...l });
   return [
     { placa_ou_codigo: "10", inicio: `${d} 08:00:00`, fim: `${d} 08:10:00`, status: "on", status_label: "Motor Ligado", gravado: minutosAtras(60) },
     { placa_ou_codigo: "10", inicio: `${d} 08:10:00`, fim: `${d} 08:20:00`, status: "secondary_motor_on", status_label: "Motor Secundário Ligado", gravado: minutosAtras(60) },
     { placa_ou_codigo: "10", inicio: `${d} 08:20:00`, fim: `${d} 08:32:00`, status: "stopped", status_label: "Parado Ligado", gravado: minutosAtras(60) },
     // o RPM do rastreador dizia parado ligado até 08:40; o site só usa o GAUSS: desligado
     { placa_ou_codigo: "10", inicio: `${d} 08:32:00`, fim: `${d} 08:40:00`, status: "off", status_label: "Motor Desligado", gravado: minutosAtras(60) },
-  ];
+  ]
+    .map(naAp1)
+    .concat([
+      { ...AP1, placa_ou_codigo: "20", placa: "PUB2F80", cor: null, inicio: `${d} 09:00:00`, fim: `${d} 11:00:00`, status: "on", status_label: "Motor Ligado", gravado: minutosAtras(60) },
+      { ...AP8, placa_ou_codigo: "", placa: null, cor: null, inicio: `${d} 00:00:00`, fim: `${d} 07:00:00`, status: "not_appropriated", status_label: "Indisponível / Sem Apropriação", gravado: minutosAtras(60) },
+      { ...AP8, placa_ou_codigo: "30", placa: "EAM3253", cor: null, inicio: `${d} 07:00:00`, fim: `${d} 10:00:00`, status: "on", status_label: "Motor Ligado", gravado: minutosAtras(60) },
+    ]);
 };
+/** O que o GAUSS mandou em cada vaga (timeline_conferencia): a AP-01 bate; a AP-08 não (o GAUSS disse 200 min ligado). */
+export const conferenciaGauss = () => [
+  { vaga_id: "530", minutos: { on: 130, secondary_motor_on: 10, stopped: 12, off: 8 }, trechos: 5, buscado_em: minutosAtras(10) },
+  { vaga_id: "545", minutos: { not_appropriated: 420, on: 200 }, trechos: 2, buscado_em: minutosAtras(10) },
+];
 export const tablet = () => {
   const d = hoje();
   return [{ demora_cod: 1, inicio: `${d} 08:25:00`, fim: `${d} 08:35:00`, categoria_demora: "Refeição Motorista", motorista: "--", concluido: "NÃO" }];
@@ -164,7 +181,12 @@ export async function prepararDados(page: Page, opcoes: { alertas?: unknown[]; m
     if (tabela === "loc_eventos") return json((opcoes.eventos ?? eventos()).map((dados) => ({ dados })));
     if (tabela === "loc_dias") return json([{ dia: hoje() }]);
     if (tabela === "loc_historico") return json([{ resultado: historico(), baixado_em: minutosAtras(60), fechado: true }]);
-    if (tabela === "timeline_motor_vaga") return json(motorGauss());
+    if (tabela === "timeline_motor_vaga") {
+      const eq = (campo: string) => url.searchParams.get(campo)?.replace(/^eq\./, "");
+      const [veiculo, vaga] = [eq("placa_ou_codigo"), eq("vaga_id")];
+      return json(motorGauss().filter((l) => (veiculo == null || l.placa_ou_codigo === veiculo) && (vaga == null || String(l.vaga_id) === vaga)));
+    }
+    if (tabela === "timeline_conferencia") return json(conferenciaGauss());
     if (tabela === "crono_registros") return json(opcoes.crono ?? cronoFolhas());
     if (tabela === "demoras_categorizadas") return json(tablet());
     if (tabela === "analise_excessos") return json(opcoes.excessos ?? []);

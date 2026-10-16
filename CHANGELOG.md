@@ -1,11 +1,35 @@
 # CHANGELOG · Monitoramento de Localização
 
-## Gestão de alertas · 15/10/2026 (não publicado; ramo `alertas-whatsapp`)
+## Gestão de alertas · 16/10/2026
 - Tela nova **Gestão de alertas** (menu Ao vivo): Fila com nota e "Por que essa nota?", ações (Visto, Resolver, Silenciar, Era/Não era problema), Histórico de 90 dias, Filtro inteligente com simulador dos últimos 7 dias e sugestões, Destinatários e Saúde.
+- Visual minimalista escolhido pelo dono: abas de texto, visões com contagem, números numa linha, "+ Filtro" em pílulas, tabela sem grade, detalhe ao lado e página toda branca.
 - Ver não pede login; agir, salvar o filtro e ver telefones pede e-mail e senha (Supabase Auth, cadastro aberto desligado). Permissões por coluna em `supabase/alertas.sql`.
 
-## Alertas guardados com nota · 15/10/2026 (não publicado; ramo `alertas-whatsapp`)
+## Alertas guardados com nota · 16/10/2026
 - Etapa 1 do P-026: cada exceção do dia vira um alerta único na tabela `alertas` (SQL `supabase/alertas.sql`), com nota 0–100, os motivos e o destino (WhatsApp, resumo ou só tela). Regras puras em `src/lib/dominio/alertas/`; detector no coletor a cada 10 min (`coletor/alertas.ts`). Ainda sem tela de gestão e sem WhatsApp.
+
+## Só as vagas que a Mecanizada opera · 16/10/2026
+- A lista do GAUSS tem 58 vagas da GPS; o coletor buscava todas (pesava no GAUSS e no tempo da execução) e o Dia da frota mostrava vagas que a Mecanizada não opera (AP 11 a 14, AV 09 a 11, Pipa, Mini Carregadeira, Moto Bomba...).
+- Agora valem só as **22 vagas do dono** (tela do GAUSS dele, 16/10/2026; as demais da GPS estão desativadas): Alta Pressão 01 (24 h), 02–06, 07 (16 h), 08 (24 h), 09 e 10; Auto Vácuo 01 (24 h), 02–06, 07 (16 h), 08 (24 h); Hiper Vácuo 01–04. Aspiradores e Brooks não entram. Um lugar só: `src/lib/dominio/vagas-oficiais.ts` (coletor, reprocessamento e tela).
+
+## Coletor: timeline de motor não trava mais na virada do dia · 16/10/2026
+- Desde 00:05 de 16/10 toda execução passava de 8 min e era cancelada: na virada do dia cada vaga busca ontem e hoje (19 vagas × 2 no GAUSS) e o progresso só era gravado no fim, então cada execução recomeçava do zero.
+- Agora a timeline tem 3 min por execução (`ORCAMENTO_MOTOR_MS`): passou disso, grava o que fez e a próxima execução (5 min depois) continua com as vagas que faltam, sem esperar o ciclo de 10 min.
+- Teste novo: `coletor/motor-orcamento.test.ts` (virada do dia com GAUSS lento).
+
+## Coletor: menos log no Supabase · 16/10/2026
+- O log do Supabase (1 GB/mês no plano grátis) chegou a 0,99 GB antes de fechar o mês. O coletor roda a cada 5 min e cada requisição vira uma linha de log.
+- As chaves do `loc_kv` que o ciclo lê (sessão, estado, cadastro, cercas, controles) vêm **numa requisição só** no início (`kvCarregar`), em vez de uma por chave (~13). Carga, retrato e sessão são gravados juntos no fim (3 → 1).
+- A conferência das 3 tabelas do tempo real fica anotada no `loc_kv` (`tempo_real_pronto`): não testa as tabelas a cada execução.
+- Nada muda na tela nem no que é coletado. SQL de reserva para pausar/religar o coletor: `supabase/2026-10-16_pausar-coletor.sql` e `supabase/2026-10-16_religar-coletor.sql`.
+## Timeline por vaga fiel ao GAUSS + reprocessamento · 15/10/2026 (não publicado; ramo `timeline-por-vaga`)
+- **Correção dos dados (causa do "apropriado no GAUSS e não no sistema"):** cada trecho da timeline de motor passa a guardar o **caminhão daquele trecho** (`vehicle_data` do GAUSS). Antes ia o caminhão que estava na vaga na hora da busca, e o dia inteiro da vaga caía num caminhão só (ex.: 15/10, AP-01 teve PUB2F80 e EAM-3253). Vale para tudo que lê `timeline_motor_vaga`: Dia da frota, Timeline, Cronoanálise, Medição, Análise (paradas) e a view `vaga_do_dia`.
+- **Todas as vagas da GPS** da lista do GAUSS são buscadas (antes, só as que a planilha dizia ter caminhão). A regra da vaga quieta usa o caminhão que o GAUSS diz estar na vaga.
+- **Troca do dia inteiro** a cada busca (função `substituir_timeline_vaga`, numa transação): trecho que o GAUSS corrigiu depois não sobra. Apontamento do tablet apagado no GAUSS sai do banco também.
+- **Reprocessamento** de 01/10 a 14/10, aos poucos (12 vagas por ciclo): timeline → tablet → paradas da Análise (estas só no Supabase, sem consultar o GAUSS). Liga e reinicia pela linha `reprocesso` do `loc_kv`.
+- **Dia da frota "Por vaga (igual ao GAUSS)"** (padrão): uma linha por vaga na ordem do GAUSS, mesmas cores e rótulos ("15/10 08:15 ~ 15/10 10:20"), régua 00–23, caminhões da vaga no dia, troca de caminhão marcada, clique no trecho abre a Timeline do caminhão. A visão antiga continua em "Por equipamento".
+- **Conferência com o GAUSS:** `timeline_conferencia` guarda o que o GAUSS mandou em cada vaga-dia; a tela marca "✓ igual ao GAUSS" ou avisa a diferença. Também avisa caminhão apropriado em duas vagas ao mesmo tempo no próprio GAUSS (15/10: DSY6475 em AP-09 e AP-10).
+- SQL: `supabase/2026-10-15_timeline-por-vaga.sql` (rodar antes de publicar).
 
 ## Análise: supervisor pela vaga · 15/10/2026 (não publicado; ramo `crono-telemetria-placa`)
 - O supervisor passa a ser o **da vaga em que o caminhão estava naquele dia**, não o da placa (os caminhões rodam entre as vagas). Regra do segundo cérebro: Junior Pereira (AP 02–06, 09, 10), Donizete (AV 02–06, Hipervácuo 01 e 02), Genésio (aspiradores, Brooks, Hipervácuo 03 e 04); vagas 24 h (AP/AV 01 e 08) pelo supervisor da letra do 4x4 no horário da parada; AP/AV 07 (16 h) sem supervisor.

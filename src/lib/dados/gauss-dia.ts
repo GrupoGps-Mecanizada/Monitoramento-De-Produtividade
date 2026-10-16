@@ -3,7 +3,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { diaLocal } from "../dominio/formato";
-import type { LinhaMotorFrota } from "../dominio/dia-frota";
+import type { ConferenciaVaga, LinhaMotorVaga } from "../dominio/dia-vaga";
 import { formasDaPlaca, montarStatusGauss, montarTablet, type GaussDia, type LinhaMotorGauss, type LinhaTablet } from "../dominio/gauss-dia";
 import { db, ok } from "../supabase/cliente";
 
@@ -50,26 +50,32 @@ export async function lerGaussDia(id: string, placa: string, dia: string, c: Sup
 const PAGINA = 1000;
 const MAX_LINHAS = 10000;
 
-/** Timeline de motor do GAUSS de toda a frota num dia (Dia da frota) e quando ela foi gravada pela última vez. */
-export async function lerMotorFrotaDia(dia: string, c: SupabaseClient = db()): Promise<{ linhas: LinhaMotorFrota[]; gravadoEm: string | null }> {
+/** Timeline de motor do GAUSS de todas as vagas num dia (Dia da frota) e quando ela foi gravada pela última vez. */
+export async function lerMotorFrotaDia(dia: string, c: SupabaseClient = db()): Promise<{ linhas: LinhaMotorVaga[]; gravadoEm: string | null }> {
   const ate = diaSeguinte(dia);
-  const linhas: LinhaMotorFrota[] = [];
+  const linhas: LinhaMotorVaga[] = [];
   for (let de = 0; de < MAX_LINHAS; de += PAGINA) {
     const pag = (await ok(
       c
         .from("timeline_motor_vaga")
-        .select("placa_ou_codigo, inicio, fim, status, status_label, gravado:updated_at")
+        .select("vaga_id, vaga_nome, placa_ou_codigo, placa, cor, inicio, fim, status, status_label, gravado:updated_at")
         .lt("inicio", ate)
         .gt("fim", dia)
         // id desempata: as páginas não repetem nem pulam linhas
         .order("id")
         .range(de, de + PAGINA - 1),
-    )) as LinhaMotorFrota[];
+    )) as LinhaMotorVaga[];
     linhas.push(...pag);
     if (pag.length < PAGINA) break;
   }
   const gravadoEm = linhas.reduce<string | null>((m, l) => (l.gravado && (!m || l.gravado > m) ? l.gravado : m), null);
   return { linhas, gravadoEm };
+}
+
+/** O que o GAUSS mandou em cada vaga no dia (última busca do coletor). Falha (tabela ainda não criada) = sem conferência. */
+export async function lerConferenciaDia(dia: string, c: SupabaseClient = db()): Promise<ConferenciaVaga[]> {
+  const { data, error } = await c.from("timeline_conferencia").select("vaga_id, minutos, trechos, buscado_em").eq("dia", dia).limit(500);
+  return error ? [] : ((data ?? []) as ConferenciaVaga[]);
 }
 
 /** Apontamentos do tablet de toda a frota num dia (Exceções do dia), em páginas. */
@@ -97,12 +103,18 @@ export async function lerTabletFrotaDia(dia: string, c: SupabaseClient = db()): 
 /** Dia da frota: lê a timeline de motor do dia e, se for hoje, relê a cada 5 min (só o Supabase, nunca o GAUSS). */
 export function useMotorFrota(dia: string, hoje: boolean) {
   // "carregando" = o que está guardado é de outro dia (sem setState síncrono no efeito)
-  const [estado, setEstado] = useState<{ dia: string | null; linhas: LinhaMotorFrota[]; gravadoEm: string | null; erro: string | null }>({ dia: null, linhas: [], gravadoEm: null, erro: null });
+  const [estado, setEstado] = useState<{ dia: string | null; linhas: LinhaMotorVaga[]; conferencias: ConferenciaVaga[]; gravadoEm: string | null; erro: string | null }>({
+    dia: null,
+    linhas: [],
+    conferencias: [],
+    gravadoEm: null,
+    erro: null,
+  });
   useEffect(() => {
     let vivo = true;
     const ler = () =>
-      lerMotorFrotaDia(dia).then(
-        (r) => vivo && setEstado({ dia, ...r, erro: null }),
+      Promise.all([lerMotorFrotaDia(dia), lerConferenciaDia(dia)]).then(
+        ([r, conferencias]) => vivo && setEstado({ dia, ...r, conferencias, erro: null }),
         (e: unknown) => vivo && setEstado((s) => ({ ...s, dia, erro: e instanceof Error ? e.message : String(e) })),
       );
     void ler();
@@ -113,7 +125,7 @@ export function useMotorFrota(dia: string, hoje: boolean) {
     };
   }, [dia, hoje]);
   const doDia = estado.dia === dia;
-  return { linhas: doDia ? estado.linhas : [], gravadoEm: doDia ? estado.gravadoEm : null, carregando: !doDia, erro: estado.erro };
+  return { linhas: doDia ? estado.linhas : [], conferencias: doDia ? estado.conferencias : [], gravadoEm: doDia ? estado.gravadoEm : null, carregando: !doDia, erro: estado.erro };
 }
 
 export type EstadoGaussDia = { dados: GaussDia | null; erro: string | null };
