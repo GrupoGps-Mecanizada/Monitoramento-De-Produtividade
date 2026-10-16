@@ -122,7 +122,7 @@ function Cabecalho({ col, rotulo, ord, mudar, className }: { col: Coluna; rotulo
   const ativo = ord.col === col;
   return (
     <th className={cx("px-3 py-2 font-medium", className)} aria-sort={ativo ? (ord.dir === "asc" ? "ascending" : "descending") : undefined}>
-      <button type="button" onClick={() => mudar(col)} className={cx("inline-flex items-center gap-1 hover:text-texto", ativo && "text-texto")}>
+      <button type="button" onClick={() => mudar(col)} className={cx("inline-flex items-center gap-1 uppercase tracking-wider hover:text-texto", ativo && "text-texto")}>
         {rotulo}
         <span aria-hidden className="w-2">
           {ativo ? (ord.dir === "asc" ? "↑" : "↓") : ""}

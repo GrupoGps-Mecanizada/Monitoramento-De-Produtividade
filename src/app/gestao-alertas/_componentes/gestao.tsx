@@ -64,9 +64,9 @@ export function Gestao() {
   const logado = !!sessao.email;
   const { alertas, config, erro, recarregar } = useGestaoDados(hoje, logado);
   return (
-    <div className="w-full pb-24 md:pb-12">
-      {/* faixa branca das abas: separa os títulos do fundo (pedido do dono, 16/10/2026) */}
-      <header className="border-b border-borda bg-superficie shadow-sm">
+    // página toda branca, separada só por linhas finas e espaço (estilo A, escolhido pelo dono em 16/10/2026)
+    <div className="min-h-[calc(100dvh-64px)] w-full bg-superficie pb-24 md:pb-12">
+      <header className="border-b border-borda">
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-end gap-3 px-4 pt-3 md:px-10">
           <AbasTexto<Aba> grande semLinha rotulo="Gestão de alertas" valor={aba} mudar={setAba} abas={ABAS} />
           <span className="ml-auto pb-2">
@@ -75,8 +75,7 @@ export function Gestao() {
         </div>
       </header>
       <div className="mx-auto w-full max-w-[1400px] px-4 pt-6 md:px-10 md:pt-8">
-        {/* folha branca do conteúdo: contraste com o fundo cinza (pedido do dono, 16/10/2026) */}
-        <div className="space-y-6 rounded-2xl border border-borda bg-superficie p-5 shadow-sm md:p-8">
+        <div className="space-y-6">
       {erro && (
         <Aviso tipo="erro">
           Não deu para ler os alertas ({erro}). Se for a primeira vez, rode o SQL <code>supabase/alertas.sql</code> no Supabase PRODUTIVIDADE.
