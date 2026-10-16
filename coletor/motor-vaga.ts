@@ -20,6 +20,12 @@ import { db, kvGet, kvSet, ok } from "./supabase";
 export const CICLO_MS = 10 * 60 * 1000;
 /** vaga quieta (desligada) é buscada de novo depois disto, mesmo sem mudança */
 export const MAX_QUIETA_MS = 60 * 60 * 1000;
+/**
+ * Tempo do ciclo para a timeline (a execução tem 8 min no Actions). Na virada do dia toda vaga busca ontem e hoje e
+ * não cabe numa execução só: passou disso, para de pegar vaga nova, grava o que fez e a próxima execução continua.
+ * (16/10/2026: sem este limite a execução morria no meio, perdia o feito e recomeçava do zero a cada 5 min.)
+ */
+export const ORCAMENTO_MOTOR_MS = 3 * 60 * 1000;
 // o disparo não é pontual (5 em 5 min com atraso): 1 min de folga para não pular um ciclo de 10 min
 const FOLGA_MS = 60 * 1000;
 
@@ -373,7 +379,10 @@ export async function coletarMotor(client: GaussFleetClient, frota: Veiculo[], a
   const hoje = diaLocal(agora);
   let linhas = 0;
   let falhas = 0;
+  let feitas = 0;
   for (const b of buscas) {
+    if (Date.now() - agora.getTime() > ORCAMENTO_MOTOR_MS) break;
+    feitas++;
     try {
       if (b.ontem) linhas += (await refazerDiaDaVaga(client, b.vaga, vagas, b.ontem)).linhas;
       const r = await refazerDiaDaVaga(client, b.vaga, vagas, hoje, hm(agora));
@@ -390,7 +399,8 @@ export async function coletarMotor(client: GaussFleetClient, frota: Veiculo[], a
       console.warn(`⚠ vaga ${b.vaga.nome}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
-  controle.versao = VERSAO_MOTOR;
+  // versão nova só quando todas as vagas foram refeitas (senão as que ficaram para trás não seriam buscadas de novo)
+  if (feitas === buscas.length) controle.versao = VERSAO_MOTOR;
   // tablet: uma requisição para a frota inteira (e o dia anterior uma vez, no 1º ciclo do dia)
   let apontamentos = 0;
   try {
@@ -401,7 +411,9 @@ export async function coletarMotor(client: GaussFleetClient, frota: Veiculo[], a
     falhas++;
     console.warn(`⚠ tablet: ${e instanceof Error ? e.message : String(e)}`);
   }
-  controle.ciclo = agora.toISOString();
+  // ficou vaga para trás (tempo do ciclo): não marca o ciclo, para a próxima execução continuar sem esperar 10 min
+  const resta = buscas.length - feitas;
+  if (!resta) controle.ciclo = agora.toISOString();
   await kvSet("motor", controle);
-  return `${buscas.length} vaga(s), ${linhas} trecho(s) de motor, ${apontamentos} apontamento(s) do tablet${falhas ? `, ${falhas} falha(s)` : ""}`;
+  return `${feitas} vaga(s)${resta ? ` (${resta} para a próxima execução)` : ""}, ${linhas} trecho(s) de motor, ${apontamentos} apontamento(s) do tablet${falhas ? `, ${falhas} falha(s)` : ""}`;
 }

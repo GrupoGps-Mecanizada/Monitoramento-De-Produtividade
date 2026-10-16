@@ -1,5 +1,10 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Coletor: timeline de motor não trava mais na virada do dia · 16/10/2026
+- Desde 00:05 de 16/10 toda execução passava de 8 min e era cancelada: na virada do dia cada vaga busca ontem e hoje (19 vagas × 2 no GAUSS) e o progresso só era gravado no fim, então cada execução recomeçava do zero.
+- Agora a timeline tem 3 min por execução (`ORCAMENTO_MOTOR_MS`): passou disso, grava o que fez e a próxima execução (5 min depois) continua com as vagas que faltam, sem esperar o ciclo de 10 min.
+- Teste novo: `coletor/motor-orcamento.test.ts` (virada do dia com GAUSS lento).
+
 ## Coletor: menos log no Supabase · 16/10/2026
 - O log do Supabase (1 GB/mês no plano grátis) chegou a 0,99 GB antes de fechar o mês. O coletor roda a cada 5 min e cada requisição vira uma linha de log.
 - As chaves do `loc_kv` que o ciclo lê (sessão, estado, cadastro, cercas, controles) vêm **numa requisição só** no início (`kvCarregar`), em vez de uma por chave (~13). Carga, retrato e sessão são gravados juntos no fim (3 → 1).
