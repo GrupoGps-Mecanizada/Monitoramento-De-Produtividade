@@ -40,8 +40,9 @@ describe("quais vagas buscar no ciclo de 10 min", () => {
   it("com 9 min (disparo atrasado) já busca", () => {
     expect(nomes(escolherVagas([v(AP1)], c2({}, min(9.5)), agora, so(AP1V)))).toEqual([AP1]);
   });
-  it("todas as vagas da GPS, mesmo sem caminhão da planilha nela; nunca as de outras empresas", () => {
-    const vagas = [AP1V, AV1V, { id: 9001, nome: "ALTA PRESSÃO - SERVITEC - 01" }, { id: 9002, nome: "CAMINHÃO BROOK - GPS - 02" }];
+  it("as vagas que a Mecanizada opera, mesmo sem caminhão da planilha nela; nunca as de outras empresas", () => {
+    const vagas = [AP1V, AV1V, { id: 9001, nome: "ALTA PRESSÃO - SERVITEC - 01" }, { id: 9002, nome: "CAMINHÃO BROOK - GPS - 02" }, { id: 9003, nome: "CAMINHÃO PIPA - GPS - 01" }, { id: 9004, nome: "ALTA PRESSÃO - GPS - 12" }];
+    // só as vagas que a Mecanizada opera (vagas-oficiais.ts): Pipa e AP-12, também da GPS, ficam de fora
     expect(nomes(escolherVagas([], c2({}), agora, vagas))).toEqual([AP1, AV1, "CAMINHÃO BROOK - GPS - 02"]);
   });
   it("controle antigo (antes de 15/10, caminhão errado nas linhas): busca todas de novo, sem a vaga quieta", () => {

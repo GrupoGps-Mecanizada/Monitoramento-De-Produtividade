@@ -4,8 +4,8 @@
 //
 // Carga mínima no GAUSS (é o mesmo usuário consultando pouco, como uma pessoa faria):
 //   - uma vaga por requisição (é assim que a tela do GAUSS faz), na fila serial do gauss.ts (2–3 s entre elas);
-//   - todas as vagas da GPS na lista do GAUSS (a tela do GAUSS é por vaga; 15/10/2026: a planilha não decide mais
-//     quais vagas buscar, porque o caminhão roda entre as vagas);
+//   - as vagas que a Mecanizada opera (regra do segundo cérebro, vagas-oficiais.ts), da lista do GAUSS (a tela do
+//     GAUSS é por vaga; 15/10/2026: a planilha não decide mais quais vagas buscar, o caminhão roda entre as vagas);
 //   - vaga cujo caminhão (o que o GAUSS diz estar nela) está desligado ou sem sinal desde antes da última busca é
 //     pulada por até 1 h: nada mudou lá; vaga sem caminhão da frota também; a cada hora é buscada de novo mesmo assim;
 //   - na 1ª busca do dia de cada vaga, o dia anterior é buscado uma vez para fechar o fim do dia;
@@ -13,6 +13,7 @@
 //   - a lista de vagas do GAUSS (para achar as dos Brook e Aspiradores) é lida 1 vez por dia.
 import { diaLocal } from "../src/lib/dominio/formato";
 import { formasDaPlaca } from "../src/lib/dominio/gauss-dia";
+import { vagaOficial } from "../src/lib/dominio/vagas-oficiais";
 import type { Veiculo } from "../src/lib/tipos";
 import type { Campo, GaussFleetClient } from "./gauss";
 import { db, kvGet, kvSet, ok } from "./supabase";
@@ -81,8 +82,8 @@ export interface Busca {
 export const VERSAO_MOTOR = 2;
 const normal = (s: string) => s.trim().toUpperCase();
 const quieto = (v: Pick<Veiculo, "status" | "sem_sinal">) => v.sem_sinal || /desligad/i.test(v.status);
-/** Vaga da GPS (as conhecidas ou "... - GPS - 01 ..." na lista do GAUSS, que traz as das outras empresas também). */
-export const daGps = (v: Vaga) => VAGAS.some((x) => x.id === v.id) || /\bGPS\b/i.test(v.nome);
+/** Vaga que a Mecanizada opera (vagas-oficiais.ts); a lista do GAUSS traz 58 da GPS e as das outras empresas. */
+export const daGps = (v: Vaga) => vagaOficial(v.nome);
 
 type VeiculoEscolha = Pick<Veiculo, "id" | "vaga" | "status" | "status_desde" | "sem_sinal" | "motor2_de">;
 

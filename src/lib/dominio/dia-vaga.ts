@@ -5,6 +5,7 @@ import type { TipoEquip } from "../tipos";
 import type { LinhaMotorFrota } from "./dia-frota";
 import { segNoDia, statusGauss } from "./gauss-dia";
 import { statusProdutivo } from "./produtividade";
+import { vagaOficial } from "./vagas-oficiais";
 
 const DIA = 86400;
 
@@ -160,7 +161,8 @@ export function conferir(trechos: TrechoVaga[], c: ConferenciaVaga): { cod: stri
 /** Uma linha por vaga, na ordem da tela do GAUSS (Alta Pressão, Auto Vácuo, Hiper Vácuo... e o número da vaga). */
 export function montarDiaVagas(linhas: LinhaMotorVaga[], dia: string, agoraSeg: number | null, conferencias: ConferenciaVaga[] = []): LinhaVaga[] {
   const porVaga = new Map<string, LinhaMotorVaga[]>();
-  for (const l of linhas) {
+  // só as vagas que a Mecanizada opera (o banco pode ter outras, gravadas antes de 16/10/2026)
+  for (const l of linhas.filter((x) => vagaOficial(x.vaga_nome ?? ""))) {
     const k = String(l.vaga_id);
     const lista = porVaga.get(k);
     if (lista) lista.push(l);
