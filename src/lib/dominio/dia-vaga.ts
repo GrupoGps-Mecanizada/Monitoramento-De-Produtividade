@@ -239,6 +239,13 @@ export function duplicados(vagas: LinhaVaga[], minimoMin = 5): Duplicado[] {
   return out.sort((p, q) => q.min - p.min);
 }
 
+/** Legenda do dia: as cores do GAUSS e mais qualquer status que o GAUSS mandou e não está na lista (com a cor dele). */
+export function legendaDoDia(vagas: LinhaVaga[]): { cod: string; cor: string; rotulo: string }[] {
+  const extras = new Map<string, { cod: string; cor: string; rotulo: string }>();
+  for (const v of vagas) for (const t of v.trechos) if (!CORES_GAUSS[t.cod] && !extras.has(t.cod)) extras.set(t.cod, { cod: t.cod, cor: t.cor, rotulo: t.rotulo });
+  return [...LEGENDA_GAUSS, ...extras.values()];
+}
+
 /** "15/10 08:15 ~ 15/10 10:20", como o rótulo do trecho na tela do GAUSS. */
 export function rotuloTrecho(dia: string, a: number, b: number): string {
   const d = `${dia.slice(8, 10)}/${dia.slice(5, 7)}`;

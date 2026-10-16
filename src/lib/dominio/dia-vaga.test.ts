@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { duplicados, montarDiaVagas, rotuloTrecho, textoSobre, tipoDaVaga, trechosDaVaga, type ConferenciaVaga, type LinhaMotorVaga } from "./dia-vaga";
+import { duplicados, legendaDoDia, montarDiaVagas, rotuloTrecho, textoSobre, tipoDaVaga, trechosDaVaga, type ConferenciaVaga, type LinhaMotorVaga } from "./dia-vaga";
 
 const DIA = "2026-10-15";
 const AP1 = "ALTA PRESSÃO - GPS - 01 - 24 HS";
@@ -76,6 +76,10 @@ describe("Dia da frota por vaga (espelho do GAUSS)", () => {
   });
   it("caminhão em duas vagas ao mesmo tempo é apontado", () => {
     expect(duplicados(montarDiaVagas(linhas, DIA, null))).toEqual([{ placa: "PUB2F80", vagas: [AP1, AP5], min: 63 }]);
+  });
+  it("legenda: as cores do GAUSS e o status novo que veio do GAUSS, com a cor dele", () => {
+    const v = montarDiaVagas([{ ...l(311, "AUTO VÁCUO - GPS - 03", "07:00:00", "09:00:00", "out_of_plant"), status_label: "Fora da planta", cor: "#20a39e" }], DIA, null);
+    expect(legendaDoDia(v).at(-1)).toEqual({ cod: "out_of_plant", cor: "#20a39e", rotulo: "Fora da planta" });
   });
   it("status agora (só hoje)", () => {
     expect(montarDiaVagas(linhas, DIA, 7 * 3600)[0].agora?.placa).toBe("EAM-3253");

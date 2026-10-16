@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { Aviso, Vazio } from "@/components/ui";
-import { LEGENDA_GAUSS, duplicados, montarDiaVagas, rotuloTrecho, textoSobre, type ConferenciaVaga, type LinhaMotorVaga, type LinhaVaga, type TrechoVaga } from "@/lib/dominio/dia-vaga";
+import { duplicados, legendaDoDia, montarDiaVagas, rotuloTrecho, textoSobre, type ConferenciaVaga, type LinhaMotorVaga, type LinhaVaga, type TrechoVaga } from "@/lib/dominio/dia-vaga";
 import { fmtHoras } from "@/lib/dominio/formato";
 import { vagaCurta } from "@/lib/dominio/veiculo";
 
@@ -30,7 +30,7 @@ export function DiaVagas({ linhas, conferencias, dia, agoraSeg }: { linhas: Linh
   return (
     <div className="space-y-3">
       <ul aria-label="Cores do GAUSS" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-suave">
-        {LEGENDA_GAUSS.map((e) => (
+        {legendaDoDia(vagas).map((e) => (
           <li key={e.cod} className="flex items-center gap-1">
             <i className="inline-block h-2.5 w-2.5 rounded-sm border border-borda" style={{ background: e.cor }} />
             {e.rotulo}
