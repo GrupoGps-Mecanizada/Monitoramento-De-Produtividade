@@ -1,5 +1,10 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Dia da frota só por vaga, no desenho da Gestão de alertas · 17/10/2026
+- Saiu a visão **Por equipamento**: o Dia da frota é só **por vaga** (as 22 vagas, espelho da timeline do GAUSS).
+- Desenho da Gestão de alertas: página toda branca, **abas em cascata** (Todas · Alta Pressão · Auto Vácuo · Hiper Vácuo → as vagas do tipo, AP-01, AP-02...), o dia numa pílula, números em linha ("22 vagas · 9 ligadas agora · 7 desligadas · 6 sem caminhão · todas iguais ao GAUSS").
+- Escolhendo a vaga (pela aba ou clicando no nome), aparece a **tabela dos trechos** (início, fim, duração, status, caminhão) sem grade; o caminhão abre a Timeline dele.
+
 ## Gestão de alertas · 16/10/2026
 - Tela nova **Gestão de alertas** (menu Ao vivo): Fila com nota e "Por que essa nota?", ações (Visto, Resolver, Silenciar, Era/Não era problema), Histórico de 90 dias, Filtro inteligente com simulador dos últimos 7 dias e sugestões, Destinatários e Saúde.
 - Visual minimalista escolhido pelo dono: abas de texto, visões com contagem, números numa linha, "+ Filtro" em pílulas, tabela sem grade, detalhe ao lado e página toda branca.
