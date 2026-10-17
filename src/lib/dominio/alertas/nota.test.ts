@@ -24,14 +24,21 @@ describe("nota do alerta", () => {
   it("saída tarde 25 min: 35 + 30 = 65 -> WhatsApp", () => expect(notaDoAlerta(st, ctx({ excessoMin: 25 })).nota).toBe(65));
   it("saída tarde 40 min: 35 + 55 = 90 (coordenador)", () => expect(notaDoAlerta(st, ctx({ excessoMin: 40 })).nota).toBe(90));
   it("exatamente no limite da faixa não sobe (acima de)", () => expect(notaDoAlerta(st, ctx({ excessoMin: 15 })).nota).toBe(35));
-  it("repetição: +10 na 2ª vez, +20 da 3ª em diante", () => {
-    expect(notaDoAlerta(st, ctx({ excessoMin: 10, repeticoes: 1 })).nota).toBe(45);
-    expect(notaDoAlerta(st, ctx({ excessoMin: 10, repeticoes: 4 })).nota).toBe(55);
+  it("repetição: a 2ª vez não muda; da 3ª em diante sobe um nível (+30)", () => {
+    expect(notaDoAlerta(st, ctx({ excessoMin: 10, repeticoes: 1 })).nota).toBe(35);
+    expect(notaDoAlerta(st, ctx({ excessoMin: 10, repeticoes: 2 })).nota).toBe(65);
+    expect(notaDoAlerta(st, ctx({ excessoMin: 10, repeticoes: 4 })).motivos.at(-1)?.texto).toBe("5ª vez na semana nesta vaga: sobe um nível");
   });
-  it("justificativa: vale a maior família, não soma", () => {
-    const n = notaDoAlerta(REGRAS_PADRAO.desligado, ctx({ excessoMin: 70, familias: ["manutencao", "aguardando", "sem"] }));
-    expect(n.nota).toBe(40 + 25 - 40);
-    expect(n.motivos.map((m) => m.pontos)).toEqual([40, 25, -40]);
+  it("justificativa no tablet: vai só para o resumo (a nota desce até o corte do resumo, nunca abaixo)", () => {
+    const n = notaDoAlerta(REGRAS_PADRAO.desligado, ctx({ excessoMin: 70, familias: ["manutencao", "aguardando", "sem"] }), POLITICA_PADRAO);
+    expect(n.nota).toBe(30);
+    expect(n.motivos.map((m) => m.pontos)).toEqual([40, 25, -35]);
+    expect(n.motivos.at(-1)?.texto).toBe("Apontado no tablet (Manutenção e clima): vai só para o resumo");
+    // já abaixo do resumo: a justificativa não tira mais nada
+    expect(notaDoAlerta(REGRAS_PADRAO.servitec, ctx({ familias: ["manutencao"] }), POLITICA_PADRAO).motivos).toHaveLength(1);
+  });
+  it("justificativa desligada na regra (sem valores): não mexe", () => {
+    expect(notaDoAlerta({ ...REGRAS_PADRAO.desligado, justificativas: {} }, ctx({ excessoMin: 70, familias: ["manutencao"] })).nota).toBe(65);
   });
   it("sem sinal em mais da metade: -40; regime presumido: -10", () => {
     expect(notaDoAlerta(REGRAS_PADRAO.desligado, ctx({ excessoMin: 70, fracaoSemSinal: 0.6 })).nota).toBe(25);
@@ -44,7 +51,7 @@ describe("nota do alerta", () => {
   });
   it("cada parte vira um motivo legível", () => {
     const n = notaDoAlerta(st, ctx({ excessoMin: 25, repeticoes: 1 }));
-    expect(n.motivos.map((m) => m.texto)).toEqual(["Peso da regra", "Passou de 15 min", "2ª vez na semana nesta vaga"]);
+    expect(n.motivos.map((m) => m.texto)).toEqual(["Peso da regra", "Passou de 15 min"]);
   });
 });
 

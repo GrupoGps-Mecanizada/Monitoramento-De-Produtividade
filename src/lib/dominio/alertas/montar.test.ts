@@ -45,7 +45,8 @@ describe("montar alertas", () => {
   it("ainda não saiu com manutenção apontada depois do limite: a justificativa derruba a nota", () => {
     const tablet = [{ placa: "EGC2985", demora_cod: 1, inicio: `${D} 08:00:00`, fim: null, categoria_demora: "Pequenas manutenções", motorista: null, concluido: null }];
     const [a] = montarAlertas(entrada({ agoraSeg: 8 * H + 30 * 60, tablet, excecoes: [exc({ regra: "saida_tarde", ini: 7 * H + 45 * 60, fim: null, ref: 7 * H + 45 * 60, detalhe: "não saiu do Pátio" })] }));
-    expect(a.nota).toBe(35 + 55 - 40);
+    // pela regra do filtro simples: com justificativa no tablet vai só para o resumo (nota no corte do resumo)
+    expect(a.nota).toBe(30);
   });
   it("desligado de 70 min terminado há mais de 70 min: resolvido, nota 65, WhatsApp, supervisor pela vaga", () => {
     const [a] = montarAlertas(entrada({ agoraSeg: 13 * H }));

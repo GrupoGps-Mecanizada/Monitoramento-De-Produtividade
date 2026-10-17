@@ -38,7 +38,7 @@ export function simular(alertas: AlertaGravado[], regras: Record<RegraExcecao, C
   let mudaram = 0;
   for (const a of alertas) {
     const cfg = regras[a.regra as RegraExcecao];
-    const novo: Destino = !a.contexto || !cfg ? a.destino : !cfg.ativa ? "tela" : destinoDaNota(notaDoAlerta(cfg, a.contexto).nota, p);
+    const novo: Destino = !a.contexto || !cfg ? a.destino : !cfg.ativa ? "tela" : destinoDaNota(notaDoAlerta(cfg, a.contexto, p).nota, p);
     antes[a.destino]++;
     depois[novo]++;
     if (novo !== a.destino) mudaram++;

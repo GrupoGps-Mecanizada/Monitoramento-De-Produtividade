@@ -95,7 +95,7 @@ export function montarAlertas(x: EntradaMontar): LinhaAlerta[] {
       fracaoSemSinal: fracaoSemSinal(x.eventos, v.id, x.dia, j),
       presumido: regimeDoEquip(v.equip.regime, v.vaga).presumido,
     };
-    const { nota, motivos } = notaDoAlerta(cfg, contexto);
+    const { nota, motivos } = notaDoAlerta(cfg, contexto, x.politica);
     const situacao = situacaoNova(ant?.situacao ?? null, ant?.resolvido_por ?? null, terminou(e, x.agoraSeg), silenciado(e));
     const jaResolvido = ant?.situacao === "resolvido" && situacao === "resolvido";
     out.push({

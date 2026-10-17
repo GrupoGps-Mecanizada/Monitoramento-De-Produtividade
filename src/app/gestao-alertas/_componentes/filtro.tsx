@@ -11,6 +11,7 @@ import type { Destino } from "@/lib/dominio/alertas/nota";
 import { diaMenos } from "@/lib/dominio/analise";
 import { REGRAS, ROTULO_REGRA, type RegraExcecao } from "@/lib/dominio/excecoes";
 import { ROTULO_FAMILIA } from "@/lib/dominio/familias";
+import { ROTULO_NIVEL, comJustificativa, deConfig, paraConfig, temJustificativa, type Nivel, type RegraSimples } from "@/lib/dominio/alertas/simples";
 import { CampoNumero, TOM_DESTINO, erroTexto } from "./comum";
 
 const FAMILIAS_JUST: FamiliaJust[] = ["manutencao", "preparacao", "aguardando", "pausas", "logistica"];
@@ -85,12 +86,122 @@ function EditorRegra({ c, mudar, fechar }: { c: ConfigRegra; mudar: (c: ConfigRe
   );
 }
 
+/** Modo simples (padrão): uma linha por regra — para onde vai, WhatsApp após X min e coordenador após Y min. */
+function FiltroSimples({
+  regras,
+  setRegras,
+  pol,
+  whatsPorRegra,
+  abrirAvancado,
+}: {
+  regras: Record<RegraExcecao, ConfigRegra>;
+  setRegras: (r: Record<RegraExcecao, ConfigRegra>) => void;
+  pol: Politica;
+  whatsPorRegra: Map<string, { antes: number; depois: number }>;
+  abrirAvancado: () => void;
+}) {
+  const mudar = (r: RegraExcecao, p: Partial<RegraSimples>) => {
+    const atual = deConfig(regras[r], pol);
+    const novo = { ...atual, ...p };
+    // ao virar WhatsApp, começa com tolerância e coordenador sugeridos (o dono ajusta)
+    if (p.nivel === "whatsapp" && atual.nivel !== "whatsapp") Object.assign(novo, { whatsappApos: 15, coordenadorApos: 60 });
+    setRegras({ ...regras, [r]: paraConfig(novo, regras[r], pol) });
+  };
+  const justificaTodas = REGRAS.every((r) => temJustificativa(regras[r]) || regras[r].peso === 0);
+  const ligarJustificativa = (v: boolean) => setRegras(Object.fromEntries(REGRAS.map((r) => [r, comJustificativa(regras[r], v)])) as Record<RegraExcecao, ConfigRegra>);
+  const minutos = "w-16 tabular-nums";
+  return (
+    <section aria-label="Regras" className="space-y-5">
+      <div className="overflow-x-auto">
+        <table className="w-full text-[13px]">
+          <thead className="text-left text-[11px] uppercase tracking-wider text-suave">
+            <tr className="border-b border-borda">
+              <th className="w-10 py-2 pl-1 font-medium">On</th>
+              <th className="px-3 py-2 font-medium">Regra</th>
+              <th className="px-3 py-2 font-medium">Para onde vai</th>
+              <th className="px-3 py-2 font-medium">WhatsApp após</th>
+              <th className="px-3 py-2 font-medium">Coordenador após</th>
+              <th className="px-3 py-2 text-right font-medium">WhatsApp em 7 dias</th>
+            </tr>
+          </thead>
+          <tbody>
+            {REGRAS.map((r) => {
+              const s = deConfig(regras[r], pol);
+              const w = whatsPorRegra.get(r);
+              const whats = s.nivel === "whatsapp";
+              return (
+                <tr key={r} className={cx("border-b border-borda/60", !s.ativa && "text-suave")}>
+                  <td className="py-2 pl-1">
+                    <input type="checkbox" checked={s.ativa} onChange={(e) => mudar(r, { ativa: e.target.checked })} aria-label={`Ligar ${ROTULO_REGRA[r]}`} />
+                  </td>
+                  <td className="px-3 py-2 font-medium">{ROTULO_REGRA[r]}</td>
+                  <td className="px-3 py-2">
+                    <select
+                      aria-label={`Para onde vai: ${ROTULO_REGRA[r]}`}
+                      value={s.nivel}
+                      disabled={!s.ativa}
+                      onChange={(e) => mudar(r, { nivel: e.target.value as Nivel })}
+                      className="h-8 rounded-lg border border-borda bg-superficie px-2 text-[13px]"
+                    >
+                      {(["whatsapp", "resumo", "tela"] as Nivel[]).map((n) => (
+                        <option key={n} value={n}>
+                          {ROTULO_NIVEL[n]}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    {whats ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <CampoNumero valor={s.whatsappApos ?? 0} max={1440} mudar={(n) => mudar(r, { whatsappApos: n || null })} aria-label={`WhatsApp após (min): ${ROTULO_REGRA[r]}`} className={minutos} />
+                        <span className="text-suave">min</span>
+                      </span>
+                    ) : (
+                      <span className="text-suave">—</span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    {whats ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <CampoNumero valor={s.coordenadorApos ?? 0} max={1440} mudar={(n) => mudar(r, { coordenadorApos: n || null })} aria-label={`Coordenador após (min): ${ROTULO_REGRA[r]}`} className={minutos} />
+                        <span className="text-suave">min</span>
+                      </span>
+                    ) : (
+                      <span className="text-suave">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {w ? w.depois : 0}
+                    {w && w.depois !== w.antes && <span className="text-suave"> (antes {w.antes})</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-suave">0 min em “WhatsApp após” = manda sempre; 0 em “Coordenador após” = nunca chama o coordenador.</p>
+      <div className="space-y-2 text-[13px]">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={justificaTodas} onChange={(e) => ligarJustificativa(e.target.checked)} />
+          Se tiver apontamento no tablet (manutenção, aguardando, pausa...), vai só para o resumo
+        </label>
+        <p className="text-suave">Se repetir 3 vezes na semana na mesma vaga, sobe um nível (resumo → WhatsApp → coordenador).</p>
+      </div>
+      <button type="button" className="text-[13px] font-medium text-link hover:underline" onClick={abrirAvancado}>
+        Ajuste fino (pesos e pontos) ›
+      </button>
+    </section>
+  );
+}
+
 /** Aba Filtro inteligente: simulador numa linha, cortes, tabela das regras com edição ao lado, sugestões e barra de salvar. */
 export function Filtro({ alertas, config, hoje, logado, aoSalvar }: { alertas: AlertaGravado[]; config: ConfigGestao; hoje: string; logado: boolean; aoSalvar: () => void }) {
   const [base, setBase] = useState(config);
   const [regras, setRegras] = useState(config.regras);
   const [pol, setPol] = useState<Politica>(config.politica);
   const [editando, setEditando] = useState<RegraExcecao | null>(null);
+  const [avancado, setAvancado] = useState(false);
   const [estado, setEstado] = useState<{ salvando: boolean; msg: { tipo: "ok" | "erro"; texto: string } | null }>({ salvando: false, msg: null });
   const semana = useMemo(() => alertas.filter((a) => a.dia >= diaMenos(hoje, 6)), [alertas, hoje]);
   const sugs = useMemo(() => sugestoes(alertas, hoje), [alertas, hoje]);
@@ -145,6 +256,8 @@ export function Filtro({ alertas, config, hoje, logado, aoSalvar }: { alertas: A
         ))}
       </section>
 
+      {avancado ? (
+        <>
       <section aria-label="Cortes" className="space-y-3">
         <Titulo>Cortes da nota</Titulo>
         <fieldset className="flex flex-wrap items-end gap-x-8 gap-y-4">
@@ -225,6 +338,13 @@ export function Filtro({ alertas, config, hoje, logado, aoSalvar }: { alertas: A
         </section>
         {editando && <EditorRegra c={regras[editando]} mudar={(c) => setRegras({ ...regras, [editando]: c })} fechar={() => setEditando(null)} />}
       </div>
+          <button type="button" className="text-[13px] font-medium text-link hover:underline" onClick={() => setAvancado(false)}>
+            ‹ Voltar ao modo simples
+          </button>
+        </>
+      ) : (
+        <FiltroSimples regras={regras} setRegras={setRegras} pol={pol} whatsPorRegra={whatsPorRegra} abrirAvancado={() => setAvancado(true)} />
+      )}
 
       <div role="region" aria-label="Salvar" className="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-full border border-borda bg-superficie/95 py-2 pl-5 pr-2 shadow-lg backdrop-blur">
         <span className="text-sm">

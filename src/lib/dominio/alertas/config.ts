@@ -31,8 +31,9 @@ export interface Politica {
   resumo_hora: string;
 }
 
-export const REPETICAO_SEGUNDA = 10;
-export const REPETICAO_TERCEIRA = 20;
+/** Repetição na mesma vaga em 7 dias: a 2ª vez não muda; da 3ª em diante sobe um nível (resumo → WhatsApp → coordenador). */
+export const REPETICAO_SEGUNDA = 0;
+export const REPETICAO_TERCEIRA = 30;
 /** Sem sinal em mais desta fração do período: provavelmente não é "desligado" de verdade. */
 export const SEM_SINAL_FRACAO = 0.5;
 export const SEM_SINAL_PONTOS = 40;
