@@ -67,14 +67,14 @@ export function Gestao() {
     // página toda branca, separada só por linhas finas e espaço (estilo A, escolhido pelo dono em 16/10/2026)
     <div className="min-h-[calc(100dvh-64px)] w-full bg-superficie pb-24 md:pb-12">
       <header className="border-b border-borda">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-end gap-3 px-4 pt-3 md:px-10">
+        <div className="flex w-full flex-wrap items-end gap-3 px-4 pt-3 md:px-8">
           <AbasTexto<Aba> grande semLinha rotulo="Gestão de alertas" valor={aba} mudar={setAba} abas={ABAS} />
           <span className="ml-auto pb-2">
             <Entrar s={sessao} />
           </span>
         </div>
       </header>
-      <div className="mx-auto w-full max-w-[1400px] px-4 pt-6 md:px-10 md:pt-8">
+      <div className="w-full px-4 pt-6 md:px-8 md:pt-8">
         <div className="space-y-6">
       {erro && (
         <Aviso tipo="erro">
