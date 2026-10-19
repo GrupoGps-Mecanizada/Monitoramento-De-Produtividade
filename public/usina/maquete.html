@@ -77,6 +77,13 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 .vivo{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#1f7a4d;margin-top:8px}
 .vivo i{width:8px;height:8px;border-radius:50%;background:#22a565;box-shadow:0 0 0 0 rgba(34,165,101,.6);animation:pulso 2s infinite}
 @keyframes pulso{70%{box-shadow:0 0 0 8px rgba(34,165,101,0)}100%{box-shadow:0 0 0 0 rgba(34,165,101,0)}}
+.placas{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
+.placa{position:absolute;left:0;top:0;display:none;align-items:center;gap:6px;padding:4px 9px 4px 6px;border-radius:7px;background:rgba(14,20,29,.84);color:#fff;font:600 11.5px var(--body);white-space:nowrap;pointer-events:auto;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);border-left:3px solid var(--c,#8c99a6);will-change:transform}
+.placa small{font-weight:500;color:rgba(255,255,255,.72);font-family:var(--mono);font-size:10px}
+.placa:hover{background:rgba(29,95,184,.95)}
+.placa.caminhao{background:#fff;color:var(--fg);font-family:var(--mono);font-size:11px;border-left:0;padding:3px 8px 3px 6px}
+.placa.caminhao i{width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1.5px rgba(19,32,47,.35)}
+.placa.caminhao::after{content:"";position:absolute;left:50%;bottom:-5px;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:#fff}
 .abrir{display:none}
 .cabeca{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .recolher{flex:none;width:28px;height:28px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--muted);cursor:pointer;display:grid;place-items:center;padding:0}
@@ -102,6 +109,7 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 </style>
 
 <canvas id="cena" tabindex="0" aria-label="Maquete 3D da usina, do aterro e do Poço Redondo, com os caminhões"></canvas>
+<div class="placas" id="placas" aria-hidden="true"></div>
 <div class="dica" id="dica"></div>
 
 <div class="carga" id="carga" role="status">
@@ -177,7 +185,7 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
   </div>
   <div class="corpo" id="legenda"></div>
 </section>
-<div class="rodape" id="rodape">Foto: Esri · prédios, ferrovia e chaminés: © OpenStreetMap · cercas do GAUSS · alturas ilustrativas · caminhões 3x maiores</div>
+<div class="rodape" id="rodape">Foto: Esri · prédios, ferrovia e chaminés: © OpenStreetMap · cercas do GAUSS · alturas ilustrativas · caminhões 5x maiores</div>
 <div class="marca"><b>Grupo GPS</b> / Mecanizada</div>
 
 <script type="importmap">
@@ -582,6 +590,55 @@ function planejarRecorte(peca, alvoPx) {
 PECAS.forEach((p) => { p.recorte = planejarRecorte(p, Math.min(celular ? 2048 : p.foto, LIMITE_TEX)); }); // no computador a foto fica sempre nítida
 const uvFoto = (p) => (x, z) => [(x - p.recorte.lim.x0) / (p.recorte.lim.x1 - p.recorte.lim.x0), (p.recorte.lim.zS - z) / (p.recorte.lim.zS - p.recorte.lim.zN)];
 
+/* Detalhe sob demanda: perto da câmera, um pedaço de 1,2 km em resolução máxima (~0,5 m por ponto) por cima da foto geral.
+   É uma imagem só (2048 px), trocada quando a câmera anda: mais nítido sem pesar. */
+const detalhe = { mapa: { value: null }, ret: { value: new THREE.Vector4(0, 0, 0, 0) }, centro: null, carregando: false, tex: null };
+function aplicarDetalhe(material) {
+  material.onBeforeCompile = (s) => {
+    s.uniforms.mapaDetalhe = detalhe.mapa; s.uniforms.retDetalhe = detalhe.ret;
+    s.fragmentShader = "uniform sampler2D mapaDetalhe;\nuniform vec4 retDetalhe;\n" + s.fragmentShader.replace("#include <map_fragment>", `#include <map_fragment>
+#ifdef USE_MAP
+  if (retDetalhe.z > 0.0) {
+    vec2 uvD = (vMapUv - retDetalhe.xy) / retDetalhe.zw;
+    if (uvD.x > 0.0 && uvD.y > 0.0 && uvD.x < 1.0 && uvD.y < 1.0) diffuseColor.rgb = diffuse * texture2D(mapaDetalhe, uvD).rgb;
+  }
+#endif`);
+  };
+  material.customProgramCacheKey = () => "foto-com-detalhe";
+}
+async function carregarDetalhe() {
+  const p = PECAS[0], t = controles.target;
+  if (!fotos || estado.visual !== "real" || detalhe.carregando || celular) return;
+  if (camera.position.distanceTo(t) > 2200 || !dentro([t.x, t.z], p.anel)) return;
+  if (detalhe.centro && Math.hypot(t.x - detalhe.centro[0], t.z - detalhe.centro[1]) < 300) return;
+  detalhe.carregando = true;
+  const z = 18, n = 8, [lat, lng] = paraLatLng([t.x, t.z]), x0 = Math.floor(tx(lng, z)) - n / 2, y0 = Math.floor(ty(lat, z)) - n / 2;
+  const tela = document.createElement("canvas"); tela.width = tela.height = n * 256;
+  const ctx = tela.getContext("2d"), fila = [];
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) fila.push([i, j]);
+  let certos = 0;
+  await Promise.all(Array.from({ length: 8 }, async () => {
+    while (fila.length) {
+      const [i, j] = fila.shift();
+      const img = await new Promise((ok) => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => ok(im); im.onerror = () => ok(null); im.src = TILE(z, x0 + i, y0 + j); });
+      if (img) { certos++; ctx.drawImage(img, i * 256, j * 256); }
+    }
+  }));
+  if (certos > n * n * 0.8) {
+    const uv = uvFoto(p), [ox, oz] = paraXZ([latDe(y0, z), lngDe(x0, z)]), [lx, lz] = paraXZ([latDe(y0 + n, z), lngDe(x0 + n, z)]);
+    const [u0, vN] = uv(ox, oz), [u1, vS] = uv(lx, lz);
+    const tex = new THREE.CanvasTexture(tela); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = Math.min(4, ANISO);
+    detalhe.tex?.dispose(); detalhe.tex = tex; detalhe.mapa.value = tex;
+    detalhe.ret.value.set(u0, vS, u1 - u0, vN - vS);
+    detalhe.centro = [t.x, t.z];
+    pedirDesenho();
+  }
+  detalhe.carregando = false;
+  agendarDetalhe(); // se a câmera andou enquanto baixava, confere de novo
+}
+let timerDetalhe = null;
+const agendarDetalhe = () => { clearTimeout(timerDetalhe); timerDetalhe = setTimeout(carregarDetalhe, 450); };
+
 let tilesTotal = 0, tilesProntos = 0, tilesCertos = 0;
 async function baixarFoto(p) {
   const r = p.recorte, lado = Math.round(256 * r.escala);
@@ -654,13 +711,18 @@ geoAreas.setAttribute("color", new THREE.Float32BufferAttribute(new Float32Array
 geoAreas.computeVertexNormals();
 const matParedesAreas = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
 const matToposAreas = PECAS.map(() => new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+aplicarDetalhe(PECAS[0].matChao); aplicarDetalhe(matToposAreas[0]); // chão, telhados e áreas da usina ganham o detalhe perto da câmera
 const blocos = new THREE.Mesh(geoAreas, [matParedesAreas, ...matToposAreas]);
 blocos.castShadow = true; blocos.receiveShadow = true;
 grupoAreas.add(blocos);
-const contorno = (() => {
-  const p = [];
-  for (const a of AREAS) for (let k = 0; k < a.anel.length; k++) { const [ax, az] = a.anel[k], [bx, bz] = a.anel[(k + 1) % a.anel.length]; p.push(ax, a.h + 0.05, az, bx, a.h + 0.05, bz); }
-  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(p, 3));
+const contorno = (() => { // no Real, a linha de cada área sai na cor do setor (dá para ver onde começa e termina cada área)
+  const p = [], cores = [], c = new THREE.Color();
+  for (const a of AREAS) {
+    c.set(SETORES[a.setor].cor).lerp(new THREE.Color(0xffffff), 0.15);
+    for (let k = 0; k < a.anel.length; k++) { const [ax, az] = a.anel[k], [bx, bz] = a.anel[(k + 1) % a.anel.length]; p.push(ax, a.h + 0.05, az, bx, a.h + 0.05, bz); cores.push(c.r, c.g, c.b, c.r, c.g, c.b); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(p, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(cores, 3));
   return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x13202f, transparent: true, opacity: 0.18 }));
 })();
 grupoAreas.add(contorno);
@@ -989,6 +1051,11 @@ const MAX_CAM = Math.max(120, CAMINHOES.length * 2); // folga para caminhões qu
 const caminhoes = new THREE.InstancedMesh(corpoCaminhao, new THREE.MeshLambertMaterial({ vertexColors: true }), MAX_CAM);
 const luzes = new THREE.InstancedMesh(new THREE.BoxGeometry(0.9, 0.7, 0.9).translate(3.1, 3.9, 0), new THREE.MeshBasicMaterial({ color: 0xffffff }), MAX_CAM);
 cena.add(caminhoes, luzes); // caminhões sem sombra: assim eles podem andar sem refazer a sombra da usina
+/* coluna de luz na cor do status sobre cada caminhão: dá para achar a frota de longe */
+const pilares = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 10, 1, true).translate(0, 0.5, 0),
+  new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide }), MAX_CAM);
+pilares.frustumCulled = false;
+cena.add(pilares);
 let caminhoesVisiveis = [];
 const ESCALA_ALTURA = () => (estado.visual === "real" ? 0.004 : 1); // no modo Real as áreas viram uma película sobre a foto
 
@@ -1009,17 +1076,21 @@ function ondeEsta(c) { // [x, z, rumo, andando] conforme o modo: agora, animaç�
 function atualizarInstancias() {
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), eixo = new THREE.Vector3(0, 1, 0), cor = new THREE.Color();
   caminhoesVisiveis.forEach((c, i) => {
-    const [x, z, rumo, andando] = ondeEsta(c), e = estado.caminhao === c ? 3.6 : 3;
+    const [x, z, rumo, andando] = ondeEsta(c), e = estado.caminhao === c ? 6.5 : 5; // 5x o tamanho real: o foco é a frota
     if (rumo !== null) { let dr = rumo - c.rumo; dr = Math.atan2(Math.sin(dr), Math.cos(dr)); c.rumo += dr * 0.35; }
     q.setFromAxisAngle(eixo, c.rumo);
-    const sobre = estado.periodo === "replay" || c.anim ? areaSob([x, z]) : c.sobre;
-    m.compose(new THREE.Vector3(x, (sobre?.h || 0) * ESCALA_ALTURA() + 0.6, z), q, new THREE.Vector3(e, e, e));
+    const sobre = estado.periodo === "replay" || c.anim ? areaSob([x, z]) : c.sobre, y = (sobre?.h || 0) * ESCALA_ALTURA() + 0.6;
+    m.compose(new THREE.Vector3(x, y, z), q, new THREE.Vector3(e, e, e));
     caminhoes.setMatrixAt(i, m); luzes.setMatrixAt(i, m);
-    luzes.setColorAt(i, cor.set(estado.periodo === "replay" ? (andando ? COR_STATUS.ligado : COR_STATUS.desligado) : COR_STATUS[c.classe]));
+    cor.set(estado.periodo === "replay" ? (andando ? COR_STATUS.ligado : COR_STATUS.desligado) : COR_STATUS[c.classe]);
+    luzes.setColorAt(i, cor); pilares.setColorAt(i, cor);
+    m.compose(new THREE.Vector3(x, y + 22, z), q.identity(), new THREE.Vector3(estado.caminhao === c ? 5 : 3.2, 110, estado.caminhao === c ? 5 : 3.2));
+    pilares.setMatrixAt(i, m);
+    c.alturaTela = y; // usada pela plaquinha do caminhão
   });
-  caminhoes.count = luzes.count = caminhoesVisiveis.length;
-  caminhoes.instanceMatrix.needsUpdate = luzes.instanceMatrix.needsUpdate = true;
-  if (luzes.instanceColor) luzes.instanceColor.needsUpdate = true;
+  caminhoes.count = luzes.count = pilares.count = caminhoesVisiveis.length;
+  caminhoes.instanceMatrix.needsUpdate = luzes.instanceMatrix.needsUpdate = pilares.instanceMatrix.needsUpdate = true;
+  for (const malha of [luzes, pilares]) if (malha.instanceColor) malha.instanceColor.needsUpdate = true;
   caminhoes.computeBoundingSphere(); luzes.computeBoundingSphere();
 }
 
@@ -1108,7 +1179,8 @@ function aplicarVisual() {
   document.querySelectorAll("[data-visual]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.visual === estado.visual)));
   grupoAreas.scale.y = ESCALA_ALTURA();
   grupoReal.visible = real;
-  contorno.visible = !real;
+  Object.assign(contorno.material, { vertexColors: real, opacity: real ? 0.9 : 0.18 });
+  contorno.material.color.set(real ? 0xffffff : 0x13202f); contorno.material.needsUpdate = true;
   PECAS.forEach((p, i) => {
     const foto = real && fotos ? fotos[i] : null;
     p.matChao.map = foto; p.matChao.color.set(foto ? 0xffffff : COR_ARGILA); p.matChao.needsUpdate = true;
@@ -1160,7 +1232,7 @@ function desenhar(agora) {
     const k = viagem.ms ? THREE.MathUtils.clamp((agora - viagem.inicio) / viagem.ms, 0, 1) : 1, e = k < 0.5 ? 4 * k ** 3 : 1 - (-2 * k + 2) ** 3 / 2;
     controles.target.lerpVectors(viagem.alvo0, viagem.alvo1, e);
     camera.position.lerpVectors(viagem.pos0, viagem.pos1, e);
-    if (k < 1) pedirDesenho(); else viagem = null;
+    if (k < 1) pedirDesenho(); else { viagem = null; agendarDetalhe(); }
   }
   if (estado.periodo === "replay" && estado.tocando) {
     estado.tempo = Math.min(1439, estado.tempo + dt * estado.velocidade);
@@ -1173,6 +1245,7 @@ function desenhar(agora) {
   medir(dt);
   if (animando()) pedirDesenho();
   renderer.render(cena, camera);
+  atualizarPlacas();
   if (estado.selecionada || estado.caminhao) posicionarDica();
 }
 function voar(alvo, pos, ms) {
@@ -1193,7 +1266,7 @@ controles.addEventListener("start", () => {
   if (renderer.getPixelRatio() > 1) { renderer.setPixelRatio(1); renderer.setSize(innerWidth, innerHeight); }
 });
 controles.addEventListener("end", () => {
-  interagindo = false; clearTimeout(voltarNitidez);
+  interagindo = false; clearTimeout(voltarNitidez); agendarDetalhe();
   voltarNitidez = setTimeout(() => { if (renderer.getPixelRatio() !== nitidez()) { renderer.setPixelRatio(nitidez()); renderer.setSize(innerWidth, innerHeight); pedirDesenho(); } }, 350);
 });
 function encaixarLista() {
@@ -1256,6 +1329,66 @@ function posicionarDica() {
   dica.textContent = c ? c.nome : a.nome;
   dica.style.left = `${((v.x + 1) / 2) * innerWidth}px`; dica.style.top = `${((1 - v.y) / 2) * innerHeight}px`;
   dica.style.display = v.z < 1 ? "block" : "none";
+}
+
+/* =========================================================================
+   13b. Placas: nome dos caminhões e das áreas na tela, sem uma cobrir a outra.
+        Caminhões primeiro (o foco é a frota), depois as áreas, das maiores para as menores, conforme o zoom.
+   ========================================================================= */
+
+const camadaPlacas = $("placas"), PLACAS = new Map(), AREAS_POR_TAMANHO = [...AREAS].sort((a, b) => b.area - a.area);
+const vPlaca = new THREE.Vector3();
+function placa(chaveP, classe, aoClicar) {
+  let el = PLACAS.get(chaveP);
+  if (!el) { el = document.createElement("div"); el.className = classe; el.addEventListener("click", aoClicar); camadaPlacas.appendChild(el); PLACAS.set(chaveP, el); }
+  return el;
+}
+function naTela(x, y, z) {
+  vPlaca.set(x, y, z).project(camera);
+  if (vPlaca.z > 1 || Math.abs(vPlaca.x) > 1.02 || Math.abs(vPlaca.y) > 1.02) return null;
+  return [((vPlaca.x + 1) / 2) * innerWidth, ((1 - vPlaca.y) / 2) * innerHeight];
+}
+function escrever(el, html, cor, x, y) {
+  if (el.dataset.t !== html) { el.innerHTML = html; el.dataset.t = html; }
+  el.style.setProperty("--c", cor);
+  el.style.transform = `translate(${Math.round(x)}px,${Math.round(y)}px)`;
+  el.style.display = "flex";
+}
+function atualizarPlacas() {
+  const ocupado = [], usadas = new Set(), k = ESCALA_ALTURA();
+  const cabe = (x0, y0, w, h, forcar) => {
+    const r = [x0, y0, x0 + w, y0 + h];
+    if (!forcar && ocupado.some((o) => r[0] < o[2] && r[2] > o[0] && r[1] < o[3] && r[3] > o[1])) return false;
+    ocupado.push(r); return true;
+  };
+  for (const c of caminhoesVisiveis) {
+    const [x, z, , andando] = ondeEsta(c), p = naTela(x, (c.alturaTela || 0) + 42, z);
+    if (!p) continue;
+    const w = 26 + c.nome.length * 7, sel = estado.caminhao === c;
+    if (!cabe(p[0] - w / 2, p[1] - 28, w, 22, sel)) continue;
+    const cor = estado.periodo === "replay" ? (andando ? COR_STATUS.ligado : COR_STATUS.desligado) : COR_STATUS[c.classe];
+    const el = placa(`c:${c.placa}`, "placa caminhao", () => selecionarCaminhao(c));
+    escrever(el, `<i></i>${c.nome}`, cor, p[0] - w / 2, p[1] - 28);
+    usadas.add(el);
+  }
+  const focal = innerHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
+  let n = 0;
+  for (const a of AREAS_POR_TAMANHO) {
+    if (n >= 45) break;
+    const sel = estado.selecionada === a;
+    if (estado.visual === "setores" && !estado.setoresAtivos.has(a.setor) && !sel) continue;
+    const y = a.h * k + 1, d = camera.position.distanceTo(vPlaca.set(a.centro[0], y, a.centro[1]));
+    if ((Math.sqrt(a.area) / d) * focal < 70 && !sel) continue; // área pequena demais neste zoom
+    const p = naTela(a.centro[0], y, a.centro[1]);
+    if (!p) continue;
+    const qtd = estado.periodo === "agora" ? a.frota.filter((c) => caminhoesVisiveis.includes(c)).length : 0;
+    const w = 24 + a.nome.length * 6.6 + (qtd ? 44 : 0);
+    if (!cabe(p[0] - w / 2, p[1] - 11, w, 22, sel)) continue;
+    const el = placa(`a:${a.i}`, "placa", () => selecionar(a));
+    escrever(el, qtd ? `${a.nome} <small>${qtd} cam.</small>` : a.nome, SETORES[a.setor].cor, p[0] - w / 2, p[1] - 11);
+    usadas.add(el); n++;
+  }
+  for (const el of PLACAS.values()) if (!usadas.has(el) && el.style.display !== "none") el.style.display = "none";
 }
 
 /* =========================================================================
