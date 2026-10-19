@@ -943,7 +943,8 @@ function pintarParede(r, cor) { // pé da parede sujo, beiral escuro no topo
 
 const grupoCidade = new THREE.Group();
 cena.add(grupoCidade);
-const COR_CHAO_CIDADE = 0xc4bdac;
+const COR_CHAO_CIDADE = 0xe4e3df; // chão branco acinzentado, de maquete de arquitetura (pedido do dono)
+const CHAO_MAPEADO = false;      // true: volta o chão mapeado ponto a ponto pela foto (mata, terra, carvão...)
 
 /* Mapa do chão ponto a ponto: cada pixel da foto (~2 m) vira uma classe (mata, gramado, água, carvão, minério, terra,
    concreto, asfalto, piso industrial), limpa de ruído e pintada com a cor de jogo da classe. A fronteira entre as classes
@@ -953,7 +954,8 @@ const SOLO = [
   ["minerio", "#8f5c43", "Minério e terra vermelha"], ["terra", "#a89070", "Terra e cascalho"], ["concreto", "#c8c4bb", "Concreto e piso claro"],
   ["asfalto", "#5b5e63", "Asfalto e piso escuro"], ["industrial", "#9c9890", "Piso industrial"],
 ].map(([id, cor, nome]) => ({ id, nome, cor, rgb: new THREE.Color(cor) }));
-const LEGENDA_CHAO = SOLO.map((s) => [s.cor, s.nome]), COR_SEM_SOLO = new THREE.Color(0xbdb6a8);
+const LEGENDA_CIDADE = [["#e4e3df", "Piso"], ["#5a5d62", "Rua"], ["#b4afa5", "Calçada"], ["#676a6f", "Estacionamento"], ["#3f7088", "Água"]];
+const LEGENDA_CHAO = SOLO.map((s) => [s.cor, s.nome]), COR_SEM_SOLO = new THREE.Color(COR_CHAO_CIDADE);
 function classeDoPonto(r, g, b) {
   const max = Math.max(r, g, b), min = Math.min(r, g, b), v = max / 255, s = max ? (max - min) / max : 0;
   if (b > g && b > r * 1.08 && v < 0.55 && s > 0.12) return 2;                       // água
@@ -1894,7 +1896,7 @@ function montarLegenda() {
   const qualidade = `<div class="grupo" style="padding-top:12px">Qualidade da imagem</div><div class="seg" role="group" aria-label="Qualidade">${["alta", "leve"].map((q) =>
     `<button type="button" data-qualidade="${q}" aria-pressed="${estado.qualidade === q}">${q === "alta" ? "Alta" : "Leve"}</button>`).join("")}</div>`;
   let topo;
-  if (estado.visual === "cidade") topo = `<div class="grupo">Chão da usina</div><div class="chips">${LEGENDA_CHAO.map(([c, n]) =>
+  if (estado.visual === "cidade") topo = `<div class="grupo">Chão da usina</div><div class="chips">${(CHAO_MAPEADO ? LEGENDA_CHAO : LEGENDA_CIDADE).map(([c, n]) =>
     `<span class="chip" style="cursor:default"><i class="cor" style="background:${c}"></i>${n}</span>`).join("")}</div>`;
   else if (estado.visual === "real") topo = `<p class="texto-leg">Foto de satélite com os prédios, a ferrovia e as chaminés em 3D. Passe o mouse ou toque para ver as áreas do GAUSS.</p>`;
   else if (estado.visual === "setores") topo = `<div class="grupo">Toque para mostrar ou esconder</div><div class="chips">${ORDEM.map((s) =>
@@ -2009,7 +2011,7 @@ document.fonts?.ready.then(encaixarLista);
     if (leveUsada || tilesCertos <= tilesTotal * 0.5) return false;
     leveUsada = true;
     const telas = prontas.map((t) => t.userData.foto);
-    PECAS.forEach((p, i) => { p.texSolo = mapearSolo(p, telas[i]); });
+    if (CHAO_MAPEADO) PECAS.forEach((p, i) => { p.texSolo = mapearSolo(p, telas[i]); });
     tingirPredios(telas);
     prontas.forEach((t) => t.dispose()); // a imagem leve não aparece na tela
     return true;
@@ -2031,7 +2033,7 @@ window.usina = { // usado nos testes automáticos
   caminhao: (placa) => selecionarCaminhao(CAMINHOES.find((c) => c.placa === placa)),
   visual: async (v) => { estado.visual = v; if (v === "real" && !fotos) await baixarFotoCompleta(); aplicarVisual(); return v; },
   ver: (x, y, z, tx, tz) => voar(new THREE.Vector3(tx, 0, tz), new THREE.Vector3(x, y, z), 0),
-  pronto: () => !!PECAS[0].texSolo, ruas: () => NOMES_RUAS.slice(0, 4).map((r) => [r[0], Math.round(r[1]), Math.round(r[2])]), lagos: () => OSM.filter((o) => o.t === "agua").map((o) => paraXZ(o.p[0]).map(Math.round)), degrau: () => medidor.degrau, periodo: mudarPeriodo, tempo: (t) => { estado.tempo = t; estado.tocando = false; atualizarRelogio(); atualizarInstancias(); desenharRastros(); pedirDesenho(); },
+  pronto: () => fotosReduzidas.size > 0, ruas: () => NOMES_RUAS.slice(0, 4).map((r) => [r[0], Math.round(r[1]), Math.round(r[2])]), lagos: () => OSM.filter((o) => o.t === "agua").map((o) => paraXZ(o.p[0]).map(Math.round)), degrau: () => medidor.degrau, periodo: mudarPeriodo, tempo: (t) => { estado.tempo = t; estado.tocando = false; atualizarRelogio(); atualizarInstancias(); desenharRastros(); pedirDesenho(); },
   rotas: () => { const t0 = performance.now(); calcularRotas(); const r = CAMINHOES.filter((c) => c.rota); return `${r.length} trajetos, ${r.filter((c) => c.rota.andou).length} andaram, ${Math.round(r.reduce((s, c) => s + c.rota.km, 0))} km, ${Math.round(performance.now() - t0)} ms`; },
   receber: receberFrota, nos: () => GRAFO.nos.length, placa: () => `${PLACA} → ${estado.qualidade}`,
   girar: (ms = 4000) => new Promise((ok) => { // simula alguém girando a câmera e conta os quadros desenhados por segundo
