@@ -489,7 +489,7 @@ const nitidez = () => Math.min(devicePixelRatio, estado.qualidade === "alta" ? n
 renderer.setPixelRatio(nitidez());
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.shadowMap.type = THREE.VSMShadowMap; // sombra de borda macia, como a luz real (o desfoque é feito uma vez só)
 renderer.shadowMap.autoUpdate = false; // o sol é fixo: a sombra é calculada uma vez e reaproveitada em todos os quadros
 const refazerSombras = () => { renderer.shadowMap.needsUpdate = true; };
 const LIMITE_TEX = Math.min(renderer.capabilities.maxTextureSize, 4096);
@@ -502,12 +502,13 @@ const ANISO = renderer.capabilities.getMaxAnisotropy();
 
 const cena = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(36, innerWidth / innerHeight, 20, 80000);
-cena.add(new THREE.HemisphereLight(0xf3f6ff, 0x8a8172, 1.75));
-const sol = new THREE.DirectionalLight(0xfff1df, 2.1);
+cena.add(new THREE.HemisphereLight(0xdde8ff, 0x7a6e5e, 1.6)); // céu azulado de um lado, chão quente do outro: a sombra fica azulada
+const sol = new THREE.DirectionalLight(0xffe9cc, 2.35);         // sol de fim de manhã, levemente quente
 const DIRECAO_SOL = new THREE.Vector3(-0.62, 0.72, 0.31).normalize();
 sol.castShadow = true;
 sol.shadow.mapSize.set(4096, 4096); // calculada uma vez só: pode ser grande
-sol.shadow.bias = -0.0006; sol.shadow.normalBias = 1.2;
+sol.shadow.bias = -0.0004; sol.shadow.normalBias = 0.8;
+sol.shadow.radius = 5; sol.shadow.blurSamples = 10; // tamanho do desfoque da borda da sombra
 sol.shadow.camera.near = 10; sol.shadow.camera.far = 30000;
 cena.add(sol, sol.target);
 function posicionarSol() { // sombra fixa cobrindo a usina inteira (calculada uma vez)
@@ -593,18 +594,23 @@ const uvFoto = (p) => (x, z) => [(x - p.recorte.lim.x0) / (p.recorte.lim.x1 - p.
 /* Detalhe sob demanda: perto da câmera, um pedaço de 1,2 km em resolução máxima (~0,5 m por ponto) por cima da foto geral.
    É uma imagem só (2048 px), trocada quando a câmera anda: mais nítido sem pesar. */
 const detalhe = { mapa: { value: null }, ret: { value: new THREE.Vector4(0, 0, 0, 0) }, centro: null, carregando: false, tex: null };
-function aplicarDetalhe(material) {
+/* Material com a foto: pedaço em alta perto da câmera (só na usina) e correção de cor feita na placa de vídeo
+   (a foto de satélite vem lavada pela neblina: aqui ganha contraste e cor, sem custo). */
+function aplicarFoto(material, comDetalhe) {
   material.onBeforeCompile = (s) => {
     s.uniforms.mapaDetalhe = detalhe.mapa; s.uniforms.retDetalhe = detalhe.ret;
     s.fragmentShader = "uniform sampler2D mapaDetalhe;\nuniform vec4 retDetalhe;\n" + s.fragmentShader.replace("#include <map_fragment>", `#include <map_fragment>
 #ifdef USE_MAP
-  if (retDetalhe.z > 0.0) {
+  ${comDetalhe ? `if (retDetalhe.z > 0.0) {
     vec2 uvD = (vMapUv - retDetalhe.xy) / retDetalhe.zw;
     if (uvD.x > 0.0 && uvD.y > 0.0 && uvD.x < 1.0 && uvD.y < 1.0) diffuseColor.rgb = diffuse * texture2D(mapaDetalhe, uvD).rgb;
-  }
+  }` : ""}
+  float luz = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+  diffuseColor.rgb = mix(vec3(luz), diffuseColor.rgb, 1.22);
+  diffuseColor.rgb = max((diffuseColor.rgb - 0.1) * 1.16 + 0.1, 0.0);
 #endif`);
   };
-  material.customProgramCacheKey = () => "foto-com-detalhe";
+  material.customProgramCacheKey = () => (comDetalhe ? "foto-detalhe" : "foto");
 }
 async function carregarDetalhe() {
   const p = PECAS[0], t = controles.target;
@@ -711,7 +717,7 @@ geoAreas.setAttribute("color", new THREE.Float32BufferAttribute(new Float32Array
 geoAreas.computeVertexNormals();
 const matParedesAreas = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
 const matToposAreas = PECAS.map(() => new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
-aplicarDetalhe(PECAS[0].matChao); aplicarDetalhe(matToposAreas[0]); // chão, telhados e áreas da usina ganham o detalhe perto da câmera
+PECAS.forEach((p, i) => { aplicarFoto(p.matChao, i === 0); aplicarFoto(matToposAreas[i], i === 0); }); // chão, telhados e áreas; detalhe só na usina
 const blocos = new THREE.Mesh(geoAreas, [matParedesAreas, ...matToposAreas]);
 blocos.castShadow = true; blocos.receiveShadow = true;
 grupoAreas.add(blocos);
@@ -762,6 +768,7 @@ function alturaPredio(area, centro, semente) {
   return (4 + acaso(semente + 5) * 4) * r;
 }
 
+const REGISTRO_PREDIOS = [], PAREDES_PREDIOS = [];
 {
   const galpoes = { pos: [], nor: [], uvs: [], cor: [] }, escritorios = { pos: [], nor: [], uvs: [], cor: [] }, telhados = new Map();
   PREDIOS.forEach((o, i) => {
@@ -773,15 +780,20 @@ function alturaPredio(area, centro, semente) {
     const ehGalpao = area > 600;
     const destino = ehGalpao ? galpoes : escritorios;
     const w = paredes(anel, 0, h, 6, ehGalpao ? 8 : 3.5);
+    const beiral = paredes(anel, h, h + (ehGalpao ? 1.1 : 0.7), 6, 8); // mureta escura em volta do telhado
     const base = (ehGalpao ? PALETA_GALPAO : PALETA_PREDIO)[Math.floor(acaso(i + 7) * (ehGalpao ? 7 : 5))];
-    destino.pos.push(...w.pos); destino.nor.push(...w.nor); destino.uvs.push(...w.uvs);
-    for (let v = 0; v < w.pos.length / 3; v++) destino.cor.push(base.r, base.g, base.b);
+    const ini = destino.pos.length / 3;
+    for (const parte of [w, beiral]) { destino.pos.push(...parte.pos); destino.nor.push(...parte.nor); destino.uvs.push(...parte.uvs); }
+    for (let v = ini; v < destino.pos.length / 3; v++) destino.cor.push(base.r, base.g, base.b);
+    REGISTRO_PREDIOS.push({ malha: ehGalpao ? 0 : 1, ini, fim: destino.pos.length / 3, c, peca, h, base });
     const t = triangulos(anel, h, uvFoto(peca));
     const lista = telhados.get(peca) || telhados.set(peca, { pos: [], uvs: [] }).get(peca);
     lista.pos.push(...t.pos); lista.uvs.push(...t.uvs);
   });
   const mGalpoes = new THREE.Mesh(geometria(galpoes), new THREE.MeshLambertMaterial({ vertexColors: true, map: texturaTelha(), normalMap: mapaNormalOndulado(), side: THREE.DoubleSide }));
   const mEscritorios = new THREE.Mesh(geometria(escritorios), new THREE.MeshLambertMaterial({ vertexColors: true, map: texturaJanelas(), side: THREE.DoubleSide }));
+  PAREDES_PREDIOS.push(mGalpoes, mEscritorios);
+  REGISTRO_PREDIOS.forEach((r) => pintarParede(r, r.base)); // antes da foto chegar: cor da paleta
   for (const m of [mGalpoes, mEscritorios]) { m.castShadow = m.receiveShadow = true; grupoReal.add(m); }
   for (const [peca, t] of telhados) {
     const m = new THREE.Mesh(geometria(t), peca.matChao);
@@ -790,23 +802,63 @@ function alturaPredio(area, centro, semente) {
   }
 }
 
+/* cor da foto do satélite (reduzida 4x, lida uma vez por peça) em qualquer ponto: usada pelas árvores e pelas paredes */
+const fotosReduzidas = new Map();
+function amostraDaFoto(p, tela) {
+  if (!fotosReduzidas.has(p)) {
+    const pequena = document.createElement("canvas");
+    pequena.width = Math.ceil(tela.width / 4); pequena.height = Math.ceil(tela.height / 4);
+    const ctx = pequena.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(tela, 0, 0, pequena.width, pequena.height);
+    fotosReduzidas.set(p, { px: ctx.getImageData(0, 0, pequena.width, pequena.height).data, w: pequena.width, h: pequena.height, uv: uvFoto(p) });
+  }
+  const a = fotosReduzidas.get(p);
+  return (x, z) => {
+    const [u, v] = a.uv(x, z), ix = Math.floor(u * a.w), iy = Math.floor((1 - v) * a.h);
+    if (ix < 0 || iy < 0 || ix >= a.w || iy >= a.h) return null;
+    const k = (iy * a.w + ix) * 4;
+    return [a.px[k], a.px[k + 1], a.px[k + 2]];
+  };
+}
+
+/* paredes na cor do próprio telhado (tirada da foto), um pouco mais escuras e menos saturadas, como o galpão real */
+function tingirPredios(telas) {
+  const cor = new THREE.Color(), cinza = new THREE.Color();
+  for (const r of REGISTRO_PREDIOS) {
+    const amostra = amostraDaFoto(r.peca, telas[r.peca.i]);
+    const pontos = [[0, 0], [4, 0], [-4, 0], [0, 4], [0, -4]].map(([dx, dz]) => amostra(r.c[0] + dx, r.c[1] + dz)).filter(Boolean);
+    if (!pontos.length) continue;
+    const media = [0, 1, 2].map((k) => pontos.reduce((s, p) => s + p[k], 0) / pontos.length / 255);
+    cor.setRGB(media[0], media[1], media[2], THREE.SRGBColorSpace);
+    cinza.setScalar((cor.r + cor.g + cor.b) / 3);
+    cor.lerp(cinza, 0.35).multiplyScalar(0.9).lerp(r.base, 0.3);
+    pintarParede(r, cor);
+  }
+  PAREDES_PREDIOS.forEach((m) => { m.geometry.attributes.color.needsUpdate = true; });
+  refazerSombras();
+}
+function pintarParede(r, cor) { // pé da parede sujo, beiral escuro no topo
+  const malha = PAREDES_PREDIOS[r.malha], P = malha.geometry.attributes.position.array, C = malha.geometry.attributes.color.array;
+  for (let v = r.ini; v < r.fim; v++) {
+    const y = P[v * 3 + 1], s = y < 0.01 ? 0.7 : y > r.h + 0.01 ? 0.55 : 1;
+    C[v * 3] = cor.r * s; C[v * 3 + 1] = cor.g * s; C[v * 3 + 2] = cor.b * s;
+  }
+}
+
 /* --- árvores: plantadas onde a foto do satélite é verde, com a cor da própria foto --- */
 let arvores = null;
+const VERDE_MATA = new THREE.Color(0x3f6b33);
 function plantarArvores(telas) {
   const limite = estado.qualidade === "alta" ? 14000 : celular ? 5000 : 9000, passo = estado.qualidade === "alta" ? 12 : 16;
   const candidatas = [];
   PECAS.forEach((p, pi) => {
-    const tela = telas[pi], f = 4, pequena = document.createElement("canvas");
-    pequena.width = Math.ceil(tela.width / f); pequena.height = Math.ceil(tela.height / f);
-    const ctx = pequena.getContext("2d", { willReadFrequently: true });
-    ctx.drawImage(tela, 0, 0, pequena.width, pequena.height);
-    const px = ctx.getImageData(0, 0, pequena.width, pequena.height).data, uv = uvFoto(p), b = p.caixa;
+    const corDaFoto = amostraDaFoto(p, telas[pi]), b = p.caixa;
     for (let x = b.x0; x <= b.x1; x += passo) for (let z = b.zN; z <= b.zS; z += passo) {
       const jx = x + (acaso(x * 7.1 + z) - 0.5) * passo, jz = z + (acaso(z * 3.3 - x) - 0.5) * passo;
       if (!dentro([jx, jz], p.anel)) continue;
-      const [u, v] = uv(jx, jz), ix = Math.floor(u * pequena.width), iy = Math.floor((1 - v) * pequena.height);
-      if (ix < 0 || iy < 0 || ix >= pequena.width || iy >= pequena.height) continue;
-      const k = (iy * pequena.width + ix) * 4, r = px[k], g = px[k + 1], bl = px[k + 2];
+      const px = corDaFoto(jx, jz);
+      if (!px) continue;
+      const [r, g, bl] = px;
       if (g > r * 1.04 && g >= bl * 0.98 && g - r > 5 && g < 175) candidatas.push([jx, jz, r, g, bl]);
     }
   });
@@ -828,7 +880,10 @@ function plantarArvores(telas) {
       q.setFromAxisAngle(eixo, acaso(i * 5.7) * Math.PI * 2);
       m.compose(new THREE.Vector3(x, 0, z), q, e.set(s, s * (0.85 + acaso(i * 9.3) * 0.4), s));
       malha.setMatrixAt(j, m);
-      malha.setColorAt(j, cor.setRGB(r / 255, g / 255, bl / 255, THREE.SRGBColorSpace).multiplyScalar(1.25)); // a cor verdadeira da mata naquele ponto
+      cor.setRGB(r / 255, g / 255, bl / 255, THREE.SRGBColorSpace).multiplyScalar(1.25); // a cor verdadeira da mata naquele ponto
+      const brilho = cor.r * 0.21 + cor.g * 0.72 + cor.b * 0.07;
+      if (brilho < 0.09) cor.lerp(VERDE_MATA, 1 - brilho / 0.09); // mata na sombra da foto: não deixa a árvore ficar preta
+      malha.setColorAt(j, cor);
     });
     malha.computeBoundingSphere();
     malha.castShadow = true; malha.receiveShadow = false;
@@ -1034,23 +1089,38 @@ function calcularRotas() { // só na primeira vez que o replay é aberto
    9. Caminhões: duas peças instanciadas (corpo e luz de status)
    ========================================================================= */
 
-const corpoCaminhao = (() => {
-  const parte = (l, a, p, x, y, cor) => {
-    const g = new THREE.BoxGeometry(l, a, p); g.translate(x, y, 0);
+/* um modelo por tipo de caminhão (vácuo com tanque, alta pressão com carroceria e carretel, demais), cada um numa peça instanciada */
+const MODELOS_CAMINHAO = (() => {
+  const parte = (g, x, y, z, cor) => {
+    g.translate(x, y, z);
     const c = new THREE.Color(cor), n = g.attributes.position.count, arr = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) c.toArray(arr, i * 3);
     g.setAttribute("color", new THREE.BufferAttribute(arr, 3));
     return g;
   };
-  return mergeGeometries([
-    parte(8.6, 0.6, 2.3, 0, 0.9, 0x2a2f35), parte(2.3, 2.4, 2.5, 3.1, 2.3, 0xf4f6f8), parte(0.1, 0.9, 2.2, 4.27, 2.8, 0x1a2633),
-    parte(5.6, 2.3, 2.4, -1.4, 2.35, 0xc9ced4), parte(2.32, 0.28, 2.52, 3.1, 1.75, 0x1d5fb8),
-  ]);
+  const roda = (x, z) => parte(new THREE.CylinderGeometry(0.55, 0.55, 0.45, 12).rotateX(Math.PI / 2), x, 0.55, z, 0x1b1d20);
+  const base = () => [
+    parte(new THREE.BoxGeometry(8.6, 0.5, 2.2), 0, 1.05, 0, 0x2a2f35),
+    ...[3.0, -1.7, -3.0].flatMap((x) => [roda(x, 1.12), roda(x, -1.12)]),
+    parte(new THREE.BoxGeometry(2.3, 2.4, 2.5), 3.1, 2.4, 0, 0xf4f6f8),
+    parte(new THREE.BoxGeometry(0.1, 0.95, 2.2), 4.27, 2.9, 0, 0x1a2633),
+    parte(new THREE.BoxGeometry(2.32, 0.28, 2.52), 3.1, 1.85, 0, 0x1d5fb8),
+  ];
+  return {
+    vacuo: mergeGeometries([...base(), parte(new THREE.CylinderGeometry(1.2, 1.2, 5.4, 18).rotateZ(Math.PI / 2), -1.35, 2.6, 0, 0xd2d7dc),
+      parte(new THREE.CylinderGeometry(1.05, 1.05, 0.2, 18).rotateZ(Math.PI / 2), -4.1, 2.6, 0, 0x3b4048)]),
+    pressao: mergeGeometries([...base(), parte(new THREE.BoxGeometry(5.4, 2.2, 2.35), -1.3, 2.35, 0, 0xeef0f2),
+      parte(new THREE.CylinderGeometry(0.75, 0.75, 1.9, 14).rotateX(Math.PI / 2), -3.4, 3.95, 0, 0xc9483e)]),
+    outro: mergeGeometries([...base(), parte(new THREE.BoxGeometry(5.4, 2.0, 2.4), -1.3, 2.25, 0, 0xc9ced4)]),
+  };
 })();
+const tipoDoCaminhao = (c) => (/V[ÁA]CUO|ASPIRADOR/i.test(c.grupo || "") ? "vacuo" : /ALTA PRESS/i.test(c.grupo || "") ? "pressao" : "outro");
 const MAX_CAM = Math.max(120, CAMINHOES.length * 2); // folga para caminhões que chegarem ao vivo
-const caminhoes = new THREE.InstancedMesh(corpoCaminhao, new THREE.MeshLambertMaterial({ vertexColors: true }), MAX_CAM);
-const luzes = new THREE.InstancedMesh(new THREE.BoxGeometry(0.9, 0.7, 0.9).translate(3.1, 3.9, 0), new THREE.MeshBasicMaterial({ color: 0xffffff }), MAX_CAM);
-cena.add(caminhoes, luzes); // caminhões sem sombra: assim eles podem andar sem refazer a sombra da usina
+const matCaminhao = new THREE.MeshLambertMaterial({ vertexColors: true });
+const CORPOS = Object.fromEntries(Object.entries(MODELOS_CAMINHAO).map(([t, g]) => [t, new THREE.InstancedMesh(g, matCaminhao, MAX_CAM)]));
+const caminhoesPorCorpo = { vacuo: [], pressao: [], outro: [] };
+const luzes = new THREE.InstancedMesh(new THREE.BoxGeometry(0.9, 0.7, 0.9).translate(3.1, 4.0, 0), new THREE.MeshBasicMaterial({ color: 0xffffff }), MAX_CAM);
+cena.add(...Object.values(CORPOS), luzes); // caminhões sem sombra: assim eles podem andar sem refazer a sombra da usina
 /* coluna de luz na cor do status sobre cada caminhão: dá para achar a frota de longe */
 const pilares = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 10, 1, true).translate(0, 0.5, 0),
   new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide }), MAX_CAM);
@@ -1075,23 +1145,29 @@ function ondeEsta(c) { // [x, z, rumo, andando] conforme o modo: agora, animaç�
 
 function atualizarInstancias() {
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), eixo = new THREE.Vector3(0, 1, 0), cor = new THREE.Color();
+  const qtd = { vacuo: 0, pressao: 0, outro: 0 };
   caminhoesVisiveis.forEach((c, i) => {
     const [x, z, rumo, andando] = ondeEsta(c), e = estado.caminhao === c ? 6.5 : 5; // 5x o tamanho real: o foco é a frota
     if (rumo !== null) { let dr = rumo - c.rumo; dr = Math.atan2(Math.sin(dr), Math.cos(dr)); c.rumo += dr * 0.35; }
     q.setFromAxisAngle(eixo, c.rumo);
     const sobre = estado.periodo === "replay" || c.anim ? areaSob([x, z]) : c.sobre, y = (sobre?.h || 0) * ESCALA_ALTURA() + 0.6;
     m.compose(new THREE.Vector3(x, y, z), q, new THREE.Vector3(e, e, e));
-    caminhoes.setMatrixAt(i, m); luzes.setMatrixAt(i, m);
+    const t = (c.corpo ??= tipoDoCaminhao(c));
+    CORPOS[t].setMatrixAt(qtd[t], m); caminhoesPorCorpo[t][qtd[t]++] = c; luzes.setMatrixAt(i, m);
     cor.set(estado.periodo === "replay" ? (andando ? COR_STATUS.ligado : COR_STATUS.desligado) : COR_STATUS[c.classe]);
     luzes.setColorAt(i, cor); pilares.setColorAt(i, cor);
     m.compose(new THREE.Vector3(x, y + 22, z), q.identity(), new THREE.Vector3(estado.caminhao === c ? 5 : 3.2, 110, estado.caminhao === c ? 5 : 3.2));
     pilares.setMatrixAt(i, m);
     c.alturaTela = y; // usada pela plaquinha do caminhão
   });
-  caminhoes.count = luzes.count = pilares.count = caminhoesVisiveis.length;
-  caminhoes.instanceMatrix.needsUpdate = luzes.instanceMatrix.needsUpdate = pilares.instanceMatrix.needsUpdate = true;
+  luzes.count = pilares.count = caminhoesVisiveis.length;
+  luzes.instanceMatrix.needsUpdate = pilares.instanceMatrix.needsUpdate = true;
+  for (const [t, corpo] of Object.entries(CORPOS)) {
+    corpo.count = qtd[t]; caminhoesPorCorpo[t].length = qtd[t];
+    corpo.instanceMatrix.needsUpdate = true; corpo.computeBoundingSphere();
+  }
   for (const malha of [luzes, pilares]) if (malha.instanceColor) malha.instanceColor.needsUpdate = true;
-  caminhoes.computeBoundingSphere(); luzes.computeBoundingSphere();
+  luzes.computeBoundingSphere();
 }
 
 function posicionarCaminhoes() {
@@ -1285,9 +1361,10 @@ const raio = new THREE.Raycaster(), ponteiro = new THREE.Vector2();
 function oQueEstaSob(x, y) {
   ponteiro.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
   raio.setFromCamera(ponteiro, camera);
-  const h = raio.intersectObjects([caminhoes, blocos], false)[0];
+  const h = raio.intersectObjects([...Object.values(CORPOS), blocos], false)[0];
   if (!h) return {};
-  if (h.object === caminhoes) return { caminhao: caminhoesVisiveis[h.instanceId] };
+  const tipo = Object.keys(CORPOS).find((t) => CORPOS[t] === h.object);
+  if (tipo) return { caminhao: caminhoesPorCorpo[tipo][h.instanceId] };
   return { area: AREAS[AREA_DO_TRI[h.faceIndex]] };
 }
 
@@ -1626,15 +1703,22 @@ document.fonts?.ready.then(encaixarLista);
     $("barra").style.width = `${Math.round(k * 100)}%`;
     $("cargaTexto").textContent = tilesTotal ? `Baixando a foto da usina ${Math.round(k * 100)}%` : "Montando a maquete";
   }, 150);
-  const prontas = await Promise.race([Promise.all(PECAS.map(baixarFoto)), new Promise((r) => setTimeout(() => r(null), 25000))]);
-  clearInterval(timer);
-  if (prontas && tilesCertos > tilesTotal * 0.5) {
+  const baixando = Promise.all(PECAS.map(baixarFoto));
+  const usarFotos = (prontas) => {
+    if (fotos || tilesCertos <= tilesTotal * 0.5) return false;
     fotos = prontas;
-    $("cargaTexto").textContent = "Plantando as árvores";
-    await new Promise((r) => setTimeout(r, 30));
-    plantarArvores(fotos.map((t) => t.userData.tela));
+    const telas = fotos.map((t) => t.userData.tela);
+    plantarArvores(telas); tingirPredios(telas);
+    return true;
+  };
+  const prontas = await Promise.race([baixando, new Promise((r) => setTimeout(() => r(null), 25000))]);
+  clearInterval(timer);
+  if (prontas) { $("cargaTexto").textContent = "Plantando as árvores"; await new Promise((r) => setTimeout(r, 30)); usarFotos(prontas); }
+  if (!fotos) {
+    // internet lenta: abre nos Setores e continua baixando; quando a foto chegar, troca sozinho para o Real
+    estado.visual = "setores";
+    baixando.then((p) => { if (usarFotos(p) && estado.visual === "setores") { estado.visual = "real"; aplicarVisual(); } });
   }
-  else { estado.visual = "setores"; $("cargaTexto").textContent = "Sem internet para a foto: abrindo a visão de setores"; }
   aplicarVisual();
   $("carga").classList.add("saiu");
   if (parent !== window) parent.postMessage({ tipo: "usina:pronta" }, location.origin); // o Monitoramento responde com a frota ao vivo
