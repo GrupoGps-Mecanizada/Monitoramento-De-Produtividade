@@ -27,6 +27,7 @@ create table if not exists public.alerta_politica (
   max_por_hora int not null default 6 check (max_por_hora between 1 and 60),
   modo_teste boolean not null default true,
   resumo_hora time not null default '07:00',
+  janela_min int not null default 60 check (janela_min between 5 and 1440),
   atualizado_em timestamptz not null default now()
 );
 
@@ -155,7 +156,7 @@ revoke insert, update, delete on public.alertas, public.alerta_regra, public.ale
 grant select on public.alertas, public.alerta_envios to anon, authenticated;
 grant update (situacao, visto_por, visto_em, resolvido_em, resolvido_por, avaliacao) on public.alertas to anon, authenticated;
 grant update (ativa, peso, faixas, justificativas, lembrete_min, escalar_min, atualizado_em) on public.alerta_regra to anon, authenticated;
-grant update (corte_whatsapp, corte_resumo, corte_coordenador, max_por_hora, modo_teste, resumo_hora, atualizado_em) on public.alerta_politica to anon, authenticated;
+grant update (corte_whatsapp, corte_resumo, corte_coordenador, max_por_hora, modo_teste, resumo_hora, janela_min, atualizado_em) on public.alerta_politica to anon, authenticated;
 grant insert, delete on public.alerta_silencio to anon, authenticated;
 grant select, insert, update, delete on public.alerta_destino to anon, authenticated;
 

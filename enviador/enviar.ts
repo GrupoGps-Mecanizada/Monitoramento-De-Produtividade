@@ -61,6 +61,21 @@ async function lerAlertas(): Promise<AlertaEnvio[]> {
   return (await r.json()) as AlertaEnvio[];
 }
 
+/** Janela de "recente" da tela Filtro inteligente; sem a coluna (SQL não rodado) ou erro, 60 min. */
+async function lerJanela(): Promise<number> {
+  try {
+    const r = await supa("alerta_politica?select=janela_min&id=eq.1");
+    const j = r.ok ? ((await r.json()) as { janela_min?: number }[]) : [];
+    return j[0]?.janela_min ?? 60;
+  } catch {
+    return 60;
+  }
+}
+const agoraSegLocal = () => {
+  const [h, m, s] = new Date().toLocaleTimeString("en-GB", { timeZone: "America/Sao_Paulo", hour12: false }).split(":").map(Number);
+  return h * 3600 + m * 60 + s;
+};
+
 async function mandar(texto: string) {
   const r = await evo(`/message/sendText/${encodeURIComponent(INSTANCIA)}`, { method: "POST", body: JSON.stringify({ number: DESTINO, text: texto }) });
   if (!r.ok) throw new Error(`WhatsApp (Evolution) respondeu ${r.status}: ${(await r.text()).slice(0, 200)}`);
@@ -72,7 +87,8 @@ async function marcar(ids: number[]) {
 }
 
 async function ciclo() {
-  const novos = paraEnviar(await lerAlertas(), hojeLocal());
+  const [alertas, janela] = await Promise.all([lerAlertas(), lerJanela()]);
+  const novos = paraEnviar(alertas, hojeLocal(), agoraSegLocal(), janela);
   if (!novos.length) return;
   const texto = montarMensagem(novos, new Date());
   if (TESTE) {

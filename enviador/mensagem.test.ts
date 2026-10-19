@@ -21,7 +21,20 @@ describe("o que mandar", () => {
       al({ id: 9, vaga: "[S/ VAGA]" }),
       al({ id: 10, vaga: "CAMINHÃO BROOK - GPS - 03" }),
     ];
-    expect(paraEnviar(xs, HOJE).map((a) => a.id)).toEqual([8, 2, 1]);
+    expect(paraEnviar(xs, HOJE, 11 * 3600, 24 * 60).map((a) => a.id)).toEqual([8, 2, 1]);
+  });
+  it("só o que é recente: o que acabou ou aconteceu há mais que a janela fica só na tela (nada da madrugada sai atrasado)", () => {
+    const xs = [
+      // desligado de madrugada que acabou às 03:04: antigo
+      al({ id: 1, regra: "desligado", ini: 2 * 3600 + 120, fim: 3 * 3600 + 240 }),
+      // desligado que continua agora (o fim acompanha a hora atual): recente
+      al({ id: 2, regra: "desligado", ini: 11 * 3600, fim: 13 * 3600 - 120 }),
+      // saída tarde às 12:30: recente; às 07:39: antiga
+      al({ id: 3, ini: 12 * 3600 + 1800, ref: 12 * 3600 }),
+      al({ id: 4, ini: 7 * 3600 + 39 * 60, ref: 7 * 3600 + 15 * 60 }),
+    ];
+    expect(paraEnviar(xs, HOJE, 13 * 3600, 60).map((a) => a.id)).toEqual([2, 3]);
+    expect(paraEnviar(xs, HOJE, 13 * 3600, 24 * 60).map((a) => a.id)).toEqual([1, 4, 2, 3]);
   });
 });
 

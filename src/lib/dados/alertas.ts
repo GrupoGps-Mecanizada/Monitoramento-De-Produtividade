@@ -53,7 +53,7 @@ export async function lerAlertas(desde: string): Promise<AlertaGravado[]> {
 export async function lerConfig(): Promise<ConfigGestao> {
   const [regras, politica] = await Promise.all([
     ok(db().from("alerta_regra").select("regra, ativa, peso, faixas, justificativas, espera_min, lembrete_min, escalar_min")),
-    ok(db().from("alerta_politica").select("corte_whatsapp, corte_resumo, corte_coordenador, max_por_hora, modo_teste, resumo_hora").eq("id", 1).maybeSingle()),
+    ok(db().from("alerta_politica").select("corte_whatsapp, corte_resumo, corte_coordenador, max_por_hora, modo_teste, resumo_hora, janela_min").eq("id", 1).maybeSingle()),
   ]);
   const p = politica as (Partial<Politica> & { resumo_hora?: string }) | null;
   // o banco devolve "07:00:00"; a tela usa "07:00"
@@ -71,7 +71,7 @@ export const salvarPolitica = (p: Politica) =>
   ok(
     db()
       .from("alerta_politica")
-      .update({ corte_whatsapp: p.corte_whatsapp, corte_resumo: p.corte_resumo, corte_coordenador: p.corte_coordenador, max_por_hora: p.max_por_hora, modo_teste: p.modo_teste, resumo_hora: p.resumo_hora, atualizado_em: agoraIso() })
+      .update({ corte_whatsapp: p.corte_whatsapp, corte_resumo: p.corte_resumo, corte_coordenador: p.corte_coordenador, max_por_hora: p.max_por_hora, modo_teste: p.modo_teste, resumo_hora: p.resumo_hora, janela_min: p.janela_min, atualizado_em: agoraIso() })
       .eq("id", 1),
   );
 

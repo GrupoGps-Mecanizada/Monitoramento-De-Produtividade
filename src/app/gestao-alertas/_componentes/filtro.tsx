@@ -221,12 +221,14 @@ function AlertasEmFrases({
   pol,
   whatsPorRegra,
   salvarJa,
+  salvarJanela,
   abrirAvancado,
 }: {
   regras: Record<RegraExcecao, ConfigRegra>;
   pol: Politica;
   whatsPorRegra: Map<string, { antes: number; depois: number }>;
   salvarJa: (cfgs: ConfigRegra[]) => Promise<void>;
+  salvarJanela: (min: number) => Promise<void>;
   abrirAvancado: () => void;
 }) {
   const [editando, setEditando] = useState<RegraExcecao | "novo" | null>(null);
@@ -271,6 +273,12 @@ function AlertasEmFrases({
           </div>
         )}
         <div className="space-y-2 text-[13px]">
+          <label className="flex flex-wrap items-center gap-2">
+            Só mandar o que aconteceu nos últimos
+            <CampoNumero valor={pol.janela_min} min={5} max={1440} mudar={(n) => void tentar(salvarJanela(n))} aria-label="Só mandar o que aconteceu nos últimos (minutos)" />
+            minutos
+            <span className="text-suave">(o que é mais antigo, como o da madrugada, fica só na tela)</span>
+          </label>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={justifica} onChange={(e) => void tentar(salvarJa(avisam.map((r) => comJustificativa(regras[r], e.target.checked))))} />
             Se tiver apontamento no tablet (manutenção, aguardando, pausa...), não envia
@@ -330,6 +338,14 @@ export function Filtro({ alertas, config, hoje, logado, aoSalvar }: { alertas: A
     } catch (e) {
       setEstado({ salvando: false, msg: { tipo: "erro", texto: erroTexto(e) } });
     }
+  }
+  /** Janela do "recente" (só ela da política): salva na hora. */
+  async function salvarJanela(min: number) {
+    const p = { ...pol, janela_min: min };
+    await salvarPolitica(p);
+    setPol(p);
+    setBase((b) => ({ ...b, politica: { ...b.politica, janela_min: min } }));
+    aoSalvar();
   }
   /** Modo frases: cada ação salva na hora (sem barra de salvar). */
   async function salvarJa(cfgs: ConfigRegra[]) {
@@ -446,7 +462,7 @@ export function Filtro({ alertas, config, hoje, logado, aoSalvar }: { alertas: A
           </button>
         </>
       ) : (
-        <AlertasEmFrases regras={regras} pol={pol} whatsPorRegra={whatsPorRegra} salvarJa={salvarJa} abrirAvancado={() => setAvancado(true)} />
+        <AlertasEmFrases regras={regras} pol={pol} whatsPorRegra={whatsPorRegra} salvarJa={salvarJa} salvarJanela={salvarJanela} abrirAvancado={() => setAvancado(true)} />
       )}
 
       {avancado && (

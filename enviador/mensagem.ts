@@ -29,10 +29,13 @@ export const MAX_ITENS = 12;
 /**
  * Os que vão para o WhatsApp, de hoje, ainda não avisados e que não acabaram (PC desligado: alerta velho não sai).
  * Só as 22 vagas que a Mecanizada opera: caminhão sem vaga ou Brook parado no Pátio não é alerta.
+ * Só o recente: o momento do alerta (o fim, se dura; senão o início) tem de estar dentro de `janelaMin` de agora.
  */
-export const paraEnviar = (alertas: AlertaEnvio[], hoje: string) =>
+export const paraEnviar = (alertas: AlertaEnvio[], hoje: string, agoraSeg: number, janelaMin: number) =>
   alertas
     .filter((a) => a.destino === "whatsapp" && !a.ultimo_aviso_em && a.dia === hoje && a.situacao !== "resolvido" && a.situacao !== "silenciado" && vagaOficial(a.vaga))
+    // só o recente (pedido do dono, 19/10/2026): o que acabou ou aconteceu antes da janela fica só na tela, nunca sai atrasado
+    .filter((a) => agoraSeg - (a.fim ?? a.ini) <= janelaMin * 60)
     .sort((p, q) => p.ini - q.ini || p.id - q.id);
 
 const SIGLA = { ap: "AP", av: "AV", hv: "HV" } as const;
