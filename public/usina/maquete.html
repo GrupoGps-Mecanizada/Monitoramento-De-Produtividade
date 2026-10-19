@@ -14,7 +14,7 @@
 }
 *{box-sizing:border-box}
 body{color:var(--fg);font-family:var(--body);overflow:hidden;height:100vh;height:100dvh;
-  background:radial-gradient(120% 95% at 50% 38%,#2c3746 0%,#19202a 55%,#0d1117 100%)}
+  background:linear-gradient(180deg,#7fb2df 0%,#a9cbe8 38%,#d6e6ef 62%,#d6e6ef 100%)} /* céu claro; a névoa do horizonte tem a mesma cor */
 #cena{position:fixed;inset:0;display:block;touch-action:none;outline:none}
 .painel{position:fixed;background:var(--panel);border:1px solid rgba(255,255,255,.6);border-radius:14px;box-shadow:0 14px 34px rgba(0,0,0,.28)}
 .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
@@ -521,9 +521,42 @@ function posicionarSol() { // sombra fixa cobrindo a usina inteira (calculada um
 }
 
 /* "mesa" escura onde a maquete apoia: só recebe a sombra do pedestal */
-const mesa = new THREE.Mesh(new THREE.PlaneGeometry(90000, 90000).rotateX(-Math.PI / 2), new THREE.ShadowMaterial({ opacity: 0.5 }));
-mesa.position.y = -ALTURA_BASE - 1; mesa.receiveShadow = true;
-cena.add(mesa);
+/* gramado em volta de tudo, até o horizonte; a névoa esconde onde ele termina */
+function texturaGrama() {
+  const t = document.createElement("canvas"); t.width = t.height = 512;
+  const ctx = t.getContext("2d");
+  ctx.fillStyle = "#5e8a3b"; ctx.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 46; i++) { // manchas: grama mais seca e mais verde, repetidas nas bordas para emendar sem costura
+    const x = acaso(i * 3) * 512, y = acaso(i * 7 + 1) * 512, r = 40 + acaso(i * 11) * 110, cor = acaso(i * 13) > 0.5 ? "rgba(122,150,70,.3)" : "rgba(52,96,40,.3)";
+    for (const dx of [-512, 0, 512]) for (const dy of [-512, 0, 512]) {
+      const g = ctx.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
+      g.addColorStop(0, cor); g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g; ctx.fillRect(x + dx - r, y + dy - r, r * 2, r * 2);
+    }
+  }
+  for (let i = 0; i < 14000; i++) { // folhinhas
+    const v = acaso(i + 500);
+    ctx.fillStyle = v > 0.66 ? "rgba(140,170,80,.5)" : v > 0.33 ? "rgba(70,110,45,.5)" : "rgba(40,72,30,.45)";
+    ctx.fillRect(acaso(i * 1.3) * 512, acaso(i * 2.7 + 9) * 512, 1.5, 2.5);
+  }
+  const tex = new THREE.CanvasTexture(t);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.anisotropy = ANISO;
+  tex.repeat.set(90000 / 70, 90000 / 70); // um quadro de textura a cada 70 m
+  return tex;
+}
+const grama = (() => { // variação de tom em manchas de ~1 km quebra a repetição da textura
+  const g = new THREE.PlaneGeometry(90000, 90000, 90, 90).rotateX(-Math.PI / 2), pos = g.attributes.position, cores = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i);
+    const v = 0.86 + 0.1 * Math.sin(x / 1300 + Math.sin(z / 2100)) * Math.cos(z / 1700) + 0.06 * Math.sin((x + z) / 640);
+    cores[i * 3] = v * 1.02; cores[i * 3 + 1] = v; cores[i * 3 + 2] = v * 0.94;
+  }
+  g.setAttribute("color", new THREE.BufferAttribute(cores, 3));
+  return new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: texturaGrama(), vertexColors: true }));
+})();
+grama.position.y = -1.2; grama.receiveShadow = true; // a usina fica 1 m acima, encaixada no gramado
+cena.add(grama);
+cena.fog = new THREE.Fog(0xd6e6ef, 8000, 34000);
 
 /* =========================================================================
    6. Texturas geradas aqui mesmo (sem arquivos de fora)
