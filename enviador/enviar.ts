@@ -55,7 +55,7 @@ const supa = (caminho: string, init: RequestInit = {}) =>
 const evo = (caminho: string, init: RequestInit = {}) => fetch(`${EVOLUTION_URL}${caminho}`, { ...init, headers: { apikey: EVOLUTION_CHAVE!, "Content-Type": "application/json", ...init.headers } });
 
 async function lerAlertas(): Promise<AlertaEnvio[]> {
-  const campos = "id,regra,placa,vaga,supervisor,dia,ini,local,detalhe,destino,situacao,ultimo_aviso_em";
+  const campos = "id,regra,placa,vaga,supervisor,dia,ini,fim,ref,local,detalhe,destino,situacao,ultimo_aviso_em";
   const r = await supa(`alertas?select=${campos}&dia=eq.${hojeLocal()}&destino=eq.whatsapp&ultimo_aviso_em=is.null&order=ini.asc&limit=200`);
   if (!r.ok) throw new Error(`Supabase respondeu ${r.status}: ${(await r.text()).slice(0, 200)}`);
   return (await r.json()) as AlertaEnvio[];
