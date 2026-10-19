@@ -1,5 +1,10 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Parte Diária no coletor · 18/10/2026
+- O coletor passa a buscar a **Parte Diária** (Logística Inbound > Imp. Detalhes Solicitação do GAUSS): para cada vaga, o horário programado, local/origem, endereço, onde se apresentar, atividade, material, destino, gerência e as perguntas de segurança (altura, andaime, confinado, gás).
+- Mesmo caminho da tela, só leitura e travado (`conferirChamada`): hoje a cada 30 min, ontem uma vez depois da virada e, na primeira vez, os últimos 10 dias, um dia por execução. Falhou: espera 30 min.
+- **Sem nomes e sem telefones** (solicitante, beneficiário, responsável e o texto livre ficam de fora). Tabela `parte_diaria` sem leitura pública por enquanto (SQL `supabase/2026-10-18_parte-diaria.sql`).
+
 ## Dia da frota só por vaga, no desenho da Gestão de alertas · 17/10/2026
 - Saiu a visão **Por equipamento**: o Dia da frota é só **por vaga** (as 22 vagas, espelho da timeline do GAUSS).
 - Desenho da Gestão de alertas: página toda branca, **abas em cascata** (Todas · Alta Pressão · Auto Vácuo · Hiper Vácuo → as vagas do tipo, AP-01, AP-02...), o dia numa pílula, números em linha ("22 vagas · 9 ligadas agora · 7 desligadas · 6 sem caminhão · todas iguais ao GAUSS").

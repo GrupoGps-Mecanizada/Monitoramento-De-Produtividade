@@ -10,6 +10,8 @@
 //      a rota completa de ontem (paradas exatas, excessos de velocidade e a rota crua no R2, se configurado)
 //   6. medição oficial (medicao.ts): 1 lista de boletins por dia (a partir das 07:00) e no máximo 1 boletim novo
 //      por ciclo, só com as 2 chamadas de leitura do Dashboard Medição
+//   7. parte diária (parte-diaria.ts): onde cada vaga foi programada para atender; hoje a cada 30 min, ontem uma
+//      vez depois da virada, no máximo um dia por ciclo
 //
 // Cuidado com a carga no GAUSS (ver gauss.ts): uma requisição por vez com intervalo, sessão reaproveitada
 // entre execuções (guardada no Supabase, chave privada), cadastro e cercas em cache, histórico só quando
@@ -35,6 +37,7 @@ import { coletarMotor } from "./motor-vaga";
 import { depsAlertasReais, detectarAlertas } from "./alertas";
 import { reprocessar } from "./reprocesso";
 import { coletarMedicao, depsReais } from "./medicao";
+import { coletarParteDiaria, depsReais as depsParteDiaria } from "./parte-diaria";
 import { db, kvCarregar, kvGet, kvSet, kvSetVarias, ok } from "./supabase";
 import { gravarPosicoes, paradasAoVivo, rotinaNoturna } from "./tempo-real";
 
@@ -59,7 +62,7 @@ interface PontosDia {
 verificarAmbiente();
 
 // tudo o que o ciclo lê do loc_kv numa requisição só (menos log no Supabase; ver supabase.ts)
-await kvCarregar(["sessao", "estado", "veiculos", "cercas", "abertura", "motor", "motor_vagas", "paradas_ao_vivo", "noturno", "medicao", "limpeza", "carga", "snapshot", "tempo_real_pronto", "reprocesso"]);
+await kvCarregar(["sessao", "estado", "veiculos", "cercas", "abertura", "motor", "motor_vagas", "paradas_ao_vivo", "noturno", "medicao", "limpeza", "carga", "snapshot", "tempo_real_pronto", "reprocesso", "parte_diaria"]);
 
 // sessão do GAUSS da execução anterior (o gauss.ts só reaproveita se usada há < 20 min)
 const sessao = await kvGet<unknown>("sessao");
@@ -232,6 +235,13 @@ async function main() {
       if (m) console.log(`✅ medição: ${m}`);
     } catch (e) {
       console.warn(`⚠ medição: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    // parte diária: falha aqui (ex.: SQL ainda não rodado) não derruba o ciclo
+    try {
+      const p = await coletarParteDiaria(depsParteDiaria(client), new Date(), agora);
+      if (p) console.log(`✅ parte diária: ${p}`);
+    } catch (e) {
+      console.warn(`⚠ parte diária: ${e instanceof Error ? e.message : String(e)}`);
     }
     await limpezaDiaria(hoje);
   } catch (err) {
