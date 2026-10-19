@@ -323,7 +323,7 @@ export function Filtro({ alertas, config, hoje, logado, aoSalvar }: { alertas: A
   const polMudou = JSON.stringify(pol) !== JSON.stringify(base.politica);
   const nMudancas = mudadas.length + (polMudou ? 1 : 0);
   const travado = !logado;
-  const cortesErrados = pol.corte_resumo > pol.corte_whatsapp || pol.corte_whatsapp > pol.corte_coordenador;
+  const cortesErrados = pol.corte_resumo > pol.corte_whatsapp;
   const horaOk = /^\d{2}:\d{2}$/.test(pol.resumo_hora);
 
   async function salvar() {
@@ -386,9 +386,6 @@ export function Filtro({ alertas, config, hoje, logado, aoSalvar }: { alertas: A
           <Campo rotulo="Resumo a partir de">
             <CampoNumero valor={pol.corte_resumo} mudar={(n) => setPol({ ...pol, corte_resumo: n })} aria-label="Corte do resumo" />
           </Campo>
-          <Campo rotulo="Coordenador a partir de">
-            <CampoNumero valor={pol.corte_coordenador} mudar={(n) => setPol({ ...pol, corte_coordenador: n })} aria-label="Corte do coordenador" />
-          </Campo>
           <Campo rotulo="Máx. mensagens/hora">
             <CampoNumero valor={pol.max_por_hora} min={1} max={60} mudar={(n) => setPol({ ...pol, max_por_hora: n })} aria-label="Máximo de mensagens por hora" />
           </Campo>
@@ -407,7 +404,7 @@ export function Filtro({ alertas, config, hoje, logado, aoSalvar }: { alertas: A
             Modo teste (tudo vai só para o destinatário de teste)
           </label>
         </fieldset>
-        {cortesErrados && <p className="text-sm text-[color:var(--warn,#b45309)]">Os cortes precisam subir: resumo ≤ WhatsApp ≤ coordenador.</p>}
+        {cortesErrados && <p className="text-sm text-[color:var(--warn,#b45309)]">O corte do resumo não pode passar o do WhatsApp.</p>}
         {!horaOk && <p className="text-sm text-[color:var(--warn,#b45309)]">Escolha a hora do resumo diário.</p>}
       </section>
 
