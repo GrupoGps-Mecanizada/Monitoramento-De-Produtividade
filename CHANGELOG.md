@@ -1,5 +1,16 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Parte Diária no coletor · 18/10/2026
+- O coletor passa a buscar a **Parte Diária** (Logística Inbound > Imp. Detalhes Solicitação do GAUSS): para cada vaga, o horário programado, local/origem, endereço, onde se apresentar, atividade, material, destino, gerência e as perguntas de segurança (altura, andaime, confinado, gás).
+- Mesmo caminho da tela, só leitura e travado (`conferirChamada`). Horários fixos, de 3 em 3 horas (~10 buscas/dia): hoje às 06, 09, 12, 15, 18 e 21 h; amanhã às 17, 20 e 23 h (a parte sai ~16:30 pelo controlador do transporte); ontem fechado às 00:30. Na primeira vez, os últimos 10 dias, um dia por execução. Falhou: espera 30 min.
+- Cada busca compara com a anterior e diz o que mudou: programação **nova**, **cancelada**, **trocada de equipamento** (mesma solicitação e horário, outra vaga) ou **alterada** (fim, local ou endereço).
+- **Sem nomes e sem telefones** (solicitante, beneficiário, responsável e o texto livre ficam de fora). Tabela `parte_diaria` sem leitura pública por enquanto (SQL `supabase/2026-10-18_parte-diaria.sql`).
+
+## Dia da frota só por vaga, no desenho da Gestão de alertas · 17/10/2026
+- Saiu a visão **Por equipamento**: o Dia da frota é só **por vaga** (as 22 vagas, espelho da timeline do GAUSS).
+- Desenho da Gestão de alertas: página toda branca, **abas em cascata** (Todas · Alta Pressão · Auto Vácuo · Hiper Vácuo → as vagas do tipo, AP-01, AP-02...), o dia numa pílula, números em linha ("22 vagas · 9 ligadas agora · 7 desligadas · 6 sem caminhão · todas iguais ao GAUSS").
+- Escolhendo a vaga (pela aba ou clicando no nome), aparece a **tabela dos trechos** (início, fim, duração, status, caminhão) sem grade; o caminhão abre a Timeline dele.
+
 ## Gestão de alertas · 16/10/2026
 - Tela nova **Gestão de alertas** (menu Ao vivo): Fila com nota e "Por que essa nota?", ações (Visto, Resolver, Silenciar, Era/Não era problema), Histórico de 90 dias, Filtro inteligente com simulador dos últimos 7 dias e sugestões, Destinatários e Saúde.
 - Visual minimalista escolhido pelo dono: abas de texto, visões com contagem, números numa linha, "+ Filtro" em pílulas, tabela sem grade, detalhe ao lado e página toda branca.

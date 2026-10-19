@@ -36,6 +36,6 @@ test("Dentro do Portal SGE: barra se apresenta, logo volta ao início do portal 
 test("Fora do portal nada muda: sem botão Sair", async ({ page }) => {
   await prepararDados(page);
   await page.goto("/frota/");
-  await expect(page.getByRole("tab", { name: "Por vaga (igual ao GAUSS)" })).toBeVisible();
+  await expect(page.getByRole("tablist", { name: "Tipo de vaga" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sair" })).toHaveCount(0);
 });
