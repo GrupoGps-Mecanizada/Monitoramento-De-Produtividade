@@ -96,19 +96,19 @@ function linhaInstante(a: AlertaEnvio, cab: string): string {
         ? `saiu ${hhmm(a.ini)}, +${Math.round((a.ini - a.ref) / 60)} min`
         : "ainda no Pátio"
       : `chegou ${hhmm(a.ini)}, ${Math.round((a.ref - a.ini) / 60)} min antes`;
-  return `> ${cab} — ${juntar(quanto, sup(a))}`;
+  return `${cab} — ${juntar(quanto, sup(a))}`;
 }
 
 /** Regras que duram: três linhas (quem, o quê e onde, desde quando e o supervisor). */
 function linhasDuracao(a: AlertaEnvio, cab: string): string[] {
   const onde = a.local ? ` em ${nomeLocal(a.local)}` : "";
   const oque = a.regra === "velocidade" ? `A ${a.detalhe}${onde}` : `${ACAO[a.regra] ?? `${ROTULO_REGRA[a.regra as RegraExcecao] ?? a.regra} ·`} ${a.detalhe}${onde}`;
-  return [`> ${cab}`, `> ${oque}`, `> ${juntar(`desde ${hhmm(a.ini)}`, sup(a))}`];
+  return [cab, oque, juntar(`desde ${hhmm(a.ini)}`, sup(a))];
 }
 
 /**
- * Uma mensagem só, agrupada por tipo (modelo A escolhido pelo dono, 19/10/2026): título com a quantidade e cada
- * caminhão em citação (a barra lateral do WhatsApp). *negrito*, _itálico_ e "> " são a formatação do próprio WhatsApp.
+ * Uma mensagem só, agrupada por tipo, no formato que o dono mandou (19/10/2026): o título de cada tipo em citação
+ * (a barra lateral do WhatsApp) e os caminhões logo abaixo, fora dela. *negrito*, _itálico_ e "> " são do WhatsApp.
  */
 export function montarMensagem(alertas: AlertaEnvio[], agora: Date): string {
   const mostrados = alertas.slice(0, MAX_ITENS);
@@ -124,21 +124,22 @@ export function montarMensagem(alertas: AlertaEnvio[], agora: Date): string {
       const cab = `*${a.placa}*${a.vaga ? ` · ${vagaCurta(a.vaga)}` : ""}`;
       return instante ? [linhaInstante(a, cab)] : linhasDuracao(a, cab);
     });
-    // entre caminhões de várias linhas, uma linha de citação vazia separa sem quebrar a barra lateral
-    const corpo = instante ? itens.flat() : itens.flatMap((l, i) => (i ? [">", ...l] : l));
+    // caminhões de várias linhas separados por uma linha em branco; os de uma linha só, um embaixo do outro
+    const corpo = instante ? itens.flat() : itens.flatMap((l, i) => (i ? ["", ...l] : l));
     // título curto: o tempo de cada um já vem na linha ("Motor desligado 1 h" vira "Motor desligado")
     const titulo = (ROTULO_REGRA[regra as RegraExcecao] ?? regra).replace(/ acima de 1 h$| 1 h$/, "");
-    blocos.push([`${icone} *${titulo}* · ${total}`, ...corpo].join("\n"));
+    blocos.push([`> ${icone} *${titulo}* · ${total}`, ...corpo].join("\n"));
   }
   const resto = alertas.length - MAX_ITENS;
   return [
-    "🚛 *ALERTAS DA FROTA*",
+    "🚛 *ALERTAS AUTOMATICO DA FROTA*",
     `_${quando(agora)}_`,
     "",
     blocos.join("\n\n"),
     ...(resto > 0 ? ["", `+${resto} outros: veja na Gestão de alertas`] : []),
     "",
-    "_Gestão de alertas · Monitoramento_",
+    "",
+    "_Gestão de alertas · GrupoGPS_",
   ].join("\n");
 }
 
