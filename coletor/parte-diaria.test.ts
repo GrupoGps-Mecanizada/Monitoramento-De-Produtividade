@@ -5,11 +5,13 @@ import {
   camposDoObjeto,
   camposFiltro,
   coletarParteDiaria,
+  compararParte,
   conferirChamada,
   lerLinha,
   type ControleParteDiaria,
   type DepsParteDiaria,
   type LinhaParteDiaria,
+  type LinhaResumo,
 } from "./parte-diaria";
 
 // uma programação como o GAUSS devolve (formato da tela em 18/10/2026; nomes e telefones trocados)
@@ -91,7 +93,7 @@ describe("leitura", () => {
   });
 });
 
-function fake(o: { controle?: ControleParteDiaria | null; solicitacoes?: number; falha?: boolean } = {}) {
+function fake(o: { controle?: ControleParteDiaria | null; solicitacoes?: number; falha?: boolean; atuais?: LinhaResumo[] } = {}) {
   let controle = o.controle ?? null;
   const dias: string[] = [];
   const gravados: { dia: string; linhas: LinhaParteDiaria[] }[] = [];
@@ -111,6 +113,7 @@ function fake(o: { controle?: ControleParteDiaria | null; solicitacoes?: number;
       // a segunda solicitação repete a programação da primeira
       return [{ ...PROG, programmed_date_day: br, request_number: "7" }];
     },
+    atuais: async () => o.atuais ?? [],
     gravar: async (dia, linhas) => {
       gravados.push({ dia, linhas });
     },
@@ -118,44 +121,70 @@ function fake(o: { controle?: ControleParteDiaria | null; solicitacoes?: number;
   return { deps, dias, gravados, controle: () => controle };
 }
 
-const AGORA = new Date("2026-10-18T10:00:00");
+const em = (h: string) => new Date(`2026-10-18T${h}:00`);
+const feito = (feitos: string[], atrasados: string[] = []): ControleParteDiaria => ({ dia: "2026-10-18", feitos, atrasados });
 
-describe("ritmo da coleta", () => {
-  it("primeira vez: ontem, depois hoje, depois os dias atrasados um por execução", async () => {
+describe("ritmo da coleta (de 3 em 3 horas)", () => {
+  it("primeira vez: o horário vencido mais recente, depois os dias atrasados um por execução", async () => {
     const f = fake();
-    await coletarParteDiaria(f.deps, AGORA);
-    await coletarParteDiaria(f.deps, new Date("2026-10-18T10:05:00"));
-    await coletarParteDiaria(f.deps, new Date("2026-10-18T10:10:00"));
-    expect(f.dias).toEqual(["2026-10-17", "2026-10-18", "2026-10-16"]);
+    await coletarParteDiaria(f.deps, em("10:00"));
+    await coletarParteDiaria(f.deps, em("10:05"));
+    await coletarParteDiaria(f.deps, em("10:10"));
+    // 10:00: vencidos 00:30 (ontem), 06:00 e 09:00 (hoje); o mais recente primeiro
+    expect(f.dias).toEqual(["2026-10-18", "2026-10-17", "2026-10-16"]);
+    expect(f.controle()!.feitos).toEqual(["06:00", "09:00", "00:30"]);
     expect(f.controle()!.atrasados).toHaveLength(DIAS_INICIAIS - 2);
     // repetida entre solicitações: grava uma só
     expect(f.gravados[0].linhas).toHaveLength(1);
   });
-  it("hoje de novo só depois de 30 min", async () => {
-    const f = fake({ controle: { hoje_em: AGORA.toISOString(), ontem: "2026-10-17", atrasados: [] } });
-    expect(await coletarParteDiaria(f.deps, new Date("2026-10-18T10:20:00"))).toBeNull();
-    expect(await coletarParteDiaria(f.deps, new Date("2026-10-18T10:31:00"))).toMatch(/2026-10-18 \(hoje\)/);
+  it("entre um horário e outro não busca nada", async () => {
+    const f = fake({ controle: feito(["00:30", "06:00", "09:00"]) });
+    expect(await coletarParteDiaria(f.deps, em("11:30"))).toBeNull();
+    expect(await coletarParteDiaria(f.deps, em("12:01"))).toMatch(/2026-10-18 \(hoje 12:00\)/);
   });
-  it("virou o dia: fecha ontem antes de hoje", async () => {
-    const f = fake({ controle: { hoje_em: "2026-10-18T23:50:00", ontem: "2026-10-17", atrasados: [] } });
-    await coletarParteDiaria(f.deps, new Date("2026-10-19T00:05:00"));
+  it("às 17:00 busca a parte de amanhã (sai ~16:30)", async () => {
+    const f = fake({ controle: feito(["00:30", "06:00", "09:00", "12:00", "15:00"]) });
+    expect(await coletarParteDiaria(f.deps, em("17:02"))).toMatch(/2026-10-19 \(amanha 17:00\)/);
+  });
+  it("virou o dia: 00:30 fecha ontem", async () => {
+    const f = fake({ controle: feito(["00:30", "06:00", "09:00", "12:00", "15:00", "17:00", "18:00", "20:00", "21:00", "23:00"]) });
+    expect(await coletarParteDiaria(f.deps, new Date("2026-10-19T00:20:00"))).toBeNull();
+    await coletarParteDiaria(f.deps, new Date("2026-10-19T00:31:00"));
     expect(f.dias).toEqual(["2026-10-18"]);
-    expect(f.controle()!.ontem).toBe("2026-10-18");
+    expect(f.controle()).toMatchObject({ dia: "2026-10-19", feitos: ["00:30"] });
   });
   it("dia vazio no GAUSS não apaga o que já estava gravado", async () => {
     const f = fake({ solicitacoes: 0 });
-    await coletarParteDiaria(f.deps, AGORA);
+    await coletarParteDiaria(f.deps, em("10:00"));
     expect(f.gravados).toEqual([]);
   });
   it("falhou: espera 30 min antes de tentar de novo", async () => {
     const f = fake({ falha: true });
-    await expect(coletarParteDiaria(f.deps, AGORA)).rejects.toThrow();
-    expect(await coletarParteDiaria(f.deps, new Date("2026-10-18T10:05:00"))).toBeNull();
+    await expect(coletarParteDiaria(f.deps, em("10:00"))).rejects.toThrow();
+    expect(await coletarParteDiaria(f.deps, em("10:05"))).toBeNull();
     expect(f.dias).toHaveLength(1);
   });
   it("execução que já gastou mais de 4 min deixa para a próxima", async () => {
     const f = fake();
-    expect(await coletarParteDiaria(f.deps, new Date("2026-10-18T10:05:00"), AGORA)).toBeNull();
+    expect(await coletarParteDiaria(f.deps, em("10:05"), em("10:00"))).toBeNull();
     expect(f.dias).toEqual([]);
+  });
+  it("diz o que mudou desde a busca anterior", async () => {
+    const f = fake({ controle: feito(["00:30", "06:00"]), atuais: [{ chave: "velha", solicitacao: "1", vaga: "AP 01", inicio: "07:00", fim: "19:00", local_origem: "X", endereco: "Y" }] });
+    expect(await coletarParteDiaria(f.deps, em("09:01"))).toMatch(/1 nova\(s\), 1 cancelada\(s\)/);
+  });
+});
+
+describe("o que mudou", () => {
+  const base: LinhaResumo = { chave: "S1|530|2026-10-18|07:00", solicitacao: "S1", vaga: "AP 01", inicio: "07:00", fim: "19:00", local_origem: "ACIARIA 1", endereco: "RUA 19" };
+  it("nova, cancelada, trocada de equipamento e alterada", () => {
+    const trocada = { ...base, chave: "S1|531|2026-10-18|07:00", vaga: "AP 02" };
+    const outra = { ...base, chave: "S2|530|2026-10-18|07:00", solicitacao: "S2" };
+    const cancelada = { ...base, chave: "S3|530|2026-10-18|07:00", solicitacao: "S3" };
+    const mantida = { ...base, chave: "S4|530|2026-10-18|07:00", solicitacao: "S4" };
+    expect(compararParte([base, cancelada, mantida], [trocada, outra, { ...mantida, endereco: "RUA 20" }])).toEqual({ novas: 1, canceladas: 1, trocadas: 1, alteradas: 1 });
+  });
+  it("igual: nada mudou", () => {
+    expect(compararParte([base], [base])).toEqual({ novas: 0, canceladas: 0, trocadas: 0, alteradas: 0 });
   });
 });

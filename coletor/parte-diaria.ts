@@ -7,8 +7,9 @@
 // Sem nomes e sem telefones: a resposta traz solicitante, beneficiário e contatos, que NÃO são gravados. O texto
 // livre "details" também fica de fora (às vezes cita pessoas). Da "obs" ficam só os campos da operação.
 //
-// Ritmo: hoje a cada 30 min (a programação muda ao longo do dia); ontem uma vez depois da virada (fecha o dia);
-// e, na primeira vez, os últimos DIAS_INICIAIS dias, um por execução.
+// Ritmo: horários fixos (HORARIOS): amanhã depois que a parte sai (~16:30), hoje e ontem
+// depois da meia-noite, de 3 em 3 horas (cerca de 10 buscas por dia); na primeira vez, os últimos DIAS_INICIAIS dias,
+// um por execução. Cada busca compara com a anterior: nova, cancelada, trocada de equipamento ou alterada.
 import { diaLocal } from "../src/lib/dominio/formato";
 import type { Campo, GaussFleetClient } from "./gauss";
 import { db, kvGet, kvSet, ok } from "./supabase";
@@ -17,7 +18,7 @@ export const ENDERECO = "/data/hard-vehicle/logistic-inbound/service-printing/";
 const PRESTADOR_GPS = 13;
 // Aspirador, Caminhão Alta Pressão, Auto Vácuo, Brook, Hiper Vácuo (os grupos marcados na tela)
 const GRUPOS = [2, 1, 131, 4, 16];
-export const INTERVALO_HOJE_MS = 30 * 60 * 1000;
+export const ESPERA_FALHA_MS = 30 * 60 * 1000;
 export const DIAS_INICIAIS = 10;
 // a execução tem 8 min no GitHub: com mais que isso já gasto, fica para a próxima
 export const ORCAMENTO_INICIO_MS = 4 * 60 * 1000;
@@ -174,10 +175,10 @@ export function lerLinha(g: Record<string, unknown>, coletadoEm: string): LinhaP
 
 /** Guardado em loc_kv "parte_diaria". */
 export interface ControleParteDiaria {
-  /** última coleta de hoje (ISO) */
-  hoje_em: string | null;
-  /** último "ontem" fechado */
-  ontem: string | null;
+  /** dia (local) a que se referem os horários feitos */
+  dia: string;
+  /** horários do dia já feitos ("06:00", "17:00"...) */
+  feitos: string[];
   /** dias antigos que faltam (os mais novos primeiro) */
   atrasados: string[];
   /** depois de uma falha, não tenta de novo antes disso (ISO) */
@@ -191,8 +192,45 @@ export interface DepsParteDiaria {
   listar(dia: string): Promise<Record<string, unknown>[]>;
   /** As programações de uma solicitação. */
   programacoes(solicitacao: Record<string, unknown>): Promise<Record<string, unknown>[]>;
+  /** O que já está gravado do dia (para saber o que mudou). */
+  atuais(dia: string): Promise<LinhaResumo[]>;
   /** Grava as linhas do dia e apaga as que sumiram do GAUSS (coletadas antes de coletadoEm). */
   gravar(dia: string, linhas: LinhaParteDiaria[], coletadoEm: string): Promise<void>;
+}
+
+/** O que basta para comparar duas buscas do mesmo dia. */
+export type LinhaResumo = Pick<LinhaParteDiaria, "chave" | "solicitacao" | "vaga" | "inicio" | "fim" | "local_origem" | "endereco">;
+
+export interface Mudancas {
+  novas: number;
+  canceladas: number;
+  /** mesma solicitação e horário, outra vaga (outro equipamento) */
+  trocadas: number;
+  /** mesma programação com fim, local ou endereço diferente */
+  alteradas: number;
+}
+
+/** O que mudou entre a busca anterior e a nova do mesmo dia. */
+export function compararParte(antes: LinhaResumo[], depois: LinhaResumo[]): Mudancas {
+  const porChave = new Map(antes.map((l) => [l.chave, l]));
+  const novasChaves = new Set(depois.map((l) => l.chave));
+  const sumiram = antes.filter((l) => !novasChaves.has(l.chave));
+  const entraram = depois.filter((l) => !porChave.has(l.chave));
+  const slot = (l: LinhaResumo) => `${l.solicitacao}|${l.inicio}`;
+  const sumiuPorSlot = new Map(sumiram.map((l) => [slot(l), l]));
+  let trocadas = 0;
+  for (const l of entraram) {
+    if (sumiuPorSlot.has(slot(l))) {
+      trocadas++;
+      sumiuPorSlot.delete(slot(l));
+    }
+  }
+  let alteradas = 0;
+  for (const l of depois) {
+    const a = porChave.get(l.chave);
+    if (a && (a.fim !== l.fim || a.local_origem !== l.local_origem || a.endereco !== l.endereco)) alteradas++;
+  }
+  return { novas: entraram.length - trocadas, canceladas: sumiuPorSlot.size, trocadas, alteradas };
 }
 
 const diaAntes = (dia: string, n: number) => {
@@ -201,14 +239,39 @@ const diaAntes = (dia: string, n: number) => {
   return diaLocal(d);
 };
 
-/** Qual dia buscar agora: ontem (uma vez), hoje (a cada 30 min) ou um dia atrasado. */
-export function escolherDia(c: ControleParteDiaria, agora: Date): { dia: string; tipo: "ontem" | "hoje" | "atrasado" } | null {
-  const hoje = diaLocal(agora);
-  const ontem = diaAntes(hoje, 1);
+type Tipo = "ontem" | "hoje" | "amanha" | "atrasado";
+
+/** Horários do dia (local), de 3 em 3 horas. O controlador do transporte solta a parte de amanhã por volta das
+ * 16:30 e ainda pode mudar (atualizar, cancelar, trocar o equipamento): cada busca compara com a anterior. Ontem é
+ * fechado depois da meia-noite. */
+export const HORARIOS: { hora: string; tipo: Exclude<Tipo, "atrasado"> }[] = [
+  { hora: "00:30", tipo: "ontem" },
+  { hora: "06:00", tipo: "hoje" },
+  { hora: "09:00", tipo: "hoje" },
+  { hora: "12:00", tipo: "hoje" },
+  { hora: "15:00", tipo: "hoje" },
+  { hora: "17:00", tipo: "amanha" },
+  { hora: "18:00", tipo: "hoje" },
+  { hora: "20:00", tipo: "amanha" },
+  { hora: "21:00", tipo: "hoje" },
+  { hora: "23:00", tipo: "amanha" },
+];
+
+const horaLocal = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+/** O que buscar agora: o horário vencido mais recente que falta (os anteriores do mesmo tipo ficam valendo como
+ * feitos: a busca mais nova já traz a parte atualizada) ou, sem horário vencido, um dia atrasado. */
+export function escolherDia(c: ControleParteDiaria, agora: Date): { dia: string; tipo: Tipo; horas: string[] } | null {
   if (c.espera_ate && agora.getTime() < new Date(c.espera_ate).getTime()) return null;
-  if (c.ontem !== ontem) return { dia: ontem, tipo: "ontem" };
-  if (!c.hoje_em || agora.getTime() - new Date(c.hoje_em).getTime() >= INTERVALO_HOJE_MS || diaLocal(new Date(c.hoje_em)) !== hoje) return { dia: hoje, tipo: "hoje" };
-  if (c.atrasados.length) return { dia: c.atrasados[0], tipo: "atrasado" };
+  const hoje = diaLocal(agora);
+  const feitos = c.dia === hoje ? c.feitos : [];
+  const vencidos = HORARIOS.filter((h) => h.hora <= horaLocal(agora) && !feitos.includes(h.hora));
+  const ultimo = vencidos.at(-1);
+  if (ultimo) {
+    const dia = ultimo.tipo === "ontem" ? diaAntes(hoje, 1) : ultimo.tipo === "amanha" ? diaAntes(hoje, -1) : hoje;
+    return { dia, tipo: ultimo.tipo, horas: vencidos.filter((h) => h.tipo === ultimo.tipo).map((h) => h.hora) };
+  }
+  if (c.atrasados.length) return { dia: c.atrasados[0], tipo: "atrasado", horas: [] };
   return null;
 }
 
@@ -216,17 +279,21 @@ export function escolherDia(c: ControleParteDiaria, agora: Date): { dia: string;
 export async function coletarParteDiaria(deps: DepsParteDiaria, agora: Date, inicioExecucao: Date = agora): Promise<string | null> {
   if (agora.getTime() - inicioExecucao.getTime() > ORCAMENTO_INICIO_MS) return null;
   const hoje = diaLocal(agora);
-  const c: ControleParteDiaria = (await deps.lerControle()) ?? {
-    hoje_em: null,
-    ontem: null,
-    // ontem já entra pelo "ontem"; os atrasados são os dias antes dele
-    atrasados: Array.from({ length: DIAS_INICIAIS - 1 }, (_, i) => diaAntes(hoje, i + 2)),
-  };
+  const lido = await deps.lerControle();
+  const c: ControleParteDiaria = lido?.feitos
+    ? lido
+    : {
+        dia: hoje,
+        feitos: [],
+        // primeira vez: os últimos dias, um por execução (ontem entra pelo horário das 00:30 ou aqui)
+        atrasados: lido?.atrasados ?? Array.from({ length: DIAS_INICIAIS }, (_, i) => diaAntes(hoje, i + 1)),
+      };
   const alvo = escolherDia(c, agora);
   if (!alvo) return null;
   const coletadoEm = new Date().toISOString();
   let solicitacoes: Record<string, unknown>[];
   let unicas: LinhaParteDiaria[];
+  let mudancas: Mudancas | null = null;
   try {
     solicitacoes = await deps.listar(alvo.dia);
     const linhas: LinhaParteDiaria[] = [];
@@ -238,20 +305,28 @@ export async function coletarParteDiaria(deps: DepsParteDiaria, agora: Date, ini
     }
     // a mesma programação pode vir em duas solicitações da lista: fica uma
     unicas = [...new Map(linhas.map((l) => [l.chave, l])).values()];
-    // dia sem nada no GAUSS (ou resposta vazia por engano): não apaga o que já estava gravado
-    if (unicas.length) await deps.gravar(alvo.dia, unicas, coletadoEm);
+    // grava e apaga o que sumiu (cancelada ou trocada de equipamento). Dia sem nada no GAUSS (ou resposta vazia
+    // por engano): não apaga o que já estava gravado
+    if (unicas.length) {
+      const antes = await deps.atuais(alvo.dia);
+      if (antes.length) mudancas = compararParte(antes, unicas);
+      await deps.gravar(alvo.dia, unicas, coletadoEm);
+    }
   } catch (e) {
     // não insiste a cada 5 min
-    await deps.gravarControle({ ...c, espera_ate: new Date(agora.getTime() + INTERVALO_HOJE_MS).toISOString() });
+    await deps.gravarControle({ ...c, espera_ate: new Date(agora.getTime() + ESPERA_FALHA_MS).toISOString() });
     throw e;
   }
+  const feitos = c.dia === hoje ? c.feitos : [];
   await deps.gravarControle({
-    hoje_em: alvo.tipo === "hoje" ? agora.toISOString() : c.hoje_em,
-    ontem: alvo.tipo === "ontem" ? alvo.dia : c.ontem,
+    dia: hoje,
+    feitos: [...feitos, ...alvo.horas],
     atrasados: c.atrasados.filter((d) => d !== alvo.dia),
     espera_ate: null,
   });
-  return `${alvo.dia} (${alvo.tipo}): ${solicitacoes.length} solicitação(ões), ${unicas.length} programação(ões)`;
+  const m = mudancas;
+  const mudou = m ? (m.novas + m.canceladas + m.trocadas + m.alteradas ? `; mudou: ${m.novas} nova(s), ${m.canceladas} cancelada(s), ${m.trocadas} trocada(s) de equipamento, ${m.alteradas} alterada(s)` : "; sem mudança") : "";
+  return `${alvo.dia} (${alvo.tipo}${alvo.horas.length ? ` ${alvo.horas.at(-1)}` : ""}): ${solicitacoes.length} solicitação(ões), ${unicas.length} programação(ões)${mudou}`;
 }
 
 export function depsReais(client: GaussFleetClient): DepsParteDiaria {
@@ -268,6 +343,7 @@ export function depsReais(client: GaussFleetClient): DepsParteDiaria {
     },
     listar: (dia) => chamar(camposFiltro(dia)),
     programacoes: (s) => chamar([...camposDoObjeto(s).filter(([k]) => k !== "action"), ["action", "list-by-request_number"]]),
+    atuais: async (dia) => ((await ok(db().from("parte_diaria").select("chave, solicitacao, vaga, inicio, fim, local_origem, endereco").eq("dia", dia))) ?? []) as LinhaResumo[],
     gravar: async (dia, linhas, coletadoEm) => {
       await ok(db().from("parte_diaria").upsert(linhas, { onConflict: "chave" }));
       await ok(db().from("parte_diaria").delete().eq("dia", dia).lt("coletado_em", coletadoEm));
