@@ -22,7 +22,8 @@ const BASE = [
 const ids = (xs: AlertaGravado[]) => xs.map((a) => a.id).sort((a, b) => a - b);
 
 describe("filtrar", () => {
-  it("padrão: hoje, na fila (aberto e visto)", () => expect(ids(filtrar(BASE, f(), HOJE))).toEqual([1, 2]));
+  it("padrão: hoje, os que vão para o WhatsApp", () => expect(ids(filtrar(BASE, f(), HOJE))).toEqual([1, 2, 4]));
+  it("não enviados: o que não vai ao WhatsApp", () => expect(ids(filtrar(BASE, f({ cartao: "nao_enviados" }), HOJE))).toEqual([3]));
   it("períodos: ontem, 7 e 30 dias", () => {
     expect(ids(filtrar(BASE, f({ periodo: "ontem", cartao: null }), HOJE))).toEqual([5]);
     expect(ids(filtrar(BASE, f({ periodo: "7", cartao: null }), HOJE))).toEqual([1, 2, 3, 4, 5]);
@@ -49,7 +50,7 @@ describe("filtrar", () => {
 
 describe("contagens (um filtra o outro)", () => {
   it("cartões contam com os outros filtros, menos o próprio cartão", () => {
-    expect(contarCartoes(BASE, f({ supervisor: "Donizete" }), HOJE)).toEqual({ fila: 1, whatsapp: 1, resumo: 1, resolvidos: 1, silenciados: 0 });
+    expect(contarCartoes(BASE, f({ supervisor: "Donizete" }), HOJE)).toEqual({ fila: 1, whatsapp: 1, resumo: 1, resolvidos: 1, silenciados: 0, nao_enviados: 1 });
   });
   it("opções de regra respeitam o supervisor escolhido, com contagem, da maior para a menor", () => {
     expect(opcoes(BASE, f({ cartao: null, supervisor: "Donizete" }), HOJE, "regra")).toEqual([
@@ -94,14 +95,14 @@ describe("agrupar", () => {
 
 describe("visões salvas", () => {
   it("cada visão aplica cartão e atalho; contam com os outros filtros (período, supervisor...)", () => {
-    expect(contarVisoes(BASE, f({ periodo: "7" }), HOJE)).toEqual({ fila: 3, whatsapp: 4, graves: 2, sem_avaliacao: 4, resolvidos: 1, todos: 5 });
-    expect(contarVisoes(BASE, f({ supervisor: "Donizete" }), HOJE)).toMatchObject({ fila: 1, todos: 2 });
+    expect(contarVisoes(BASE, f({ periodo: "7" }), HOJE)).toEqual({ whatsapp: 4, nao_enviados: 1, todos: 5 });
+    expect(contarVisoes(BASE, f({ supervisor: "Donizete" }), HOJE)).toEqual({ whatsapp: 1, nao_enviados: 1, todos: 2 });
   });
   it("visão atual a partir dos filtros; combinação fora das visões = null", () => {
-    expect(visaoAtual(f())).toBe("fila");
-    expect(visaoAtual(f({ cartao: null, atalho: "graves" }))).toBe("graves");
-    expect(visaoAtual(f({ cartao: "fila", atalho: "graves" }))).toBeNull();
-    expect(VISOES.map((v) => v.id)).toEqual(["fila", "whatsapp", "graves", "sem_avaliacao", "resolvidos", "todos"]);
+    expect(visaoAtual(f())).toBe("whatsapp");
+    expect(visaoAtual(f({ cartao: null }))).toBe("todos");
+    expect(visaoAtual(f({ cartao: "fila" }))).toBeNull();
+    expect(VISOES.map((v) => v.id)).toEqual(["whatsapp", "nao_enviados", "todos"]);
   });
 });
 

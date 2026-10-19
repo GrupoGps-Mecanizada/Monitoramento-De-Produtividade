@@ -74,12 +74,9 @@ export function frase(s: RegraSimples, resumoHora: string): { oque: string; dest
     s.regra === "saida_tarde" || s.regra === "chegada_cedo"
       ? `${r}${apos ? `, mais de ${tempo(apos)} ${s.regra === "saida_tarde" ? "de atraso" : "antes do horário"}` : ""}`
       : `${r.replace(/ acima de 1 h| 1 h/, "")}${apos || BASE_MIN[s.regra] ? ` por mais de ${tempo(apos ?? BASE_MIN[s.regra])}` : ""}`;
-  const destino =
-    s.nivel === "whatsapp"
-      ? ["WhatsApp para o supervisor da vaga", ...(s.coordenadorApos ? [`depois de ${tempo(s.coordenadorApos)}, também o coordenador`] : [])]
-      : s.nivel === "resumo"
-        ? [`só no resumo diário das ${resumoHora.slice(0, 5)}`]
-        : ["só aparece na tela"];
+  // só importa mandar ou não no WhatsApp (pedido do dono, 19/10/2026); resumoHora fica para o resumo diário da etapa 4
+  void resumoHora;
+  const destino = [s.nivel === "whatsapp" ? "envia no WhatsApp" : "não envia"];
   return { oque, destino };
 }
 

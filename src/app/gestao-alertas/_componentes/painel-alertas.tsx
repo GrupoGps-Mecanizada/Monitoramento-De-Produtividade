@@ -1,15 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Aviso, Vazio, cx } from "@/components/ui";
-import { marcarVistoVarios, resolverVarios } from "@/lib/dados/alertas";
+import { Vazio, cx } from "@/components/ui";
 import {
   FILTROS_PADRAO,
   PERIODOS,
-  ROTULO_DESTINO,
   SEM_SUPERVISOR,
   VISOES,
-  contarCartoes,
   contarVisoes,
   etiquetas,
   filtrar,
@@ -17,48 +14,20 @@ import {
   ordenar,
   rotuloRegra,
   visaoAtual,
-  type Cartao,
   type Coluna,
   type FiltrosAlertas,
   type Periodo,
   type Visao,
 } from "@/lib/dominio/alertas/fila";
 import type { AlertaGravado } from "@/lib/dominio/alertas/gestao";
-import type { Destino } from "@/lib/dominio/alertas/nota";
 import { fmtHora, rotuloDia } from "@/lib/dominio/formato";
 import { corDoTom } from "@/lib/cores";
-import { AbasTexto, NotaSelo, Pilula, ROTULO_SITUACAO, TOM_SITUACAO, erroTexto } from "./comum";
+import { AbasTexto, Pilula } from "./comum";
 import { DetalheAlerta } from "./detalhe";
 
 const MAX_LINHAS = 400;
 
-/** "6 na fila · 3 WhatsApp · 2 resumo · 9 resolvidos · 1 silenciado" — cada número leva à visão dele (modelo 17). */
-function Numeros({ contas, ir }: { contas: Record<Cartao, number>; ir: (v: Visao | "resumo" | "silenciados") => void }) {
-  const itens: [number, string, Visao | "resumo" | "silenciados", boolean?][] = [
-    [contas.fila, "na fila", "fila"],
-    [contas.whatsapp, "vão para o WhatsApp", "whatsapp", true],
-    [contas.resumo, "só no resumo", "resumo"],
-    [contas.resolvidos, "resolvidos", "resolvidos"],
-    [contas.silenciados, contas.silenciados === 1 ? "silenciado" : "silenciados", "silenciados"],
-  ];
-  return (
-    <p className="text-sm text-suave">
-      {itens.map(([n, t, v, forte], i) => (
-        <span key={v}>
-          {i > 0 && <span className="mx-2">·</span>}
-          <button type="button" onClick={() => ir(v)} className="hover:text-texto">
-            <b className="tabular-nums text-texto" style={forte && n ? { color: corDoTom("bad") } : undefined}>
-              {n}
-            </b>{" "}
-            {t}
-          </button>
-        </span>
-      ))}
-    </p>
-  );
-}
-
-/** "+ Filtro": menu com regra, supervisor e destino, cada opção com a contagem (só o que existe com os outros filtros). */
+/** "+ Filtro": menu com regra e supervisor, cada opção com a contagem (só o que existe com os outros filtros). */
 function MaisFiltro({ alertas, f, mudar, hoje }: { alertas: AlertaGravado[]; f: FiltrosAlertas; mudar: (p: Partial<FiltrosAlertas>) => void; hoje: string }) {
   const [aberto, setAberto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -73,10 +42,9 @@ function MaisFiltro({ alertas, f, mudar, hoje }: { alertas: AlertaGravado[]; f: 
       document.removeEventListener("keydown", esc);
     };
   }, [aberto]);
-  const grupos: { dim: "regra" | "supervisor" | "destino"; titulo: string; texto: (v: string) => string }[] = [
+  const grupos: { dim: "regra" | "supervisor"; titulo: string; texto: (v: string) => string }[] = [
     { dim: "regra", titulo: "Regra", texto: rotuloRegra },
     { dim: "supervisor", titulo: "Supervisor", texto: (v) => v || SEM_SUPERVISOR },
-    { dim: "destino", titulo: "Destino", texto: (v) => ROTULO_DESTINO[v as Destino] },
   ];
   return (
     <div ref={ref} className="relative">
@@ -132,54 +100,32 @@ function Cabecalho({ col, rotulo, ord, mudar, className }: { col: Coluna; rotulo
   );
 }
 
-/** Aba Alertas: visões em abas, números em linha, filtros em pílulas, tabela sem grade e o detalhe ao lado (modelos 9, 17, 26, 32 e 40). */
-export function PainelAlertas({ alertas, hoje, email, aoMudar }: { alertas: AlertaGravado[]; hoje: string; email: string | null; aoMudar: () => void }) {
+/**
+ * Aba Alertas: só olhar o que vai e o que não vai para o WhatsApp (pedido do dono, 19/10/2026: sem marcar, sem
+ * supervisor/coordenador). Visões em abas, filtros em pílulas, tabela sem grade e o detalhe ao lado.
+ */
+export function PainelAlertas({ alertas, hoje }: { alertas: AlertaGravado[]; hoje: string }) {
   const [f, setF] = useState<FiltrosAlertas>(FILTROS_PADRAO);
-  const [ord, setOrd] = useState<{ col: Coluna; dir: "asc" | "desc" }>({ col: "nota", dir: "desc" });
-  const [marcados, setMarcados] = useState<Set<number>>(new Set());
+  const [ord, setOrd] = useState<{ col: Coluna; dir: "asc" | "desc" }>({ col: "hora", dir: "desc" });
   const [abertoId, setAbertoId] = useState<number | null>(null);
-  const [lote, setLote] = useState<{ ocupado: boolean; erro: string | null }>({ ocupado: false, erro: null });
   const mudar = (p: Partial<FiltrosAlertas>) => setF((x) => ({ ...x, ...p }));
   const visoes = useMemo(() => contarVisoes(alertas, f, hoje), [alertas, f, hoje]);
-  const contas = useMemo(() => contarCartoes(alertas, { ...f, atalho: null }, hoje), [alertas, f, hoje]);
   const lista = useMemo(() => ordenar(filtrar(alertas, f, hoje), ord.col, ord.dir), [alertas, f, hoje, ord]);
   const aberto = abertoId == null ? null : (alertas.find((a) => a.id === abertoId) ?? null);
-  const selecionados = lista.filter((a) => marcados.has(a.id));
-  const tags = etiquetas(f).filter((t) => t.dim !== "atalho");
+  const tags = etiquetas(f).filter((t) => t.dim === "regra" || t.dim === "supervisor" || t.dim === "busca");
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && !e.defaultPrevented && setAbertoId(null);
     document.addEventListener("keydown", esc);
     return () => document.removeEventListener("keydown", esc);
   }, []);
   const irVisao = (v: Visao) => mudar(VISOES.find((x) => x.id === v)!.filtro);
-  const marcar = (id: number, v: boolean) =>
-    setMarcados((s) => {
-      const n = new Set(s);
-      if (v) n.add(id);
-      else n.delete(id);
-      return n;
-    });
   const mudarOrdem = (col: Coluna) => setOrd((o) => (o.col === col ? { col, dir: o.dir === "asc" ? "desc" : "asc" } : { col, dir: col === "nota" || col === "hora" ? "desc" : "asc" }));
-  const emLote = async (fazer: () => Promise<unknown>) => {
-    setLote({ ocupado: true, erro: null });
-    try {
-      await fazer();
-      setMarcados(new Set());
-      setLote({ ocupado: false, erro: null });
-      aoMudar();
-    } catch (e) {
-      setLote({ ocupado: false, erro: erroTexto(e) });
-    }
-  };
   const visao = visaoAtual(f);
   const visiveis = lista.slice(0, MAX_LINHAS);
-  const todosMarcados = visiveis.length > 0 && visiveis.every((a) => marcados.has(a.id));
-  const acao = "text-[13px] font-medium text-link hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:no-underline";
 
   return (
     <div className="space-y-5">
       <AbasTexto<Visao> rotulo="Visões" valor={visao} mudar={irVisao} abas={VISOES.map((v) => ({ id: v.id, rotulo: v.rotulo, n: visoes[v.id] }))} />
-      <Numeros contas={contas} ir={(v) => (v === "resumo" ? mudar({ cartao: "resumo", atalho: null }) : v === "silenciados" ? mudar({ cartao: "silenciados", atalho: null }) : irVisao(v))} />
       <div role="group" aria-label="Filtros" className="flex flex-wrap items-center gap-2">
         <label className="inline-flex h-7 items-center gap-1 rounded-full border border-transparent bg-primaria-suave pl-3 pr-1 text-[13px]">
           <span className="text-suave">Período</span>
@@ -196,7 +142,7 @@ export function PainelAlertas({ alertas, hoje, email, aoMudar }: { alertas: Aler
         </label>
         {tags.map((t) => (
           <Pilula key={t.dim} ativa tirar={() => mudar({ [t.dim]: t.dim === "busca" ? "" : null })} rotulo={`Tirar filtro: ${t.texto}`}>
-            <span className="text-suave">{t.dim === "regra" ? "Regra" : t.dim === "supervisor" ? "Supervisor" : t.dim === "destino" ? "Destino" : "Busca"}</span>
+            <span className="text-suave">{t.dim === "regra" ? "Regra" : t.dim === "supervisor" ? "Supervisor" : "Busca"}</span>
             {t.texto}
           </Pilula>
         ))}
@@ -213,70 +159,46 @@ export function PainelAlertas({ alertas, hoje, email, aoMudar }: { alertas: Aler
 
       <div className={cx("grid gap-6", aberto && "lg:grid-cols-[minmax(0,1fr)_420px]")}>
         <section aria-label="Lista de alertas" className="min-w-0">
-          {selecionados.length > 0 && (
-            <div role="group" aria-label="Ações em lote" className="mb-2 flex flex-wrap items-center gap-4 text-[13px]">
-              <span>
-                <b className="tabular-nums">{selecionados.length}</b> marcados
-              </span>
-              <button type="button" className={acao} disabled={!email || lote.ocupado} title={email ? undefined : "Entre para usar as ações"} onClick={() => email && void emLote(() => marcarVistoVarios(selecionados.map((a) => a.id), email))}>
-                Marcar como visto
-              </button>
-              <button type="button" className={acao} disabled={!email || lote.ocupado} title={email ? undefined : "Entre para usar as ações"} onClick={() => void emLote(() => resolverVarios(selecionados.map((a) => a.id)))}>
-                Resolver
-              </button>
-              <button type="button" className="text-[13px] text-suave hover:text-texto" onClick={() => setMarcados(new Set())}>
-                Desmarcar
-              </button>
-              {lote.erro && <Aviso tipo="erro">{lote.erro}</Aviso>}
-            </div>
-          )}
           {visiveis.length ? (
             <div className="overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead className="text-left text-[11px] uppercase tracking-wider text-suave">
                   <tr className="border-b border-borda">
-                    <th className="w-8 py-2 pl-1">
-                      <input type="checkbox" checked={todosMarcados} onChange={(e) => visiveis.forEach((a) => marcar(a.id, e.target.checked))} aria-label="Marcar todos" />
-                    </th>
-                    <Cabecalho col="nota" rotulo="Nota" ord={ord} mudar={mudarOrdem} className="w-16" />
+                    <Cabecalho col="hora" rotulo="Hora" ord={ord} mudar={mudarOrdem} className="w-24 pl-1" />
                     <Cabecalho col="placa" rotulo="Placa" ord={ord} mudar={mudarOrdem} />
                     <Cabecalho col="regra" rotulo="Regra" ord={ord} mudar={mudarOrdem} />
                     <Cabecalho col="supervisor" rotulo="Supervisor" ord={ord} mudar={mudarOrdem} className={cx("hidden md:table-cell", aberto && "lg:hidden xl:table-cell")} />
-                    <Cabecalho col="hora" rotulo="Hora" ord={ord} mudar={mudarOrdem} />
-                    <th className={cx("hidden px-3 py-2 font-medium sm:table-cell", aberto && "lg:hidden")}>Situação</th>
+                    <th className="px-3 py-2 font-medium">WhatsApp</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {visiveis.map((a) => (
-                    <tr key={a.id} onClick={() => setAbertoId(a.id)} className={cx("cursor-pointer border-b border-borda/60 hover:bg-superficie-2", a.id === abertoId && "bg-primaria-suave hover:bg-primaria-suave")}>
-                      <td className="py-2 pl-1" onClick={(e) => e.stopPropagation()}>
-                        <input type="checkbox" checked={marcados.has(a.id)} onChange={(e) => marcar(a.id, e.target.checked)} aria-label={`Marcar ${a.placa} ${rotuloRegra(a.regra)}`} />
-                      </td>
-                      <td className="px-3 py-2">
-                        <NotaSelo a={a} />
-                      </td>
-                      <td className="px-3 py-2">
-                        <button type="button" onClick={() => setAbertoId(a.id)} className="font-semibold">
-                          {a.placa}
-                        </button>
-                      </td>
-                      <td className="max-w-[320px] px-3 py-2">
-                        <span className="block truncate">{rotuloRegra(a.regra)}</span>
-                        <span className="block truncate text-xs text-suave">{a.detalhe}</span>
-                      </td>
-                      <td className={cx("hidden px-3 py-2 text-suave md:table-cell", aberto && "lg:hidden xl:table-cell")}>{a.supervisor ?? "—"}</td>
-                      <td className="whitespace-nowrap px-3 py-2 tabular-nums text-suave">
-                        {f.periodo === "hoje" ? "" : `${rotuloDia(a.dia, hoje)} `}
-                        {fmtHora(a.ini).slice(0, 5)}
-                      </td>
-                      <td className={cx("hidden px-3 py-2 sm:table-cell", aberto && "lg:hidden")}>
-                        <span className="inline-flex items-center gap-1.5 text-suave">
-                          <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: corDoTom(TOM_SITUACAO[a.situacao]) }} />
-                          {ROTULO_SITUACAO[a.situacao]}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {visiveis.map((a) => {
+                    const vai = a.destino === "whatsapp";
+                    return (
+                      <tr key={a.id} onClick={() => setAbertoId(a.id)} className={cx("cursor-pointer border-b border-borda/60 hover:bg-superficie-2", a.id === abertoId && "bg-primaria-suave hover:bg-primaria-suave")}>
+                        <td className="whitespace-nowrap py-2 pl-1 pr-3 tabular-nums text-suave">
+                          {f.periodo === "hoje" ? "" : `${rotuloDia(a.dia, hoje)} `}
+                          {fmtHora(a.ini).slice(0, 5)}
+                        </td>
+                        <td className="px-3 py-2">
+                          <button type="button" onClick={() => setAbertoId(a.id)} className="font-semibold">
+                            {a.placa}
+                          </button>
+                        </td>
+                        <td className="max-w-[360px] px-3 py-2">
+                          <span className="block truncate">{rotuloRegra(a.regra)}</span>
+                          <span className="block truncate text-xs text-suave">{a.detalhe}</span>
+                        </td>
+                        <td className={cx("hidden px-3 py-2 text-suave md:table-cell", aberto && "lg:hidden xl:table-cell")}>{a.supervisor ?? "—"}</td>
+                        <td className="whitespace-nowrap px-3 py-2">
+                          <span className={cx("inline-flex items-center gap-1.5", !vai && "text-suave")}>
+                            <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: vai ? corDoTom("ok") : "var(--borda)" }} />
+                            {vai ? "Envia" : "Não envia"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
               {lista.length > MAX_LINHAS && <p className="py-3 text-[13px] text-suave">Mostrando {MAX_LINHAS} de {lista.length}. Use os filtros para achar o resto.</p>}
@@ -285,7 +207,7 @@ export function PainelAlertas({ alertas, hoje, email, aoMudar }: { alertas: Aler
             <Vazio titulo="Nenhum alerta aqui">Troque o período, escolha outra visão ou tire algum filtro.</Vazio>
           )}
         </section>
-        {aberto && <DetalheAlerta a={aberto} todos={alertas} hoje={hoje} email={email} fechar={() => setAbertoId(null)} abrir={(x) => setAbertoId(x.id)} aoMudar={aoMudar} />}
+        {aberto && <DetalheAlerta a={aberto} todos={alertas} hoje={hoje} fechar={() => setAbertoId(null)} abrir={(x) => setAbertoId(x.id)} />}
       </div>
     </div>
   );

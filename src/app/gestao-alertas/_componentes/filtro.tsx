@@ -5,18 +5,14 @@ import { Aviso, Botao, cx } from "@/components/ui";
 import { corDoTom } from "@/lib/cores";
 import { salvarPolitica, salvarRegra, type ConfigGestao } from "@/lib/dados/alertas";
 import type { ConfigRegra, FamiliaJust, Politica } from "@/lib/dominio/alertas/config";
-import { ROTULO_DESTINO } from "@/lib/dominio/alertas/fila";
 import { simular, sugestoes, type AlertaGravado } from "@/lib/dominio/alertas/gestao";
-import type { Destino } from "@/lib/dominio/alertas/nota";
 import { diaMenos } from "@/lib/dominio/analise";
 import { REGRAS, ROTULO_REGRA, type RegraExcecao } from "@/lib/dominio/excecoes";
 import { ROTULO_FAMILIA } from "@/lib/dominio/familias";
-import { BASE_MIN, O_QUE_VIGIA, comJustificativa, deConfig, frase, paraConfig, temJustificativa, type Nivel, type RegraSimples } from "@/lib/dominio/alertas/simples";
-import type { Tom } from "@/lib/tipos";
-import { CampoNumero, TOM_DESTINO, erroTexto } from "./comum";
+import { BASE_MIN, O_QUE_VIGIA, comJustificativa, deConfig, frase, paraConfig, temJustificativa, type RegraSimples } from "@/lib/dominio/alertas/simples";
+import { CampoNumero, erroTexto } from "./comum";
 
 const FAMILIAS_JUST: FamiliaJust[] = ["manutencao", "preparacao", "aguardando", "pausas", "logistica"];
-const DESTINOS: Destino[] = ["whatsapp", "resumo", "tela"];
 const faixasTexto = (c: ConfigRegra) => (c.faixas.length ? [...c.faixas].sort((a, b) => a.acima_min - b.acima_min).map((f) => `>${f.acima_min} min +${f.pontos}`).join(" · ") : "—");
 const Titulo = ({ children }: { children: ReactNode }) => <p className="text-[11px] font-semibold uppercase tracking-wider text-suave">{children}</p>;
 
@@ -87,7 +83,7 @@ function EditorRegra({ c, mudar, fechar }: { c: ConfigRegra; mudar: (c: ConfigRe
   );
 }
 
-/** Assistente "Novo alerta" / "Editar": 3 perguntas e a frase de como vai ficar (ao lado da lista, modelo 32). */
+/** Assistente "Novo alerta" / "Editar": 2 perguntas e a frase de como vai ficar (ao lado da lista, modelo 32). */
 function Assistente({
   inicial,
   ligados,
@@ -102,19 +98,15 @@ function Assistente({
   fechar: () => void;
 }) {
   const [regra, setRegra] = useState<RegraExcecao | null>(inicial?.regra ?? null);
-  const [nivel, setNivel] = useState<Nivel>(inicial?.nivel ?? "whatsapp");
   const [apos, setApos] = useState<number>(inicial?.apos ?? (inicial ? BASE_MIN[inicial.regra] : 0));
-  const [coord, setCoord] = useState(!!inicial?.coordenadorApos);
-  const [coordMin, setCoordMin] = useState(inicial?.coordenadorApos || 120);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const escolher = (r: RegraExcecao) => {
     setRegra(r);
     setApos(BASE_MIN[r]);
   };
-  const pronto: RegraSimples | null = regra
-    ? { regra, ativa: true, nivel, apos: apos > BASE_MIN[regra] ? apos : null, coordenadorApos: nivel === "whatsapp" && coord && coordMin ? coordMin : null }
-    : null;
+  // só importa mandar ou não no WhatsApp (pedido do dono, 19/10/2026): sem coordenador, sem resumo
+  const pronto: RegraSimples | null = regra ? { regra, ativa: true, nivel: "whatsapp", apos: apos > BASE_MIN[regra] ? apos : null, coordenadorApos: null } : null;
   const previa = pronto && frase(pronto, pol.resumo_hora);
   const passo = "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-texto text-xs font-semibold text-superficie";
   async function confirmar() {
@@ -128,11 +120,6 @@ function Assistente({
       setOcupado(false);
     }
   }
-  const opcoesNivel: [Nivel, string][] = [
-    ["whatsapp", "Supervisor da vaga, no WhatsApp"],
-    ["resumo", `Só no resumo diário das ${pol.resumo_hora.slice(0, 5)}`],
-    ["tela", "Ninguém: só aparece na tela"],
-  ];
   return (
     <aside aria-label={inicial ? "Editar alerta" : "Novo alerta"} className="min-w-0 space-y-6 lg:sticky lg:top-4 lg:self-start lg:border-l lg:border-borda lg:pl-6">
       <header className="flex items-start gap-3">
@@ -162,7 +149,7 @@ function Assistente({
                 className={cx("block w-full rounded-lg px-3 py-2 text-left text-[13px] hover:bg-superficie-2", regra === r && "bg-primaria-suave hover:bg-primaria-suave")}
               >
                 <b>{ROTULO_REGRA[r]}</b>
-                {ligados.includes(r) && <span className="ml-2 rounded bg-superficie-2 px-1.5 text-[11px] text-suave">ligado</span>}
+                {ligados.includes(r) && <span className="ml-2 rounded bg-superficie-2 px-1.5 text-[11px] text-suave">já envia</span>}
                 <span className="block text-suave">{O_QUE_VIGIA[r]}</span>
               </button>
             ))}
@@ -171,48 +158,20 @@ function Assistente({
       </div>
       <fieldset disabled={!regra} className={cx("space-y-2", !regra && "opacity-40")}>
         <p className="flex items-center gap-2 font-medium">
-          <span className={passo}>2</span> Depois de quanto tempo?
+          <span className={passo}>2</span> Mandar no WhatsApp depois de quanto tempo?
         </p>
         <div className="flex flex-wrap items-center gap-2 pl-8 text-sm">
-          Avisar depois de
-          <CampoNumero valor={apos} min={regra ? BASE_MIN[regra] : 0} max={1440} mudar={setApos} aria-label="Avisar depois de (minutos)" />
+          Depois de
+          <CampoNumero valor={apos} min={regra ? BASE_MIN[regra] : 0} max={1440} mudar={setApos} aria-label="Mandar depois de (minutos)" />
           minutos
         </div>
-        <p className="pl-8 text-xs text-suave">
-          {regra && BASE_MIN[regra] ? `O sistema só percebe a partir de ${BASE_MIN[regra]} min. ` : "0 = assim que acontecer. "}
-          Antes desse tempo, o alerta fica um nível abaixo.
-        </p>
-      </fieldset>
-      <fieldset disabled={!regra} className={cx("space-y-2", !regra && "opacity-40")}>
-        <p className="flex items-center gap-2 font-medium">
-          <span className={passo}>3</span> Avisar quem?
-        </p>
-        <div role="radiogroup" aria-label="Avisar quem" className="space-y-1.5 pl-8 text-sm">
-          {opcoesNivel.map(([n, t]) => (
-            <label key={n} className="flex items-center gap-2">
-              <input type="radio" name="nivel" checked={nivel === n} onChange={() => setNivel(n)} />
-              {t}
-            </label>
-          ))}
-          {nivel === "whatsapp" && (
-            <label className="flex flex-wrap items-center gap-2 pt-1">
-              <input type="checkbox" checked={coord} onChange={(e) => setCoord(e.target.checked)} />
-              Se passar de
-              <CampoNumero valor={coordMin} min={1} max={1440} mudar={setCoordMin} aria-label="Chamar o coordenador depois de (minutos)" />
-              min, chamar também o coordenador
-            </label>
-          )}
-        </div>
+        <p className="pl-8 text-xs text-suave">{regra && BASE_MIN[regra] ? `O sistema só percebe a partir de ${BASE_MIN[regra]} min.` : "0 = assim que acontecer."}</p>
       </fieldset>
       {previa && (
         <div className="space-y-1 border-t border-borda pt-4 text-sm">
           <p className="text-xs uppercase tracking-wider text-suave">Vai ficar assim</p>
           <p className="font-medium">{previa.oque}</p>
-          {previa.destino.map((d) => (
-            <p key={d} className="text-suave">
-              → {d}
-            </p>
-          ))}
+          <p className="text-suave">→ {previa.destino[0]}</p>
         </div>
       )}
       <div className="flex gap-2">
@@ -228,37 +187,35 @@ function Assistente({
   );
 }
 
-const COR_NIVEL: Record<Nivel, Tom> = { whatsapp: "bad", resumo: "warn", tela: "na" };
+/** Envia no WhatsApp? (ligada e no nível WhatsApp) */
+const envia = (s: RegraSimples) => s.ativa && s.nivel === "whatsapp";
 
-/** Uma frase da lista: o que acontece, para onde vai, Editar e Pausar/Ligar. */
+/** Uma frase da lista: o que acontece, se envia, Editar e Ligar/Desligar. */
 function LinhaAlerta({ s, pol, w, aberto, editar, alternar }: { s: RegraSimples; pol: Politica; w: number; aberto: boolean; editar: () => void; alternar: () => void }) {
   const f = frase(s, pol.resumo_hora);
+  const liga = envia(s);
   const acao = "text-[13px] font-medium text-link hover:underline";
   return (
     <li className={cx("flex items-start gap-3 py-3", aberto && "bg-primaria-suave")}>
-      <span aria-hidden className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: s.ativa ? corDoTom(COR_NIVEL[s.nivel]) : "var(--borda)" }} />
+      <span aria-hidden className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: liga ? corDoTom("ok") : "var(--borda)" }} />
       <div className="min-w-0 flex-1">
-        <p className={cx("font-medium", !s.ativa && "text-suave")}>{f.oque}</p>
-        {f.destino.map((d) => (
-          <p key={d} className="text-[13px] text-suave">
-            → {d}
-          </p>
-        ))}
+        <p className={cx("font-medium", !liga && "text-suave")}>{f.oque}</p>
+        <p className="text-[13px] text-suave">→ {liga ? "envia no WhatsApp" : "não envia"}</p>
       </div>
-      {s.ativa && s.nivel === "whatsapp" && <span className="hidden whitespace-nowrap pt-0.5 text-xs text-suave sm:inline">{w} no WhatsApp em 7 dias</span>}
+      {liga && <span className="hidden whitespace-nowrap pt-0.5 text-xs text-suave sm:inline">{w} em 7 dias</span>}
       <span className="flex shrink-0 gap-3 pt-0.5">
         <button type="button" className={acao} onClick={editar} aria-label={`Editar ${ROTULO_REGRA[s.regra]}`}>
           Editar
         </button>
-        <button type="button" className={acao} onClick={alternar} aria-label={`${s.ativa ? "Pausar" : "Ligar"} ${ROTULO_REGRA[s.regra]}`}>
-          {s.ativa ? "Pausar" : "Ligar"}
+        <button type="button" className={acao} onClick={alternar} aria-label={`${liga ? "Desligar" : "Ligar"} ${ROTULO_REGRA[s.regra]}`}>
+          {liga ? "Desligar" : "Ligar"}
         </button>
       </span>
     </li>
   );
 }
 
-/** Alertas em frases (padrão): o que está ligado lido como texto, "+ Novo alerta", editar, pausar e ligar. Salva na hora. */
+/** Alertas em frases (padrão): o que envia no WhatsApp lido como texto, "+ Novo alerta", editar, ligar e desligar. Salva na hora. */
 function AlertasEmFrases({
   regras,
   pol,
@@ -275,12 +232,14 @@ function AlertasEmFrases({
   const [editando, setEditando] = useState<RegraExcecao | "novo" | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const lista = REGRAS.map((r) => deConfig(regras[r], pol));
-  const ligados = lista.filter((s) => s.ativa);
-  const pausados = lista.filter((s) => !s.ativa);
-  // vale para as regras que avisam alguém (as "só na tela" não contam)
-  const avisam = REGRAS.filter((r) => deConfig(regras[r], pol).nivel !== "tela");
+  const ligados = lista.filter(envia);
+  const desligados = lista.filter((s) => !envia(s));
+  // a regra do tablet vale para o que envia
+  const avisam = ligados.map((s) => s.regra);
   const justifica = avisam.length > 0 && avisam.every((r) => temJustificativa(regras[r]));
   const tentar = (p: Promise<void>) => p.then(() => setErro(null), (e: unknown) => setErro(erroTexto(e)));
+  const alternar = (s: RegraSimples) =>
+    envia(s) ? salvarJa([{ ...regras[s.regra], ativa: false }]) : salvarJa([paraConfig({ ...s, ativa: true, nivel: "whatsapp", coordenadorApos: null }, regras[s.regra], pol)]);
   const linha = (s: RegraSimples) => (
     <LinhaAlerta
       key={s.regra}
@@ -289,34 +248,34 @@ function AlertasEmFrases({
       w={whatsPorRegra.get(s.regra)?.depois ?? 0}
       aberto={editando === s.regra}
       editar={() => setEditando(s.regra)}
-      alternar={() => void tentar(salvarJa([{ ...regras[s.regra], ativa: !s.ativa }]))}
+      alternar={() => void tentar(alternar(s))}
     />
   );
   return (
     <div className={cx("grid gap-6", editando && "lg:grid-cols-[minmax(0,1fr)_440px]")}>
       <section aria-label="Alertas" className="min-w-0 space-y-6">
         <div className="flex items-center justify-between">
-          <Titulo>Alertas ligados · {ligados.length}</Titulo>
+          <Titulo>Enviam no WhatsApp · {ligados.length}</Titulo>
           <Botao tamanho="mini" onClick={() => setEditando("novo")}>
             + Novo alerta
           </Botao>
         </div>
         <ul className="divide-y divide-borda/60 border-y border-borda/60">
           {ligados.map(linha)}
-          {!ligados.length && <li className="py-3 text-sm text-suave">Nenhum alerta ligado. Use “+ Novo alerta”.</li>}
+          {!ligados.length && <li className="py-3 text-sm text-suave">Nenhum alerta enviando. Use “+ Novo alerta”.</li>}
         </ul>
-        {pausados.length > 0 && (
+        {desligados.length > 0 && (
           <div className="space-y-2">
-            <Titulo>Pausados · {pausados.length}</Titulo>
-            <ul className="divide-y divide-borda/60 border-y border-borda/60">{pausados.map(linha)}</ul>
+            <Titulo>Não enviam · {desligados.length}</Titulo>
+            <ul className="divide-y divide-borda/60 border-y border-borda/60">{desligados.map(linha)}</ul>
           </div>
         )}
         <div className="space-y-2 text-[13px]">
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={justifica} onChange={(e) => void tentar(salvarJa(avisam.map((r) => comJustificativa(regras[r], e.target.checked))))} />
-            Se tiver apontamento no tablet (manutenção, aguardando, pausa...), vai só para o resumo
+            Se tiver apontamento no tablet (manutenção, aguardando, pausa...), não envia
           </label>
-          <p className="text-suave">Se repetir 3 vezes na semana na mesma vaga, sobe um nível (resumo → WhatsApp → coordenador).</p>
+          <p className="text-suave">Se repetir 3 vezes na semana na mesma vaga, envia mesmo antes do tempo.</p>
         </div>
         {erro && <Aviso tipo="erro">{erro}</Aviso>}
         <button type="button" className="text-[13px] font-medium text-link hover:underline" onClick={abrirAvancado}>
@@ -327,7 +286,7 @@ function AlertasEmFrases({
         <Assistente
           key={editando}
           inicial={editando === "novo" ? null : deConfig(regras[editando], pol)}
-          ligados={ligados.map((s) => s.regra)}
+          ligados={avisam}
           pol={pol}
           fechar={() => setEditando(null)}
           salvar={async (s) => {
@@ -390,17 +349,8 @@ export function Filtro({ alertas, config, hoje, logado, aoSalvar }: { alertas: A
     <div className="space-y-8 pb-20">
       <section aria-label="Simulador" className="space-y-1">
         <p className="text-sm text-suave">
-          Últimos 7 dias · <b className="tabular-nums text-texto">{sim.total}</b> alertas. Com esta configuração:{" "}
-          {DESTINOS.map((d, i) => (
-            <span key={d}>
-              {i > 0 && <span className="mx-1.5">·</span>}
-              <b className="tabular-nums" style={{ color: d === "whatsapp" ? corDoTom(TOM_DESTINO[d]) : undefined }}>
-                {sim.depois[d]}
-              </b>{" "}
-              {ROTULO_DESTINO[d]}
-              {sim.depois[d] !== sim.antes[d] && <span className="text-suave"> (antes {sim.antes[d]})</span>}
-            </span>
-          ))}
+          Últimos 7 dias: <b className="tabular-nums text-texto">{sim.total}</b> alertas, <b className="tabular-nums" style={{ color: corDoTom("ok") }}>{sim.depois.whatsapp}</b> foram para o WhatsApp
+          {sim.depois.whatsapp !== sim.antes.whatsapp && <span> (antes {sim.antes.whatsapp})</span>}.
         </p>
         {sugs.map((s) => (
           <p key={s.regra} className="text-sm text-texto">

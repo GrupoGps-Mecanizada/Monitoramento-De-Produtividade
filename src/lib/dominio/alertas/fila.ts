@@ -13,13 +13,15 @@ export const PERIODOS: { id: Periodo; rotulo: string }[] = [
   { id: "30", rotulo: "30 dias" },
   { id: "90", rotulo: "90 dias" },
 ];
-export type Cartao = "fila" | "whatsapp" | "resumo" | "resolvidos" | "silenciados";
+/** "nao_enviados" = tudo o que não vai ao WhatsApp (pedido do dono, 19/10/2026: só importa mandar ou não). */
+export type Cartao = "fila" | "whatsapp" | "resumo" | "resolvidos" | "silenciados" | "nao_enviados";
 export const CARTOES: { id: Cartao; rotulo: string }[] = [
   { id: "fila", rotulo: "Na fila" },
   { id: "whatsapp", rotulo: "Vão para o WhatsApp" },
   { id: "resumo", rotulo: "Só no resumo" },
   { id: "resolvidos", rotulo: "Resolvidos" },
   { id: "silenciados", rotulo: "Silenciados" },
+  { id: "nao_enviados", rotulo: "Não enviados" },
 ];
 export type Atalho = "graves" | "sem_avaliacao" | "repetidos";
 /** Nota a partir da qual o alerta também vai ao coordenador (padrão do filtro). */
@@ -43,7 +45,7 @@ export interface FiltrosAlertas {
   busca: string;
   atalho: Atalho | null;
 }
-export const FILTROS_PADRAO: FiltrosAlertas = { periodo: "hoje", cartao: "fila", regra: null, supervisor: null, destino: null, busca: "", atalho: null };
+export const FILTROS_PADRAO: FiltrosAlertas = { periodo: "hoje", cartao: "whatsapp", regra: null, supervisor: null, destino: null, busca: "", atalho: null };
 
 const norm = (s: string) =>
   s
@@ -62,6 +64,7 @@ function noCartao(a: AlertaGravado, c: Cartao): boolean {
   if (c === "whatsapp") return a.destino === "whatsapp";
   if (c === "resumo") return a.destino === "resumo";
   if (c === "resolvidos") return a.situacao === "resolvido";
+  if (c === "nao_enviados") return a.destino !== "whatsapp";
   return a.situacao === "silenciado";
 }
 function noAtalho(a: AlertaGravado, x: Atalho): boolean {
@@ -141,13 +144,10 @@ export function agrupar(alertas: AlertaGravado[], por: Agrupar, ordem: Ordem): G
 }
 
 /** Visões salvas (abas com contagem): cada uma é um cartão e/ou um atalho pronto. */
-export type Visao = "fila" | "whatsapp" | "graves" | "sem_avaliacao" | "resolvidos" | "todos";
+export type Visao = "whatsapp" | "nao_enviados" | "todos";
 export const VISOES: { id: Visao; rotulo: string; filtro: Pick<FiltrosAlertas, "cartao" | "atalho"> }[] = [
-  { id: "fila", rotulo: "Na fila", filtro: { cartao: "fila", atalho: null } },
-  { id: "whatsapp", rotulo: "WhatsApp", filtro: { cartao: "whatsapp", atalho: null } },
-  { id: "graves", rotulo: "Graves", filtro: { cartao: null, atalho: "graves" } },
-  { id: "sem_avaliacao", rotulo: "Sem avaliação", filtro: { cartao: null, atalho: "sem_avaliacao" } },
-  { id: "resolvidos", rotulo: "Resolvidos", filtro: { cartao: "resolvidos", atalho: null } },
+  { id: "whatsapp", rotulo: "Vão para o WhatsApp", filtro: { cartao: "whatsapp", atalho: null } },
+  { id: "nao_enviados", rotulo: "Não enviados", filtro: { cartao: "nao_enviados", atalho: null } },
   { id: "todos", rotulo: "Todos", filtro: { cartao: null, atalho: null } },
 ];
 

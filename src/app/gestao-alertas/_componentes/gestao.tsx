@@ -5,21 +5,16 @@ import { Aviso } from "@/components/ui";
 import { useGestaoDados } from "@/lib/dados/alertas";
 import { diaLocal } from "@/lib/dominio/formato";
 import { AbasTexto } from "./comum";
-import { Destinos } from "./destinos";
 import { Filtro } from "./filtro";
 import { PainelAlertas } from "./painel-alertas";
 import { Saude } from "./saude";
 
-type Aba = "alertas" | "filtro" | "destinos" | "saude";
+type Aba = "alertas" | "filtro" | "saude";
 const ABAS: { id: Aba; rotulo: string }[] = [
   { id: "alertas", rotulo: "Alertas" },
   { id: "filtro", rotulo: "Filtro inteligente" },
-  { id: "destinos", rotulo: "Destinatários" },
   { id: "saude", rotulo: "Saúde" },
 ];
-
-/** Sem login: só o dono gere os alertas (decisão de 17/10/2026). Fica registrado como quem marcou "visto". */
-const QUEM = "Dono";
 
 /** Gestão de alertas (P-026): o que o robô gravou, o que vai para o WhatsApp e quem recebe. */
 export function Gestao() {
@@ -41,9 +36,8 @@ export function Gestao() {
           Não deu para ler os alertas ({erro}). Se for a primeira vez, rode o SQL <code>supabase/alertas.sql</code> no Supabase PRODUTIVIDADE.
         </Aviso>
       )}
-      {aba === "alertas" && <PainelAlertas alertas={alertas} hoje={hoje} email={QUEM} aoMudar={recarregar} />}
+      {aba === "alertas" && <PainelAlertas alertas={alertas} hoje={hoje} />}
       {aba === "filtro" && (config ? <Filtro alertas={alertas} config={config} hoje={hoje} logado aoSalvar={recarregar} /> : !erro && <p>Carregando…</p>)}
-      {aba === "destinos" && <Destinos />}
       {aba === "saude" && <Saude alertas={alertas} logado />}
         </div>
       </div>

@@ -60,16 +60,16 @@ describe("resumo só depois de um tempo", () => {
 });
 
 describe("frases", () => {
-  it("desligado com WhatsApp e coordenador", () => {
+  it("só importa mandar ou não no WhatsApp (sem supervisor nem coordenador na frase)", () => {
     expect(frase({ regra: "desligado", ativa: true, nivel: "whatsapp", apos: 60, coordenadorApos: 120 }, "07:00")).toEqual({
       oque: "Motor desligado por mais de 1 h",
-      destino: ["WhatsApp para o supervisor da vaga", "depois de 2 h, também o coordenador"],
+      destino: ["envia no WhatsApp"],
     });
   });
-  it("saída tarde com atraso; ociosidade no resumo das 7h; Servitec só na tela", () => {
+  it("saída tarde com atraso; ociosidade e Servitec não enviam", () => {
     expect(frase({ regra: "saida_tarde", ativa: true, nivel: "whatsapp", apos: 15, coordenadorApos: null }, "07:00").oque).toBe("Saída tarde do Pátio, mais de 15 min de atraso");
-    expect(frase({ regra: "ocioso", ativa: true, nivel: "resumo", apos: null, coordenadorApos: null }, "07:00:00")).toEqual({ oque: "Ociosidade por mais de 30 min", destino: ["só no resumo diário das 07:00"] });
-    expect(frase({ regra: "servitec", ativa: true, nivel: "tela", apos: null, coordenadorApos: null }, "07:00").destino).toEqual(["só aparece na tela"]);
+    expect(frase({ regra: "ocioso", ativa: true, nivel: "resumo", apos: null, coordenadorApos: null }, "07:00:00")).toEqual({ oque: "Ociosidade por mais de 30 min", destino: ["não envia"] });
+    expect(frase({ regra: "servitec", ativa: true, nivel: "tela", apos: null, coordenadorApos: null }, "07:00").destino).toEqual(["não envia"]);
   });
   it("restaurante tira o '1 h' do nome e usa o tempo escolhido", () => {
     expect(frase({ regra: "restaurante", ativa: true, nivel: "resumo", apos: 90, coordenadorApos: null }, "07:00").oque).toBe("Restaurante por mais de 1 h 30 min");
