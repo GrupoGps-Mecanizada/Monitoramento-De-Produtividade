@@ -1,5 +1,11 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Usina 3D · 19/10/2026
+- Nova tela **Usina 3D** (`/usina`, no grupo Ao vivo): a maquete do projeto Usina Virtual (diorama da usina, do Aterro e do Poço Redondo, com 666 prédios, ferrovia, chaminés e árvores) com a **frota ao vivo**.
+- A maquete fica em `public/usina/maquete.html` e não tem chave nem dados de frota embutidos: a tela lê o retrato pelo Realtime (como a Localização) e manda para ela por mensagem, só para a própria página e do mesmo endereço (`src/lib/dominio/usina-3d.ts`, com testes).
+- Quando a posição muda, o caminhão anda até o novo ponto **pelas ruas** (rotas montadas na própria maquete com as ruas do OpenStreetMap), em vez de saltar.
+- Para atualizar a maquete: no projeto Usina Virtual, `python build.py` e copiar `saida/monitoramento/maquete.html` para `public/usina/`.
+
 ## Parte Diária × mapa: locais aprendidos e conferência · 19/10/2026
 - O banco aprende sozinho onde fica cada local da Parte Diária: guarda onde o caminhão de cada programação ficou parado (`parte_amostra`, porque o GPS só fica 3 dias), agrupa os pontos (PostGIS, sem base, baia, restaurante e destino) e junta com as áreas do GAUSS de mesmo nome (`mapa_area`, inclusive os ~70 portões). Resultado em `parte_local`, com ponto, raio e certeza.
 - Cada programação é conferida (`parte_conferencia`): cumprida, parcial, local diferente, não foi, motor desligado, sem caminhão, em rota, sem GPS.

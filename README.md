@@ -62,6 +62,7 @@ npm run e2e                    # testes de navegador (dados sintéticos, nada é
 | `src/app/cronoanalise/` | Cronoanálise × telemetria: raio-x do turno (motor, tablet e cada colaborador), conferência com frases e horas por colaborador |
 | `src/app/timeline/` | Timeline (`?v=<id ou placa>&dia=AAAA-MM-DD`), igual no computador e no celular: mapa na tela toda; em cima, o cartão do horário (placa · hora · status · lugar) e o funil (veículo, dia, velocidade, resumo do dia, apontamento com CSV, camada do mapa e cores); embaixo, só a linha fina do dia com as cores do motor e ◀ ▶ ▶ (decisão do dono, 05/10/2026: sem painel de trilhas) |
 | `src/app/alertas/` | Alertas por tipo e hora, detalhe em gaveta (`?placa=`) |
+| `src/app/usina/` + `public/usina/maquete.html` | Usina 3D: maquete do projeto Usina Virtual com a frota ao vivo, enviada por mensagem (a maquete não tem chave); caminhões andam pelas ruas até a nova posição |
 | `src/app/gestao-alertas/` | Gestão de alertas: fila, histórico, filtro inteligente com simulador, destinatários e saúde (login para agir) |
 | `src/components/` | Barra "Campo", busca Ctrl K, gaveta, folha do celular, mapa (`mapa/`), histórico (`historico/`), balão (`trilhas/`) |
 | `src/lib/tipos.ts` | Formatos dos dados (site **e** coletor) |
