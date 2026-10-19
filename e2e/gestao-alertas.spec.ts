@@ -41,13 +41,26 @@ test("Gestão de alertas: visões com contagem, números em linha, + Filtro, tab
   await detalhe.getByRole("button", { name: "Fechar" }).click();
   await page.getByRole("tab", { name: "Filtro inteligente" }).click();
   await expect(page.getByRole("region", { name: "Simulador" })).toContainText("2 alertas");
-  // simular antes de salvar: desligar a saída tarde tira o alerta do WhatsApp; Desfazer volta
+  // alertas em frases e o assistente de 3 perguntas
+  const alertasCfg = page.getByRole("region", { name: "Alertas" });
+  await expect(alertasCfg).toContainText("Saída tarde do Pátio, mais de 15 min de atraso");
+  await expect(alertasCfg).toContainText("WhatsApp para o supervisor da vaga");
+  await page.getByRole("button", { name: "+ Novo alerta" }).click();
+  const novo = page.getByRole("complementary", { name: "Novo alerta" });
+  await novo.getByRole("radio", { name: /Ociosidade/ }).click();
+  await novo.getByRole("radio", { name: /resumo diário/ }).check();
+  await expect(novo).toContainText("Ociosidade por mais de 30 min");
+  await expect(novo.getByRole("button", { name: "Criar alerta" })).toBeEnabled();
+  if (process.env.FOTO) await page.screenshot({ path: process.env.FOTO + "-novo.png" });
+  await novo.getByRole("button", { name: "Cancelar" }).click();
+  // ajuste fino (pesos): simular antes de salvar e desfazer
+  await page.getByRole("button", { name: /Ajuste fino/ }).click();
   await page.getByRole("checkbox", { name: "Ligar Saída tarde do Pátio" }).uncheck();
   await expect(page.getByRole("region", { name: "Simulador" })).toContainText("antes 1");
   await expect(page.getByRole("region", { name: "Salvar" })).toContainText("1 mudança não salva");
-  await expect(page.getByRole("button", { name: "Salvar" })).toBeEnabled();
   await page.getByRole("button", { name: "Desfazer" }).click();
   await expect(page.getByRole("region", { name: "Salvar" })).toContainText("Nenhuma mudança");
+  await page.getByRole("button", { name: /Voltar ao modo simples/ }).click();
   if (process.env.FOTO) await page.screenshot({ path: process.env.FOTO + "-filtro.png" });
   await page.getByRole("tab", { name: "Destinatários" }).click();
   await expect(page.getByText("Ninguém cadastrado ainda")).toBeVisible();
