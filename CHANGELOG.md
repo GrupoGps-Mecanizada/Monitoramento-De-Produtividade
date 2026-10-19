@@ -1,5 +1,10 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Parte Diária × mapa: locais aprendidos e conferência · 19/10/2026
+- O banco aprende sozinho onde fica cada local da Parte Diária: guarda onde o caminhão de cada programação ficou parado (`parte_amostra`, porque o GPS só fica 3 dias), agrupa os pontos (PostGIS, sem base, baia, restaurante e destino) e junta com as áreas do GAUSS de mesmo nome (`mapa_area`, inclusive os ~70 portões). Resultado em `parte_local`, com ponto, raio e certeza.
+- Cada programação é conferida (`parte_conferencia`): cumprida, parcial, local diferente, não foi, motor desligado, sem caminhão, em rota, sem GPS.
+- Roda no próprio banco a cada hora (pg_cron `parte-diaria-mapa`, função `parte_atualizar`). Sem chamada nova ao GAUSS, sem nomes nem telefones, sem acesso público. SQL: `supabase/2026-10-19_parte-diaria-mapa.sql`.
+
 ## Parte Diária no coletor · 18/10/2026
 - O coletor passa a buscar a **Parte Diária** (Logística Inbound > Imp. Detalhes Solicitação do GAUSS): para cada vaga, o horário programado, local/origem, endereço, onde se apresentar, atividade, material, destino, gerência e as perguntas de segurança (altura, andaime, confinado, gás).
 - Mesmo caminho da tela, só leitura e travado (`conferirChamada`). Horários fixos, de 3 em 3 horas (~10 buscas/dia): hoje às 06, 09, 12, 15, 18 e 21 h; amanhã às 17, 20 e 23 h (a parte sai ~16:30 pelo controlador do transporte); ontem fechado às 00:30. Na primeira vez, os últimos 10 dias, um dia por execução. Falhou: espera 30 min.
