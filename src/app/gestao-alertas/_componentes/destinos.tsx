@@ -3,35 +3,28 @@
 import { useCallback, useEffect, useState } from "react";
 import { Aviso, Botao, Chip, Entrada, Selecao, Selo, Vazio, cx } from "@/components/ui";
 import { apagarDestino, apagarSilencio, lerDestinos, lerSilencios, salvarDestino, type Destinatario, type SilencioGravado } from "@/lib/dados/alertas";
-import { normalizarTelefone } from "@/lib/dominio/alertas/gestao";
 import { REGRAS, ROTULO_REGRA, type RegraExcecao } from "@/lib/dominio/excecoes";
 import { erroTexto, quando } from "./comum";
 
-const NOVO: Destinatario = { nome: "", telefone: null, grupo_id: null, tipo: "supervisor", supervisor: null, regras: [], nao_perturbe_ini: null, nao_perturbe_fim: null, resumo_diario: false, ativo: true };
+const NOVO: Destinatario = { nome: "", tipo: "supervisor", supervisor: null, regras: [], nao_perturbe_ini: null, nao_perturbe_fim: null, resumo_diario: false, ativo: true };
 const TIPOS: Destinatario["tipo"][] = ["supervisor", "coordenador", "grupo", "teste"];
 const ROTULO_TIPO: Record<Destinatario["tipo"], string> = { supervisor: "Supervisor", coordenador: "Coordenador", grupo: "Grupo do WhatsApp", teste: "Teste (modo teste)" };
 const SUPERVISORES = ["Junior Pereira", "Donizete", "Genésio"];
-const telVisivel = (t: string | null) => (t ? t.replace(/^55(\d{2})(\d{4,5})(\d{4})$/, "($1) $2-$3") : "");
 const titulo = "text-[11px] font-semibold uppercase tracking-wider text-suave";
 
 /** Cadastro/edição ao lado da tabela (modelo 32). */
 function Formulario({ inicial, fechar, aoSalvar }: { inicial: Destinatario; fechar: () => void; aoSalvar: () => void }) {
   const [d, setD] = useState(inicial);
-  const [telefone, setTelefone] = useState(telVisivel(inicial.telefone));
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
-  const grupo = d.tipo === "grupo";
   const nomeTela = inicial.id ? `Editar ${inicial.nome}` : "Novo destinatário";
   async function salvar() {
     const nome = d.nome.trim();
-    const tel = grupo ? null : normalizarTelefone(telefone);
     if (nome.length < 2 || nome.length > 60) return setErro("O nome precisa ter de 2 a 60 letras.");
-    if (!grupo && !tel) return setErro("Telefone inválido: use DDD + número, ex.: (31) 98888-7777.");
-    if (grupo && !d.grupo_id?.trim()) return setErro("Informe o código do grupo do WhatsApp.");
     setSalvando(true);
     try {
       // supervisor só vale para o tipo supervisor
-      await salvarDestino({ ...d, nome, telefone: tel, grupo_id: grupo ? (d.grupo_id?.trim() ?? null) : null, supervisor: d.tipo === "supervisor" ? d.supervisor : null });
+      await salvarDestino({ ...d, nome, supervisor: d.tipo === "supervisor" ? d.supervisor : null });
       aoSalvar();
       fechar();
     } catch (e) {
@@ -63,17 +56,7 @@ function Formulario({ inicial, fechar, aoSalvar }: { inicial: Destinatario; fech
             ))}
           </Selecao>
         </label>
-        {grupo ? (
-          <label className="flex flex-col gap-1">
-            <span className="text-suave">Código do grupo</span>
-            <Entrada value={d.grupo_id ?? ""} onChange={(e) => setD({ ...d, grupo_id: e.target.value })} />
-          </label>
-        ) : (
-          <label className="flex flex-col gap-1">
-            <span className="text-suave">Telefone (WhatsApp)</span>
-            <Entrada placeholder="(31) 98888-7777" inputMode="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
-          </label>
-        )}
+        <p className="text-xs text-suave">O número do WhatsApp fica só no programa de envio do seu PC, nunca na internet: aqui vai só o nome.</p>
         {d.tipo === "supervisor" && (
           <label className="flex flex-col gap-1">
             <span className="text-suave">Recebe os alertas das vagas de</span>
@@ -121,8 +104,8 @@ function Formulario({ inicial, fechar, aoSalvar }: { inicial: Destinatario; fech
   );
 }
 
-/** Aba Destinatários: quem recebe (tabela sem grade, edição ao lado) e os silêncios valendo. Telefone é dado pessoal: só com login. */
-export function Destinos({ logado }: { logado: boolean }) {
+/** Aba Destinatários: quem recebe (tabela sem grade, edição ao lado) e os silêncios valendo. Sem telefone: ele fica no programa de envio do PC. */
+export function Destinos() {
   const [lista, setLista] = useState<Destinatario[]>([]);
   const [silencios, setSilencios] = useState<SilencioGravado[]>([]);
   const [editando, setEditando] = useState<Destinatario | null>(null);
@@ -138,10 +121,9 @@ export function Destinos({ logado }: { logado: boolean }) {
     );
   }, []);
   useEffect(() => {
-    if (logado) ler();
-  }, [logado, ler]);
+    ler();
+  }, [ler]);
   const tentar = (p: Promise<unknown>) => p.then(ler, (e: unknown) => setErro(erroTexto(e)));
-  if (!logado) return <Vazio titulo="Entre para ver e editar quem recebe">Os telefones são dados pessoais: só aparecem para quem entrou com e-mail e senha.</Vazio>;
   return (
     <div className={cx("grid gap-6", editando && "lg:grid-cols-[minmax(0,1fr)_420px]")}>
       <div className="min-w-0 space-y-10">
@@ -160,7 +142,6 @@ export function Destinos({ logado }: { logado: boolean }) {
                   <tr className="border-b border-borda">
                     <th className="py-2 pr-3 font-medium">Nome</th>
                     <th className="px-3 py-2 font-medium">Tipo</th>
-                    <th className="px-3 py-2 font-medium">Contato</th>
                     <th className="px-3 py-2 font-medium">Regras</th>
                     <th className="px-3 py-2 font-medium">Não perturbe</th>
                     <th className="px-3 py-2 font-medium">Resumo</th>
@@ -177,7 +158,6 @@ export function Destinos({ logado }: { logado: boolean }) {
                         {ROTULO_TIPO[d.tipo]}
                         {d.supervisor && <span className="text-suave"> · {d.supervisor}</span>}
                       </td>
-                      <td className="px-3 py-2 tabular-nums">{telVisivel(d.telefone) || d.grupo_id}</td>
                       <td className="px-3 py-2 text-suave">{d.regras.length ? `${d.regras.length} regra(s)` : "Todas"}</td>
                       <td className="px-3 py-2 text-suave">{d.nao_perturbe_ini ? `${d.nao_perturbe_ini.slice(0, 5)}–${d.nao_perturbe_fim?.slice(0, 5) ?? ""}` : "—"}</td>
                       <td className="px-3 py-2">{d.resumo_diario ? "Sim" : "—"}</td>

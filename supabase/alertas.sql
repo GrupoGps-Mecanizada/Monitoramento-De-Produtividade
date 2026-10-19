@@ -2,7 +2,7 @@
 --
 -- Cada exceção do dia vira UM alerta (chave única), com nota 0-100 que decide se vai ao WhatsApp, ao resumo
 -- diário ou só à tela. Desenho: docs/superpowers/specs/2026-10-15-alertas-whatsapp-design.md
--- O coletor grava com a chave secreta (ignora o RLS). A página só lê. Telefones não são públicos.
+-- O coletor grava com a chave secreta (ignora o RLS). A página gere sem login (só o dono usa). Sem telefones no banco.
 -- Pode rodar de novo.
 
 -- Configuração de cada regra das Exceções do dia (src/lib/dominio/excecoes.ts, REGRAS)
@@ -30,12 +30,10 @@ create table if not exists public.alerta_politica (
   atualizado_em timestamptz not null default now()
 );
 
--- Quem recebe (telefone = dado pessoal: sem leitura pública)
+-- Quem recebe (sem telefone: o número fica no programa de envio do PC)
 create table if not exists public.alerta_destino (
   id bigint generated always as identity primary key,
   nome text not null check (length(trim(nome)) between 2 and 60),
-  telefone text check (telefone ~ '^[0-9]{12,13}$'),  -- 55 + DDD + número, só dígitos
-  grupo_id text,
   tipo text not null check (tipo in ('grupo', 'supervisor', 'coordenador', 'teste')),
   supervisor text,                                     -- nome como em supervisor-vaga.ts ("Junior Pereira")
   regras text[] not null default '{}',                 -- vazio = todas
@@ -43,9 +41,11 @@ create table if not exists public.alerta_destino (
   nao_perturbe_fim time,
   resumo_diario boolean not null default false,
   ativo boolean not null default true,
-  criado_em timestamptz not null default now(),
-  check (telefone is not null or grupo_id is not null)
+  criado_em timestamptz not null default now()
 );
+-- telefone e grupo saíram em 17/10/2026 (ficam no programa de envio do PC)
+alter table public.alerta_destino drop column if exists telefone;
+alter table public.alerta_destino drop column if exists grupo_id;
 
 -- Silenciar um equipamento, uma regra ou os dois juntos até uma data
 create table if not exists public.alerta_silencio (
@@ -129,7 +129,7 @@ create table if not exists public.alerta_envios (
 );
 create index if not exists alerta_envios_status_idx on public.alerta_envios (status, enviar_apos);
 
--- RLS: a página lê alertas e configuração; destino e fila só o coletor/enviador (chave secreta)
+-- RLS: a página lê e gere tudo (sem login, só o dono usa); o coletor grava com a chave secreta
 alter table public.alerta_regra enable row level security;
 alter table public.alerta_politica enable row level security;
 alter table public.alerta_destino enable row level security;
@@ -147,55 +147,32 @@ drop policy if exists alertas_ler on public.alertas;
 create policy alertas_ler on public.alertas for select to anon, authenticated using (true);
 
 grant select on public.alerta_regra, public.alerta_politica, public.alerta_silencio to anon, authenticated;
--- visto_por (e-mail de quem marcou) não é público: a chave pública lê todas as colunas menos essa
-revoke select on public.alertas from anon;
-grant select (id, chave, regra, veiculo_id, placa, vaga, supervisor, dia, ini, fim, ref, local, detalhe, situacao, nota, motivos, contexto, destino,
-  avaliacao, contagem, visto_em, resolvido_em, resolvido_por, ultimo_aviso_em, detectado_em, atualizado_em) on public.alertas to anon;
-grant select on public.alertas to authenticated;
-revoke all on public.alerta_destino, public.alerta_envios from anon;
 
--- Gestão (tela /gestao-alertas): só quem entrou com e-mail e senha E está na lista alerta_gestor. Estar logado não
--- basta (outra conta do mesmo Supabase, cadastro aberto ou login anônimo não viram gestor). Deixe também o cadastro
--- aberto DESLIGADO no painel (Authentication -> Sign In / Providers -> "Allow new users to sign up").
--- Para liberar alguém: insert into public.alerta_gestor (email) values ('email.da.pessoa@exemplo.com');
-create table if not exists public.alerta_gestor (
-  email text primary key check (email = lower(trim(email))),
-  criado_em timestamptz not null default now()
-);
-alter table public.alerta_gestor enable row level security;
-revoke all on public.alerta_gestor from anon, authenticated;
-
-create or replace function public.eh_gestor_alertas() returns boolean
-language sql stable security definer set search_path = '' as $$
-  select coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false) = false
-     and exists (select 1 from public.alerta_gestor g where g.email = lower(auth.jwt() ->> 'email'));
-$$;
-revoke all on function public.eh_gestor_alertas() from public, anon;
-grant execute on function public.eh_gestor_alertas() to authenticated;
-
--- O Supabase dá todas as permissões às tabelas novas; aqui elas são tiradas e devolvidas só por coluna.
+-- Gestão (tela /gestao-alertas) SEM login (decisão do dono, 17/10/2026): só ele gere, como na matriz de equipamentos.
+-- Telefones NÃO ficam no banco: o número de cada destinatário fica só no programa de envio do PC (etapa 3).
+-- O Supabase dá todas as permissões às tabelas novas; aqui elas são tiradas e devolvidas só no que a tela usa.
 revoke insert, update, delete on public.alertas, public.alerta_regra, public.alerta_politica, public.alerta_silencio from anon, authenticated;
-grant update (situacao, visto_por, visto_em, resolvido_em, resolvido_por, avaliacao) on public.alertas to authenticated;
-grant update (ativa, peso, faixas, justificativas, lembrete_min, escalar_min, atualizado_em) on public.alerta_regra to authenticated;
-grant update (corte_whatsapp, corte_resumo, corte_coordenador, max_por_hora, modo_teste, resumo_hora, atualizado_em) on public.alerta_politica to authenticated;
-grant insert, delete on public.alerta_silencio to authenticated;
-grant select, insert, update, delete on public.alerta_destino to authenticated;
-grant select on public.alerta_envios to authenticated;
+grant select on public.alertas, public.alerta_envios to anon, authenticated;
+grant update (situacao, visto_por, visto_em, resolvido_em, resolvido_por, avaliacao) on public.alertas to anon, authenticated;
+grant update (ativa, peso, faixas, justificativas, lembrete_min, escalar_min, atualizado_em) on public.alerta_regra to anon, authenticated;
+grant update (corte_whatsapp, corte_resumo, corte_coordenador, max_por_hora, modo_teste, resumo_hora, atualizado_em) on public.alerta_politica to anon, authenticated;
+grant insert, delete on public.alerta_silencio to anon, authenticated;
+grant select, insert, update, delete on public.alerta_destino to anon, authenticated;
 
 drop policy if exists alertas_gerir on public.alertas;
-create policy alertas_gerir on public.alertas for update to authenticated using (public.eh_gestor_alertas()) with check (public.eh_gestor_alertas());
+create policy alertas_gerir on public.alertas for update to anon, authenticated using (true) with check (true);
 drop policy if exists alerta_regra_gerir on public.alerta_regra;
-create policy alerta_regra_gerir on public.alerta_regra for update to authenticated using (public.eh_gestor_alertas()) with check (public.eh_gestor_alertas());
+create policy alerta_regra_gerir on public.alerta_regra for update to anon, authenticated using (true) with check (true);
 drop policy if exists alerta_politica_gerir on public.alerta_politica;
-create policy alerta_politica_gerir on public.alerta_politica for update to authenticated using (public.eh_gestor_alertas()) with check (public.eh_gestor_alertas());
+create policy alerta_politica_gerir on public.alerta_politica for update to anon, authenticated using (true) with check (true);
 drop policy if exists alerta_silencio_criar on public.alerta_silencio;
-create policy alerta_silencio_criar on public.alerta_silencio for insert to authenticated with check (public.eh_gestor_alertas());
+create policy alerta_silencio_criar on public.alerta_silencio for insert to anon, authenticated with check (true);
 drop policy if exists alerta_silencio_apagar on public.alerta_silencio;
-create policy alerta_silencio_apagar on public.alerta_silencio for delete to authenticated using (public.eh_gestor_alertas());
+create policy alerta_silencio_apagar on public.alerta_silencio for delete to anon, authenticated using (true);
 drop policy if exists alerta_destino_gerir on public.alerta_destino;
-create policy alerta_destino_gerir on public.alerta_destino for all to authenticated using (public.eh_gestor_alertas()) with check (public.eh_gestor_alertas());
+create policy alerta_destino_gerir on public.alerta_destino for all to anon, authenticated using (true) with check (true);
 drop policy if exists alerta_envios_ler on public.alerta_envios;
-create policy alerta_envios_ler on public.alerta_envios for select to authenticated using (public.eh_gestor_alertas());
+create policy alerta_envios_ler on public.alerta_envios for select to anon, authenticated using (true);
 
 -- Padrões (spec 7A). "on conflict do nothing": rodar de novo não desfaz o que o gestor mudou na tela.
 insert into public.alerta_politica (id) values (1) on conflict (id) do nothing;
