@@ -85,6 +85,10 @@ describe("montar alertas", () => {
   it("regra desligada não gera alerta", () => {
     expect(montarAlertas(entrada({ regras: configCompleta([{ regra: "desligado", ativa: false }]) }))).toEqual([]);
   });
+  it("vaga que a Mecanizada não opera (sem vaga, Brook): não gera alerta", () => {
+    expect(montarAlertas(entrada({ veiculos: [veic("1", "EGC2985", "[S/ VAGA]")] }))).toEqual([]);
+    expect(montarAlertas(entrada({ veiculos: [veic("1", "EGC2985", "CAMINHÃO BROOK - GPS - 03")] }))).toEqual([]);
+  });
   it("veículo fora da lista (desmobilizado) não gera alerta", () => {
     expect(montarAlertas(entrada({ veiculos: [] }))).toEqual([]);
   });

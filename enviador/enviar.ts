@@ -12,7 +12,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { montarMensagem, paraEnviar, type AlertaEnvio } from "./mensagem";
+import { montarMensagem, numeroDestino, paraEnviar, type AlertaEnvio } from "./mensagem";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const INTERVALO_MS = 60_000;
@@ -35,7 +35,7 @@ const SUPABASE_CHAVE = cfg.SUPABASE_CHAVE ?? site.NEXT_PUBLIC_SUPABASE_PUBLISHAB
 const EVOLUTION_URL = (cfg.EVOLUTION_URL ?? "http://localhost:8080").replace(/\/$/, "");
 const EVOLUTION_CHAVE = cfg.EVOLUTION_CHAVE;
 const INSTANCIA = cfg.EVOLUTION_INSTANCIA ?? "alertas-frota";
-const DESTINO = cfg.WHATSAPP_DESTINO;
+const DESTINO = cfg.WHATSAPP_DESTINO ? numeroDestino(cfg.WHATSAPP_DESTINO) : undefined;
 const TESTE = process.argv.includes("--teste");
 
 const hora = () => new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" });

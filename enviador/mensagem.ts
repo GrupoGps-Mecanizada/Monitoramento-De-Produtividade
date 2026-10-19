@@ -2,6 +2,7 @@
 // Pedido do dono (19/10/2026): só importa mandar ou não no WhatsApp, numa mensagem só juntando os alertas novos.
 import { ROTULO_REGRA, type RegraExcecao } from "../src/lib/dominio/excecoes";
 import { lerVaga } from "../src/lib/dominio/supervisor-vaga";
+import { vagaOficial } from "../src/lib/dominio/vagas-oficiais";
 
 export interface AlertaEnvio {
   id: number;
@@ -22,10 +23,13 @@ export interface AlertaEnvio {
 /** Mais que isso numa mensagem fica difícil de ler: o resto vai resumido. */
 export const MAX_ITENS = 12;
 
-/** Os que vão para o WhatsApp, de hoje, ainda não avisados e que não acabaram (PC desligado: alerta velho não sai). */
+/**
+ * Os que vão para o WhatsApp, de hoje, ainda não avisados e que não acabaram (PC desligado: alerta velho não sai).
+ * Só as 22 vagas que a Mecanizada opera: caminhão sem vaga ou Brook parado no Pátio não é alerta.
+ */
 export const paraEnviar = (alertas: AlertaEnvio[], hoje: string) =>
   alertas
-    .filter((a) => a.destino === "whatsapp" && !a.ultimo_aviso_em && a.dia === hoje && a.situacao !== "resolvido" && a.situacao !== "silenciado")
+    .filter((a) => a.destino === "whatsapp" && !a.ultimo_aviso_em && a.dia === hoje && a.situacao !== "resolvido" && a.situacao !== "silenciado" && vagaOficial(a.vaga))
     .sort((p, q) => p.ini - q.ini || p.id - q.id);
 
 const SIGLA = { ap: "AP", av: "AV", hv: "HV" } as const;
@@ -49,9 +53,14 @@ export function montarMensagem(alertas: AlertaEnvio[], agora: Date): string {
   const itens = alertas.slice(0, MAX_ITENS).map((a) => {
     const vaga = a.vaga ? ` (${vagaCurta(a.vaga)})` : "";
     const regra = ROTULO_REGRA[a.regra as RegraExcecao] ?? a.regra;
-    const linha2 = [a.detalhe, hhmm(a.ini), a.local, a.supervisor].filter(Boolean).join(" · ");
+    // saída tarde e chegada cedo já trazem a hora no detalhe e são sempre no Pátio: não repete
+    const noPatio = a.regra === "saida_tarde" || a.regra === "chegada_cedo";
+    const linha2 = [a.detalhe, noPatio ? null : hhmm(a.ini), noPatio ? null : a.local, a.supervisor].filter(Boolean).join(" · ");
     return `• *${a.placa}*${vaga} · ${regra}\n  ${linha2}`;
   });
   const resto = alertas.length - MAX_ITENS;
   return [`🚨 *Alertas da frota* · ${quando(agora)}`, "", itens.join("\n"), ...(resto > 0 ? ["", `+${resto} outros: veja na Gestão de alertas`] : [])].join("\n");
 }
+
+/** Destino do WhatsApp: número só com dígitos (o arquivo aceita "+55 31 9...-..."); grupo (termina em @g.us) como veio. */
+export const numeroDestino = (bruto: string) => (bruto.includes("@") ? bruto.trim() : bruto.replace(/\D/g, ""));
