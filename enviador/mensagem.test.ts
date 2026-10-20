@@ -98,3 +98,21 @@ describe("destino", () => {
     expect(numeroDestino(" 120363012345678901@g.us ")).toBe("120363012345678901@g.us");
   });
 });
+
+describe("o que já acabou não sai como se ainda estivesse acontecendo", () => {
+  // caso real de 20/10/2026: às 04:31 saiu "Desligado há 1h42", mas o DSY6475 tinha ligado às 04:09
+  const agora = new Date("2026-10-20T04:31:00-03:00");
+  const H = 3600;
+  const desl = (o: Partial<AlertaEnvio> = {}) =>
+    al({ regra: "desligado", placa: "DSY6475", vaga: "ALTA PRESSÃO - GPS - 01 - 24 HS", detalhe: "1h42", local: "ALTOS FORNOS", supervisor: "Matusalem", dia: "2026-10-20", ini: 2 * H + 27 * 60, ref: 2 * H + 27 * 60, ...o });
+  it("caminhão que já ligou de novo: 'Ficou desligado', com o horário de início e de fim", () => {
+    expect(montarMensagem([desl({ fim: 4 * H + 9 * 60 })], agora)).toContain("*DSY6475* · AP 01\nFicou desligado 1h42 em Altos Fornos\ndas 02:27 às 04:09 · Sup. Matusalem");
+  });
+  it("ainda desligado (o fim acompanha a última leitura, de poucos minutos atrás): 'Desligado há'", () => {
+    expect(montarMensagem([desl({ fim: 4 * H + 27 * 60, detalhe: "2h00" })], agora)).toContain("Desligado há 2h00 em Altos Fornos\ndesde 02:27 · Sup. Matusalem");
+  });
+  it("vale para as outras regras que duram", () => {
+    const t = montarMensagem([al({ regra: "ocioso", placa: "EAM3257", vaga: "HIPER VÁCUO - GPS - 03", detalhe: "45 min", local: "ALTO FORNO 3", supervisor: null, ini: 3 * H, ref: 3 * H, fim: 3 * H + 45 * 60 })], agora);
+    expect(t).toContain("Ficou ligado sem produzir 45 min em Alto Forno 3\ndas 03:00 às 03:45");
+  });
+});

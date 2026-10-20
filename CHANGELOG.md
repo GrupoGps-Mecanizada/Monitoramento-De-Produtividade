@@ -1,5 +1,12 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Alertas de motor na hora e na vaga certa · 20/10/2026 (P-076)
+- **Motor desligado sai ~10 min depois de completar 1 h**, e não mais 1 h depois: o coletor só busca de novo a timeline de uma vaga desligada a cada 1 h (para poupar o GAUSS), então o ao vivo (a cada ~5 min) completa o desligado depois do último trecho do GAUSS, até a última posição. Onde o GAUSS já tem dado vale o GAUSS (`completarAoVivo`, em `excecoes.ts`). Sem sinal, sem "desde" ou dia fechado: não completa.
+- **Cada trecho do motor é julgado pela vaga em que o caminhão estava** (a timeline vem por vaga; agora o detector lê `vaga_nome`): o caminhão trocado de vaga não leva o expediente, o supervisor nem a vaga nova para o que fez antes. Caso de 20/10: EGC2983 desligado a noite toda na AP 07 (16 horas) virou alerta da AP 01 (24 horas) quando foi trocado às 07:23.
+- **O mesmo desligado não vira alerta novo** quando o início muda (o ao vivo vê 02:30, o GAUSS depois diz 02:27): fica na chave do alerta já gravado (mesmo caminhão, regra e dia). E o lote nunca leva duas linhas com a mesma chave.
+- WhatsApp: o que **já acabou** sai como "Ficou desligado 1h42 · das 02:27 às 04:09", não mais "Desligado há".
+- Conferido com a madrugada de 20/10 da frota toda (antigo × novo): DSY6475 03:31 em vez de 04:31, EAM3251 (3 h desligado na AV 08, nunca avisado) às 03:51, EGC2985 05:01 em vez de 05:37, sem o alerta falso do EGC2983, sem repetido.
+
 ## Usina 3D · 19/10/2026
 - Nova tela **Usina 3D** (`/usina`, no grupo Ao vivo): a maquete do projeto Usina Virtual (diorama da usina, do Aterro e do Poço Redondo, com 666 prédios, ferrovia, chaminés e árvores) com a **frota ao vivo**.
 - A maquete fica em `public/usina/maquete.html` e não tem chave nem dados de frota embutidos: a tela lê o retrato pelo Realtime (como a Localização) e manda para ela por mensagem, só para a própria página e do mesmo endereço (`src/lib/dominio/usina-3d.ts`, com testes).

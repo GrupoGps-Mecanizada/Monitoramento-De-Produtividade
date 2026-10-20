@@ -88,6 +88,26 @@ const ACAO: Record<string, string> = {
   servitec: "Na oficina há",
   oficina_fora: "Na oficina de fora há",
 };
+/** O mesmo, quando já acabou. */
+const ACABOU: Record<string, string> = {
+  desligado: "Ficou desligado",
+  ocioso: "Ficou ligado sem produzir",
+  restaurante: "Ficou no restaurante",
+  patio: "Ficou no Pátio",
+  bica_vacuo: "Ficou na bica",
+  servitec: "Ficou na oficina",
+  oficina_fora: "Ficou na oficina de fora",
+};
+/**
+ * Enquanto dura, o detector (a cada 10 min) leva o fim até a última leitura (a cada ~5 min): fim mais velho que isto
+ * = já acabou (ex.: o caminhão ligou de novo).
+ */
+export const ACABOU_S = 15 * 60;
+/** segundos do dia no horário da usina */
+const segLocal = (d: Date) => {
+  const [h, m, s] = d.toLocaleTimeString("en-GB", { timeZone: "America/Sao_Paulo", hour12: false }).split(":").map(Number);
+  return h * 3600 + m * 60 + s;
+};
 const sup = (a: AlertaEnvio) => (a.supervisor ? `Sup. ${a.supervisor}` : null);
 const juntar = (...xs: (string | null)[]) => xs.filter(Boolean).join(" · ");
 
@@ -102,11 +122,14 @@ function linhaInstante(a: AlertaEnvio, cab: string): string {
   return `${cab} — ${juntar(quanto, sup(a))}`;
 }
 
-/** Regras que duram: três linhas (quem, o quê e onde, desde quando e o supervisor). */
-function linhasDuracao(a: AlertaEnvio, cab: string): string[] {
+/** Regras que duram: três linhas (quem, o quê e onde, desde quando — ou de quando a quando, se já acabou — e o supervisor). */
+function linhasDuracao(a: AlertaEnvio, cab: string, agoraSeg: number): string[] {
   const onde = a.local ? ` em ${nomeLocal(a.local)}` : "";
-  const oque = a.regra === "velocidade" ? `A ${a.detalhe}${onde}` : `${ACAO[a.regra] ?? `${ROTULO_REGRA[a.regra as RegraExcecao] ?? a.regra} ·`} ${a.detalhe}${onde}`;
-  return [cab, oque, juntar(`desde ${hhmm(a.ini)}`, sup(a))];
+  const acabou = a.regra !== "velocidade" && a.fim != null && agoraSeg - a.fim > ACABOU_S;
+  const verbo = (acabou ? ACABOU : ACAO)[a.regra] ?? `${ROTULO_REGRA[a.regra as RegraExcecao] ?? a.regra} ·`;
+  const oque = a.regra === "velocidade" ? `A ${a.detalhe}${onde}` : `${verbo} ${a.detalhe}${onde}`;
+  const quando = acabou && a.fim != null ? `das ${hhmm(a.ini)} às ${hhmm(a.fim)}` : `desde ${hhmm(a.ini)}`;
+  return [cab, oque, juntar(quando, sup(a))];
 }
 
 /**
@@ -125,7 +148,7 @@ export function montarMensagem(alertas: AlertaEnvio[], agora: Date): string {
     const instante = regra === "saida_tarde" || regra === "chegada_cedo";
     const itens = doTipo.map((a) => {
       const cab = `*${a.placa}*${a.vaga ? ` · ${vagaCurta(a.vaga)}` : ""}`;
-      return instante ? [linhaInstante(a, cab)] : linhasDuracao(a, cab);
+      return instante ? [linhaInstante(a, cab)] : linhasDuracao(a, cab, segLocal(agora));
     });
     // caminhões de várias linhas separados por uma linha em branco; os de uma linha só, um embaixo do outro
     const corpo = instante ? itens.flat() : itens.flatMap((l, i) => (i ? ["", ...l] : l));

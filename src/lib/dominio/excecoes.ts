@@ -46,6 +46,8 @@ export interface Excecao {
   /** texto curto: "saiu 08:10 · limite 07:45", "43 min" */
   detalhe: string;
   gravidade: Gravidade;
+  /** vaga em que o caminhão estava no trecho (regras do motor, pela timeline do GAUSS); ausente = a vaga de agora */
+  vaga?: string;
 }
 export interface EntradaExcecoes {
   dia: string;
@@ -163,6 +165,56 @@ function motorNoEixo(linhas: LinhaMotorFrota[], base: string, dia: string): { a:
   return out;
 }
 
+type BlocoMotor = { a: number; b: number; cod: string };
+
+/**
+ * O coletor só busca de novo a timeline de uma vaga desligada a cada 1 h (MAX_QUIETA_MS): o ao vivo (a cada ~5 min)
+ * completa o desligado depois do último trecho do GAUSS, até a última posição. Onde o GAUSS já tem dado vale o GAUSS
+ * (minuto a minuto; o ao vivo perde um liga-desliga curto). Como no GAUSS, o que passa da meia-noite vira dois trechos.
+ * `ate` = agora no eixo (só hoje; null = dia fechado, nada a completar).
+ */
+export function completarAoVivo(blocos: BlocoMotor[], v: Pick<Veiculo, "status" | "status_desde" | "posicao_em" | "sem_sinal">, base: string, ate: number | null): BlocoMotor[] {
+  if (ate == null || v.sem_sinal || !/desligad/i.test(v.status) || !v.status_desde || !v.posicao_em) return blocos;
+  const fimGauss = blocos.reduce((m, x) => Math.max(m, x.b), -Infinity);
+  const visto = Math.min(segDoIso(v.posicao_em, base), ate);
+  const desde = Math.max(segDoIso(v.status_desde, base), fimGauss);
+  // NaN (data ilegível) também para aqui
+  if (!(visto > desde)) return blocos;
+  const ult = blocos.at(-1);
+  const out = ult && ult.cod === "off" && ult.b === desde ? [...blocos.slice(0, -1), { ...ult, b: visto }] : [...blocos, { a: desde, b: visto, cod: "off" }];
+  const novo = out.at(-1)!;
+  if (novo.a < DIA && novo.b > DIA) out.splice(-1, 1, { ...novo, b: DIA }, { ...novo, a: DIA });
+  return out;
+}
+
+/**
+ * Em que vaga o caminhão estava (o GAUSS manda a timeline por vaga) e os blocos cortados onde a vaga muda: cada
+ * pedaço é julgado pelo regime da sua vaga. Trecho sem a vaga na linha fica com a vaga de agora.
+ */
+function cortarPorVaga(blocos: BlocoMotor[], linhas: LinhaMotorFrota[], base: string, vagaAgora: string): (BlocoMotor & { vaga: string })[] {
+  const trechos = linhas
+    .filter((l) => l.vaga_nome)
+    .map((l) => ({ a: segDoLocal(l.inicio, base), b: segDoLocal(l.fim, base), vaga: l.vaga_nome as string }))
+    // o trecho mais novo vence onde dois se encostam
+    .sort((p, q) => q.a - p.a);
+  const vagaEm = (t: number) => trechos.find((x) => x.a <= t && t < x.b)?.vaga ?? vagaAgora;
+  const cortes = [...new Set(trechos.flatMap((x) => [x.a, x.b]))];
+  const out: (BlocoMotor & { vaga: string })[] = [];
+  for (const bl of blocos) {
+    const pontos = [bl.a, ...cortes.filter((t) => t > bl.a && t < bl.b).sort((p, q) => p - q), bl.b];
+    // junta só dentro do mesmo bloco (o corte da meia-noite fica)
+    const pedacos: (BlocoMotor & { vaga: string })[] = [];
+    for (let i = 0; i + 1 < pontos.length; i++) {
+      const vaga = vagaEm(pontos[i]);
+      const ult = pedacos.at(-1);
+      if (ult && ult.vaga === vaga) ult.b = pontos[i + 1];
+      else pedacos.push({ a: pontos[i], b: pontos[i + 1], cod: bl.cod, vaga });
+    }
+    out.push(...pedacos);
+  }
+  return out;
+}
+
 /** O que fugiu das regras no dia pedido, do mais cedo para o mais tarde. */
 export function excecoesDoDia(x: EntradaExcecoes): Excecao[] {
   const base = diaMenos(x.dia, 1);
@@ -187,9 +239,17 @@ export function excecoesDoDia(x: EntradaExcecoes): Excecao[] {
     const idas = idasBase(areas, tol);
     const LOCAL_BASE = PATIO[0];
     const exps = expedientes(regime, base);
-    const noExp = (a: number, b: number) => Math.max(0, ...exps.map((e) => Math.min(b, e.c) - Math.max(a, e.s)));
-    const add = (regra: RegraExcecao, ini: number, fimX: number | null, local: string | null, detalhe: string, ref = ini) =>
-      out.push({ regra, veiculo: v.id, ini: ini - DIA, fim: fimX == null ? null : fimX - DIA, ref: ref - DIA, local, detalhe, gravidade: GRAVIDADE[regra] });
+    const sobreposto = (es: { s: number; c: number }[], a: number, b: number) => Math.max(0, ...es.map((e) => Math.min(b, e.c) - Math.max(a, e.s)));
+    const noExp = (a: number, b: number) => sobreposto(exps, a, b);
+    // regras do motor: o expediente é o da vaga em que o caminhão estava no trecho
+    const expsDaVaga = new Map<string, { s: number; c: number }[]>();
+    const noExpDa = (vaga: string, a: number, b: number) => {
+      let es = expsDaVaga.get(vaga);
+      if (!es) expsDaVaga.set(vaga, (es = expedientes(regimeDoEquip(v.equip?.regime, vaga).regime, base)));
+      return sobreposto(es, a, b);
+    };
+    const add = (regra: RegraExcecao, ini: number, fimX: number | null, local: string | null, detalhe: string, ref = ini, vaga?: string) =>
+      out.push({ regra, veiculo: v.id, ini: ini - DIA, fim: fimX == null ? null : fimX - DIA, ref: ref - DIA, local, detalhe, gravidade: GRAVIDADE[regra], ...(vaga ? { vaga } : {}) });
 
     if (!manut)
       for (const e of exps) {
@@ -222,19 +282,21 @@ export function excecoesDoDia(x: EntradaExcecoes): Excecao[] {
     for (const e of x.excessos ?? []) if (e.veiculo_id === v.id && e.dia === x.dia) add("velocidade", DIA + e.ini, DIA + e.fim, localEm(DIA + e.ini), `${Math.round(e.vel_max)} km/h · limite ${VELOCIDADE_MAX_USINA} km/h`);
 
     if (manut) continue;
-    const blocos = motorNoEixo(motorPorId.get(v.id) ?? [], base, x.dia);
+    const linhasMotor = motorPorId.get(v.id) ?? [];
+    const blocos = cortarPorVaga(completarAoVivo(motorNoEixo(linhasMotor, base, x.dia), v, base, x.agoraSeg == null ? null : fim), linhasMotor, base, v.vaga);
     // 8. ociosidade: parado ligado seguido, quando parado ligado não é o produtivo do equipamento (fora do Pátio)
     if (statusProdutivo(v.equip.tipo, v.placa) !== "stopped")
-      for (const b of blocos) if (b.cod === "stopped" && noDia(b.a) && noExp(b.a, b.b) >= OCIOSO_MIN * 60 && !naLista(PATIO, b.a)) add("ocioso", b.a, b.b, localEm(b.a), dur(b.b - b.a));
+      for (const b of blocos)
+        if (b.cod === "stopped" && noDia(b.a) && noExpDa(b.vaga, b.a, b.b) >= OCIOSO_MIN * 60 && !naLista(PATIO, b.a)) add("ocioso", b.a, b.b, localEm(b.a), dur(b.b - b.a), b.a, b.vaga);
     // 9. motor desligado no expediente, fora do Pátio e das oficinas, sem refeição apontada no tablet
     const placas = new Set(formasDaPlaca(v.placa));
     const refeicoes = x.tablet
       .filter((t) => placas.has(t.placa) && /REFEI/i.test(t.categoria_demora))
       .map((t) => ({ a: segDoLocal(t.inicio, base), b: t.fim ? segDoLocal(t.fim, base) : fim }));
     for (const b of blocos) {
-      if ((b.cod !== "off" && b.cod !== "main_switch_off") || !noDia(b.a) || noExp(b.a, b.b) < DESLIGADO_MIN * 60) continue;
+      if ((b.cod !== "off" && b.cod !== "main_switch_off") || !noDia(b.a) || noExpDa(b.vaga, b.a, b.b) < DESLIGADO_MIN * 60) continue;
       if (naLista([...PATIO, ...SERVITEC, ...OFICINAS_FORA], b.a) || refeicoes.some((r) => r.a < b.b && r.b > b.a)) continue;
-      add("desligado", b.a, b.b, localEm(b.a), dur(b.b - b.a));
+      add("desligado", b.a, b.b, localEm(b.a), dur(b.b - b.a), b.a, b.vaga);
     }
   }
   return out.sort((p, q) => p.ini - q.ini || p.veiculo.localeCompare(q.veiculo));

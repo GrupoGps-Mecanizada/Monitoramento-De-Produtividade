@@ -67,7 +67,7 @@ export function depsAlertasReais(): DepsAlertas {
       const [ev, motor, tablet] = await Promise.all([
         // id desempata eventos do mesmo instante: as páginas não repetem nem pulam linhas
         paginar<{ dados: Evento }>((de, a) => db().from("loc_eventos").select("dados").in("dia", [vespera, dia]).order("t").order("id").range(de, a)),
-        paginar<LinhaMotorFrota>((de, a) => db().from("timeline_motor_vaga").select("placa_ou_codigo, inicio, fim, status, status_label").lt("inicio", ate).gt("fim", vespera).order("id").range(de, a)),
+        paginar<LinhaMotorFrota>((de, a) => db().from("timeline_motor_vaga").select("placa_ou_codigo, vaga_nome, inicio, fim, status, status_label").lt("inicio", ate).gt("fim", vespera).order("id").range(de, a)),
         paginar<LinhaTablet & { placa: string }>((de, a) =>
           db().from("demoras_categorizadas").select("placa, demora_cod, inicio, fim, categoria_demora, motorista, concluido").lt("inicio", ate).or(`fim.is.null,fim.gt.${vespera}`).order("inicio").order("demora_cod").range(de, a),
         ),

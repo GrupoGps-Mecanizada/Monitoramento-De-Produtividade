@@ -106,3 +106,56 @@ describe("montar alertas", () => {
     expect(a.situacao).toBe("resolvido");
   });
 });
+
+describe("vaga do trecho (troca de caminhão na vaga)", () => {
+  const AP01 = "ALTA PRESSÃO - GPS - 01 - 24 HS";
+  it("vaga, filtro das 22 vagas e supervisor vêm da vaga em que o caminhão estava, não da de agora", () => {
+    const [a] = montarAlertas(entrada({ excecoes: [exc({ vaga: AP01 })], veiculos: [veic("1", "EGC2985", "[S/ VAGA]")] }));
+    const [naVaga] = montarAlertas(entrada({ veiculos: [veic("1", "EGC2985", AP01)] }));
+    expect(a?.vaga).toBe(AP01);
+    expect(a?.supervisor).toBe(naVaga.supervisor);
+  });
+  it("trecho numa vaga que a Mecanizada não opera: sem alerta, mesmo com o caminhão agora numa das 22", () => {
+    expect(montarAlertas(entrada({ excecoes: [exc({ vaga: "[S/ VAGA]" })], veiculos: [veic("1", "EGC2985", AP01)] }))).toEqual([]);
+  });
+});
+
+describe("mesmo desligado com o início ajustado: não vira alerta novo (não manda duas vezes)", () => {
+  // o ao vivo viu desligado às 02:30; a timeline do GAUSS chega depois e diz 02:27
+  const R0 = 2 * H + 30 * 60;
+  const velho = hist(`desligado|1|${D}|${R0}`, "aberto", { ref: R0, contagem: 4 });
+  const novo = (o: Partial<Excecao> = {}) => exc({ ini: 2 * H + 27 * 60, ref: 2 * H + 27 * 60, fim: 4 * H + 9 * 60, ...o });
+  it("início um pouco antes, mesmo caminhão e regra: fica na chave do alerta já gravado", () => {
+    const [a] = montarAlertas(entrada({ agoraSeg: 4 * H + 20 * 60, excecoes: [novo()], historico: [velho] }));
+    expect(a.chave).toBe(velho.chave);
+    expect(a.contagem).toBe(5);
+    expect(a.ref).toBe(2 * H + 27 * 60);
+  });
+  it("depois de gravado com o início novo, continua na mesma chave", () => {
+    const [a] = montarAlertas(entrada({ agoraSeg: 4 * H + 30 * 60, excecoes: [novo()], historico: [{ ...velho, ref: 2 * H + 27 * 60 }] }));
+    expect(a.chave).toBe(velho.chave);
+  });
+  it("resolvido pelo gestor continua resolvido com o início ajustado", () => {
+    const [a] = montarAlertas(entrada({ agoraSeg: 4 * H + 20 * 60, excecoes: [novo()], historico: [{ ...velho, situacao: "resolvido", resolvido_por: "gestor", resolvido_em: "2026-10-07T07:00:00.000Z" }] }));
+    expect(a).toMatchObject({ chave: velho.chave, situacao: "resolvido", resolvido_por: "gestor" });
+  });
+  it("outro desligado (depois do fim do primeiro), outro caminhão, outra regra ou outro dia: chave própria", () => {
+    const outro = (e: Excecao, h: HistoricoAlerta[] = [velho]) => montarAlertas(entrada({ agoraSeg: 6 * H, excecoes: [e], historico: h }))[0]?.chave;
+    expect(outro(novo({ ini: 4 * H + 11 * 60, ref: 4 * H + 11 * 60, fim: 5 * H + 30 * 60 }))).toBe(`desligado|1|${D}|${4 * H + 11 * 60}`);
+    expect(outro(novo(), [{ ...velho, chave: `desligado|2|${D}|${R0}` }])).toBe(`desligado|1|${D}|${2 * H + 27 * 60}`);
+    expect(outro(novo({ regra: "ocioso" }))).toBe(`ocioso|1|${D}|${2 * H + 27 * 60}`);
+    expect(outro(novo(), [{ ...velho, dia: "2026-10-06", chave: `desligado|1|2026-10-06|${R0}` }])).toBe(`desligado|1|${D}|${2 * H + 27 * 60}`);
+  });
+  it("saída tarde e chegada cedo não entram nisso (o ref delas já é o horário-limite)", () => {
+    const e = exc({ regra: "saida_tarde", ini: 7 * H + 50 * 60, fim: null, ref: 7 * H + 45 * 60 });
+    const h = hist(`saida_tarde|1|${D}|${7 * H + 40 * 60}`, "aberto", { regra: "saida_tarde", ref: 7 * H + 40 * 60 });
+    expect(montarAlertas(entrada({ excecoes: [e], historico: [h] }))[0].chave).toBe(`saida_tarde|1|${D}|${7 * H + 45 * 60}`);
+  });
+  it("nunca duas linhas com a mesma chave (o banco recusaria o lote inteiro)", () => {
+    // dois trechos encostados no mesmo alerta velho: só o primeiro herda a chave
+    const xs = montarAlertas(entrada({ agoraSeg: 6 * H, historico: [velho], excecoes: [novo({ fim: 2 * H + 35 * 60 }), novo({ ini: 2 * H + 36 * 60, ref: 2 * H + 36 * 60, fim: 4 * H })] }));
+    expect(xs).toHaveLength(2);
+    expect(new Set(xs.map((x) => x.chave)).size).toBe(2);
+    expect(xs[0].chave).toBe(velho.chave);
+  });
+});

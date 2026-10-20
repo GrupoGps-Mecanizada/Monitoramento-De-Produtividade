@@ -64,6 +64,18 @@ export interface EntradaMontar {
 
 export const chaveDoAlerta = (x: Excecao, dia: string) => `${x.regra}|${x.veiculo}|${dia}|${x.ref}`;
 
+/**
+ * Alerta já gravado do mesmo problema com o início ajustado: o ao vivo vê o desligado uns minutos depois do GAUSS, e a
+ * timeline do GAUSS chega depois. Mesmo caminhão, regra e dia, com o início gravado dentro do trecho novo (ou até
+ * FOLGA_FIM_S antes). Sem isso a chave mudaria e o WhatsApp receberia o mesmo alerta duas vezes.
+ */
+function chaveJaGravada(e: Excecao, dia: string, historico: HistoricoAlerta[], usadas: Set<string>): string | null {
+  if (!DO_MOTOR.has(e.regra)) return null;
+  const fim = e.fim ?? e.ini;
+  const h = historico.find((h) => h.regra === e.regra && h.dia === dia && h.chave.split("|")[1] === e.veiculo && !usadas.has(h.chave) && h.ref >= e.ini - FOLGA_FIM_S && h.ref <= fim);
+  return h?.chave ?? null;
+}
+
 /** Silenciado e resolvido pelo gestor não reabrem; o resolvido automático reabre se o problema continua. */
 export function situacaoNova(anterior: Situacao | null, resolvidoPor: HistoricoAlerta["resolvido_por"], terminou: boolean, silenciado: boolean): Situacao {
   if (anterior === "silenciado") return anterior;
@@ -82,20 +94,30 @@ export function montarAlertas(x: EntradaMontar): LinhaAlerta[] {
   const silenciado = (e: Excecao) =>
     x.silencios.some((s) => s.ate > x.agoraIso && (s.veiculo_id == null || s.veiculo_id === e.veiculo) && (s.regra == null || s.regra === e.regra));
   const out: LinhaAlerta[] = [];
+  // a chave exata já gravada é de quem a tem; o ajuste de início só pega as que sobram. Nunca duas linhas com a mesma
+  // chave: o upsert recusaria o lote inteiro.
+  const usadas = new Set(x.excecoes.map((e) => chaveDoAlerta(e, x.dia)).filter((c) => anteriores.has(c)));
+  const emitidas = new Set<string>();
   for (const e of x.excecoes) {
     const cfg = x.regras[e.regra];
     const v = porId.get(e.veiculo);
+    // a vaga em que o caminhão estava no trecho (regras do motor); nas outras, a de agora
+    const vaga = e.vaga ?? v?.vaga ?? "";
     // só as 22 vagas que a Mecanizada opera (sem vaga ou Brook parado no Pátio não é alerta)
-    if (!cfg?.ativa || !v?.equip || !vagaOficial(v.vaga)) continue;
-    const chave = chaveDoAlerta(e, x.dia);
+    if (!cfg?.ativa || !v?.equip || !vagaOficial(vaga)) continue;
+    const propria = chaveDoAlerta(e, x.dia);
+    const chave = anteriores.has(propria) ? propria : (chaveJaGravada(e, x.dia, x.historico, usadas) ?? propria);
+    if (emitidas.has(chave)) continue;
+    emitidas.add(chave);
+    usadas.add(chave);
     const ant = anteriores.get(chave) ?? null;
     const j = janelaDoAlerta(e, x.agoraSeg);
     const contexto: ContextoNota = {
       excessoMin: excessoMin(e, x.agoraSeg),
-      repeticoes: repeticoes(x.historico, e.regra, v.vaga, x.dia, chave, e.ref),
+      repeticoes: repeticoes(x.historico, e.regra, vaga, x.dia, chave, e.ref),
       familias: familiasNoPeriodo(x.tablet, v.placa, x.dia, j),
       fracaoSemSinal: fracaoSemSinal(x.eventos, v.id, x.dia, j),
-      presumido: regimeDoEquip(v.equip.regime, v.vaga).presumido,
+      presumido: regimeDoEquip(v.equip.regime, vaga).presumido,
     };
     const { nota, motivos } = notaDoAlerta(cfg, contexto, x.politica);
     const situacao = situacaoNova(ant?.situacao ?? null, ant?.resolvido_por ?? null, terminou(e, x.agoraSeg), silenciado(e));
@@ -105,9 +127,9 @@ export function montarAlertas(x: EntradaMontar): LinhaAlerta[] {
       regra: e.regra,
       veiculo_id: v.id,
       placa: v.placa,
-      vaga: v.vaga,
+      vaga,
       // o supervisor é da vaga em que o caminhão estava, não da placa
-      supervisor: supervisorDaParada(v.equip.tipo, v.vaga || undefined, x.dia, e.ini, v.equip.supervisor ?? null),
+      supervisor: supervisorDaParada(v.equip.tipo, vaga || undefined, x.dia, e.ini, v.equip.supervisor ?? null),
       dia: x.dia,
       ini: e.ini,
       fim: e.fim,
