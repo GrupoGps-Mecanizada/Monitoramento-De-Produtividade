@@ -56,6 +56,7 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 .escala i{flex:1}
 .escala-txt{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:5px}
 .texto-leg{font-size:12px;color:var(--muted);margin:0 0 4px}
+.dica small{display:block;font-size:11px;color:rgba(255,255,255,.72);margin-top:1px}
 .dica{position:fixed;pointer-events:none;background:rgba(19,32,47,.92);color:#fff;font-size:12px;padding:5px 9px;border-radius:7px;transform:translate(-50%,calc(-100% - 12px));white-space:nowrap;display:none;z-index:5}
 .carga{position:fixed;inset:0;z-index:8;display:grid;place-items:center;background:radial-gradient(120% 95% at 50% 38%,rgba(44,55,70,.94),rgba(13,17,23,.97));color:#fff;transition:opacity .9s var(--ease)}
 .carga.saiu{opacity:0;pointer-events:none}
@@ -601,16 +602,36 @@ const uvFoto = (p) => uvDoRecorte(p.recorte);
 /* Detalhe sob demanda: perto da câmera, um pedaço de 1,2 km em resolução máxima (~0,5 m por ponto) por cima da foto geral.
    É uma imagem só (2048 px), trocada quando a câmera anda: mais nítido sem pesar. */
 const detalhe = { mapa: { value: null }, ret: { value: new THREE.Vector4(0, 0, 0, 0) }, centro: null, carregando: false, tex: null };
-/* Material com a foto: pedaço em alta perto da câmera (só na usina) e correção de cor feita na placa de vídeo
-   (a foto de satélite vem lavada pela neblina: aqui ganha contraste e cor, sem custo). */
+/* Material com a foto: pedaço em alta perto da câmera (só na usina), nitidez adaptativa e correção de cor, tudo feito na
+   placa de vídeo. A nitidez segue o AMD CAS (Contrast Adaptive Sharpening, licença MIT): reforça a borda de cada telhado,
+   rua e pilha conforme o contraste em volta, sem estourar o que já é nítido. É o "DLSS" possível no navegador: não inventa
+   detalhe, só tira o borrado da foto. A foto de satélite também vem lavada pela neblina: aqui ganha contraste e cor. */
+const NITIDEZ = { value: 0.6 }; // 0 = desligada, 1 = máxima (acima de 0,7 a foto fica com cara de relevo)
 function aplicarFoto(material, comDetalhe) {
+  material.userData.texel = { value: new THREE.Vector2(1 / 4096, 1 / 4096) };
   material.onBeforeCompile = (s) => {
     s.uniforms.mapaDetalhe = detalhe.mapa; s.uniforms.retDetalhe = detalhe.ret;
-    s.fragmentShader = "uniform sampler2D mapaDetalhe;\nuniform vec4 retDetalhe;\n" + s.fragmentShader.replace("#include <map_fragment>", `#include <map_fragment>
+    s.uniforms.texelFoto = material.userData.texel; s.uniforms.nitidez = NITIDEZ;
+    s.fragmentShader = `uniform sampler2D mapaDetalhe;
+uniform vec4 retDetalhe;
+uniform vec2 texelFoto;
+uniform float nitidez;
+vec3 nitido(sampler2D t, vec2 uv, vec2 px) { // AMD CAS em cruz (5 leituras)
+  vec3 c = texture2D(t, uv).rgb;
+  if (nitidez <= 0.0) return c;
+  vec3 a = texture2D(t, uv - vec2(0.0, px.y)).rgb, b = texture2D(t, uv - vec2(px.x, 0.0)).rgb;
+  vec3 d = texture2D(t, uv + vec2(px.x, 0.0)).rgb, e = texture2D(t, uv + vec2(0.0, px.y)).rgb;
+  vec3 mn = min(c, min(min(a, b), min(d, e))), mx = max(c, max(max(a, b), max(d, e)));
+  vec3 amp = sqrt(clamp(min(mn, 1.0 - mx) / max(mx, 1e-4), 0.0, 1.0));
+  vec3 w = amp * (-1.0 / mix(8.0, 5.0, nitidez));
+  return clamp((c + (a + b + d + e) * w) / (1.0 + 4.0 * w), 0.0, 1.0);
+}
+` + s.fragmentShader.replace("#include <map_fragment>", `#include <map_fragment>
 #ifdef USE_MAP
+  diffuseColor.rgb = diffuse * nitido(map, vMapUv, texelFoto);
   ${comDetalhe ? `if (retDetalhe.z > 0.0) {
     vec2 uvD = (vMapUv - retDetalhe.xy) / retDetalhe.zw;
-    if (uvD.x > 0.0 && uvD.y > 0.0 && uvD.x < 1.0 && uvD.y < 1.0) diffuseColor.rgb = diffuse * texture2D(mapaDetalhe, uvD).rgb;
+    if (uvD.x > 0.0 && uvD.y > 0.0 && uvD.x < 1.0 && uvD.y < 1.0) diffuseColor.rgb = diffuse * nitido(mapaDetalhe, uvD, vec2(1.0 / 2048.0));
   }` : ""}
   float luz = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
   diffuseColor.rgb = mix(vec3(luz), diffuseColor.rgb, 1.22);
@@ -618,6 +639,10 @@ function aplicarFoto(material, comDetalhe) {
 #endif`);
   };
   material.customProgramCacheKey = () => (comDetalhe ? "foto-detalhe" : "foto");
+}
+function ajustarTexel(material) { // a nitidez lê o vizinho exato: precisa saber o tamanho da imagem em uso
+  const img = material.map?.image;
+  if (img?.width && material.userData.texel) material.userData.texel.value.set(1 / img.width, 1 / img.height);
 }
 async function carregarDetalhe() {
   const p = PECAS[0], t = controles.target;
@@ -793,6 +818,13 @@ function retanguloMinimo(anel) { // menor retângulo que cobre o contorno; A = m
   if (B > A) { [A, B] = [B, A]; [ea, eb] = [eb, ea]; }
   return { area: m.area, c: [cu * m.ux - cv * m.uz, cu * m.uz + cv * m.ux], A, B, ea, eb };
 }
+function tipoDoPredio(anel, area, ehGalpao, duasAguas) { // o que é cada construção, pela forma vista de cima
+  const redondo = (4 * Math.PI * area) / perimetro(anel) ** 2; // 1 = círculo perfeito
+  if (redondo > 0.8 && area < 6000) return "Tanque / silo";
+  if (duasAguas) return "Galpão industrial";
+  if (ehGalpao) return "Galpão";
+  return area < 150 ? "Edificação pequena" : "Prédio / escritório";
+}
 const pontoRet = (R, a, b, y) => [R.c[0] + R.ea[0] * a + R.eb[0] * b, y, R.c[1] + R.ea[1] * a + R.eb[1] * b];
 function face(lista, dentroDe, pts, tom) { // quadrilátero ou triângulo virado para fora (longe do ponto dentroDe)
   const tris = pts.length === 4 ? [[0, 1, 2], [0, 2, 3]] : [[0, 1, 2]];
@@ -824,6 +856,7 @@ let telhadoCidade = null, equipTelhado = null; // telhados (com a cor real tirad
     const h = o.h || alturaPredio(area, c, i);
     const ehGalpao = area > 600, R = ehGalpao ? retanguloMinimo(anel) : null;
     const duasAguas = !!R && area / R.area > 0.8 && R.B > 6;
+    const tipo = tipoDoPredio(anel, area, ehGalpao, duasAguas), anelOriginal = anel;
     if (duasAguas) anel = [pontoRet(R, -R.A, -R.B, 0), pontoRet(R, R.A, -R.B, 0), pontoRet(R, R.A, R.B, 0), pontoRet(R, -R.A, R.B, 0)].map(([x, , z]) => [x, z]);
     const destino = ehGalpao ? galpoes : escritorios;
     const base = (ehGalpao ? PALETA_GALPAO : PALETA_PREDIO)[Math.floor(acaso(i + 7) * (ehGalpao ? 7 : 5))];
@@ -842,7 +875,9 @@ let telhadoCidade = null, equipTelhado = null; // telhados (com a cor real tirad
     for (let v = ini; v < destino.pos.length / 3; v++) destino.cor.push(base.r, base.g, base.b);
     const t = triangulos(anel, h, uvFoto(peca));
     const lista = telhados.get(peca) || telhados.set(peca, { pos: [], uvs: [] }).get(peca);
+    const fIni = lista.pos.length / 3;
     lista.pos.push(...t.pos); lista.uvs.push(...t.uvs);
+    const fFim = lista.pos.length / 3;
     const tIni = cidade.pos.length / 3;
     if (duasAguas) {
       const A = R.A + 0.5, B = R.B + 0.9, yb = h - sobe * (0.9 / R.B), topo = h + sobe, dentroDe = [R.c[0], h - 8, R.c[1]];
@@ -865,7 +900,8 @@ let telhadoCidade = null, equipTelhado = null; // telhados (com a cor real tirad
         k++;
       }
     }
-    REGISTRO_PREDIOS.push({ malha: ehGalpao ? 0 : 1, ini, fim: destino.pos.length / 3, tIni, tFim: cidade.pos.length / 3, c, peca, h, base, duasAguas });
+    REGISTRO_PREDIOS.push({ malha: ehGalpao ? 0 : 1, ini, fim: destino.pos.length / 3, tIni, tFim: cidade.pos.length / 3, fIni, fFim, c, peca, h, base, duasAguas,
+      anel: anelOriginal, tipo, nome: o.n, area, medidas: R && duasAguas ? [2 * R.A, 2 * R.B] : null });
   });
   telhadoCidade = new THREE.Mesh(geometria({ pos: cidade.pos, cor: new Array(cidade.pos.length).fill(0.7) }), new THREE.MeshLambertMaterial({ vertexColors: true }));
   telhadoCidade.castShadow = telhadoCidade.receiveShadow = true;
@@ -880,7 +916,7 @@ let telhadoCidade = null, equipTelhado = null; // telhados (com a cor real tirad
   for (const [peca, t] of telhados) {
     const m = new THREE.Mesh(geometria(t), peca.matChao);
     m.castShadow = m.receiveShadow = true;
-    grupoReal.add(m); TELHADOS_FOTO.push(m);
+    m.userData.peca = peca; grupoReal.add(m); TELHADOS_FOTO.push(m);
   }
   REGISTRO_PREDIOS.forEach((r) => pintarTelhado(r, new THREE.Color(0xb5b2ab).lerp(r.base, 0.4)));
 }
@@ -1522,6 +1558,7 @@ function aplicarVisual() {
     const foto = real && fotos ? fotos[i] : cidade ? p.texSolo ?? null : null; // Cidade: o mapa do chão classificado
     p.matChao.map = foto; p.matChao.color.set(foto ? 0xffffff : cidade ? COR_CHAO_CIDADE : COR_ARGILA); p.matChao.needsUpdate = true;
     matToposAreas[i].map = foto; matToposAreas[i].needsUpdate = true;
+    ajustarTexel(p.matChao); ajustarTexel(matToposAreas[i]);
   });
   if (!real) { detalhe.ret.value.z = 0; detalhe.centro = null; } // o pedaço em alta da foto só vale na visão Foto
   if (bordaSelecao) bordaSelecao.position.y = 0;
@@ -1619,14 +1656,56 @@ addEventListener("resize", () => { camera.aspect = innerWidth / innerHeight; cam
    ========================================================================= */
 
 const raio = new THREE.Raycaster(), ponteiro = new THREE.Vector2();
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+const visivel = (o) => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; };
+function predioDoToque(h) { // qual prédio foi tocado, pelo triângulo atingido
+  const v = h.faceIndex * 3, k = PAREDES_PREDIOS.indexOf(h.object);
+  if (k >= 0) return REGISTRO_PREDIOS.find((r) => r.malha === k && v >= r.ini && v < r.fim);
+  if (h.object === telhadoCidade) return REGISTRO_PREDIOS.find((r) => v >= r.tIni && v < r.tFim);
+  const peca = h.object.userData.peca;
+  return REGISTRO_PREDIOS.find((r) => r.peca === peca && v >= r.fIni && v < r.fFim);
+}
+function chaoNoPonto(peca, x, z) { // o que é o chão naquele ponto, lido da foto (maioria num quadrado de 10 m)
+  if (!peca || !fotosReduzidas.has(peca)) return null;
+  const cor = amostraDaFoto(peca), voto = new Array(SOLO.length).fill(0);
+  for (let dx = -4; dx <= 4; dx += 2) for (let dz = -4; dz <= 4; dz += 2) { const px = cor(x + dx, z + dz); if (px) voto[classeDoPonto(...px)]++; }
+  const melhor = voto.indexOf(Math.max(...voto));
+  return voto[melhor] ? SOLO[melhor].nome : null;
+}
 function oQueEstaSob(x, y) {
   ponteiro.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
   raio.setFromCamera(ponteiro, camera);
-  const h = raio.intersectObjects([...Object.values(CORPOS), blocos], false)[0];
+  const predios = [...PAREDES_PREDIOS, telhadoCidade, ...TELHADOS_FOTO].filter(visivel);
+  const h = raio.intersectObjects([...Object.values(CORPOS), blocos, ...predios, ...PECAS.map((p) => p.chao)], false)[0];
   if (!h) return {};
   const tipo = Object.keys(CORPOS).find((t) => CORPOS[t] === h.object);
   if (tipo) return { caminhao: caminhoesPorCorpo[tipo][h.instanceId] };
-  return { area: AREAS[AREA_DO_TRI[h.faceIndex]] };
+  const ponto = [h.point.x, h.point.z];
+  if (predios.includes(h.object)) return { predio: predioDoToque(h), ponto };
+  if (h.object === blocos) return { area: AREAS[AREA_DO_TRI[h.faceIndex]], ponto };
+  return { chao: PECAS.find((p) => p.chao === h.object), ponto };
+}
+/* contorno claro no prédio sob o mouse */
+const contornoPredio = new THREE.LineLoop(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0x8fd3ff, depthTest: false, transparent: true }));
+contornoPredio.renderOrder = 20; contornoPredio.visible = false; cena.add(contornoPredio);
+let predioRealcado = null;
+function realcarPredio(r) {
+  if (r === predioRealcado) return;
+  predioRealcado = r; contornoPredio.visible = !!r;
+  if (r) contornoPredio.geometry.setFromPoints(r.anel.map(([x, z]) => new THREE.Vector3(x, r.h + 0.4, z)));
+  pedirDesenho();
+}
+const metros = (n) => Math.round(n).toLocaleString("pt-BR");
+function textoDaDica({ area, caminhao, predio, chao, ponto }) { // identificação de cada elemento sob o mouse
+  if (caminhao) return `<b>${esc(caminhao.nome)}</b><small>${ROTULO_STATUS[caminhao.classe]}</small>`;
+  const foto = estado.visual === "real" || estado.visual === "cidade";
+  if (predio) {
+    const onde = areaSob(predio.c), extra = [predio.nome ? predio.tipo : null, `${metros(predio.area)} m²`, predio.medidas ? `${metros(predio.medidas[0])} × ${metros(predio.medidas[1])} m` : null, onde ? `em ${onde.nome}` : null];
+    return `<b>${esc(predio.nome || predio.tipo)}</b><small>${esc(extra.filter(Boolean).join(" · "))}</small>`;
+  }
+  const solo = foto && ponto ? chaoNoPonto(area?.peca || chao, ...ponto) : null;
+  if (area) return `<b>${esc(area.nome)}</b>${solo ? `<small>Chão: ${esc(solo)}</small>` : ""}`;
+  return solo ? `<b>${esc(solo)}</b><small>Chão identificado na foto</small>` : null;
 }
 
 let ultimo = null, pendente = false;
@@ -1637,24 +1716,25 @@ renderer.domElement.addEventListener("pointermove", (e) => {
   pendente = true;
   requestAnimationFrame(() => {
     pendente = false;
-    const { area, caminhao } = oQueEstaSob(ultimo.clientX, ultimo.clientY);
-    const novo = caminhao ? null : area || null;
+    const sob = oQueEstaSob(ultimo.clientX, ultimo.clientY), { area, caminhao } = sob;
+    const novo = caminhao || sob.predio ? null : area || null;
     if (novo !== estado.hover) { const antes = estado.hover; estado.hover = novo; repintar(antes, novo); }
-    const dica = $("dica");
-    if (!estado.selecionada && !estado.caminhao && (area || caminhao)) {
-      dica.textContent = caminhao ? `${caminhao.nome} · ${ROTULO_STATUS[caminhao.classe]}` : area.nome;
+    realcarPredio(sob.predio || null);
+    const dica = $("dica"), texto = !estado.selecionada && !estado.caminhao ? textoDaDica(sob) : null;
+    if (texto) {
+      if (dica.dataset.t !== texto) { dica.innerHTML = texto; dica.dataset.t = texto; }
       dica.style.left = `${ultimo.clientX}px`; dica.style.top = `${ultimo.clientY}px`; dica.style.display = "block";
     } else if (!estado.selecionada && !estado.caminhao) dica.style.display = "none";
     renderer.domElement.style.cursor = area || caminhao ? "pointer" : "grab";
   });
 });
-renderer.domElement.addEventListener("pointerleave", () => { const antes = estado.hover; estado.hover = null; repintar(antes); if (!estado.selecionada && !estado.caminhao) $("dica").style.display = "none"; });
+renderer.domElement.addEventListener("pointerleave", () => { const antes = estado.hover; estado.hover = null; repintar(antes); realcarPredio(null); if (!estado.selecionada && !estado.caminhao) $("dica").style.display = "none"; });
 
 let apertou = null;
 renderer.domElement.addEventListener("pointerdown", (e) => { apertou = [e.clientX, e.clientY]; });
 renderer.domElement.addEventListener("pointerup", (e) => {
   if (!apertou || Math.hypot(e.clientX - apertou[0], e.clientY - apertou[1]) > 6) return;
-  const { area, caminhao } = oQueEstaSob(e.clientX, e.clientY);
+  const sob = oQueEstaSob(e.clientX, e.clientY), caminhao = sob.caminhao, area = sob.area || (sob.predio && areaSob(sob.predio.c)); // tocar no prédio abre a área onde ele está
   if (caminhao) selecionarCaminhao(caminhao); else if (area) selecionar(area, false); else fechar();
 });
 
@@ -2033,7 +2113,7 @@ window.usina = { // usado nos testes automáticos
   caminhao: (placa) => selecionarCaminhao(CAMINHOES.find((c) => c.placa === placa)),
   visual: async (v) => { estado.visual = v; if (v === "real" && !fotos) await baixarFotoCompleta(); aplicarVisual(); return v; },
   ver: (x, y, z, tx, tz) => voar(new THREE.Vector3(tx, 0, tz), new THREE.Vector3(x, y, z), 0),
-  pronto: () => fotosReduzidas.size > 0, ruas: () => NOMES_RUAS.slice(0, 4).map((r) => [r[0], Math.round(r[1]), Math.round(r[2])]), lagos: () => OSM.filter((o) => o.t === "agua").map((o) => paraXZ(o.p[0]).map(Math.round)), degrau: () => medidor.degrau, periodo: mudarPeriodo, tempo: (t) => { estado.tempo = t; estado.tocando = false; atualizarRelogio(); atualizarInstancias(); desenharRastros(); pedirDesenho(); },
+  pronto: () => fotosReduzidas.size > 0, dica: (x, y) => textoDaDica(oQueEstaSob(x, y)), nitidez: (n) => { NITIDEZ.value = n; pedirDesenho(); }, ruas: () => NOMES_RUAS.slice(0, 4).map((r) => [r[0], Math.round(r[1]), Math.round(r[2])]), lagos: () => OSM.filter((o) => o.t === "agua").map((o) => paraXZ(o.p[0]).map(Math.round)), degrau: () => medidor.degrau, periodo: mudarPeriodo, tempo: (t) => { estado.tempo = t; estado.tocando = false; atualizarRelogio(); atualizarInstancias(); desenharRastros(); pedirDesenho(); },
   rotas: () => { const t0 = performance.now(); calcularRotas(); const r = CAMINHOES.filter((c) => c.rota); return `${r.length} trajetos, ${r.filter((c) => c.rota.andou).length} andaram, ${Math.round(r.reduce((s, c) => s + c.rota.km, 0))} km, ${Math.round(performance.now() - t0)} ms`; },
   receber: receberFrota, nos: () => GRAFO.nos.length, placa: () => `${PLACA} → ${estado.qualidade}`,
   girar: (ms = 4000) => new Promise((ok) => { // simula alguém girando a câmera e conta os quadros desenhados por segundo
