@@ -5,6 +5,7 @@ import type { Excecao, RegraExcecao } from "../excecoes";
 import type { LinhaTablet } from "../gauss-dia";
 import { regimeDoEquip } from "../regras-frota";
 import { supervisorDaParada } from "../supervisor-vaga";
+import { vagaOficial } from "../vagas-oficiais";
 import type { ConfigRegra, Politica } from "./config";
 import { familiasNoPeriodo, fracaoSemSinal, janelaDoAlerta, repeticoes, type HistoricoAlerta, type Situacao } from "./contexto";
 import { destinoDaNota, excessoMin, notaDoAlerta, type ContextoNota, type Destino, type Motivo } from "./nota";
@@ -84,7 +85,8 @@ export function montarAlertas(x: EntradaMontar): LinhaAlerta[] {
   for (const e of x.excecoes) {
     const cfg = x.regras[e.regra];
     const v = porId.get(e.veiculo);
-    if (!cfg?.ativa || !v?.equip) continue;
+    // só as 22 vagas que a Mecanizada opera (sem vaga ou Brook parado no Pátio não é alerta)
+    if (!cfg?.ativa || !v?.equip || !vagaOficial(v.vaga)) continue;
     const chave = chaveDoAlerta(e, x.dia);
     const ant = anteriores.get(chave) ?? null;
     const j = janelaDoAlerta(e, x.agoraSeg);

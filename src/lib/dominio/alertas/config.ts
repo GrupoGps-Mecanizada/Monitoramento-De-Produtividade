@@ -29,6 +29,8 @@ export interface Politica {
   modo_teste: boolean;
   /** "HH:MM" */
   resumo_hora: string;
+  /** WhatsApp só do que aconteceu nos últimos N minutos (o resto fica só na tela) */
+  janela_min: number;
 }
 
 /** Repetição na mesma vaga em 7 dias: a 2ª vez não muda; da 3ª em diante sobe um nível (resumo → WhatsApp → coordenador). */
@@ -39,7 +41,7 @@ export const SEM_SINAL_FRACAO = 0.5;
 export const SEM_SINAL_PONTOS = 40;
 export const PRESUMIDO_PONTOS = 10;
 
-export const POLITICA_PADRAO: Politica = { corte_whatsapp: 60, corte_resumo: 30, corte_coordenador: 85, max_por_hora: 6, modo_teste: true, resumo_hora: "07:00" };
+export const POLITICA_PADRAO: Politica = { corte_whatsapp: 60, corte_resumo: 30, corte_coordenador: 85, max_por_hora: 6, modo_teste: true, resumo_hora: "07:00", janela_min: 60 };
 
 const JUST: ConfigRegra["justificativas"] = { manutencao: 40, preparacao: 30, aguardando: 25, pausas: 25, logistica: 15 };
 const HORARIO: Faixa[] = [{ acima_min: 15, pontos: 30 }, { acima_min: 30, pontos: 55 }];
