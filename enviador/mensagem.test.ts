@@ -55,7 +55,7 @@ describe("texto da mensagem (modelo A: agrupado por tipo)", () => {
         "🚛 *ALERTAS DA FROTA*",
         "_Segunda, 19/10 · 12:35_",
         "",
-        "> 🔴 *Motor desligado* · 2",
+        "> 🔴 *Ocioso (motor desligado)* · 2",
         "*EGC2985* · AP 08",
         "Desligado há 1h02 em Calcinação",
         "desde 02:02 · Sup. Fabio",
@@ -82,7 +82,7 @@ describe("texto da mensagem (modelo A: agrupado por tipo)", () => {
       agora,
     );
     expect(t).toContain("*EGC2993* · AV 05 — chegou 16:05, 25 min antes · Sup. Donizete");
-    expect(t).toContain("> 🟡 *Ociosidade* · 1\n*EAM3257* · HV 03\nLigado sem produzir há 45 min em Alto Forno 3\ndesde 11:00 · Sup. Genésio");
+    expect(t).toContain("> 🟡 *Ligado sem produzir* · 1\n*EAM3257* · HV 03\nLigado sem produzir há 45 min em Alto Forno 3\ndesde 11:00 · Sup. Genésio");
   });
   it("acima do limite resume o resto antes do rodapé", () => {
     const xs = Array.from({ length: MAX_ITENS + 3 }, (_, i) => al({ id: i, placa: `P${i}`, ini: 7 * 3600 + 45 * 60, ref: 7 * 3600 + 45 * 60 }));

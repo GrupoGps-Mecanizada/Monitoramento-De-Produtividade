@@ -27,7 +27,7 @@ export const O_QUE_VIGIA: Record<RegraExcecao, string> = {
   bica_vacuo: "Auto ou Hiper Vácuo parado na bica de água",
   restaurante: "Muito tempo no restaurante no expediente",
   ocioso: "Parado com o motor ligado, sem produzir",
-  desligado: "Motor desligado fora do Pátio no expediente",
+  desligado: "Ocioso: motor desligado fora do Pátio no expediente",
   velocidade: `Velocidade acima de ${VELOCIDADE_MAX_USINA} km/h dentro da usina`,
 };
 

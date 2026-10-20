@@ -12,7 +12,7 @@ import { destinoDaNota, excessoMin, notaDoAlerta, type ContextoNota, type Destin
 
 /** O coletor vê as áreas a cada 5-10 min: só dá como terminado o que acabou há mais que isso. */
 export const FOLGA_FIM_S = 600;
-/** Desligado e ociosidade vêm da timeline de motor, e o coletor pula a vaga parada por até 1 h (MAX_QUIETA_MS): o fim fica velho. */
+/** Ocioso (desligado) e ligado sem produzir vêm da timeline de motor, e o coletor pula a vaga parada por até 1 h (MAX_QUIETA_MS): o fim fica velho. */
 export const FOLGA_MOTOR_S = 70 * 60;
 const DO_MOTOR = new Set(["desligado", "ocioso"]);
 

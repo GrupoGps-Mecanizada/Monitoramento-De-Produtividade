@@ -35,7 +35,7 @@ describe("sugestões", () => {
   it("10 avaliações com 60% 'não era problema': sugere", () => {
     const [s] = sugestoes(avaliados(10, 6), D);
     expect(s).toMatchObject({ regra: "ocioso", avaliados: 10, fracao: 0.6 });
-    expect(s.texto).toMatch(/60% dos alertas de "Ociosidade"/);
+    expect(s.texto).toMatch(/60% dos alertas de "Ligado sem produzir"/);
   });
   it("menos de 10 avaliações ou menos de 60%: não sugere", () => {
     expect(sugestoes(avaliados(9, 9), D)).toEqual([]);

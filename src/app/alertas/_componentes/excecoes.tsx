@@ -110,7 +110,7 @@ export function Excecoes({ topo }: { topo?: ReactNode }) {
           ))
         )}
       </section>
-      <p className="text-xs text-suave">Regras da frota: horários do Pátio por regime, oficinas, bica, restaurante, ociosidade (30 min) e motor desligado (1 h). Fins de semana e feriados seguem o regime.</p>
+      <p className="text-xs text-suave">Regras da frota: horários do Pátio por regime, oficinas, bica, restaurante, ligado sem produzir (30 min) e ocioso: motor desligado (1 h). Fins de semana e feriados seguem o regime.</p>
     </div>
   );
 }

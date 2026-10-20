@@ -22,6 +22,6 @@ data e um cartão por vaga de 24 h (AP 01, AP 08, AV 01, AV 08) com o caminhão,
 produtivo e ocioso e os apontamentos do tablet.
 - Sai às **07:00** (noite que acabou às 06:40) e às **19:00** (dia que acabou às 18:40): espera 20 min para o GAUSS chegar.
 - Manda uma vez só (guarda em `enviador/.relatorio-turno.json`). PC ligado mais de 3 h depois do fim: não manda o velho.
-- Produtivo: bomba ligada (Alta Pressão) ou parado ligado (Auto Vácuo), em qualquer lugar (até na baia). Ocioso: motor desligado.
+- Produtivo: bomba ligada (Alta Pressão) ou parado ligado (Auto Vácuo), fora do Pátio do Transporte e da Garagem; a Baia de Resíduos conta (igual ao site). Ocioso: motor desligado (o mesmo nome em todo o sistema).
   Justificado: tempo coberto pelos apontamentos do tablet. Motorista: quem o tablet identificou (sem nome, a linha some).
 - Ver como fica sem mandar: dois cliques em `Testar relatório do turno.bat`.

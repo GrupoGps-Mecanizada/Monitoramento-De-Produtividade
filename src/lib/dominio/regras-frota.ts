@@ -16,7 +16,7 @@ export const EXPEDIENTES: Record<Regime, { dias: number[]; turnos: { saida: stri
 
 /** O coletor vê a posição a cada ~5 min: folga nos horários de saída e chegada. */
 export const TOLERANCIA_MIN = 5;
-/** Parado ligado sem produzir por este tempo seguido vira ociosidade. */
+/** Parado ligado sem produzir por este tempo seguido vira alerta de "Ligado sem produzir" (ocioso é motor desligado, regra do dono de 20/10/2026). */
 export const OCIOSO_MIN = 30;
 /** Motor desligado por este tempo seguido no expediente vira alerta. */
 export const DESLIGADO_MIN = 60;

@@ -152,7 +152,7 @@ export function montarMensagem(alertas: AlertaEnvio[], agora: Date): string {
     });
     // caminhões de várias linhas separados por uma linha em branco; os de uma linha só, um embaixo do outro
     const corpo = instante ? itens.flat() : itens.flatMap((l, i) => (i ? ["", ...l] : l));
-    // título curto: o tempo de cada um já vem na linha ("Motor desligado 1 h" vira "Motor desligado")
+    // título curto: o tempo de cada um já vem na linha ("Ocioso (motor desligado) 1 h" vira "Ocioso (motor desligado)")
     const titulo = (ROTULO_REGRA[regra as RegraExcecao] ?? regra).replace(/ acima de 1 h$| 1 h$/, "");
     blocos.push([`> ${icone} *${titulo}* · ${total}`, ...corpo].join("\n"));
   }

@@ -11,7 +11,7 @@ const destino = (s: RegraSimples, min: number) => {
 };
 
 describe("ler a configuração no formato simples", () => {
-  it("padrões: saída tarde e desligado vão ao WhatsApp com tolerância; ociosidade só resumo; Servitec só tela", () => {
+  it("padrões: saída tarde e desligado vão ao WhatsApp com tolerância; ligado sem produzir só resumo; Servitec só tela", () => {
     expect(deConfig(REGRAS_PADRAO.saida_tarde, P)).toEqual({ regra: "saida_tarde", ativa: true, nivel: "whatsapp", apos: 15, coordenadorApos: 30 });
     expect(deConfig(REGRAS_PADRAO.desligado, P)).toMatchObject({ nivel: "whatsapp", apos: 60, coordenadorApos: 120 });
     expect(deConfig(REGRAS_PADRAO.ocioso, P)).toMatchObject({ nivel: "resumo", apos: null, coordenadorApos: null });
@@ -62,13 +62,13 @@ describe("resumo só depois de um tempo", () => {
 describe("frases", () => {
   it("só importa mandar ou não no WhatsApp (sem supervisor nem coordenador na frase)", () => {
     expect(frase({ regra: "desligado", ativa: true, nivel: "whatsapp", apos: 60, coordenadorApos: 120 }, "07:00")).toEqual({
-      oque: "Motor desligado por mais de 1 h",
+      oque: "Ocioso (motor desligado) por mais de 1 h",
       destino: ["envia no WhatsApp"],
     });
   });
   it("saída tarde com atraso; ociosidade e Servitec não enviam", () => {
     expect(frase({ regra: "saida_tarde", ativa: true, nivel: "whatsapp", apos: 15, coordenadorApos: null }, "07:00").oque).toBe("Saída tarde do Pátio, mais de 15 min de atraso");
-    expect(frase({ regra: "ocioso", ativa: true, nivel: "resumo", apos: null, coordenadorApos: null }, "07:00:00")).toEqual({ oque: "Ociosidade por mais de 30 min", destino: ["não envia"] });
+    expect(frase({ regra: "ocioso", ativa: true, nivel: "resumo", apos: null, coordenadorApos: null }, "07:00:00")).toEqual({ oque: "Ligado sem produzir por mais de 30 min", destino: ["não envia"] });
     expect(frase({ regra: "servitec", ativa: true, nivel: "tela", apos: null, coordenadorApos: null }, "07:00").destino).toEqual(["não envia"]);
   });
   it("restaurante tira o '1 h' do nome e usa o tempo escolhido", () => {

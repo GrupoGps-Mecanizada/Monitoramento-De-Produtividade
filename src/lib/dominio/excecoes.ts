@@ -24,8 +24,8 @@ export const ROTULO_REGRA: Record<RegraExcecao, string> = {
   oficina_fora: "Oficina de fora",
   bica_vacuo: "Vácuo na bica",
   restaurante: "Restaurante acima de 1 h",
-  ocioso: "Ociosidade",
-  desligado: "Motor desligado 1 h",
+  ocioso: "Ligado sem produzir",
+  desligado: "Ocioso (motor desligado) 1 h",
   velocidade: "Velocidade acima de 30 km/h",
 };
 /** alerta = fugiu da regra; atenção = só para saber (oficinas). */
@@ -361,11 +361,11 @@ export function excecoesDoDia(x: EntradaExcecoes): Excecao[] {
     const apontados = x.tablet.filter((t) => placas.has(t.placa)).map((t) => ({ a: segDoLocal(t.inicio, base), b: t.fim ? segDoLocal(t.fim, base) : fim, categoria: t.categoria_demora }));
     const aoVivo = completarAoVivo(motorNoEixo(linhasMotor, base, x.dia), v, base, x.agoraSeg == null ? null : fim, apontados, comSecundario.has(v.id));
     const blocos = cortarPorVaga(aoVivo, vagas);
-    // 8. ociosidade: parado ligado seguido, quando parado ligado não é o produtivo do equipamento (fora do Pátio)
+    // 8. ligado sem produzir: parado ligado seguido, quando parado ligado não é o produtivo do equipamento (fora do Pátio)
     if (statusProdutivo(equip.tipo, v.placa) !== "stopped")
       for (const b of blocos)
         if (b.cod === "stopped" && noDia(b.a) && noExpDa(b.vaga, b.a, b.b) >= OCIOSO_MIN * 60 && !naLista(PATIO, b.a)) add("ocioso", b.a, b.b, localEm(b.a), dur(b.b - b.a), b.a, b.vaga);
-    // 9. motor desligado no expediente, fora do Pátio e das oficinas, sem refeição apontada no tablet
+    // 9. ocioso (motor desligado) no expediente, fora do Pátio e das oficinas, sem refeição apontada no tablet
     const refeicoes = apontados.filter((t) => /REFEI/i.test(t.categoria));
     for (const b of blocos) {
       if ((b.cod !== "off" && b.cod !== "main_switch_off") || !noDia(b.a) || noExpDa(b.vaga, b.a, b.b) < DESLIGADO_MIN * 60) continue;

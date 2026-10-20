@@ -32,7 +32,7 @@ test("Gestão de alertas: só o que vai ou não para o WhatsApp; frases e assist
   if (process.env.FOTO) await page.screenshot({ path: process.env.FOTO + "-lista.png" });
   // detalhe ao lado: envia ou não, sem botões de marcar
   await lista.getByRole("button", { name: "EAM3257" }).click();
-  const detalhe = page.getByRole("complementary", { name: "EAM3257 · Ociosidade" });
+  const detalhe = page.getByRole("complementary", { name: "EAM3257 · Ligado sem produzir" });
   await expect(detalhe).toContainText("Não vai para o WhatsApp");
   await expect(detalhe.getByRole("button", { name: "Resolver" })).toHaveCount(0);
   if (process.env.FOTO) await page.screenshot({ path: process.env.FOTO + "-detalhe.png" });
@@ -45,8 +45,8 @@ test("Gestão de alertas: só o que vai ou não para o WhatsApp; frases e assist
   await expect(regras).not.toContainText("supervisor");
   await page.getByRole("button", { name: "+ Novo alerta" }).click();
   const novo = page.getByRole("complementary", { name: "Novo alerta" });
-  await novo.getByRole("radio", { name: /Ociosidade/ }).click();
-  await expect(novo).toContainText("Ociosidade por mais de 30 min");
+  await novo.getByRole("radio", { name: /Ligado sem produzir/ }).click();
+  await expect(novo).toContainText("Ligado sem produzir por mais de 30 min");
   await expect(novo).not.toContainText("Avisar quem");
   if (process.env.FOTO) await page.screenshot({ path: process.env.FOTO + "-novo.png" });
   await novo.getByRole("button", { name: "Cancelar" }).click();

@@ -69,7 +69,7 @@ describe("contagens (um filtra o outro)", () => {
 describe("etiquetas", () => {
   it("uma por filtro ativo, com texto legível", () => {
     expect(etiquetas(f({ regra: "desligado", supervisor: "", busca: "egc", atalho: "graves" }))).toEqual([
-      { dim: "regra", texto: "Motor desligado 1 h" },
+      { dim: "regra", texto: "Ocioso (motor desligado) 1 h" },
       { dim: "supervisor", texto: "Sem supervisor" },
       { dim: "busca", texto: "“egc”" },
       { dim: "atalho", texto: "Mais graves (85+)" },
@@ -89,7 +89,7 @@ describe("agrupar", () => {
   it("por hora: mais recente primeiro", () => expect(agrupar(xs, "nenhum", "hora")[0].itens.map((a) => a.id)).toEqual([1, 2, 3, 4, 5]));
   it("por equipamento e por regra", () => {
     expect(agrupar(xs, "equipamento", "nota").map((x) => x.titulo)).toEqual(["EGC2985", "DSY6472", "EAM3257"]);
-    expect(agrupar(xs, "regra", "nota").map((x) => x.titulo)).toEqual(["Saída tarde do Pátio", "Motor desligado 1 h", "Ociosidade"]);
+    expect(agrupar(xs, "regra", "nota").map((x) => x.titulo)).toEqual(["Saída tarde do Pátio", "Ocioso (motor desligado) 1 h", "Ligado sem produzir"]);
   });
 });
 
