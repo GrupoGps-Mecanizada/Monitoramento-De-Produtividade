@@ -56,13 +56,18 @@ export interface ApontTurno {
   inicio: string;
   fim: string | null;
   categoria_demora: string;
+  motorista?: string | null;
 }
 export interface ResumoVaga {
   /** "AP 01" */
   vaga: string;
   placas: string[];
+  /** quem o tablet identificou (o que mais apontou no turno); null = não identificado */
+  motorista: string | null;
   produtivo_min: number;
   ocioso_min: number;
+  /** tempo coberto pelos apontamentos do tablet no turno */
+  justificado_min: number;
   areas: string[];
   apontamentos: string[];
 }
@@ -140,18 +145,39 @@ function areasDe(eventos: EventoTurno[], placas: Set<string>, ini: number, fim: 
     .map(([a]) => nomeLocal(a));
 }
 
-/** Apontamentos do tablet no turno, agrupados pela categoria: "Refeição (2)". */
-function apontamentosDe(apont: ApontTurno[], placas: Set<string>, ini: number, fim: number): string[] {
+/**
+ * Apontamentos do tablet no turno: agrupados pela categoria ("Refeição (2)"), o tempo que cobrem (sobrepostos contam
+ * uma vez; aberto conta até o fim do turno) e o motorista que mais apontou.
+ */
+function apontamentosDe(apont: ApontTurno[], placas: Set<string>, ini: number, fim: number) {
   const conta = new Map<string, number>();
+  const porMotorista = new Map<string, number>();
+  const trechos: [number, number][] = [];
   for (const a of apont) {
     if (!placas.has(placaLimpa(a.placa))) continue;
     const a0 = ms(a.inicio);
-    const a1 = a.fim ? ms(a.fim) : a0;
-    if (a0 >= fim || a1 < ini || (a1 === ini && a0 < ini)) continue;
+    const a1 = a.fim ? ms(a.fim) : Math.max(a0, fim);
+    if (a0 >= fim || a1 <= ini) continue;
     const cat = nomeLocal(a.categoria_demora.trim());
     conta.set(cat, (conta.get(cat) ?? 0) + 1);
+    trechos.push([Math.max(a0, ini), Math.min(a1, fim)]);
+    // o tablet manda "--" quando o motorista não se identificou
+    const m = a.motorista?.trim();
+    if (m && /\p{L}{2}/u.test(m)) porMotorista.set(m, (porMotorista.get(m) ?? 0) + 1);
   }
-  return [...conta].map(([c, n]) => (n > 1 ? `${c} (${n})` : c));
+  let min = 0;
+  let ate = -Infinity;
+  for (const [a, b] of trechos.sort((p, q) => p[0] - q[0])) {
+    const de = Math.max(a, ate);
+    if (b > de) min += (b - de) / 60000;
+    ate = Math.max(ate, b);
+  }
+  const motorista = [...porMotorista].sort((p, q) => q[1] - p[1])[0]?.[0];
+  return {
+    lista: [...conta].map(([c, n]) => (n > 1 ? `${c} (${n})` : c)),
+    min: Math.round(min),
+    motorista: motorista ? nomeLocal(motorista) : null,
+  };
 }
 
 /** Um resumo por vaga de 24 h, na ordem AP 01, AP 08, AV 01, AV 08. */
@@ -183,17 +209,22 @@ export function resumirVagas(linhas: LinhaTurno[], eventos: EventoTurno[], apont
       // caminhão que só passou pela vaga (menos de 30 min) não aparece, a não ser que seja o único
       const placas = [...minPorPlaca].sort((p, q) => q[1] - p[1]).filter(([, m], i) => i === 0 || m >= 30).map(([p]) => p);
       const set = new Set(placas);
+      const ap = apontamentosDe(apont, set, ini, fim);
       return {
         vaga: vagaCurta(nome),
         placas,
+        motorista: ap.motorista,
         produtivo_min: Math.round(produtivo),
         ocioso_min: Math.round(ocioso),
+        justificado_min: ap.min,
         areas: areasDe(eventos, set, ini, fim),
-        apontamentos: apontamentosDe(apont, set, ini, fim),
+        apontamentos: ap.lista,
       };
     });
   // as 4 vagas sempre aparecem: a que o GAUSS não mandou fica "sem dados"
-  return VAGAS_24H.map((v) => resumos.find((r) => r.vaga === v) ?? { vaga: v, placas: [], produtivo_min: 0, ocioso_min: 0, areas: [], apontamentos: [] });
+  return VAGAS_24H.map(
+    (v) => resumos.find((r) => r.vaga === v) ?? { vaga: v, placas: [], motorista: null, produtivo_min: 0, ocioso_min: 0, justificado_min: 0, areas: [], apontamentos: [] },
+  );
 }
 
 /** Barra de 10 blocos (fração do turno). */
@@ -202,30 +233,32 @@ export const barra = (fracao: number) => {
   return "▰".repeat(n) + "▱".repeat(10 - n);
 };
 const duracao = (min: number) => `${Math.floor(min / 60)}h${String(Math.round(min % 60)).padStart(2, "0")}`;
-const linhaBarra = (rotulo: string, min: number) => `\`${rotulo.padEnd(9)} ${barra(min / TURNO_MIN)} ${`${Math.round((min / TURNO_MIN) * 100)}%`.padStart(4)} ${duracao(min)}\``;
+const linhaBarra = (rotulo: string, min: number) => `\`${rotulo.padEnd(11)} ${barra(min / TURNO_MIN)} ${`${Math.round((min / TURNO_MIN) * 100)}%`.padStart(4)} ${duracao(min)}\``;
 
 const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 /** "Terça, 20/10" */
 const dataCurta = (dia: string) => `${DIAS[new Date(`${dia}T12:00:00Z`).getUTCDay()]}, ${dia.slice(8, 10)}/${dia.slice(5, 7)}`;
 
 function cartao(v: ResumoVaga): string[] {
-  const cab = `> 🚛 *${v.vaga}*${v.placas.length ? ` · ${v.placas.join(" / ")}` : ""}`;
+  const cab = `> *${v.vaga}*${v.placas.length ? ` · ${v.placas.join(" / ")}` : ""}`;
   if (!v.placas.length) return [cab, "_Sem dados do GAUSS no turno_"];
   return [
     cab,
-    `📍 ${v.areas.length ? [...v.areas.slice(0, MAX_AREAS), ...(v.areas.length > MAX_AREAS ? [`+${v.areas.length - MAX_AREAS}`] : [])].join(" · ") : "Sem área registrada"}`,
+    ...(v.motorista ? [`*Motorista:* ${v.motorista}`] : []),
+    `*Local:* ${v.areas.length ? [...v.areas.slice(0, MAX_AREAS), ...(v.areas.length > MAX_AREAS ? [`+${v.areas.length - MAX_AREAS}`] : [])].join(" · ") : "Sem registro"}`,
+    `*Apontamentos:* ${v.apontamentos.length ? v.apontamentos.join(" · ") : "Nenhum"}`,
     linhaBarra("Produtivo", v.produtivo_min),
     linhaBarra("Ocioso", v.ocioso_min),
-    `📝 ${v.apontamentos.length ? v.apontamentos.join(" · ") : "Sem apontamentos"}`,
+    linhaBarra("Justificado", v.justificado_min),
   ];
 }
 
-/** Cartão por vaga (modelo escolhido pelo dono em 20/10/2026). *negrito*, _itálico_, `fixo` e "> " são do WhatsApp. */
+/** Formato do dono (20/10/2026): sem emojis, rótulos em negrito e três barras. *negrito*, _itálico_, `fixo` e "> " são do WhatsApp. */
 export function montarRelatorio(t: Turno, vagas: ResumoVaga[]): string {
   return [
-    "📋 *RELATÓRIO DO TURNO*",
+    "*RELATÓRIO DE PRODUTIVIDADE DO TURNO*",
     `_${t.periodo === "dia" ? "Dia" : "Noite"} · Letra ${t.letra} · ${dataCurta(t.dia)} · ${t.ini.slice(11, 16)}–${t.fim.slice(11, 16)}_`,
-    `👷 Supervisor: *${t.supervisor ?? "—"}*`,
+    `Supervisor: *${t.supervisor ?? "—"}*`,
     "",
     vagas.map((v) => cartao(v).join("\n")).join("\n\n"),
     "",

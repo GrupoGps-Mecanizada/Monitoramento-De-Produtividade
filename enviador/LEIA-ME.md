@@ -23,4 +23,5 @@ produtivo e ocioso e os apontamentos do tablet.
 - Sai às **07:00** (noite que acabou às 06:40) e às **19:00** (dia que acabou às 18:40): espera 20 min para o GAUSS chegar.
 - Manda uma vez só (guarda em `enviador/.relatorio-turno.json`). PC ligado mais de 3 h depois do fim: não manda o velho.
 - Produtivo: bomba ligada (Alta Pressão) ou parado ligado (Auto Vácuo). Ocioso: motor ligado sem produzir.
+  Justificado: tempo coberto pelos apontamentos do tablet. Motorista: quem o tablet identificou (sem nome, a linha some).
 - Ver como fica sem mandar: dois cliques em `Testar relatório do turno.bat`.

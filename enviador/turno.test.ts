@@ -59,15 +59,18 @@ describe("resumo de cada vaga no turno", () => {
       ev("11:00", "entrada", "GARAGEM"),
     ];
     const apont: ApontTurno[] = [
-      { placa: "EGC2983", inicio: "2026-10-20 11:00:00", fim: "2026-10-20 12:00:00", categoria_demora: "REFEIÇÃO" },
-      { placa: "EGC2983", inicio: "2026-10-20 15:00:00", fim: "2026-10-20 15:30:00", categoria_demora: "REFEIÇÃO" },
-      { placa: "EGC2983", inicio: "2026-10-20 16:00:00", fim: null, categoria_demora: "AGUARDANDO LIBERAÇÃO DE ÁREA" },
+      { placa: "EGC2983", inicio: "2026-10-20 11:00:00", fim: "2026-10-20 12:00:00", categoria_demora: "REFEIÇÃO", motorista: "JOSÉ DA SILVA" },
+      { placa: "EGC2983", inicio: "2026-10-20 11:30:00", fim: "2026-10-20 11:45:00", categoria_demora: "DOCUMENTAÇÃO", motorista: "JOSÉ DA SILVA" }, // dentro da refeição: o tempo não soma 2 vezes
+      { placa: "EGC2983", inicio: "2026-10-20 15:00:00", fim: "2026-10-20 15:30:00", categoria_demora: "REFEIÇÃO", motorista: "--" },
+      { placa: "EGC2983", inicio: "2026-10-20 16:00:00", fim: null, categoria_demora: "AGUARDANDO LIBERAÇÃO DE ÁREA", motorista: "--" }, // aberto: até o fim do turno
       { placa: "EGC2983", inicio: "2026-10-20 05:00:00", fim: "2026-10-20 06:00:00", categoria_demora: "REFEIÇÃO" }, // antes do turno
       { placa: "OUTRA", inicio: "2026-10-20 09:00:00", fim: "2026-10-20 10:00:00", categoria_demora: "MANUTENÇÃO" },
     ];
     const r = resumirVagas([lin(AP01, "EGC2983", "06:40", "18:40", "on")], eventos, apont, TURNO);
     expect(r[0].areas).toEqual(["Pátios Primários", "Aciaria 2"]);
-    expect(r[0].apontamentos).toEqual(["Refeição (2)", "Aguardando Liberação de Área"]);
+    expect(r[0].apontamentos).toEqual(["Refeição (2)", "Documentação", "Aguardando Liberação de Área"]);
+    // justificado: 60 + 30 + 160 (16:00 até 18:40)
+    expect(r[0]).toMatchObject({ justificado_min: 250, motorista: "José da Silva" });
   });
 });
 
@@ -77,25 +80,35 @@ describe("texto do relatório (cartão por vaga, escolhido pelo dono em 20/10/20
     expect(barra(0.62)).toBe("▰▰▰▰▰▰▱▱▱▱");
     expect(barra(1.4)).toBe("▰▰▰▰▰▰▰▰▰▰");
   });
-  it("cabeçalho com turno, letra, data e supervisor; um cartão por vaga", () => {
+  it("cabeçalho com turno, letra, data e supervisor; um cartão por vaga com motorista, local, apontamentos e 3 barras", () => {
     const turno = turnoEncerrado(em("2026-10-20T19:00:00"))!;
     const t = montarRelatorio(turno, [
-      { vaga: "AP 01", placas: ["EGC2983"], produtivo_min: 446, ocioso_min: 151, areas: ["Pátios Primários", "Aciaria 2"], apontamentos: [] },
-      { vaga: "AV 08", placas: [], produtivo_min: 0, ocioso_min: 0, areas: [], apontamentos: [] },
+      { vaga: "AP 01", placas: ["EGC2983"], motorista: "José da Silva", produtivo_min: 446, ocioso_min: 151, justificado_min: 95, areas: ["Pátios Primários", "Aciaria 2"], apontamentos: ["Refeição Motorista"] },
+      { vaga: "AP 08", placas: ["EGC2985"], motorista: null, produtivo_min: 60, ocioso_min: 0, justificado_min: 0, areas: [], apontamentos: [] },
+      { vaga: "AV 08", placas: [], motorista: null, produtivo_min: 0, ocioso_min: 0, justificado_min: 0, areas: [], apontamentos: [] },
     ]);
     expect(t).toBe(
       [
-        "📋 *RELATÓRIO DO TURNO*",
+        "*RELATÓRIO DE PRODUTIVIDADE DO TURNO*",
         "_Dia · Letra C · Terça, 20/10 · 06:40–18:40_",
-        "👷 Supervisor: *Israel*",
+        "Supervisor: *Israel*",
         "",
-        "> 🚛 *AP 01* · EGC2983",
-        "📍 Pátios Primários · Aciaria 2",
-        "`Produtivo ▰▰▰▰▰▰▱▱▱▱  62% 7h26`",
-        "`Ocioso    ▰▰▱▱▱▱▱▱▱▱  21% 2h31`",
-        "📝 Sem apontamentos",
+        "> *AP 01* · EGC2983",
+        "*Motorista:* José da Silva",
+        "*Local:* Pátios Primários · Aciaria 2",
+        "*Apontamentos:* Refeição Motorista",
+        "`Produtivo   ▰▰▰▰▰▰▱▱▱▱  62% 7h26`",
+        "`Ocioso      ▰▰▱▱▱▱▱▱▱▱  21% 2h31`",
+        "`Justificado ▰▱▱▱▱▱▱▱▱▱  13% 1h35`",
         "",
-        "> 🚛 *AV 08*",
+        "> *AP 08* · EGC2985",
+        "*Local:* Sem registro",
+        "*Apontamentos:* Nenhum",
+        "`Produtivo   ▰▱▱▱▱▱▱▱▱▱   8% 1h00`",
+        "`Ocioso      ▱▱▱▱▱▱▱▱▱▱   0% 0h00`",
+        "`Justificado ▱▱▱▱▱▱▱▱▱▱   0% 0h00`",
+        "",
+        "> *AV 08*",
         "_Sem dados do GAUSS no turno_",
         "",
         "",

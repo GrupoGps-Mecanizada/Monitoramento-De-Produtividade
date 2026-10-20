@@ -126,7 +126,7 @@ async function relatorioDoTurno(t: Turno): Promise<string> {
   const [linhas, eventos, apont] = await Promise.all([
     todas<LinhaTurno>(`timeline_motor_vaga?select=vaga_nome,placa,placa_ou_codigo,inicio,fim,status&inicio=lt.${fim}&fim=gt.${ini}&order=inicio`),
     todas<EventoTurno>(`loc_eventos?select=t:dados->>t,placa:dados->>placa,tipo:dados->>tipo,area:dados->>area&dia=in.(${dias})&order=id`),
-    todas<ApontTurno>(`demoras_categorizadas?select=placa,inicio,fim,categoria_demora&inicio=lt.${fim}&or=(fim.is.null,fim.gt.${ini})&order=inicio`),
+    todas<ApontTurno>(`demoras_categorizadas?select=placa,inicio,fim,categoria_demora,motorista&inicio=lt.${fim}&or=(fim.is.null,fim.gt.${ini})&order=inicio`),
   ]);
   return montarRelatorio(t, resumirVagas(linhas, eventos, apont, t));
 }
