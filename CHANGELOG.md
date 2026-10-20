@@ -1,5 +1,11 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Todas as regras pela vaga do momento · 20/10/2026 (P-082)
+- Saída tarde, chegada cedo, ida ao Pátio, Servitec, oficina de fora, bica e restaurante também passam a valer pela **vaga em que o caminhão estava na hora** (antes: a vaga de agora). A vaga vem da timeline do GAUSS onde ela tem trecho e, no resto (fora das 22 vagas não há timeline), da vaga gravada em cada evento.
+- Cada regra olha a vaga na hora que importa para ela: a saída tarde, a vaga **que o caminhão foi atender** (a da saída; trocado de vaga no Pátio, atrasou o serviço da vaga nova); a chegada cedo e a ida ao Pátio, a vaga na chegada.
+- "[S/ VAGA]" de até 30 min entre duas leituras da mesma vaga (troca de turno no GAUSS) não conta como troca de vaga.
+- Conferido com o dia 19/10 inteiro (todas as regras ligadas) e a madrugada de 20/10: sem repetido; muda só o que devia (Pátio de caminhão ainda sem vaga sai; saída tarde do DSY6475 vai para a AP 07, a vaga que ele foi atender; restaurante do DYB7C10 na AV 08 entra).
+
 ## Alertas de motor na hora e na vaga certa · 20/10/2026 (P-076)
 - **Motor desligado sai ~10 min depois de completar 1 h**, e não mais 1 h depois: o coletor só busca de novo a timeline de uma vaga desligada a cada 1 h (para poupar o GAUSS), então o ao vivo (a cada ~5 min) completa o desligado depois do último trecho do GAUSS, até a última posição. Onde o GAUSS já tem dado vale o GAUSS (`completarAoVivo`, em `excecoes.ts`). Sem sinal, sem "desde" ou dia fechado: não completa.
 - **Cada trecho do motor é julgado pela vaga em que o caminhão estava** (a timeline vem por vaga; agora o detector lê `vaga_nome`): o caminhão trocado de vaga não leva o expediente, o supervisor nem a vaga nova para o que fez antes. Caso de 20/10: EGC2983 desligado a noite toda na AP 07 (16 horas) virou alerta da AP 01 (24 horas) quando foi trocado às 07:23.

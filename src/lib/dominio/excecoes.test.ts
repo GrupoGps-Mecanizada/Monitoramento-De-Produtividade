@@ -232,3 +232,66 @@ describe("vaga de cada trecho: caminhão trocado de vaga no meio do dia", () => 
     expect(desl([m("9", "02:00", "04:00", "off")], AP01)).toEqual([[hs("02:00"), hs("04:00"), AP01]]);
   });
 });
+
+describe("regras de horário e lugar pela vaga do momento (P-082)", () => {
+  const AP01 = "ALTA PRESSÃO - GPS - 01 - 24 HS";
+  const AP03 = "ALTA PRESSÃO - GPS - 03"; // sem regime no nome: ADM presumido
+  const evv = (tipo: string, dia: string, hora: string, area: string, vaga: string) => ({ ...ev("8", tipo, dia, hora, area), vaga }) as Evento;
+  const carro = (vaga: string) => v("8", "EGC2971", "ap", { vaga });
+  const regras = (eventos: Evento[], vagaAgora: string, o: Partial<EntradaExcecoes> = {}) =>
+    excecoesDoDia({ dia: D, agoraSeg: null, veiculos: [carro(vagaAgora)], eventos, motor: [], tablet: [], ...o }).map((x) => [x.regra, x.ini, x.vaga]);
+
+  it("saiu 07:30 quando era da AP 03 (ADM, limite 07:45): não é saída tarde só porque às 10:00 foi para a AP 01 (24 h, limite 07:15)", () => {
+    const evs = [evv("abertura", V, "00:05", PATIO, AP03), evv("saida", D, "07:30", PATIO, AP03), evv("status", D, "10:00", "", AP01)];
+    expect(regras(evs, AP01)).toEqual([]);
+  });
+  it("restaurante de madrugada quando era da AP 01 (24 h) conta pela AP 01, mesmo com o caminhão agora na AP 03 (ADM)", () => {
+    const evs = [evv("abertura", V, "00:05", "ALTO FORNO 3", AP01), evv("entrada", D, "05:00", "RESTAURANTE DA LUA", AP01), evv("saida", D, "06:30", "RESTAURANTE DA LUA", AP01), evv("status", D, "09:00", "", AP03)];
+    expect(regras(evs, AP03).filter((x) => x[0] === "restaurante")).toEqual([["restaurante", hs("05:00"), AP01]]);
+  });
+  it("toda exceção sai com a vaga do momento (oficina de fora às 14:00 na AP 03, caminhão agora na AP 01)", () => {
+    const evs = [evv("abertura", V, "00:05", "ALTO FORNO 3", AP03), evv("entrada", D, "14:00", "OFICINA CENTRO", AP03), evv("saida", D, "14:20", "OFICINA CENTRO", AP03), evv("status", D, "15:00", "", AP01)];
+    expect(regras(evs, AP01).filter((x) => x[0] === "oficina_fora")).toEqual([["oficina_fora", hs("14:00"), AP03]]);
+  });
+  it("saída tarde vale pela vaga que o caminhão foi atender: noite na AP 01, Pátio sem vaga, AP 07 às 07:29 e saiu 07:39", () => {
+    const AP07 = "ALTA PRESSÃO - GPS - 07 - 16 HS";
+    // caso real de 19/10/2026 (DSY6475): o serviço da AP 07 (limite 07:15) começou 24 min atrasado
+    const evs = [evv("abertura", V, "00:05", "ALTOS FORNOS", AP01), evv("entrada", D, "06:24", PATIO, "[S/ VAGA]"), evv("saida", D, "07:39", PATIO, AP07)];
+    const motor = [{ ...m("8", "07:29", "07:45", "on"), vaga_nome: AP07 }];
+    expect(regras(evs, AP07, { motor }).filter((x) => x[0] === "saida_tarde")).toEqual([["saida_tarde", hs("07:39"), AP07]]);
+    // ainda no Pátio às 07:35, já na AP 07: "não saiu", com o mesmo limite
+    const xs = excecoesDoDia({ dia: D, agoraSeg: hs("07:35"), veiculos: [carro(AP07)], eventos: evs.slice(0, 2), motor, tablet: [] }).filter((x) => x.regra === "saida_tarde");
+    expect(xs.map((x) => [x.detalhe, x.ref, x.vaga])).toEqual([["não saiu do Pátio · limite 07:15", hs("07:15"), AP07]]);
+  });
+  it("'sem vaga' de poucos minutos na troca de turno (e de volta à mesma vaga) não é troca de vaga", () => {
+    // caso real de 19/10/2026 (EAM3257): no Pátio desde 18:29 na AP 01; o GAUSS deu [S/ VAGA] 19:45-19:58 e saiu 19:54
+    const evs = [evv("abertura", V, "00:05", "ALTOS FORNOS", AP01), evv("entrada", D, "18:29", PATIO, AP01), evv("status", D, "19:45", PATIO, "[S/ VAGA]"), evv("saida", D, "19:54", PATIO, "[S/ VAGA]"), evv("entrada", D, "19:58", "ALMOXARIFADO CENTRAL", AP01)];
+    const xs = excecoesDoDia({ dia: D, agoraSeg: hs("20:10"), veiculos: [carro(AP01)], eventos: evs, motor: [], tablet: [] }).filter((x) => x.regra === "saida_tarde" && x.ref === hs("19:15"));
+    expect(xs.map((x) => [x.detalhe, x.vaga])).toEqual([["saiu 19:54 · limite 19:15", AP01]]);
+  });
+  it("'sem vaga' longo ou para outra vaga continua contando como troca", () => {
+    const AP07 = "ALTA PRESSÃO - GPS - 07 - 16 HS";
+    const longo = [evv("abertura", V, "00:05", "ALTOS FORNOS", AP03), evv("entrada", D, "10:00", "OFICINA CENTRO", "[S/ VAGA]"), evv("saida", D, "10:50", "OFICINA CENTRO", "[S/ VAGA]"), evv("entrada", D, "11:00", "ALTOS FORNOS", AP03)];
+    expect(regras(longo, AP03).filter((x) => x[0] === "oficina_fora")).toEqual([["oficina_fora", hs("10:00"), "[S/ VAGA]"]]);
+    const outra = [evv("abertura", V, "00:05", "ALTOS FORNOS", AP03), evv("entrada", D, "10:00", "OFICINA CENTRO", "[S/ VAGA]"), evv("saida", D, "10:10", "OFICINA CENTRO", AP07)];
+    expect(regras(outra, AP07).filter((x) => x[0] === "oficina_fora")).toEqual([["oficina_fora", hs("10:00"), "[S/ VAGA]"]]);
+  });
+  it("entrou na vaga de 16 h no meio do turno (19:20) e foi ao Pátio às 20:39: é ida ao Pátio no expediente da vaga nova", () => {
+    const AP05 = "ALTA PRESSÃO - GPS - 05";
+    const AP07 = "ALTA PRESSÃO - GPS - 07 - 16 HS";
+    // caso real de 19/10/2026 (EGC2983): AP 05 (ADM) de manhã, sem vaga à tarde, AP 07 a partir das 19:20
+    const evs = [evv("abertura", V, "00:05", "ALTO FORNO 3", AP05), evv("status", D, "15:50", "ALTO FORNO 3", "[S/ VAGA]"), evv("saida", D, "19:49", "ALTO FORNO 3", AP07), evv("entrada", D, "20:39", PATIO, AP07), evv("saida", D, "20:49", PATIO, AP07)];
+    expect(regras(evs, AP07).filter((x) => x[0] === "patio")).toEqual([["patio", hs("20:39"), AP07]]);
+  });
+  it("motor: desligado que entra numa vaga já desligado conta só a partir da entrada (vaga pelos eventos onde a timeline não tem)", () => {
+    const iso = (h: string) => `${D}T${h}:00-03:00`;
+    const evs = [evv("abertura", V, "00:05", "ALTO FORNO 3", "[S/ VAGA]"), evv("status", D, "08:30", "ALTO FORNO 3", AP03)];
+    const desl = (h: string) =>
+      excecoesDoDia({ dia: D, agoraSeg: hs(h) + 60, veiculos: [{ ...carro(AP03), status: "Desligado", status_desde: iso("07:50"), posicao_em: iso(h) } as Veiculo], eventos: evs, motor: [], tablet: [] })
+        .filter((x) => x.regra === "desligado")
+        .map((x) => [x.ini, x.fim, x.vaga]);
+    // 07:50-08:30 sem vaga (fora das 22) não soma: às 09:20 são só 50 min na AP 03
+    expect(desl("09:20")).toEqual([]);
+    expect(desl("09:40")).toEqual([[hs("08:30"), hs("09:40"), AP03]]);
+  });
+});
