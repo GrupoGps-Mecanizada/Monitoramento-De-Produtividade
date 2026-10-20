@@ -131,8 +131,9 @@ export function montarAlertas(x: EntradaMontar): LinhaAlerta[] {
       veiculo_id: v.id,
       placa: v.placa,
       vaga,
-      // o supervisor é da vaga em que o caminhão estava, não da placa
-      supervisor: supervisorDaParada(v.equip.tipo, vaga || undefined, x.dia, e.ini, v.equip.supervisor ?? null),
+      // o supervisor é da vaga em que o caminhão estava, não da placa; no 4x4, o da letra no momento mais recente do
+      // alerta: o que continua depois da troca de escala (18:40 e 06:40) já vai com o supervisor que entrou (dono, 20/10/2026)
+      supervisor: supervisorDaParada(v.equip.tipo, vaga || undefined, x.dia, Math.min(e.fim ?? e.ini, x.agoraSeg ?? Infinity), v.equip.supervisor ?? null),
       dia: x.dia,
       ini: e.ini,
       fim: e.fim,

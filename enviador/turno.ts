@@ -243,10 +243,12 @@ export function resumirVagas(linhas: LinhaTurno[], eventos: EventoTurno[], apont
   );
 }
 
-/** Barra de 10 blocos (fração do turno). */
+/** Barra de BLOCOS quadrinhos (fração do turno). */
+/** Quantos quadrinhos cada barra tem (o dono pediu 3 a menos que os 10 iniciais, 20/10/2026). */
+export const BLOCOS = 7;
 export const barra = (fracao: number) => {
-  const n = Math.max(0, Math.min(10, Math.round(fracao * 10)));
-  return "▰".repeat(n) + "▱".repeat(10 - n);
+  const n = Math.max(0, Math.min(BLOCOS, Math.round(fracao * BLOCOS)));
+  return "▰".repeat(n) + "▱".repeat(BLOCOS - n);
 };
 const duracao = (min: number) => `${Math.floor(min / 60)}h${String(Math.round(min % 60)).padStart(2, "0")}`;
 const linhaBarra = (rotulo: string, min: number) => `\`${rotulo.padEnd(11)} ${barra(min / TURNO_MIN)} ${`${Math.round((min / TURNO_MIN) * 100)}%`.padStart(4)} ${duracao(min)}\``;

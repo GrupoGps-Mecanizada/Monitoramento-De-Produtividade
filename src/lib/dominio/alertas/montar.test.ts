@@ -115,6 +115,15 @@ describe("vaga do trecho (troca de caminhão na vaga)", () => {
     expect(a?.vaga).toBe(AP01);
     expect(a?.supervisor).toBe(naVaga.supervisor);
   });
+  it("troca de escala do 4x4: o alerta que continua depois das 18:40 já vai com o supervisor da letra da noite", () => {
+    // 07/10/2026: dia é a letra D (Fabio), noite é a letra A (Ozias)
+    const veiculos = [veic("1", "EGC2985", AP01)];
+    const [vira] = montarAlertas(entrada({ agoraSeg: 19 * H + 20 * 60, veiculos, excecoes: [exc({ vaga: AP01, ini: 18 * H + 20 * 60, fim: 19 * H + 20 * 60, ref: 18 * H + 20 * 60 })] }));
+    expect(vira.supervisor).toBe("Ozias");
+    // o que acabou antes da troca fica com quem estava no turno
+    const [antes] = montarAlertas(entrada({ agoraSeg: 19 * H + 20 * 60, veiculos, excecoes: [exc({ vaga: AP01, ini: 17 * H, fim: 18 * H + 10 * 60, ref: 17 * H })] }));
+    expect(antes.supervisor).toBe("Fabio");
+  });
   it("trecho numa vaga que a Mecanizada não opera: sem alerta, mesmo com o caminhão agora numa das 22", () => {
     expect(montarAlertas(entrada({ excecoes: [exc({ vaga: "[S/ VAGA]" })], veiculos: [veic("1", "EGC2985", AP01)] }))).toEqual([]);
   });

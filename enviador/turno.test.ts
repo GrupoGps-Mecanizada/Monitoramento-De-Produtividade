@@ -85,10 +85,10 @@ describe("resumo de cada vaga no turno", () => {
 });
 
 describe("texto do relatório (cartão por vaga, escolhido pelo dono em 20/10/2026)", () => {
-  it("barra de 10 blocos pela parte do turno", () => {
-    expect(barra(0)).toBe("▱▱▱▱▱▱▱▱▱▱");
-    expect(barra(0.62)).toBe("▰▰▰▰▰▰▱▱▱▱");
-    expect(barra(1.4)).toBe("▰▰▰▰▰▰▰▰▰▰");
+  it("barra de 7 quadrinhos pela parte do turno", () => {
+    expect(barra(0)).toBe("▱▱▱▱▱▱▱");
+    expect(barra(0.62)).toBe("▰▰▰▰▱▱▱");
+    expect(barra(1.4)).toBe("▰▰▰▰▰▰▰");
   });
   it("cabeçalho com turno, letra, data e supervisor; um cartão por vaga com motorista, local, apontamentos e 3 barras", () => {
     const turno = turnoEncerrado(em("2026-10-20T19:00:00"))!;
@@ -107,16 +107,16 @@ describe("texto do relatório (cartão por vaga, escolhido pelo dono em 20/10/20
         "*Motorista:* José da Silva",
         "*Local:* Pátios Primários · Aciaria 2",
         "*Apontamentos:* 3",
-        "`Produtivo   ▰▰▰▰▰▰▱▱▱▱  62% 7h26`",
-        "`Ocioso      ▰▰▱▱▱▱▱▱▱▱  21% 2h31`",
-        "`Justificado ▰▱▱▱▱▱▱▱▱▱  13% 1h35`",
+        "`Produtivo   ▰▰▰▰▱▱▱  62% 7h26`",
+        "`Ocioso      ▰▱▱▱▱▱▱  21% 2h31`",
+        "`Justificado ▰▱▱▱▱▱▱  13% 1h35`",
         "",
         "> *AP 08* · EGC2985",
         "*Local:* Sem registro",
         "*Apontamentos:* Nenhum",
-        "`Produtivo   ▰▱▱▱▱▱▱▱▱▱   8% 1h00`",
-        "`Ocioso      ▱▱▱▱▱▱▱▱▱▱   0% 0h00`",
-        "`Justificado ▱▱▱▱▱▱▱▱▱▱   0% 0h00`",
+        "`Produtivo   ▰▱▱▱▱▱▱   8% 1h00`",
+        "`Ocioso      ▱▱▱▱▱▱▱   0% 0h00`",
+        "`Justificado ▱▱▱▱▱▱▱   0% 0h00`",
         "",
         "> *AV 08*",
         "_Sem dados do GAUSS no turno_",
