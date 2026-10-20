@@ -39,6 +39,8 @@ const EVOLUTION_URL = (cfg.EVOLUTION_URL ?? "http://localhost:8080").replace(/\/
 const EVOLUTION_CHAVE = cfg.EVOLUTION_CHAVE;
 const INSTANCIA = cfg.EVOLUTION_INSTANCIA ?? "alertas-frota";
 const DESTINO = cfg.WHATSAPP_DESTINO ? numeroDestino(cfg.WHATSAPP_DESTINO) : undefined;
+/** O relatório de turno vai para o grupo "Liderança - Mecanizada" (pedido do dono, 20/10/2026); o .env.enviador pode trocar. */
+const DESTINO_RELATORIO = numeroDestino(cfg.WHATSAPP_DESTINO_RELATORIO || "553192799666-1524520457@g.us");
 const TESTE = process.argv.includes("--teste");
 /** Monta já o relatório do último turno que acabou (com --teste, só mostra). */
 const RELATORIO_AGORA = process.argv.includes("--relatorio");
@@ -83,8 +85,8 @@ const agoraSegLocal = () => {
   return h * 3600 + m * 60 + s;
 };
 
-async function mandar(texto: string) {
-  const r = await evo(`/message/sendText/${encodeURIComponent(INSTANCIA)}`, { method: "POST", body: JSON.stringify({ number: DESTINO, text: texto }) });
+async function mandar(texto: string, para = DESTINO) {
+  const r = await evo(`/message/sendText/${encodeURIComponent(INSTANCIA)}`, { method: "POST", body: JSON.stringify({ number: para, text: texto }) });
   if (!r.ok) throw new Error(`WhatsApp (Evolution) respondeu ${r.status}: ${(await r.text()).slice(0, 200)}`);
 }
 
@@ -149,9 +151,9 @@ async function cicloRelatorio() {
     if (!RELATORIO_AGORA) writeFileSync(ARQ_RELATORIO, JSON.stringify({ chave: t.chave }));
     return;
   }
-  await mandar(texto);
+  await mandar(texto, DESTINO_RELATORIO);
   writeFileSync(ARQ_RELATORIO, JSON.stringify({ chave: t.chave, enviado_em: new Date().toISOString() }));
-  log(`✅ mandou o relatório do turno ${t.chave} para ${DESTINO}`);
+  log(`✅ mandou o relatório do turno ${t.chave} para o grupo Liderança - Mecanizada`);
 }
 
 async function listarGrupos() {

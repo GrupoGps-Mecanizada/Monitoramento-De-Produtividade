@@ -17,7 +17,7 @@ e marca como enviado (nunca repete). Se o PC ficou desligado, alerta que já aca
 O endereço e a chave do Supabase vêm do `.env.local` do site (pasta de cima): não precisa repetir.
 
 ## Relatório de fim de turno (P-088)
-O mesmo programa manda, no fim de cada turno do 4x4, um relatório no mesmo grupo dos alertas: supervisor, letra,
+O mesmo programa manda, no fim de cada turno do 4x4, um relatório no grupo **Liderança - Mecanizada**: supervisor, letra,
 data e um cartão por vaga de 24 h (AP 01, AP 08, AV 01, AV 08) com o caminhão, as áreas atendidas, as barras de
 produtivo e ocioso e os apontamentos do tablet.
 - Sai às **07:00** (noite que acabou às 06:40) e às **19:00** (dia que acabou às 18:40): espera 20 min para o GAUSS chegar.
