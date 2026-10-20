@@ -52,7 +52,7 @@ describe("texto da mensagem (modelo A: agrupado por tipo)", () => {
     );
     expect(t).toBe(
       [
-        "🚛 *ALERTAS AUTOMATICO DA FROTA*",
+        "🚛 *ALERTAS DA FROTA*",
         "_Segunda, 19/10 · 12:35_",
         "",
         "> 🔴 *Motor desligado* · 2",

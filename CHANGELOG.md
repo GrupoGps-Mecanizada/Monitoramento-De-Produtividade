@@ -1,5 +1,8 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Título do WhatsApp · 20/10/2026 (P-089)
+- A mensagem dos alertas passa a começar com "🚛 *ALERTAS DA FROTA*" (sai a palavra AUTOMATICO, pedido do dono).
+
 ## GAUSS buscado na hora do alerta · 20/10/2026 (P-087)
 - Vaga com o caminhão desligado (com sinal) há 45 a 90 min é buscada no GAUSS todo ciclo de 10 min, em vez de esperar até 1 h (`PERTO_DO_ALERTA_MS`, em `coletor/motor-vaga.ts`). É a faixa em que o alerta de 1 h desligado é decidido: ele sai pelo GAUSS, que vê a bomba e a parada apontada, também nos caminhões com motor secundário. Poucas buscas a mais (só enquanto o caminhão está nessa faixa).
 - O despertador do coletor continua o pg_cron do Supabase (as rodadas começam 10–30 s depois da hora; o Cloudflare Cron não traria ganho).

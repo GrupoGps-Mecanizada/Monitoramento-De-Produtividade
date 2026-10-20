@@ -158,7 +158,7 @@ export function montarMensagem(alertas: AlertaEnvio[], agora: Date): string {
   }
   const resto = alertas.length - MAX_ITENS;
   return [
-    "🚛 *ALERTAS AUTOMATICO DA FROTA*",
+    "🚛 *ALERTAS DA FROTA*",
     `_${quando(agora)}_`,
     "",
     blocos.join("\n\n"),
