@@ -20,27 +20,31 @@ body{color:var(--fg);font-family:var(--body);overflow:hidden;height:100vh;height
 .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
 h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(20px,2.3vw,26px);letter-spacing:-.02em;line-height:1.1}
 .sub{margin:0;font-size:12.5px;color:var(--muted)}
-.topo{top:16px;left:16px;width:min(360px,calc(100vw - 32px));padding:16px 18px;max-height:calc(100dvh - 92px);display:flex;flex-direction:column}
-.topo .corpo{display:flex;flex-direction:column;min-height:0;flex:1}
-.abas{display:flex;gap:2px;background:rgba(19,32,47,.06);border-radius:10px;padding:3px;margin:12px 0 4px;flex:none}
+.topo{top:16px;left:16px;width:auto;max-width:calc(100vw - 150px);padding:13px 18px}
+.lista{left:16px;width:280px;display:flex;flex-direction:column;overflow:hidden}
+.lista header{padding:10px 12px 10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.lista input{margin:10px 10px 4px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:13px var(--body);color:var(--fg);background:#fff}
+.lista input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.botao-filtros{position:fixed;top:16px;right:16px;z-index:3;display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border-radius:12px;border:1px solid rgba(255,255,255,.6);background:var(--panel);color:var(--fg);font:600 13px var(--body);cursor:pointer;box-shadow:0 10px 26px rgba(0,0,0,.28)}
+.botao-filtros svg{width:16px;height:16px}
+.botao-filtros:hover{color:var(--accent)}
+.botao-filtros[aria-expanded="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.filtros{top:66px;right:16px;z-index:3;width:min(330px,calc(100vw - 32px));max-height:calc(100dvh - 130px);padding:12px 14px 14px;display:flex;flex-direction:column}
+.filtros[hidden]{display:none}
+.abas{display:flex;gap:2px;background:rgba(19,32,47,.06);border-radius:10px;padding:3px;margin:0 0 4px;flex:none}
 .abas button{flex:1;border:0;background:transparent;font:600 12.5px var(--body);color:var(--muted);padding:8px 6px;border-radius:8px;cursor:pointer}
 .abas button[aria-selected="true"]{background:#fff;color:var(--fg);box-shadow:0 1px 3px rgba(19,32,47,.14)}
-.abas span{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--muted);margin-left:2px}
 .aba{overflow:auto;min-height:0;flex:1;margin:0 -6px;padding:0 6px 2px}
 .aba .grupo{padding:12px 0 6px}
 .aba .seg{display:flex;flex-wrap:wrap}
 .aba .seg button{flex:1 1 auto}
 .aba .sub{margin-top:14px}
-.aba-areas{display:flex;flex-direction:column;overflow:hidden}
-.aba-areas[hidden]{display:none}
-.aba-areas .rolagem{flex:1;min-height:0;margin:0 -12px;overflow-x:hidden}
-.aba-areas .grupo{padding:12px 14px 4px}
-.aba-areas input{margin:10px 0 4px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:13px var(--body);color:var(--fg);background:#fff}
-.aba-areas input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.btn.largo{width:100%}
 .seg{display:inline-flex;background:rgba(19,32,47,.06);border-radius:10px;padding:3px;gap:2px}
 .seg button{border:0;background:transparent;font:500 12.5px var(--body);color:var(--muted);padding:7px 11px;border-radius:8px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:#fff;color:var(--fg);box-shadow:0 1px 3px rgba(19,32,47,.14)}
 .rolagem{overflow:auto;padding:2px 0 8px}
+.abrir{display:none}
 .grupo{padding:10px 14px 4px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .item{display:flex;gap:10px;align-items:center;width:100%;border:0;background:transparent;text-align:left;padding:7px 14px;cursor:pointer;font:13px var(--body);color:inherit}
 .item:hover,.item[aria-current="true"]{background:var(--accent-soft)}
@@ -109,11 +113,16 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 .opcao[aria-pressed="true"] i{background:var(--accent)}
 .opcao[aria-pressed="true"] i::after{transform:translateX(13px)}
 #camadas .btn{width:100%;margin-top:10px}
+.ficha{top:66px}
 .legenda .cabeca{margin-bottom:8px}
 .legenda.recolhido .cabeca{margin-bottom:0}
 @media (max-width:720px){
   .topo{padding:12px 14px}
-  .topo{max-height:62dvh}
+  .topo{padding:10px 14px;max-width:calc(100vw - 130px)}
+  .abrir{display:inline-block;margin-top:8px}
+  .lista{top:auto!important;bottom:16px;left:16px;right:16px;width:auto;max-height:50dvh!important;display:none}
+  .lista.aberta{display:flex}
+  .filtros{top:auto;bottom:16px;max-height:70dvh}
   .ficha{top:auto;bottom:16px;left:16px;right:16px;width:auto}
   .legenda,.rodape,.marca{display:none}
   .linha{left:16px;right:16px;bottom:16px;width:auto;min-width:0;transform:none;flex-wrap:wrap}
@@ -136,46 +145,54 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 </div>
 
 <section class="painel topo" id="topo">
-  <div class="cabeca">
-    <div><div class="eyebrow">Base Usiminas · Ipatinga</div><h1>Maquete da usina</h1>
-      <div class="vivo" id="vivo" hidden><i></i><span id="vivoTexto">Ao vivo</span></div></div>
-    <button type="button" class="recolher" data-recolhe="topo" aria-expanded="true" aria-label="Recolher o painel"><svg viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+  <div class="eyebrow">Base Usiminas · Ipatinga</div><h1>Maquete da usina</h1>
+  <div class="vivo" id="vivo" hidden><i></i><span id="vivoTexto">Ao vivo</span></div>
+  <button type="button" class="btn abrir" id="abrirLista">Áreas</button>
+</section>
+
+<section class="painel lista" id="lista" aria-label="Lista de áreas">
+  <header><span>Áreas · <span id="contagem">0</span></span>
+    <button type="button" class="recolher" data-recolhe="lista" aria-expanded="true" aria-label="Recolher lista"><svg viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+  </header>
+  <input type="search" id="busca" class="corpo" placeholder="Buscar área ou placa" aria-label="Buscar área ou placa">
+  <div class="rolagem corpo" id="rolagem"></div>
+</section>
+
+<button type="button" class="botao-filtros" id="botaoFiltros" aria-expanded="false" aria-controls="painelFiltros"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h8M14 12h0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="11" cy="4" r="1.8" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="8" r="1.8" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="1.8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span>Filtros</span></button>
+<section class="painel filtros" id="painelFiltros" aria-label="Filtros e configurações" hidden>
+  <div class="abas" role="tablist" aria-label="Filtros">
+    <button type="button" role="tab" data-aba="mapa" aria-selected="true">Mapa</button>
+    <button type="button" role="tab" data-aba="camadas" aria-selected="false">Camadas</button>
+    <button type="button" role="tab" data-aba="ajustes" aria-selected="false">Ajustes</button>
   </div>
-  <div class="corpo">
-    <div class="abas" role="tablist" aria-label="Painel">
-      <button type="button" role="tab" data-aba="mapa" aria-selected="true">Mapa</button>
-      <button type="button" role="tab" data-aba="camadas" aria-selected="false">Camadas</button>
-      <button type="button" role="tab" data-aba="areas" aria-selected="false">Áreas <span id="contagem">0</span></button>
+  <div class="aba" id="aba-mapa" role="tabpanel">
+    <div class="grupo">Visão</div>
+    <div class="seg" role="group" aria-label="Visão">
+      <button type="button" data-visual="cidade" aria-pressed="true">Cidade</button>
+      <button type="button" data-visual="real" aria-pressed="false">Foto</button>
+      <button type="button" data-visual="setores" aria-pressed="false">Setores</button>
+      <button type="button" data-visual="atendimento" aria-pressed="false">Atendimento 30 dias</button>
     </div>
-    <div class="aba" id="aba-mapa" role="tabpanel">
-      <div class="grupo">Visão</div>
-      <div class="seg" role="group" aria-label="Visão">
-        <button type="button" data-visual="cidade" aria-pressed="true">Cidade</button>
-        <button type="button" data-visual="real" aria-pressed="false">Foto</button>
-        <button type="button" data-visual="setores" aria-pressed="false">Setores</button>
-        <button type="button" data-visual="atendimento" aria-pressed="false">Atendimento 30 dias</button>
-      </div>
-      <div class="grupo">Tempo</div>
-      <div class="seg" role="group" aria-label="Tempo">
-        <button type="button" data-periodo="agora" aria-pressed="true">Agora</button>
-        <button type="button" data-periodo="replay" aria-pressed="false">Replay de ontem</button>
-      </div>
-      <div class="grupo">Caminhões</div>
-      <div class="seg" role="group" aria-label="Caminhões">
-        <button type="button" data-frota="ativas" aria-pressed="true">Vagas ativas</button>
-        <button type="button" data-frota="todos" aria-pressed="false">Todos</button>
-        <button type="button" data-frota="nenhum" aria-pressed="false">Ocultar</button>
-      </div>
-      <div class="grupo">Ir para</div>
-      <div class="seg" role="group" aria-label="Ir para" id="irPara"></div>
-      <div id="qualidade"></div>
-      <p class="sub">Arraste para girar, role para aproximar, toque em uma área ou caminhão.</p>
+    <div class="grupo">Tempo</div>
+    <div class="seg" role="group" aria-label="Tempo">
+      <button type="button" data-periodo="agora" aria-pressed="true">Agora</button>
+      <button type="button" data-periodo="replay" aria-pressed="false">Replay de ontem</button>
     </div>
-    <div class="aba" id="aba-camadas" role="tabpanel" hidden><div id="camadas"></div></div>
-    <div class="aba aba-areas" id="aba-areas" role="tabpanel" hidden>
-      <input type="search" id="busca" placeholder="Buscar área ou placa" aria-label="Buscar área ou placa">
-      <div class="rolagem" id="rolagem"></div>
+    <div class="grupo">Caminhões</div>
+    <div class="seg" role="group" aria-label="Caminhões">
+      <button type="button" data-frota="ativas" aria-pressed="true">Vagas ativas</button>
+      <button type="button" data-frota="todos" aria-pressed="false">Todos</button>
+      <button type="button" data-frota="nenhum" aria-pressed="false">Ocultar</button>
     </div>
+    <div class="grupo">Ir para</div>
+    <div class="seg" role="group" aria-label="Ir para" id="irPara"></div>
+  </div>
+  <div class="aba" id="aba-camadas" role="tabpanel" hidden><div id="camadas"></div></div>
+  <div class="aba" id="aba-ajustes" role="tabpanel" hidden>
+    <div id="qualidade"></div>
+    <div class="grupo">Restaurar</div>
+    <button type="button" class="btn largo" id="padrao">Voltar tudo ao padrão</button>
+    <p class="sub">Arraste para girar, role para aproximar, toque em uma área ou caminhão.</p>
   </div>
 </section>
 
@@ -2318,7 +2335,7 @@ controles.addEventListener("end", () => {
   interagindo = false; clearTimeout(voltarNitidez); agendarDetalhe();
   voltarNitidez = setTimeout(() => { if (renderer.getPixelRatio() !== nitidez()) { renderer.setPixelRatio(nitidez()); renderer.setSize(innerWidth, innerHeight); pedirDesenho(); } }, 350);
 });
-addEventListener("resize", () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); pedirDesenho(); });
+addEventListener("resize", () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); encaixarLista(); pedirDesenho(); });
 
 /* =========================================================================
    13. Interação: passar o mouse e tocar
@@ -2524,7 +2541,7 @@ function marcarBorda(anel, h) {
 function abrirFicha(eyebrow, nome, linhas) {
   $("fichaSetor").textContent = eyebrow; $("fichaNome").textContent = nome;
   $("fichaDados").innerHTML = linhas.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
-  $("ficha").classList.add("aberta"); if (innerWidth <= 720) recolherPainel("topo", true); // no celular a ficha precisa do espaço
+  $("ficha").classList.add("aberta"); $("lista").classList.remove("aberta"); abrirFiltros(false); // a ficha abre no lugar do painel de filtros
 }
 
 function selecionar(a, voarAte = true) {
@@ -2700,12 +2717,19 @@ function mudarQualidade(q) {
   montarLegenda(); pedirDesenho();
 }
 
+function encaixarLista() { // a lista de áreas começa logo abaixo do título
+  const lista = $("lista");
+  if (innerWidth <= 720) return;
+  const fim = $("topo").getBoundingClientRect().bottom + 12;
+  lista.style.top = `${fim}px`; lista.style.maxHeight = `${Math.max(160, innerHeight - fim - 110)}px`;
+}
 const lembrar = (k, v) => { try { v === undefined ? (v = localStorage.getItem(k)) : localStorage.setItem(k, v); } catch { v = null; } return v; };
 function recolherPainel(id, recolhido) {
   const painel = $(id), botao = painel.querySelector("[data-recolhe]");
   painel.classList.toggle("recolhido", recolhido);
   botao.setAttribute("aria-expanded", String(!recolhido));
   lembrar(`maquete.${id}`, recolhido ? "1" : "0");
+  encaixarLista();
 }
 document.querySelectorAll("[data-recolhe]").forEach((b) => {
   const id = b.dataset.recolhe;
@@ -2714,13 +2738,23 @@ document.querySelectorAll("[data-recolhe]").forEach((b) => {
   b.addEventListener("click", () => recolherPainel(id, !$(id).classList.contains("recolhido")));
 });
 
-function abrirAba(aba) { // Mapa, Camadas ou Áreas: tudo no mesmo painel
+function abrirAba(aba) { // Mapa, Camadas ou Ajustes, dentro do botão Filtros
   document.querySelectorAll("[data-aba]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.aba === aba)));
-  for (const x of ["mapa", "camadas", "areas"]) $(`aba-${x}`).hidden = x !== aba;
+  for (const x of ["mapa", "camadas", "ajustes"]) $(`aba-${x}`).hidden = x !== aba;
   lembrar("maquete.aba", aba);
 }
-document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => { recolherPainel("topo", false); abrirAba(b.dataset.aba); }));
-abrirAba(["mapa", "camadas", "areas"].includes(lembrar("maquete.aba")) ? lembrar("maquete.aba") : "mapa");
+function abrirFiltros(aberto) {
+  $("painelFiltros").hidden = !aberto;
+  $("botaoFiltros").setAttribute("aria-expanded", String(aberto));
+}
+document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
+abrirAba(["mapa", "camadas", "ajustes"].includes(lembrar("maquete.aba")) ? lembrar("maquete.aba") : "mapa");
+$("botaoFiltros").addEventListener("click", () => abrirFiltros($("painelFiltros").hidden));
+addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("painelFiltros").hidden) abrirFiltros(false); });
+$("padrao").addEventListener("click", () => { // volta todas as camadas e textos ao que vem de fábrica
+  for (const c of Object.keys(CAMADAS)) CAMADAS[c] = true;
+  salvarCamadas(); aplicarVisual();
+});
 
 $("irPara").innerHTML = PECAS.map((p) => `<button type="button" data-peca="${p.i}" aria-pressed="false">${p.nome}</button>`).join("");
 $("irPara").querySelectorAll("[data-peca]").forEach((b) => b.addEventListener("click", () => {
@@ -2764,6 +2798,7 @@ document.querySelectorAll("[data-vel]").forEach((b) => b.addEventListener("click
 $("play").addEventListener("click", () => alternarPlay());
 $("tempo").addEventListener("input", (e) => { estado.tempo = +e.target.value; atualizarRelogio(); atualizarInstancias(); desenharRastros(); pedirDesenho(); });
 $("busca").addEventListener("input", montarLista);
+$("abrirLista").addEventListener("click", () => $("lista").classList.toggle("aberta"));
 $("fechar").addEventListener("click", fechar);
 addEventListener("keydown", (e) => { if (e.key === "Escape") fechar(); });
 
@@ -2777,7 +2812,8 @@ controles.target.set(usina.centro[0], 0, usina.centro[1]);
 camera.position.set(usina.centro[0] + larg * 0.3, larg * 2.2, usina.centro[1] + larg * 1.4);
 if (!CAMINHOES.some((c) => c.trajeto)) document.querySelector("[data-periodo]").closest(".par").style.display = "none"; // sem trajeto de ontem, sem replay
 if (!ATEND.length) document.querySelector('[data-visual="atendimento"]').style.display = "none";
-posicionarSol(); aplicarVisual(); montarLista();
+posicionarSol(); aplicarVisual(); montarLista(); encaixarLista();
+document.fonts?.ready.then(encaixarLista);
 
 (async () => {
   const timer = setInterval(() => {
