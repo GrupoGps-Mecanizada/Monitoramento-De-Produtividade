@@ -262,7 +262,9 @@ begin
   insert into public.parte_conferencia (chave, dia, vaga_id, vaga, local, placas, status, motivo, chegada, saida,
     min_programado, min_no_local, min_motor_ligado, local_real, atualizado_em)
   select chave, dia, vaga_id, vaga, local, placas,
-    case when agora < ini then 'aguardando'
+    -- vaga sem timeline no dia: fora das 22 vagas acompanhadas (ex.: aspirador); não é "sem caminhão"
+    case when not exists (select 1 from public.timeline_motor_vaga t where t.vaga_id = x.vaga_id and t.inicio >= x.dia - 1 and t.inicio < x.dia + 1) then 'fora do monitoramento'
+         when agora < ini then 'aguardando'
          when placas is null then 'sem caminhão'
          when coalesce(n, 0) = 0 and dia < date '2026-10-17' then 'sem GPS'
          when coalesce(n, 0) = 0 then 'sem GPS'
@@ -274,7 +276,8 @@ begin
          when agora < fim then 'em andamento'
          when n_fora > 0 then 'local diferente'
          else 'não foi' end,
-    case when agora < ini then 'ainda não começou'
+    case when not exists (select 1 from public.timeline_motor_vaga t where t.vaga_id = x.vaga_id and t.inicio >= x.dia - 1 and t.inicio < x.dia + 1) then 'vaga fora das 22 acompanhadas (ex.: aspirador)'
+         when agora < ini then 'ainda não começou'
          when placas is null then 'nenhum caminhão na vaga nesse horário'
          when coalesce(n, 0) = 0 then 'sem posições do GPS para esse horário'
          when certeza = 'várias áreas' then 'serviço em vários lugares: conferido pela rota'
@@ -306,5 +309,6 @@ end $$;
 revoke all on function public.parte_atualizar(integer), public.parte_conferir(date), public.parte_aprender_locais(),
   public.parte_coletar_amostras(date), public.mapa_sincronizar_areas() from public, anon, authenticated;
 
-select cron.unschedule('parte-diaria-mapa') where exists (select 1 from cron.job where jobname = 'parte-diaria-mapa');
-select cron.schedule('parte-diaria-mapa', '25 * * * *', $$select public.parte_atualizar(3)$$);
+-- agendar FORA da transação da migração: criado dentro dela, o pg_cron não executou (20/10/2026)
+-- select cron.unschedule('parte-diaria-mapa');
+-- select cron.schedule('parte-diaria-mapa', '25 * * * *', 'select public.parte_atualizar(3)');
