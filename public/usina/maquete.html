@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>html,body{margin:0}[hidden]{display:none!important}body{font:14px system-ui,sans-serif}</style></head><body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&family=Inter:wght@400;500;600&display=swap">
 <style>
 /* Maquete da usina — página base da Usina Virtual. As demais visões devem partir daqui. */
 :root{
@@ -11,6 +11,12 @@
   --fg:#13202F; --muted:#5E6E84; --line:rgba(19,32,47,.12); --panel:rgba(255,255,255,.93);
   --accent:#1D5FB8; --accent-soft:#E3ECF8;
   --ease:cubic-bezier(.22,1,.36,1);
+  /* painel Filtros no desenho da gaveta do SST: mesmas cores, fonte e sombras */
+  --g-fonte:"Inter","Segoe UI",system-ui,sans-serif;
+  --g-fundo:#eef1f5; --g-superficie:#fff; --g-superficie-2:#f5f7fa; --g-borda:#e1e5eb; --g-borda-2:#c5ccd6;
+  --g-texto:#151922; --g-suave:#5b6473; --g-primaria:#1d4fa3; --g-primaria-suave:#e4ecf8;
+  --g-sombra-1:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.05);
+  --g-sombra-2:0 4px 12px -2px rgba(16,24,40,.08),0 2px 4px -2px rgba(16,24,40,.05);
 }
 *{box-sizing:border-box}
 body{color:var(--fg);font-family:var(--body);overflow:hidden;height:100vh;height:100dvh;
@@ -25,21 +31,46 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 .lista header{padding:10px 12px 10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .lista input{margin:10px 10px 4px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:13px var(--body);color:var(--fg);background:#fff}
 .lista input:focus{outline:2px solid var(--accent);outline-offset:-1px}
-.botao-filtros{position:fixed;top:16px;right:16px;z-index:3;display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border-radius:12px;border:1px solid rgba(255,255,255,.6);background:var(--panel);color:var(--fg);font:600 13px var(--body);cursor:pointer;box-shadow:0 10px 26px rgba(0,0,0,.28)}
+/* Filtros e configurações: gaveta flutuante à direita igual à do SST (cabeçalho, abas, cartões e rodapé) */
+.botao-filtros{position:fixed;top:16px;right:16px;z-index:3;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--g-borda);background:var(--g-superficie);color:var(--g-texto);font:500 14px var(--g-fonte);cursor:pointer;box-shadow:var(--g-sombra-2)}
 .botao-filtros svg{width:16px;height:16px}
-.botao-filtros:hover{color:var(--accent)}
-.botao-filtros[aria-expanded="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
-.filtros{top:66px;right:16px;z-index:3;width:min(330px,calc(100vw - 32px));max-height:calc(100dvh - 130px);padding:12px 14px 14px;display:flex;flex-direction:column}
+.botao-filtros:hover{background:var(--g-superficie-2)}
+.botao-filtros[aria-expanded="true"]{border-color:var(--g-primaria);background:var(--g-primaria-suave);color:var(--g-primaria)}
+.filtros{top:8px;right:8px;bottom:8px;z-index:4;width:min(440px,calc(100vw - 16px));display:flex;flex-direction:column;overflow:hidden;border-radius:16px;border:1px solid var(--g-borda);background:var(--g-superficie);color:var(--g-texto);font-family:var(--g-fonte);box-shadow:0 25px 50px -12px rgba(0,0,0,.25)}
 .filtros[hidden]{display:none}
-.abas{display:flex;gap:2px;background:rgba(19,32,47,.06);border-radius:10px;padding:3px;margin:0 0 4px;flex:none}
-.abas button{flex:1;border:0;background:transparent;font:600 12.5px var(--body);color:var(--muted);padding:8px 6px;border-radius:8px;cursor:pointer}
-.abas button[aria-selected="true"]{background:#fff;color:var(--fg);box-shadow:0 1px 3px rgba(19,32,47,.14)}
-.aba{overflow:auto;min-height:0;flex:1;margin:0 -6px;padding:0 6px 2px}
-.aba .grupo{padding:12px 0 6px}
-.aba .seg{display:flex;flex-wrap:wrap}
-.aba .seg button{flex:1 1 auto}
-.aba .sub{margin-top:14px}
-.btn.largo{width:100%}
+.filtros :focus-visible{outline:2px solid var(--g-primaria);outline-offset:2px}
+.gav-topo{display:flex;align-items:flex-start;gap:12px;padding:16px 20px 0;flex:none}
+.gav-topo div{flex:1;min-width:0}
+.gav-topo h2{margin:0;font-size:18px;font-weight:600;line-height:1.375}
+.gav-topo p{margin:2px 0 0;font-size:14px;color:var(--g-suave)}
+.gav-x{flex:none;display:grid;place-items:center;width:32px;height:32px;padding:0;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--g-suave);cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.gav-x:hover{border-color:var(--g-borda);background:var(--g-superficie-2);color:var(--g-texto)}
+.gav-x svg{width:16px;height:16px}
+.gav-abas{display:flex;gap:4px;padding:8px 20px 0;border-bottom:1px solid var(--g-borda);flex:none}
+.gav-abas button{margin-bottom:-1px;padding:10px 12px;border:0;border-bottom:2px solid transparent;background:none;font:400 14px var(--g-fonte);color:var(--g-suave);cursor:pointer}
+.gav-abas button:hover{color:var(--g-texto)}
+.gav-abas button[aria-selected="true"]{border-bottom-color:var(--g-primaria);color:var(--g-primaria);font-weight:500}
+.gav-corpo{flex:1;min-height:0;overflow-y:auto;padding:16px 20px;background:var(--g-fundo)}
+.aba,#camadas{display:grid;gap:16px}
+.aba[hidden]{display:none}
+.bloco{padding:16px;border:1px solid var(--g-borda);border-radius:12px;background:var(--g-superficie);box-shadow:var(--g-sombra-1)}
+.bloco h3{margin:0;font-size:14px;font-weight:600}
+.bloco>p{margin:0 0 12px;font-size:12px;color:var(--g-suave)}
+.bloco>p:last-child{margin-bottom:0}
+.opcoes{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.opcoes.c3{grid-template-columns:repeat(3,1fr)}
+.opcoes button{padding:10px 12px;border:1px solid var(--g-borda);border-radius:8px;background:var(--g-superficie);font:500 14px var(--g-fonte);color:var(--g-texto);cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.opcoes button:hover{background:var(--g-superficie-2)}
+.opcoes button[aria-pressed="true"]{border-color:var(--g-primaria);background:var(--g-primaria-suave);color:var(--g-primaria)}
+.gav-bt{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:8px;font:500 14px var(--g-fonte);white-space:nowrap;cursor:pointer;transition:background .15s,opacity .15s}
+.gav-bt.sec{border:1px solid var(--g-borda);background:var(--g-superficie);color:var(--g-texto)}
+.gav-bt.sec:hover{background:var(--g-superficie-2)}
+.gav-bt.pri{border:1px solid var(--g-primaria);background:var(--g-primaria);color:#fff}
+.gav-bt.pri:hover{opacity:.9}
+.gav-bt.largo{width:100%;margin-top:12px}
+.gav-rodape{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 20px;border-top:1px solid var(--g-borda);background:rgba(245,247,250,.6);flex:none}
+.gav-rodape span{font-size:12px;color:var(--g-suave)}
+.gav-rodape div{display:flex;gap:8px}
 .seg{display:inline-flex;background:rgba(19,32,47,.06);border-radius:10px;padding:3px;gap:2px}
 .seg button{border:0;background:transparent;font:500 12.5px var(--body);color:var(--muted);padding:7px 11px;border-radius:8px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:#fff;color:var(--fg);box-shadow:0 1px 3px rgba(19,32,47,.14)}
@@ -106,13 +137,13 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 .recolher svg{width:12px;height:12px;transition:transform .25s var(--ease)}
 .recolhido .recolher svg{transform:rotate(-90deg)}
 .recolhido .corpo{display:none}
-.opcao{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:0;background:transparent;padding:6px 2px;font:13px var(--body);color:var(--fg);cursor:pointer;text-align:left;border-radius:7px}
-.opcao:hover{background:var(--accent-soft)}
-.opcao i{flex:none;width:30px;height:17px;border-radius:9px;background:#c5ccd4;position:relative;transition:background .2s}
-.opcao i::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .2s var(--ease)}
-.opcao[aria-pressed="true"] i{background:var(--accent)}
-.opcao[aria-pressed="true"] i::after{transform:translateX(13px)}
-#camadas .btn{width:100%;margin-top:10px}
+.opcao{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;border:0;border-top:1px solid var(--g-borda);background:transparent;padding:10px 0;font:14px var(--g-fonte);color:var(--g-texto);cursor:pointer;text-align:left}
+.opcao:first-of-type{border-top:0}
+.opcao:hover span{color:var(--g-primaria)}
+.opcao i{flex:none;width:36px;height:20px;border-radius:10px;background:var(--g-borda-2);position:relative;transition:background .2s}
+.opcao i::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .2s var(--ease)}
+.opcao[aria-pressed="true"] i{background:var(--g-primaria)}
+.opcao[aria-pressed="true"] i::after{transform:translateX(16px)}
 .ficha{top:66px}
 .legenda .cabeca{margin-bottom:8px}
 .legenda.recolhido .cabeca{margin-bottom:0}
@@ -122,7 +153,7 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
   .abrir{display:inline-block;margin-top:8px}
   .lista{top:auto!important;bottom:16px;left:16px;right:16px;width:auto;max-height:50dvh!important;display:none}
   .lista.aberta{display:flex}
-  .filtros{top:auto;bottom:16px;max-height:70dvh}
+  .filtros{top:auto;max-height:78dvh} /* no celular abre embaixo: o alto do mapa continua à vista */
   .ficha{top:auto;bottom:16px;left:16px;right:16px;width:auto}
   .legenda,.rodape,.marca{display:none}
   .linha{left:16px;right:16px;bottom:16px;width:auto;min-width:0;transform:none;flex-wrap:wrap}
@@ -159,41 +190,52 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 </section>
 
 <button type="button" class="botao-filtros" id="botaoFiltros" aria-expanded="false" aria-controls="painelFiltros"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h8M14 12h0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="11" cy="4" r="1.8" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="8" r="1.8" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="1.8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span>Filtros</span></button>
-<section class="painel filtros" id="painelFiltros" aria-label="Filtros e configurações" hidden>
-  <div class="abas" role="tablist" aria-label="Filtros">
+<section class="painel filtros" id="painelFiltros" role="dialog" aria-labelledby="filtrosTitulo" hidden>
+  <header class="gav-topo">
+    <div><h2 id="filtrosTitulo">Filtros e configurações</h2><p>Cada mudança aparece na hora no mapa.</p></div>
+    <button type="button" class="gav-x" id="fecharFiltros" aria-label="Fechar" title="Fechar (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </header>
+  <div class="gav-abas" role="tablist" aria-label="Filtros">
     <button type="button" role="tab" data-aba="mapa" aria-selected="true">Mapa</button>
     <button type="button" role="tab" data-aba="camadas" aria-selected="false">Camadas</button>
     <button type="button" role="tab" data-aba="ajustes" aria-selected="false">Ajustes</button>
   </div>
-  <div class="aba" id="aba-mapa" role="tabpanel">
-    <div class="grupo">Visão</div>
-    <div class="seg" role="group" aria-label="Visão">
-      <button type="button" data-visual="cidade" aria-pressed="true">Cidade</button>
-      <button type="button" data-visual="real" aria-pressed="false">Foto</button>
-      <button type="button" data-visual="setores" aria-pressed="false">Setores</button>
-      <button type="button" data-visual="atendimento" aria-pressed="false">Atendimento 30 dias</button>
+  <div class="gav-corpo">
+    <div class="aba" id="aba-mapa" role="tabpanel">
+      <section class="bloco"><h3>Visão</h3><p>Como a usina aparece no mapa.</p>
+        <div class="opcoes" role="group" aria-label="Visão">
+          <button type="button" data-visual="cidade" aria-pressed="true">Cidade</button>
+          <button type="button" data-visual="real" aria-pressed="false">Foto</button>
+          <button type="button" data-visual="setores" aria-pressed="false">Setores</button>
+          <button type="button" data-visual="atendimento" aria-pressed="false">Atendimento 30 dias</button>
+        </div>
+      </section>
+      <section class="bloco" id="blocoTempo"><h3>Tempo</h3><p>Os caminhões agora ou o dia de ontem passando.</p>
+        <div class="opcoes" role="group" aria-label="Tempo">
+          <button type="button" data-periodo="agora" aria-pressed="true">Agora</button>
+          <button type="button" data-periodo="replay" aria-pressed="false">Replay de ontem</button>
+        </div>
+      </section>
+      <section class="bloco"><h3>Caminhões</h3><p>Quais caminhões aparecem no mapa.</p>
+        <div class="opcoes c3" role="group" aria-label="Caminhões">
+          <button type="button" data-frota="ativas" aria-pressed="true">Vagas ativas</button>
+          <button type="button" data-frota="todos" aria-pressed="false">Todos</button>
+          <button type="button" data-frota="nenhum" aria-pressed="false">Ocultar</button>
+        </div>
+      </section>
+      <section class="bloco"><h3>Ir para</h3><p>Leva a câmera até o lugar.</p>
+        <div class="opcoes c3" role="group" aria-label="Ir para" id="irPara"></div>
+      </section>
     </div>
-    <div class="grupo">Tempo</div>
-    <div class="seg" role="group" aria-label="Tempo">
-      <button type="button" data-periodo="agora" aria-pressed="true">Agora</button>
-      <button type="button" data-periodo="replay" aria-pressed="false">Replay de ontem</button>
+    <div class="aba" id="aba-camadas" role="tabpanel" hidden><div id="camadas"></div></div>
+    <div class="aba" id="aba-ajustes" role="tabpanel" hidden>
+      <div id="qualidade"></div>
+      <section class="bloco"><h3>Como mexer no mapa</h3><p>Arraste para girar, role para aproximar e toque em uma área ou caminhão para ver a ficha.</p></section>
     </div>
-    <div class="grupo">Caminhões</div>
-    <div class="seg" role="group" aria-label="Caminhões">
-      <button type="button" data-frota="ativas" aria-pressed="true">Vagas ativas</button>
-      <button type="button" data-frota="todos" aria-pressed="false">Todos</button>
-      <button type="button" data-frota="nenhum" aria-pressed="false">Ocultar</button>
-    </div>
-    <div class="grupo">Ir para</div>
-    <div class="seg" role="group" aria-label="Ir para" id="irPara"></div>
   </div>
-  <div class="aba" id="aba-camadas" role="tabpanel" hidden><div id="camadas"></div></div>
-  <div class="aba" id="aba-ajustes" role="tabpanel" hidden>
-    <div id="qualidade"></div>
-    <div class="grupo">Restaurar</div>
-    <button type="button" class="btn largo" id="padrao">Voltar tudo ao padrão</button>
-    <p class="sub">Arraste para girar, role para aproximar, toque em uma área ou caminhão.</p>
-  </div>
+  <footer class="gav-rodape"><span>Salvo neste navegador</span>
+    <div><button type="button" class="gav-bt sec" id="padrao" title="Liga de novo todas as camadas e textos">Voltar ao padrão</button><button type="button" class="gav-bt pri" id="prontoFiltros">Pronto</button></div>
+  </footer>
 </section>
 
 
@@ -1760,11 +1802,11 @@ function disco(x, z, r, y) { // remenda a curva e o cruzamento (a faixa reta dei
 }
 /* as ruas são uma camada própria, em destaque: aparecem na Cidade e por cima da foto */
 const CAMADAS = { areas: true, nomesEstruturas: true, nomes: true, nomesCaminhoes: true, ruas: true, predios: true, industria: true, patios: true, ferrovia: true, contornos: true };
-const GRUPOS_CAMADAS = [ // painel do canto: o que aparece escrito na tela e o que aparece no mapa
-  ["Textos na tela", { areas: "Títulos das áreas", nomesEstruturas: "Nomes das estruturas", nomes: "Nomes das ruas", nomesCaminhoes: "Nome dos caminhões" }],
-  ["Mapa", { ruas: "Ruas", predios: "Prédios", industria: "Indústria (fornos, gasômetros...)", patios: "Pátios e correias", ferrovia: "Ferrovia", contornos: "Contorno das áreas" }],
+const GRUPOS_CAMADAS = [ // aba Camadas: o que aparece escrito na tela e o que aparece no mapa
+  ["Textos na tela", "Nomes que aparecem por cima do mapa.", { areas: "Títulos das áreas", nomesEstruturas: "Nomes das estruturas", nomes: "Nomes das ruas", nomesCaminhoes: "Nome dos caminhões" }],
+  ["Mapa", "Partes desenhadas da usina.", { ruas: "Ruas", predios: "Prédios", industria: "Indústria (fornos, gasômetros...)", patios: "Pátios e correias", ferrovia: "Ferrovia", contornos: "Contorno das áreas" }],
 ];
-const TEXTOS = Object.keys(GRUPOS_CAMADAS[0][1]);
+const TEXTOS = Object.keys(GRUPOS_CAMADAS[0][2]);
 try { Object.assign(CAMADAS, JSON.parse(localStorage.getItem("usina-camadas") || "{}")); } catch {}
 const camadaLigada = (c) => CAMADAS[c] !== false;
 const grupoRuas = new THREE.Group(), MATS_RUA = {};
@@ -2671,8 +2713,8 @@ function marcarNaLista() {
 function montarLegenda() {
   const status = `<div class="grupo" style="padding-top:12px">Luz no teto do caminhão</div><div class="chips">${Object.entries(COR_STATUS).map(([k, c]) =>
     `<span class="chip" style="cursor:default"><i class="cor" style="background:${c};box-shadow:0 0 0 1px rgba(19,32,47,.3)"></i>${ROTULO_STATUS[k]}</span>`).join("")}</div>`;
-  const qualidade = `<div class="grupo" style="padding-top:12px">Qualidade da imagem</div><div class="seg" role="group" aria-label="Qualidade">${["alta", "leve"].map((q) =>
-    `<button type="button" data-qualidade="${q}" aria-pressed="${estado.qualidade === q}">${q === "alta" ? "Alta" : "Leve"}</button>`).join("")}</div>`;
+  const qualidade = `<section class="bloco"><h3>Qualidade da imagem</h3><p>Alta deixa mais nítido; Leve deixa mais rápido em computador simples.</p><div class="opcoes" role="group" aria-label="Qualidade">${["alta", "leve"].map((q) =>
+    `<button type="button" data-qualidade="${q}" aria-pressed="${estado.qualidade === q}">${q === "alta" ? "Alta" : "Leve"}</button>`).join("")}</div></section>`;
   let topo;
   if (estado.visual === "cidade") topo = `<div class="grupo">Chão da usina</div><div class="chips">${(CHAO_MAPEADO ? LEGENDA_CHAO : LEGENDA_CIDADE).map(([c, n]) =>
     `<span class="chip" style="cursor:default"><i class="cor" style="background:${c}"></i>${n}</span>`).join("")}</div>`;
@@ -2694,12 +2736,12 @@ function montarLegenda() {
   }));
 }
 function salvarCamadas() { try { localStorage.setItem("usina-camadas", JSON.stringify(CAMADAS)); } catch {} }
-function montarCamadas(qualidade) { // painel do canto: liga e desliga cada camada; um toque esconde todos os textos
+function montarCamadas(qualidade) { // aba Camadas: um cartão por grupo, com interruptores; um toque esconde todos os textos
   const algumTexto = TEXTOS.some(camadaLigada);
-  $("camadas").innerHTML = GRUPOS_CAMADAS.map(([titulo, itens]) => `<div class="grupo">${titulo}</div>${Object.entries(itens).map(([c, n]) =>
-    `<button type="button" class="opcao" data-camada="${c}" aria-pressed="${camadaLigada(c)}"><span>${n}</span><i></i></button>`).join("")}`).join("")
-    + `<button type="button" class="btn" id="todosTextos">${algumTexto ? "Esconder todos os textos" : "Mostrar todos os textos"}</button>`;
-  $("qualidade").innerHTML = qualidade.replace('style="padding-top:12px"', "").replace("Qualidade da imagem", "Qualidade da imagem");
+  $("camadas").innerHTML = GRUPOS_CAMADAS.map(([titulo, dica, itens], g) => `<section class="bloco"><h3>${titulo}</h3><p>${dica}</p>${Object.entries(itens).map(([c, n]) =>
+    `<button type="button" class="opcao" data-camada="${c}" aria-pressed="${camadaLigada(c)}"><span>${n}</span><i></i></button>`).join("")}`
+    + (g ? "" : `<button type="button" class="gav-bt sec largo" id="todosTextos">${algumTexto ? "Esconder todos os textos" : "Mostrar todos os textos"}</button>`) + "</section>").join("");
+  $("qualidade").innerHTML = qualidade;
   $("camadas").querySelectorAll("[data-camada]").forEach((b) => b.addEventListener("click", () => {
     CAMADAS[b.dataset.camada] = !camadaLigada(b.dataset.camada);
     salvarCamadas(); aplicarVisual();
@@ -2744,12 +2786,14 @@ function abrirAba(aba) { // Mapa, Camadas ou Ajustes, dentro do botão Filtros
   lembrar("maquete.aba", aba);
 }
 function abrirFiltros(aberto) {
+  if (!aberto && $("painelFiltros").contains(document.activeElement)) $("botaoFiltros").focus(); // ao fechar, o foco volta para o botão
   $("painelFiltros").hidden = !aberto;
   $("botaoFiltros").setAttribute("aria-expanded", String(aberto));
 }
 document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
 abrirAba(["mapa", "camadas", "ajustes"].includes(lembrar("maquete.aba")) ? lembrar("maquete.aba") : "mapa");
 $("botaoFiltros").addEventListener("click", () => abrirFiltros($("painelFiltros").hidden));
+for (const id of ["fecharFiltros", "prontoFiltros"]) $(id).addEventListener("click", () => abrirFiltros(false));
 addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("painelFiltros").hidden) abrirFiltros(false); });
 $("padrao").addEventListener("click", () => { // volta todas as camadas e textos ao que vem de fábrica
   for (const c of Object.keys(CAMADAS)) CAMADAS[c] = true;
@@ -2810,7 +2854,7 @@ document.title = "Maquete da usina";
 const usina = PECAS[0], larg = Math.max(usina.caixa.x1 - usina.caixa.x0, usina.caixa.zS - usina.caixa.zN);
 controles.target.set(usina.centro[0], 0, usina.centro[1]);
 camera.position.set(usina.centro[0] + larg * 0.3, larg * 2.2, usina.centro[1] + larg * 1.4);
-if (!CAMINHOES.some((c) => c.trajeto)) document.querySelector("[data-periodo]").closest(".par").style.display = "none"; // sem trajeto de ontem, sem replay
+if (!CAMINHOES.some((c) => c.trajeto)) $("blocoTempo").hidden = true; // sem trajeto de ontem, sem replay
 if (!ATEND.length) document.querySelector('[data-visual="atendimento"]').style.display = "none";
 posicionarSol(); aplicarVisual(); montarLista(); encaixarLista();
 document.fonts?.ready.then(encaixarLista);
