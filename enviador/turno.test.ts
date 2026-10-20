@@ -25,14 +25,15 @@ const AV08 = "AUTO VÁCUO - GPS - 08 - 24 HS";
 const lin = (vaga_nome: string, placa: string, inicio: string, fim: string, status: string): LinhaTurno => ({ vaga_nome, placa, placa_ou_codigo: placa, inicio: `2026-10-20 ${inicio}:00`, fim: `2026-10-20 ${fim}:00`, status });
 
 describe("resumo de cada vaga no turno", () => {
-  it("só as 4 vagas de 24 h; produtivo pela regra do tipo e ocioso = ligado sem produzir, cortado no horário do turno", () => {
+  it("só as 4 vagas de 24 h; produtivo pela regra do tipo e ocioso = motor desligado, cortado no horário do turno", () => {
     const linhas = [
       lin(AP01, "EGC2983", "05:00", "08:40", "secondary_motor_on"), // 2 h dentro do turno (06:40–08:40)
-      lin(AP01, "EGC2983", "08:40", "09:40", "stopped"), // ocioso 1 h
-      lin(AP01, "EGC2983", "09:40", "10:10", "on"), // ocioso 30 min (andando ligado)
-      lin(AP01, "EGC2983", "10:10", "11:10", "off"), // desligado: não entra
+      lin(AP01, "EGC2983", "08:40", "09:40", "stopped"), // ligado parado: não entra
+      lin(AP01, "EGC2983", "09:40", "10:10", "on"), // andando ligado: deslocamento, não entra
+      lin(AP01, "EGC2983", "10:10", "11:10", "off"), // ocioso 1 h
+      lin(AP01, "EGC2983", "11:10", "11:40", "main_switch_off"), // chave geral desligada: ocioso 30 min
       lin(AV08, "HKT4410", "07:00", "10:00", "stopped"), // Auto Vácuo: parado ligado é produtivo
-      lin(AV08, "HKT4410", "10:00", "10:45", "on"),
+      lin(AV08, "HKT4410", "10:00", "10:45", "off"),
       lin("ALTA PRESSÃO - GPS - 03", "DSY6475", "07:00", "10:00", "secondary_motor_on"), // vaga ADM: fora
     ];
     const r = resumirVagas(linhas, [], [], TURNO);
@@ -40,6 +41,12 @@ describe("resumo de cada vaga no turno", () => {
     expect(r[0]).toMatchObject({ placas: ["EGC2983"], produtivo_min: 120, ocioso_min: 90 });
     expect(r[1]).toMatchObject({ placas: [], produtivo_min: 0, ocioso_min: 0 });
     expect(r[3]).toMatchObject({ placas: ["HKT4410"], produtivo_min: 180, ocioso_min: 45 });
+  });
+  it("bomba ligada na base (Pátio do Transporte, Garagem) não conta como produtivo, igual ao site", () => {
+    const ev = (t: string, tipo: string, area: string): EventoTurno => ({ t: `2026-10-20T${t}:00-03:00`, placa: "EGC2983", tipo, area });
+    const eventos = [ev("06:00", "abertura", "PÁTIO DO TRANSPORTE"), ev("07:30", "entrada", "ACIARIA 2")];
+    const r = resumirVagas([lin(AP01, "EGC2983", "07:00", "09:00", "secondary_motor_on")], eventos, [], TURNO);
+    expect(r[0].produtivo_min).toBe(90); // 07:00–07:30 no Pátio do Transporte fica de fora
   });
   it("trecho repetido não conta duas vezes", () => {
     const r = resumirVagas([lin(AP01, "EGC2983", "07:00", "08:00", "secondary_motor_on"), lin(AP01, "EGC2983", "07:30", "08:00", "secondary_motor_on")], [], [], TURNO);

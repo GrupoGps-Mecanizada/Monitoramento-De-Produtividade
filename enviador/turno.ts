@@ -1,8 +1,9 @@
 // Relatório de fim de turno no WhatsApp (P-088, pedido do dono em 20/10/2026): no fim de cada turno do 4x4, um
-// cartão por vaga de 24 h (AP/AV 01 e 08) com o caminhão, as áreas atendidas, produtivo × ocioso e os apontamentos.
+// cartão por vaga de 24 h (AP/AV 01 e 08) com o caminhão, as áreas atendidas, os apontamentos e as barras.
 // Tudo puro (o enviar.ts só lê, manda e guarda que já mandou).
-//   Produtivo: a regra do tipo (Alta Pressão: bomba ligada; Auto Vácuo: parado ligado).
-//   Ocioso: motor ligado sem produzir (inclui andando ligado). Desligado e sem sinal não entram em nenhum dos dois.
+//   Produtivo: a regra do tipo (Alta Pressão: bomba ligada; Auto Vácuo: parado ligado), fora da base (igual ao site).
+//   Ocioso: motor desligado (para o dono, 20/10/2026, ocioso é motor desligado; andando ligado é só deslocamento).
+//   Justificado: tempo coberto pelos apontamentos do tablet.
 import { letraDaEscala, SUPERVISOR_DA_LETRA } from "../src/lib/dominio/filtros-crono";
 import { ehBase, statusProdutivo } from "../src/lib/dominio/produtividade";
 import { tipoDaVaga } from "../src/lib/dominio/dia-vaga";
@@ -65,6 +66,7 @@ export interface ResumoVaga {
   /** quem o tablet identificou (o que mais apontou no turno); null = não identificado */
   motorista: string | null;
   produtivo_min: number;
+  /** motor desligado no turno */
   ocioso_min: number;
   /** tempo coberto pelos apontamentos do tablet no turno */
   justificado_min: number;
@@ -73,7 +75,7 @@ export interface ResumoVaga {
   apontamentos: number;
 }
 
-const LIGADO = new Set(["on", "stopped", "secondary_motor_on"]);
+const DESLIGADO = new Set(["off", "main_switch_off"]);
 
 /** Horário sem fuso é o da usina (Brasília, sem horário de verão desde 2019). */
 const ms = (ts: string) => (/[zZ]|[+-]\d\d:?\d\d$/.test(ts) ? Date.parse(ts) : Date.parse(`${ts.slice(0, 19).replace(" ", "T")}-03:00`));
@@ -122,14 +124,14 @@ const vaga24h = (nome: string) => {
 /** Minutos de [a, b) dentro do turno. */
 const dentro = (a: number, b: number, ini: number, fim: number) => Math.max(0, Math.min(b, fim) - Math.max(a, ini)) / 60000;
 
-/** Áreas atendidas pelas entradas e saídas: tempo em cada área no turno, fora da base, do maior para o menor. */
-function areasDe(eventos: EventoTurno[], placas: Set<string>, ini: number, fim: number): string[] {
+/** Onde o caminhão esteve no turno, pelas entradas e saídas de área: [área, início, fim] já cortados no turno. */
+function estadias(eventos: EventoTurno[], placas: Set<string>, ini: number, fim: number): [string, number, number][] {
   const doCaminhao = eventos.filter((e) => placas.has(placaLimpa(e.placa)) && e.area !== undefined).sort((p, q) => ms(p.t) - ms(q.t));
-  const tempo = new Map<string, number>();
+  const out: [string, number, number][] = [];
   let area = "";
   let desde = ini;
   const mudar = (nova: string, t: number) => {
-    if (area && !ehBase(area) && !NAO_ATENDE.test(area)) tempo.set(area, (tempo.get(area) ?? 0) + dentro(desde, t, ini, fim));
+    if (area && dentro(desde, t, ini, fim)) out.push([area, Math.max(desde, ini), Math.min(t, fim)]);
     area = nova;
     desde = t;
   };
@@ -140,6 +142,14 @@ function areasDe(eventos: EventoTurno[], placas: Set<string>, ini: number, fim: 
     } else mudar(e.area ?? "", t);
   }
   mudar("", fim);
+  return out;
+}
+
+/** Áreas atendidas: tempo em cada área no turno, fora da base e das paradas de apoio, do maior para o menor. */
+function areasDe(eventos: EventoTurno[], placas: Set<string>, ini: number, fim: number): string[] {
+  const tempo = new Map<string, number>();
+  for (const [area, a, b] of estadias(eventos, placas, ini, fim))
+    if (!ehBase(area) && !NAO_ATENDE.test(area)) tempo.set(area, (tempo.get(area) ?? 0) + (b - a) / 60000);
   return [...tempo]
     .filter(([, m]) => m >= AREA_MIN)
     .sort((p, q) => q[1] - p[1])
@@ -192,6 +202,12 @@ export function resumirVagas(linhas: LinhaTurno[], eventos: EventoTurno[], apont
       let produtivo = 0;
       let ocioso = 0;
       const minPorPlaca = new Map<string, number>();
+      // na base (Pátio do Transporte, Garagem) a bomba ligada não conta como produtivo, igual ao site (regra de 08/10/2026)
+      const naBase = new Map<string, [number, number][]>();
+      const base = (placa: string) => {
+        if (!naBase.has(placa)) naBase.set(placa, estadias(eventos, new Set([placa]), ini, fim).filter(([area]) => ehBase(area)).map(([, a, b]) => [a, b]));
+        return naBase.get(placa)!;
+      };
       // trecho repetido ou sobreposto: cada minuto conta uma vez só
       let ate = -Infinity;
       for (const l of [...ls].sort((p, q) => ms(p.inicio) - ms(q.inicio))) {
@@ -203,8 +219,8 @@ export function resumirVagas(linhas: LinhaTurno[], eventos: EventoTurno[], apont
         if (!min) continue;
         const placa = placaLimpa(l.placa ?? l.placa_ou_codigo);
         if (placa) minPorPlaca.set(placa, (minPorPlaca.get(placa) ?? 0) + min);
-        if (l.status === statusProdutivo(tipo, placa)) produtivo += min;
-        else if (LIGADO.has(l.status)) ocioso += min;
+        if (l.status === statusProdutivo(tipo, placa)) produtivo += min - base(placa).reduce((s, [x, y]) => s + dentro(a, b, Math.max(x, ini), Math.min(y, fim)), 0);
+        else if (DESLIGADO.has(l.status)) ocioso += min;
       }
       // caminhão que só passou pela vaga (menos de 30 min) não aparece, a não ser que seja o único
       const placas = [...minPorPlaca].sort((p, q) => q[1] - p[1]).filter(([, m], i) => i === 0 || m >= 30).map(([p]) => p);
