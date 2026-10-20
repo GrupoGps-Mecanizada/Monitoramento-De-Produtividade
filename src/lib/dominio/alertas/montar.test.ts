@@ -146,6 +146,15 @@ describe("mesmo desligado com o início ajustado: não vira alerta novo (não ma
     expect(outro(novo({ regra: "ocioso" }))).toBe(`ocioso|1|${D}|${2 * H + 27 * 60}`);
     expect(outro(novo(), [{ ...velho, dia: "2026-10-06", chave: `desligado|1|2026-10-06|${R0}` }])).toBe(`desligado|1|${D}|${2 * H + 27 * 60}`);
   });
+  it("começo bem depois, mas no meio do horário do alerta gravado: o mesmo alerta (o GAUSS dividiu o trecho)", () => {
+    // caso real de 20/10/2026 (EGC2985): gravado 08:26-09:34; o GAUSS mostrou parada apontada 08:29-08:49 e o desligado virou 08:49-10:13
+    const gravado = hist(`desligado|1|${D}|${8 * H + 26 * 60}`, "aberto", { ref: 8 * H + 26 * 60, fim: 9 * H + 34 * 60 });
+    const [a] = montarAlertas(entrada({ agoraSeg: 10 * H + 15 * 60, excecoes: [exc({ ini: 8 * H + 49 * 60, ref: 8 * H + 49 * 60, fim: 10 * H + 13 * 60 })], historico: [gravado] }));
+    expect(a.chave).toBe(gravado.chave);
+    // sem sobrepor (começa depois do fim gravado + folga): alerta próprio
+    const [b] = montarAlertas(entrada({ agoraSeg: 11 * H, excecoes: [exc({ ini: 9 * H + 50 * 60, ref: 9 * H + 50 * 60, fim: 10 * H + 55 * 60 })], historico: [gravado] }));
+    expect(b.chave).toBe(`desligado|1|${D}|${9 * H + 50 * 60}`);
+  });
   it("saída tarde e chegada cedo não entram nisso (o ref delas já é o horário-limite)", () => {
     const e = exc({ regra: "saida_tarde", ini: 7 * H + 50 * 60, fim: null, ref: 7 * H + 45 * 60 });
     const h = hist(`saida_tarde|1|${D}|${7 * H + 40 * 60}`, "aberto", { regra: "saida_tarde", ref: 7 * H + 40 * 60 });

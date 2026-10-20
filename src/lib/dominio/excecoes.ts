@@ -63,6 +63,8 @@ export interface EntradaExcecoes {
   tablet: (LinhaTablet & { placa: string })[];
   /** excessos de velocidade dentro da usina (analise_excessos; rota completa, só a partir do dia seguinte) */
   excessos?: { dia: string; veiculo_id: string; ini: number; fim: number; vel_max: number; lat: number; lng: number }[];
+  /** ids dos caminhões com motor secundário (a timeline do GAUSS mostrou "Motor Secundário Ligado" nos últimos dias) */
+  motorSecundario?: string[];
 }
 export interface IntervaloArea {
   area: string;
@@ -168,23 +170,48 @@ function motorNoEixo(linhas: LinhaMotorFrota[], base: string, dia: string): { a:
 
 type BlocoMotor = { a: number; b: number; cod: string };
 
+const DESLIGADOS = new Set(["off", "main_switch_off"]);
 /**
  * O coletor só busca de novo a timeline de uma vaga desligada a cada 1 h (MAX_QUIETA_MS): o ao vivo (a cada ~5 min)
- * completa o desligado depois do último trecho do GAUSS, até a última posição. Onde o GAUSS já tem dado vale o GAUSS
- * (minuto a minuto; o ao vivo perde um liga-desliga curto). Como no GAUSS, o que passa da meia-noite vira dois trechos.
- * `ate` = agora no eixo (só hoje; null = dia fechado, nada a completar).
+ * continua, até a última posição, o desligado que o próprio GAUSS mostrou na última busca. Só quando é seguro:
+ * - o último trecho do GAUSS é desligado e o ao vivo não mudou depois dele (mudou: o coletor busca de novo em 10 min);
+ * - o caminhão não tem motor secundário (`temMotorSecundario`, ou o motor 2º do ao vivo ligado/sem sinal): a bomba
+ *   trabalha com o principal desligado, e o ao vivo do principal diria "Desligado" (EAM-3253, 17/10/2026);
+ * - fora do apontamento do tablet que começou depois da busca (`apontados`, aberto = até agora): o GAUSS mostra
+ *   "Parada Apontada" e o ao vivo não vê.
+ * Onde o GAUSS tem dado vale o GAUSS. Como no GAUSS, o que passa da meia-noite vira dois trechos.
+ * `ate` = agora no eixo (só hoje; null = dia fechado).
  */
-export function completarAoVivo(blocos: BlocoMotor[], v: Pick<Veiculo, "status" | "status_desde" | "posicao_em" | "sem_sinal">, base: string, ate: number | null): BlocoMotor[] {
+export function completarAoVivo(
+  blocos: BlocoMotor[],
+  v: Pick<Veiculo, "status" | "status_desde" | "posicao_em" | "sem_sinal" | "motor2">,
+  base: string,
+  ate: number | null,
+  apontados: { a: number; b: number }[] = [],
+  temMotorSecundario = false,
+): BlocoMotor[] {
   if (ate == null || v.sem_sinal || !/desligad/i.test(v.status) || !v.status_desde || !v.posicao_em) return blocos;
+  const ultGauss = blocos.at(-1);
+  if (!ultGauss || !DESLIGADOS.has(ultGauss.cod)) return blocos;
   const fimGauss = blocos.reduce((m, x) => Math.max(m, x.b), -Infinity);
+  // a bomba: o motor 2º do ao vivo (com sinal) diz se está desligada desde antes da busca; sem ele, vale o histórico
+  const m2 = v.motor2 && !v.motor2.sem_sinal ? v.motor2 : null;
+  if (m2 ? !/desligad/i.test(m2.status) || (m2.status_desde != null && !(segDoIso(m2.status_desde, base) <= fimGauss)) : temMotorSecundario) return blocos;
   const visto = Math.min(segDoIso(v.posicao_em, base), ate);
-  const desde = Math.max(segDoIso(v.status_desde, base), fimGauss);
+  const desde = fimGauss;
   // NaN (data ilegível) também para aqui
-  if (!(visto > desde)) return blocos;
-  const ult = blocos.at(-1);
-  const out = ult && ult.cod === "off" && ult.b === desde ? [...blocos.slice(0, -1), { ...ult, b: visto }] : [...blocos, { a: desde, b: visto, cod: "off" }];
-  const novo = out.at(-1)!;
-  if (novo.a < DIA && novo.b > DIA) out.splice(-1, 1, { ...novo, b: DIA }, { ...novo, a: DIA });
+  if (!(segDoIso(v.status_desde, base) <= fimGauss) || !(visto > desde)) return blocos;
+  let pedacos = [{ a: desde, b: visto }];
+  for (const ap of apontados.filter((x) => x.a >= fimGauss))
+    pedacos = pedacos.flatMap((p) => (ap.b <= p.a || ap.a >= p.b ? [p] : [...(ap.a > p.a ? [{ a: p.a, b: ap.a }] : []), ...(ap.b < p.b ? [{ a: ap.b, b: p.b }] : [])]));
+  pedacos = pedacos.flatMap((p) => (p.a < DIA && p.b > DIA ? [{ a: p.a, b: DIA }, { a: DIA, b: p.b }] : [p]));
+  const out = [...blocos];
+  for (const p of pedacos) {
+    const ult = out.at(-1);
+    // emenda no desligado do GAUSS que acaba onde o completar começa (nunca na meia-noite)
+    if (ult && DESLIGADOS.has(ult.cod) && ult.b === p.a && p.a !== DIA) out[out.length - 1] = { ...ult, b: p.b };
+    else out.push({ a: p.a, b: p.b, cod: "off" });
+  }
   return out;
 }
 
@@ -260,6 +287,7 @@ export function excecoesDoDia(x: EntradaExcecoes): Excecao[] {
     (e) => e.id,
   );
   const motorPorId = agrupar(x.motor, (l) => l.placa_ou_codigo);
+  const comSecundario = new Set([...(x.motorSecundario ?? []), ...x.motor.filter((l) => l.status === "secondary_motor_on").map((l) => l.placa_ou_codigo)]);
   const out: Excecao[] = [];
 
   for (const v of x.veiculos) {
@@ -328,16 +356,17 @@ export function excecoesDoDia(x: EntradaExcecoes): Excecao[] {
     for (const e of x.excessos ?? []) if (e.veiculo_id === v.id && e.dia === x.dia) add("velocidade", DIA + e.ini, DIA + e.fim, localEm(DIA + e.ini), `${Math.round(e.vel_max)} km/h · limite ${VELOCIDADE_MAX_USINA} km/h`);
 
     if (manut) continue;
-    const blocos = cortarPorVaga(completarAoVivo(motorNoEixo(linhasMotor, base, x.dia), v, base, x.agoraSeg == null ? null : fim), vagas);
+    const placas = new Set(formasDaPlaca(v.placa));
+    // apontamentos do tablet do caminhão (aberto = até agora)
+    const apontados = x.tablet.filter((t) => placas.has(t.placa)).map((t) => ({ a: segDoLocal(t.inicio, base), b: t.fim ? segDoLocal(t.fim, base) : fim, categoria: t.categoria_demora }));
+    const aoVivo = completarAoVivo(motorNoEixo(linhasMotor, base, x.dia), v, base, x.agoraSeg == null ? null : fim, apontados, comSecundario.has(v.id));
+    const blocos = cortarPorVaga(aoVivo, vagas);
     // 8. ociosidade: parado ligado seguido, quando parado ligado não é o produtivo do equipamento (fora do Pátio)
     if (statusProdutivo(equip.tipo, v.placa) !== "stopped")
       for (const b of blocos)
         if (b.cod === "stopped" && noDia(b.a) && noExpDa(b.vaga, b.a, b.b) >= OCIOSO_MIN * 60 && !naLista(PATIO, b.a)) add("ocioso", b.a, b.b, localEm(b.a), dur(b.b - b.a), b.a, b.vaga);
     // 9. motor desligado no expediente, fora do Pátio e das oficinas, sem refeição apontada no tablet
-    const placas = new Set(formasDaPlaca(v.placa));
-    const refeicoes = x.tablet
-      .filter((t) => placas.has(t.placa) && /REFEI/i.test(t.categoria_demora))
-      .map((t) => ({ a: segDoLocal(t.inicio, base), b: t.fim ? segDoLocal(t.fim, base) : fim }));
+    const refeicoes = apontados.filter((t) => /REFEI/i.test(t.categoria));
     for (const b of blocos) {
       if ((b.cod !== "off" && b.cod !== "main_switch_off") || !noDia(b.a) || noExpDa(b.vaga, b.a, b.b) < DESLIGADO_MIN * 60) continue;
       if (naLista([...PATIO, ...SERVITEC, ...OFICINAS_FORA], b.a) || refeicoes.some((r) => r.a < b.b && r.b > b.a)) continue;

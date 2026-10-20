@@ -173,12 +173,49 @@ describe("motor desligado: o ao vivo completa só o trecho que o GAUSS ainda nã
   it("GAUSS buscado às 02:35 (8 min desligado) e o ao vivo ainda desligado às 03:40: alerta desde 02:27, sem esperar a próxima busca", () => {
     expect(desl()).toEqual([[hs("02:27"), hs("03:40"), "1h13"]]);
   });
-  it("desligou depois da última busca do GAUSS: começa no horário do ao vivo", () => {
-    expect(desl({ motor: [m("7", "02:00", "02:20", "on")], agoraSeg: hs("03:31") }, vivo({ status_desde: iso("02:25"), posicao_em: iso("03:30") }))).toEqual([[hs("02:25"), hs("03:30"), "1h05"]]);
+  it("só completa o desligado que o próprio GAUSS mostrou: última busca ligado, ou o ao vivo mudou depois dela, não completa", () => {
+    // (o status mudou depois da busca: o coletor busca de novo em até 10 min)
+    expect(desl({ motor: [m("7", "02:00", "02:20", "on")], agoraSeg: hs("03:31") }, vivo({ status_desde: iso("02:25"), posicao_em: iso("03:30") }))).toEqual([]);
+    expect(desl({}, vivo({ status_desde: iso("02:50") }))).toEqual([]);
+  });
+  it("motor secundário (a bomba) com o principal desligado é trabalho: não completa", () => {
+    // caso real de 17/10/2026 (EAM-3253): 'Motor Secundário Ligado' 02:21-05:38 e o ao vivo do principal 'Desligado'
+    const motor = [m("7", "02:00", "02:21", "on"), m("7", "02:21", "02:25", "secondary_motor_on")];
+    expect(desl({ motor, agoraSeg: hs("03:31") }, vivo({ status_desde: iso("02:25"), posicao_em: iso("03:30") }))).toEqual([]);
+    // caminhão que tem motor secundário (visto no GAUSS nos últimos 30 dias): não completa nem com o GAUSS desligado
+    expect(desl({ motorSecundario: ["7"] })).toEqual([]);
+    // motor 2º no ao vivo (com sinal) vale mais que o histórico: ligado não completa; desligado desde antes da busca completa
+    const m2 = (status: string, sem_sinal: boolean, desde = "01:00") => vivo({ motor2: { id: "72", placa: "DSY64752", status, status_cod: 0, status_desde: iso(desde), posicao_em: iso("03:40"), sem_sinal } });
+    expect(desl({}, m2("Ligado", false))).toEqual([]);
+    expect(desl({ motorSecundario: ["7"] }, m2("Desligado", false))).toEqual([[hs("02:27"), hs("03:40"), "1h13"]]);
+    // desligou a bomba depois da última busca: até ali ela trabalhava, não completa
+    expect(desl({}, m2("Desligado", false, "03:00"))).toEqual([]);
+    // motor 2º sem sinal: vale o histórico
+    expect(desl({ motorSecundario: ["7"] }, m2("Sem comunicação +6h", true))).toEqual([]);
+    expect(desl({}, m2("Sem comunicação +6h", true))).toEqual([[hs("02:27"), hs("03:40"), "1h13"]]);
   });
   it("o GAUSS vale mais onde já tem dado: o liga-desliga de 2 min que o ao vivo não viu continua separando os trechos", () => {
     const motor = [m("7", "02:00", "02:27", "on"), m("7", "02:27", "04:09", "off"), m("7", "04:09", "04:11", "on"), m("7", "04:11", "04:35", "off")];
     expect(desl({ motor, agoraSeg: hs("04:42") }, vivo({ posicao_em: iso("04:40") }))).toEqual([[hs("02:27"), hs("04:09"), "1h42"]]);
+  });
+  it("parada apontada no tablet não é completada como desligado (o GAUSS mostra 'Parada Apontada')", () => {
+    // caso real de 20/10/2026 (PUB2F80): GAUSS buscado 08:30 (desligado desde 08:06), Documentação no tablet 08:34-09:18
+    const ap = (i: string, f: string | null) => ({ placa: "DSY6475", demora_cod: i, inicio: `${D} ${i}:00`, fim: f ? `${D} ${f}:00` : null, categoria_demora: "Documentação", motorista: null, concluido: null });
+    const motor = [m("7", "07:46", "08:06", "categorized_stop"), m("7", "08:06", "08:30", "off")];
+    const viu = vivo({ status_desde: iso("08:05"), posicao_em: iso("09:20") });
+    expect(desl({ motor, agoraSeg: hs("09:21"), tablet: [ap("08:34", "09:18")] }, viu)).toEqual([]);
+    // apontamento ainda aberto: o completar para no início dele
+    expect(desl({ motor, agoraSeg: hs("09:21"), tablet: [ap("08:34", null)] }, viu)).toEqual([]);
+    // sem apontamento, completa (e vira alerta)
+    expect(desl({ motor, agoraSeg: hs("09:21") }, viu)).toEqual([[hs("08:06"), hs("09:20"), "1h14"]]);
+    // depois do apontamento, volta a completar: 09:18 até 10:25
+    expect(desl({ motor, agoraSeg: hs("10:26"), tablet: [ap("08:34", "09:18")] }, vivo({ status_desde: iso("08:05"), posicao_em: iso("10:25") }))).toEqual([[hs("09:18"), hs("10:25"), "1h07"]]);
+  });
+  it("apontamento que o GAUSS já viu e mostrou como desligado continua sendo completado", () => {
+    // caso real de 20/10/2026 (EGC2985): GAUSS buscado 09:41 mostra desligado 08:49-09:40 durante o 'Bloqueio' 09:11-09:46
+    const bloqueio = { placa: "DSY6475", demora_cod: 1, inicio: `${D} 09:11:00`, fim: `${D} 09:46:00`, categoria_demora: "Bloqueio - LM", motorista: null, concluido: "SIM" };
+    const motor = [m("7", "08:29", "08:49", "categorized_stop"), m("7", "08:49", "09:40", "off")];
+    expect(desl({ motor, agoraSeg: hs("10:14"), tablet: [bloqueio] }, vivo({ status_desde: iso("08:30"), posicao_em: iso("10:13") }))).toEqual([[hs("08:49"), hs("10:13"), "1h24"]]);
   });
   it("posição mais nova que agora (relógio adiantado) não passa de agora", () => {
     expect(desl({}, vivo({ posicao_em: iso("03:50") }))).toEqual([[hs("02:27"), hs("03:42"), "1h15"]]);
@@ -193,14 +230,15 @@ describe("motor desligado: o ao vivo completa só o trecho que o GAUSS ainda nã
   });
   it("desligado desde ontem e nada do GAUSS hoje: como no GAUSS, o dia de hoje começa às 00:00", () => {
     const ontem = { ...vivo({ status_desde: `${V}T23:00:00-03:00`, posicao_em: iso("01:30") }) } as Veiculo;
-    expect(desl({ motor: [], agoraSeg: hs("01:31") }, ontem)).toEqual([[0, hs("01:30"), "1h30"]]);
+    const vespera: LinhaMotorFrota = { placa_ou_codigo: "7", inicio: `${V} 23:00:00`, fim: `${V} 23:59:00`, status: "off", status_label: null };
+    expect(desl({ motor: [vespera], agoraSeg: hs("01:31") }, ontem)).toEqual([[0, hs("01:30"), "1h30"]]);
   });
   it("data ilegível no ao vivo: não completa (e não quebra)", () => {
     expect(desl({}, vivo({ status_desde: "ontem" }))).toEqual([]);
     expect(desl({}, vivo({ posicao_em: "??" }))).toEqual([]);
   });
   it("o ao vivo segue as mesmas regras: fora do expediente não conta", () => {
-    const adm = (h: string) => desl({ motor: [], agoraSeg: hs(h) }, { ...vivo({ status_desde: iso("06:00"), posicao_em: iso(h) }), equip: { ...vivo().equip!, regime: "ADM" } } as Veiculo);
+    const adm = (h: string) => desl({ motor: [m("7", "06:00", "06:10", "off")], agoraSeg: hs(h) }, { ...vivo({ status_desde: iso("06:00"), posicao_em: iso(h) }), equip: { ...vivo().equip!, regime: "ADM" } } as Veiculo);
     // ADM começa 07:45: às 08:10 são só 25 min de expediente
     expect(adm("08:10")).toEqual([]);
     expect(adm("08:50")).toEqual([[hs("06:00"), hs("08:50"), "2h50"]]);
@@ -283,11 +321,13 @@ describe("regras de horário e lugar pela vaga do momento (P-082)", () => {
     const evs = [evv("abertura", V, "00:05", "ALTO FORNO 3", AP05), evv("status", D, "15:50", "ALTO FORNO 3", "[S/ VAGA]"), evv("saida", D, "19:49", "ALTO FORNO 3", AP07), evv("entrada", D, "20:39", PATIO, AP07), evv("saida", D, "20:49", PATIO, AP07)];
     expect(regras(evs, AP07).filter((x) => x[0] === "patio")).toEqual([["patio", hs("20:39"), AP07]]);
   });
-  it("motor: desligado que entra numa vaga já desligado conta só a partir da entrada (vaga pelos eventos onde a timeline não tem)", () => {
+  it("motor: desligado que entra numa vaga já desligado conta só a partir da entrada (o completar pega a vaga pelos eventos)", () => {
     const iso = (h: string) => `${D}T${h}:00-03:00`;
     const evs = [evv("abertura", V, "00:05", "ALTO FORNO 3", "[S/ VAGA]"), evv("status", D, "08:30", "ALTO FORNO 3", AP03)];
+    // a timeline da AP 03 tem o caminhão a partir de 08:30 (buscada 08:40)
+    const motor = [{ ...m("8", "08:30", "08:40", "off"), vaga_nome: AP03 }];
     const desl = (h: string) =>
-      excecoesDoDia({ dia: D, agoraSeg: hs(h) + 60, veiculos: [{ ...carro(AP03), status: "Desligado", status_desde: iso("07:50"), posicao_em: iso(h) } as Veiculo], eventos: evs, motor: [], tablet: [] })
+      excecoesDoDia({ dia: D, agoraSeg: hs(h) + 60, veiculos: [{ ...carro(AP03), status: "Desligado", status_desde: iso("07:50"), posicao_em: iso(h) } as Veiculo], eventos: evs, motor, tablet: [] })
         .filter((x) => x.regra === "desligado")
         .map((x) => [x.ini, x.fim, x.vaga]);
     // 07:50-08:30 sem vaga (fora das 22) não soma: às 09:20 são só 50 min na AP 03

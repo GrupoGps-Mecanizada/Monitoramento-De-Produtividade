@@ -1,5 +1,10 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Ao vivo só completa desligado de verdade · 20/10/2026 (P-083)
+- O ao vivo do motor principal não vê a **bomba** (motor secundário) nem a **parada apontada** no tablet, e dizia "Desligado" com o caminhão trabalhando (EAM-3253 em 17/10: 3h17 de bomba; EGC2985 em 19/10 viraria alerta falso no WhatsApp). Agora o completar com o ao vivo só vale quando: o último trecho do GAUSS é desligado e o ao vivo não mudou depois dele; o caminhão não tem motor secundário (o GAUSS mostrou "Motor Secundário Ligado" nos últimos 30 dias), a não ser que o motor 2º do ao vivo (com sinal) diga que a bomba está desligada desde antes da busca; e fora do apontamento do tablet que começou depois da busca. Nos outros casos vale só o GAUSS (pode atrasar, não erra).
+- Alertas do mesmo caminhão e regra que se sobrepõem no horário (o GAUSS dividiu o trecho depois) ficam num alerta só: o histórico passa a ler o `fim`.
+- Conferido com 19/10 e 20/10 reais: sem repetido nem linha sobreposta; sai o alerta falso do EGC2985 (bomba) de 19/10 e os de parada apontada; o EGC2983 de hoje (desligado de verdade) continua, uns 15 min depois.
+
 ## Todas as regras pela vaga do momento · 20/10/2026 (P-082)
 - Saída tarde, chegada cedo, ida ao Pátio, Servitec, oficina de fora, bica e restaurante também passam a valer pela **vaga em que o caminhão estava na hora** (antes: a vaga de agora). A vaga vem da timeline do GAUSS onde ela tem trecho e, no resto (fora das 22 vagas não há timeline), da vaga gravada em cada evento.
 - Cada regra olha a vaga na hora que importa para ela: a saída tarde, a vaga **que o caminhão foi atender** (a da saída; trocado de vaga no Pátio, atrasou o serviço da vaga nova); a chegada cedo e a ida ao Pátio, a vaga na chegada.

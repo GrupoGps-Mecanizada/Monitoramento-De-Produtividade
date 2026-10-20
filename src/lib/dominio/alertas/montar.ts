@@ -66,13 +66,16 @@ export const chaveDoAlerta = (x: Excecao, dia: string) => `${x.regra}|${x.veicul
 
 /**
  * Alerta já gravado do mesmo problema com o início ajustado: o ao vivo vê o desligado uns minutos depois do GAUSS, e a
- * timeline do GAUSS chega depois. Mesmo caminhão, regra e dia, com o início gravado dentro do trecho novo (ou até
- * FOLGA_FIM_S antes). Sem isso a chave mudaria e o WhatsApp receberia o mesmo alerta duas vezes.
+ * timeline do GAUSS chega depois e pode dividir o trecho (ex.: uma parada apontada no meio). Mesmo caminhão, regra e
+ * dia, com o horário gravado (início a fim) encostando no trecho novo (até FOLGA_FIM_S antes). Sem isso a chave mudaria e
+ * o WhatsApp receberia o mesmo alerta duas vezes.
  */
 function chaveJaGravada(e: Excecao, dia: string, historico: HistoricoAlerta[], usadas: Set<string>): string | null {
   if (!DO_MOTOR.has(e.regra)) return null;
   const fim = e.fim ?? e.ini;
-  const h = historico.find((h) => h.regra === e.regra && h.dia === dia && h.chave.split("|")[1] === e.veiculo && !usadas.has(h.chave) && h.ref >= e.ini - FOLGA_FIM_S && h.ref <= fim);
+  const h = historico.find(
+    (h) => h.regra === e.regra && h.dia === dia && h.chave.split("|")[1] === e.veiculo && !usadas.has(h.chave) && h.ref <= fim && Math.max(h.ref, h.fim ?? h.ref) >= e.ini - FOLGA_FIM_S,
+  );
   return h?.chave ?? null;
 }
 

@@ -13,6 +13,8 @@ export interface HistoricoAlerta {
   vaga: string;
   dia: string;
   ref: number;
+  /** fim do trecho gravado (segundos do dia); ausente em leitura que não pede */
+  fim?: number | null;
   situacao: Situacao;
   resolvido_em: string | null;
   /** "auto" = o detector viu o problema acabar (reabre se voltar); "gestor" = alguém resolveu na tela (não reabre) */

@@ -19,7 +19,10 @@ const MAX_LINHAS = 20000;
 export interface DepsAlertas {
   ultimaExecucao(): Promise<string | null>;
   marcarExecucao(iso: string): Promise<void>;
-  lerEntrada(vespera: string, dia: string): Promise<{ eventos: Evento[]; motor: LinhaMotorFrota[]; tablet: (LinhaTablet & { placa: string })[] }>;
+  lerEntrada(
+    vespera: string,
+    dia: string,
+  ): Promise<{ eventos: Evento[]; motor: LinhaMotorFrota[]; tablet: (LinhaTablet & { placa: string })[]; motorSecundario?: string[] }>;
   lerConfig(): Promise<{ regras: Partial<ConfigRegra>[]; politica: Partial<Politica> | null }>;
   lerHistorico(desde: string): Promise<HistoricoAlerta[]>;
   lerSilencios(): Promise<Silencio[]>;
@@ -64,15 +67,19 @@ export function depsAlertasReais(): DepsAlertas {
     marcarExecucao: async (em) => void (await kvSet("alertas", { em })),
     async lerEntrada(vespera, dia) {
       const ate = diaMenos(dia, -1);
-      const [ev, motor, tablet] = await Promise.all([
+      const [ev, motor, tablet, secundario] = await Promise.all([
         // id desempata eventos do mesmo instante: as páginas não repetem nem pulam linhas
         paginar<{ dados: Evento }>((de, a) => db().from("loc_eventos").select("dados").in("dia", [vespera, dia]).order("t").order("id").range(de, a)),
         paginar<LinhaMotorFrota>((de, a) => db().from("timeline_motor_vaga").select("placa_ou_codigo, vaga_nome, inicio, fim, status, status_label").lt("inicio", ate).gt("fim", vespera).order("id").range(de, a)),
         paginar<LinhaTablet & { placa: string }>((de, a) =>
           db().from("demoras_categorizadas").select("placa, demora_cod, inicio, fim, categoria_demora, motorista, concluido").lt("inicio", ate).or(`fim.is.null,fim.gt.${vespera}`).order("inicio").order("demora_cod").range(de, a),
         ),
+        // quem tem motor secundário (a bomba): o ao vivo do principal não basta para dizer que está parado
+        paginar<{ placa_ou_codigo: string }>((de, a) =>
+          db().from("timeline_motor_vaga").select("placa_ou_codigo").eq("status", "secondary_motor_on").gte("inicio", diaMenos(dia, 30)).order("id").range(de, a),
+        ),
       ]);
-      return { eventos: ev.map((l) => l.dados), motor, tablet };
+      return { eventos: ev.map((l) => l.dados), motor, tablet, motorSecundario: [...new Set(secundario.map((l) => l.placa_ou_codigo))] };
     },
     async lerConfig() {
       const [regras, politica] = await Promise.all([
@@ -81,7 +88,7 @@ export function depsAlertasReais(): DepsAlertas {
       ]);
       return { regras: (regras ?? []) as Partial<ConfigRegra>[], politica: politica as Partial<Politica> | null };
     },
-    lerHistorico: (desde) => paginar<HistoricoAlerta>((de, a) => db().from("alertas").select("chave, regra, vaga, dia, ref, situacao, resolvido_em, resolvido_por, contagem").gte("dia", desde).order("id").range(de, a)),
+    lerHistorico: (desde) => paginar<HistoricoAlerta>((de, a) => db().from("alertas").select("chave, regra, vaga, dia, ref, fim, situacao, resolvido_em, resolvido_por, contagem").gte("dia", desde).order("id").range(de, a)),
     lerSilencios: async () => ((await ok(db().from("alerta_silencio").select("veiculo_id, regra, ate").gt("ate", new Date().toISOString()))) ?? []) as Silencio[],
     async gravar(linhas) {
       // on conflict (chave): só atualiza; detectado_em, visto_* e avaliacao (não enviados) ficam como estão
