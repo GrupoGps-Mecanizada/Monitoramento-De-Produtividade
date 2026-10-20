@@ -22,6 +22,12 @@ export const CICLO_MS = 10 * 60 * 1000;
 /** vaga quieta (desligada) é buscada de novo depois disto, mesmo sem mudança */
 export const MAX_QUIETA_MS = 60 * 60 * 1000;
 /**
+ * Desligado há este tanto: é quando o alerta de 1 h desligado é decidido. A vaga é buscada todo ciclo (sem a regra da
+ * quieta), para o alerta sair na hora pelo GAUSS (que vê a bomba e a parada apontada). Poucas buscas a mais: só
+ * enquanto o caminhão está nessa faixa (20/10/2026).
+ */
+export const PERTO_DO_ALERTA_MS: [number, number] = [45 * 60 * 1000, 90 * 60 * 1000];
+/**
  * Tempo do ciclo para a timeline (a execução tem 8 min no Actions). Na virada do dia toda vaga busca ontem e hoje e
  * não cabe numa execução só: passou disso, para de pegar vaga nova, grava o que fez e a próxima execução continua.
  * (16/10/2026: sem este limite a execução morria no meio, perdia o feito e recomeçava do zero a cada 5 min.)
@@ -111,7 +117,10 @@ export function escolherVagas(frota: VeiculoEscolha[], controle: ControleMotor, 
       const desde = agora.getTime() - new Date(ult.em).getTime();
       // sem mudança desde a última busca (desligado/sem sinal antes dela, ou vaga sem caminhão da frota): pula por até 1 h
       const parada = !v || (quieto(v) && !!v.status_desde && new Date(v.status_desde).getTime() < new Date(ult.em).getTime());
-      if (parada && desde < MAX_QUIETA_MS) continue;
+      // desligado (com sinal) perto de completar 1 h: busca todo ciclo
+      const desligadoHa = v && !v.sem_sinal && /desligad/i.test(v.status) && v.status_desde ? agora.getTime() - new Date(v.status_desde).getTime() : -1;
+      const pertoDoAlerta = desligadoHa >= PERTO_DO_ALERTA_MS[0] && desligadoHa <= PERTO_DO_ALERTA_MS[1];
+      if (parada && !pertoDoAlerta && desde < MAX_QUIETA_MS) continue;
     }
     r.push({ vaga, ontem: ult && ult.dia < hoje ? ult.dia : null });
   }

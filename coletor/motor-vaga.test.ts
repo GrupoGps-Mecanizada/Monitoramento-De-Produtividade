@@ -62,6 +62,15 @@ describe("quais vagas buscar no ciclo de 10 min", () => {
     const velho = c2({ 530: { dia: "2026-10-07", em: min(61) } });
     expect(nomes(escolherVagas([v(AP1, "Desligado", 120)], velho, agora, so(AP1V)))).toEqual([AP1]);
   });
+  it("desligado há 45 a 90 min: busca todo ciclo (é quando vira o alerta de 1 h); fora disso, de hora em hora", () => {
+    const controle = c2({ 530: { dia: "2026-10-07", em: min(10) } });
+    expect(nomes(escolherVagas([v(AP1, "Desligado", 50)], controle, agora, so(AP1V)))).toEqual([AP1]);
+    expect(nomes(escolherVagas([v(AP1, "Desligado", 85)], controle, agora, so(AP1V)))).toEqual([AP1]);
+    expect(nomes(escolherVagas([v(AP1, "Desligado", 30)], controle, agora, so(AP1V)))).toEqual([]);
+    expect(nomes(escolherVagas([v(AP1, "Desligado", 100)], controle, agora, so(AP1V)))).toEqual([]);
+    // sem sinal: o GAUSS também não tem dado novo, segue de hora em hora
+    expect(nomes(escolherVagas([v(AP1, "Desligado", 50, { sem_sinal: true })], controle, agora, so(AP1V)))).toEqual([]);
+  });
   it("o caminhão que o GAUSS disse estar na vaga vale mais que a planilha", () => {
     // a planilha diz que o 10 (desligado) está na AP-01, mas o GAUSS disse que é o 20, ligado
     const frota = [v(AP1, "Desligado", 30, { id: "10" }), v("AUTO VÁCUO - GPS - 03", "Ligado", 30, { id: "20" })];

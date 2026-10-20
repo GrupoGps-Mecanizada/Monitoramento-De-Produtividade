@@ -1,5 +1,9 @@
 # CHANGELOG · Monitoramento de Localização
 
+## GAUSS buscado na hora do alerta · 20/10/2026 (P-087)
+- Vaga com o caminhão desligado (com sinal) há 45 a 90 min é buscada no GAUSS todo ciclo de 10 min, em vez de esperar até 1 h (`PERTO_DO_ALERTA_MS`, em `coletor/motor-vaga.ts`). É a faixa em que o alerta de 1 h desligado é decidido: ele sai pelo GAUSS, que vê a bomba e a parada apontada, também nos caminhões com motor secundário. Poucas buscas a mais (só enquanto o caminhão está nessa faixa).
+- O despertador do coletor continua o pg_cron do Supabase (as rodadas começam 10–30 s depois da hora; o Cloudflare Cron não traria ganho).
+
 ## Ao vivo só completa desligado de verdade · 20/10/2026 (P-083)
 - O ao vivo do motor principal não vê a **bomba** (motor secundário) nem a **parada apontada** no tablet, e dizia "Desligado" com o caminhão trabalhando (EAM-3253 em 17/10: 3h17 de bomba; EGC2985 em 19/10 viraria alerta falso no WhatsApp). Agora o completar com o ao vivo só vale quando: o último trecho do GAUSS é desligado e o ao vivo não mudou depois dele; o caminhão não tem motor secundário (o GAUSS mostrou "Motor Secundário Ligado" nos últimos 30 dias), a não ser que o motor 2º do ao vivo (com sinal) diga que a bomba está desligada desde antes da busca; e fora do apontamento do tablet que começou depois da busca. Nos outros casos vale só o GAUSS (pode atrasar, não erra).
 - Alertas do mesmo caminhão e regra que se sobrepõem no horário (o GAUSS dividiu o trecho depois) ficam num alerta só: o histórico passa a ler o `fim`.
