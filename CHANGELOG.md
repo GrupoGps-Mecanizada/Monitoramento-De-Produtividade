@@ -1,5 +1,9 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Vagas ADM sem desconto · 20/10/2026 (P-103)
+- As 22 vagas sem HS no nome (AP 02-06, 09, 10 · AV 02-06 · HV 01-04) são ADM confirmado (nota Regimes, turnos e supervisores): sai o desconto de 10 pontos do "regime presumido", que deixava todo desligado de 1 h nessas vagas com nota 55 (o WhatsApp pede 60). Presumido fica só para vaga fora das 22.
+- Gestão de alertas: o "por que não foi para o WhatsApp" mostra o motivo real (apontamento no tablet, sem sinal, regime não cadastrado ou a nota abaixo do corte), não mais "ainda não passou do tempo configurado".
+
 ## Título do WhatsApp · 20/10/2026 (P-089)
 - A mensagem dos alertas passa a começar com "🚛 *ALERTAS DA FROTA*" (sai a palavra AUTOMATICO, pedido do dono).
 

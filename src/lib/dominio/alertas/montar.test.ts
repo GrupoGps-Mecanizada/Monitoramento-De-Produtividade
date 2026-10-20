@@ -92,10 +92,11 @@ describe("montar alertas", () => {
   it("veículo fora da lista (desmobilizado) não gera alerta", () => {
     expect(montarAlertas(entrada({ veiculos: [] }))).toEqual([]);
   });
-  it("regime presumido tira 10 pontos e aparece nos motivos", () => {
+  it("vaga das 22 sem HS e matriz em branco: ADM confirmado, sem tirar pontos (antes ficava 55 e nunca ia ao WhatsApp)", () => {
     const [a] = montarAlertas(entrada({ veiculos: [veic("1", "EGC2985", "ALTA PRESSÃO - GPS - 02", null)] }));
-    expect(a.nota).toBe(55);
-    expect(a.motivos.at(-1)?.texto).toBe("Regime presumido (ADM)");
+    expect(a.nota).toBe(65);
+    expect(a.destino).toBe("whatsapp");
+    expect(a.motivos.some((m) => m.texto.startsWith("Regime presumido"))).toBe(false);
   });
   it("grava o contexto da nota (o simulador recalcula com ele)", () => {
     const [a] = montarAlertas(entrada({ agoraSeg: 13 * H }));

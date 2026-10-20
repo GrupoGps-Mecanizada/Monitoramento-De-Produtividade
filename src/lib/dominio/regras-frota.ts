@@ -1,5 +1,6 @@
 // Regras do rastreamento inteligente (questionário do dono, 08/10/2026): horários de cada regime, cercas e limites.
 // Um só lugar para mudar. Desenho: docs/superpowers/specs/2026-10-08-excecoes-do-dia-design.md
+import { vagaOficial } from "./vagas-oficiais";
 
 export type Regime = "adm" | "16h" | "24h";
 export const ROTULO_REGIME: Record<Regime, string> = { adm: "ADM", "16h": "16 horas", "24h": "24 horas" };
@@ -59,5 +60,7 @@ export function regimeDoEquip(matriz: string | null | undefined, vaga: string): 
   const v = normNome(vaga);
   if (/\b24\s*HS?\b/.test(v)) return { regime: "24h", presumido: false };
   if (/\b16\s*HS?\b/.test(v)) return { regime: "16h", presumido: false };
+  // as 22 vagas sem HS no nome são ADM (nota Regimes, turnos e supervisores do segundo cérebro, 20/10/2026)
+  if (vagaOficial(vaga)) return { regime: "adm", presumido: false };
   return { regime: "adm", presumido: true };
 }

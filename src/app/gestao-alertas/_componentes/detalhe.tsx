@@ -16,7 +16,10 @@ function porQueNao(a: AlertaGravado): string {
   const tablet = a.motivos.find((m) => m.texto.startsWith("Apontado no tablet"));
   if (tablet) return `Tinha apontamento no tablet${tablet.texto.match(/\(([^)]+)\)/)?.[1] ? ` (${tablet.texto.match(/\(([^)]+)\)/)![1]})` : ""}.`;
   if (a.motivos.some((m) => m.texto.startsWith("Rastreador sem sinal"))) return "O rastreador ficou sem sinal: pode não ser verdade.";
-  if (a.motivos.length > 1 || a.nota > 0) return "Ainda não passou do tempo configurado para mandar.";
+  if (a.motivos.some((m) => m.texto.startsWith("Regime presumido"))) return "Vaga sem regime cadastrado: o sistema supôs ADM e tirou 10 pontos.";
+  // a nota sobe com o tempo (faixas de minutos): o que ainda está acontecendo pode chegar ao WhatsApp
+  if (a.nota > 0 && (a.situacao === "aberto" || a.situacao === "visto")) return `Nota ${a.nota}: ainda abaixo do corte do WhatsApp. Sobe se continuar.`;
+  if (a.nota > 0) return `Nota ${a.nota}: ficou abaixo do corte do WhatsApp.`;
   return "Esta regra não manda no WhatsApp.";
 }
 
