@@ -40,7 +40,7 @@ export const paraEnviar = (alertas: AlertaEnvio[], hoje: string, agoraSeg: numbe
 
 const SIGLA = { ap: "AP", av: "AV", hv: "HV" } as const;
 /** "AUTO VÁCUO - GPS - 05" -> "AV 05" */
-function vagaCurta(vaga: string): string {
+export function vagaCurta(vaga: string): string {
   const v = lerVaga(vaga);
   return v?.tipo && v.tipo in SIGLA ? `${SIGLA[v.tipo as keyof typeof SIGLA]} ${String(v.num).padStart(2, "0")}` : vaga;
 }
@@ -58,7 +58,7 @@ const quando = (d: Date) => {
 
 const MINUSCULAS = new Set(["de", "da", "do", "das", "dos", "e"]);
 /** "PÁTIOS PRIMÁRIOS" -> "Pátios Primários" */
-const nomeLocal = (s: string) =>
+export const nomeLocal = (s: string) =>
   s
     .toLocaleLowerCase("pt-BR")
     .split(/\s+/)

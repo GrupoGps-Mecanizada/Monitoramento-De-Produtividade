@@ -1,0 +1,106 @@
+import { describe, expect, it } from "vitest";
+import { barra, montarRelatorio, resumirVagas, turnoEncerrado, type ApontTurno, type EventoTurno, type LinhaTurno } from "./turno";
+
+const em = (iso: string) => new Date(`${iso}-03:00`);
+
+describe("qual turno acabou", () => {
+  it("o dia acaba às 18:40 e o relatório sai 20 min depois (o coletor busca o GAUSS a cada ~10 min)", () => {
+    expect(turnoEncerrado(em("2026-10-20T18:59:00"))).toBeNull();
+    const t = turnoEncerrado(em("2026-10-20T19:00:00"))!;
+    expect(t).toMatchObject({ chave: "2026-10-20|dia", periodo: "dia", letra: "C", supervisor: "Israel", ini: "2026-10-20 06:40:00", fim: "2026-10-20 18:40:00" });
+  });
+  it("a noite pertence ao dia em que começou e acaba às 06:40 do dia seguinte", () => {
+    const t = turnoEncerrado(em("2026-10-21T07:05:00"))!;
+    expect(t).toMatchObject({ chave: "2026-10-20|noite", periodo: "noite", letra: "B", supervisor: "Matusalem", ini: "2026-10-20 18:40:00", fim: "2026-10-21 06:40:00" });
+  });
+  it("PC ligado muito depois (mais de 3 h do fim): o relatório velho não sai", () => {
+    expect(turnoEncerrado(em("2026-10-20T21:41:00"))).toBeNull();
+    expect(turnoEncerrado(em("2026-10-20T12:00:00"))).toBeNull();
+  });
+});
+
+const TURNO = { ini: "2026-10-20 06:40:00", fim: "2026-10-20 18:40:00" };
+const AP01 = "ALTA PRESSÃO - GPS - 01 - 24 HS";
+const AV08 = "AUTO VÁCUO - GPS - 08 - 24 HS";
+const lin = (vaga_nome: string, placa: string, inicio: string, fim: string, status: string): LinhaTurno => ({ vaga_nome, placa, placa_ou_codigo: placa, inicio: `2026-10-20 ${inicio}:00`, fim: `2026-10-20 ${fim}:00`, status });
+
+describe("resumo de cada vaga no turno", () => {
+  it("só as 4 vagas de 24 h; produtivo pela regra do tipo e ocioso = ligado sem produzir, cortado no horário do turno", () => {
+    const linhas = [
+      lin(AP01, "EGC2983", "05:00", "08:40", "secondary_motor_on"), // 2 h dentro do turno (06:40–08:40)
+      lin(AP01, "EGC2983", "08:40", "09:40", "stopped"), // ocioso 1 h
+      lin(AP01, "EGC2983", "09:40", "10:10", "on"), // ocioso 30 min (andando ligado)
+      lin(AP01, "EGC2983", "10:10", "11:10", "off"), // desligado: não entra
+      lin(AV08, "HKT4410", "07:00", "10:00", "stopped"), // Auto Vácuo: parado ligado é produtivo
+      lin(AV08, "HKT4410", "10:00", "10:45", "on"),
+      lin("ALTA PRESSÃO - GPS - 03", "DSY6475", "07:00", "10:00", "secondary_motor_on"), // vaga ADM: fora
+    ];
+    const r = resumirVagas(linhas, [], [], TURNO);
+    expect(r.map((v) => v.vaga)).toEqual(["AP 01", "AP 08", "AV 01", "AV 08"]);
+    expect(r[0]).toMatchObject({ placas: ["EGC2983"], produtivo_min: 120, ocioso_min: 90 });
+    expect(r[1]).toMatchObject({ placas: [], produtivo_min: 0, ocioso_min: 0 });
+    expect(r[3]).toMatchObject({ placas: ["HKT4410"], produtivo_min: 180, ocioso_min: 45 });
+  });
+  it("trecho repetido não conta duas vezes", () => {
+    const r = resumirVagas([lin(AP01, "EGC2983", "07:00", "08:00", "secondary_motor_on"), lin(AP01, "EGC2983", "07:30", "08:00", "secondary_motor_on")], [], [], TURNO);
+    expect(r[0].produtivo_min).toBe(60);
+  });
+  it("áreas pelo tempo que o caminhão ficou nelas (fora da base, 10 min ou mais) e apontamentos do tablet agrupados", () => {
+    const ev = (t: string, tipo: string, area: string): EventoTurno => ({ t: `2026-10-20T${t}:00-03:00`, placa: "EGC2983", tipo, area });
+    const eventos = [
+      ev("06:00", "abertura", "PÁTIO DO TRANSPORTE"),
+      ev("07:00", "entrada", "PÁTIOS PRIMÁRIOS"),
+      ev("07:05", "entrada", "PORTARIA"), // 5 min: passagem, não conta
+      ev("07:10", "entrada", "ACIARIA 2"),
+      ev("07:20", "entrada", "RESTAURANTE DA SOL"), // apoio, não é atendimento
+      ev("07:50", "entrada", "ACIARIA 2"),
+      ev("08:00", "saida", "ACIARIA 2"),
+      ev("08:00", "entrada", "PÁTIOS PRIMÁRIOS"),
+      ev("11:00", "entrada", "GARAGEM"),
+    ];
+    const apont: ApontTurno[] = [
+      { placa: "EGC2983", inicio: "2026-10-20 11:00:00", fim: "2026-10-20 12:00:00", categoria_demora: "REFEIÇÃO" },
+      { placa: "EGC2983", inicio: "2026-10-20 15:00:00", fim: "2026-10-20 15:30:00", categoria_demora: "REFEIÇÃO" },
+      { placa: "EGC2983", inicio: "2026-10-20 16:00:00", fim: null, categoria_demora: "AGUARDANDO LIBERAÇÃO DE ÁREA" },
+      { placa: "EGC2983", inicio: "2026-10-20 05:00:00", fim: "2026-10-20 06:00:00", categoria_demora: "REFEIÇÃO" }, // antes do turno
+      { placa: "OUTRA", inicio: "2026-10-20 09:00:00", fim: "2026-10-20 10:00:00", categoria_demora: "MANUTENÇÃO" },
+    ];
+    const r = resumirVagas([lin(AP01, "EGC2983", "06:40", "18:40", "on")], eventos, apont, TURNO);
+    expect(r[0].areas).toEqual(["Pátios Primários", "Aciaria 2"]);
+    expect(r[0].apontamentos).toEqual(["Refeição (2)", "Aguardando Liberação de Área"]);
+  });
+});
+
+describe("texto do relatório (cartão por vaga, escolhido pelo dono em 20/10/2026)", () => {
+  it("barra de 10 blocos pela parte do turno", () => {
+    expect(barra(0)).toBe("▱▱▱▱▱▱▱▱▱▱");
+    expect(barra(0.62)).toBe("▰▰▰▰▰▰▱▱▱▱");
+    expect(barra(1.4)).toBe("▰▰▰▰▰▰▰▰▰▰");
+  });
+  it("cabeçalho com turno, letra, data e supervisor; um cartão por vaga", () => {
+    const turno = turnoEncerrado(em("2026-10-20T19:00:00"))!;
+    const t = montarRelatorio(turno, [
+      { vaga: "AP 01", placas: ["EGC2983"], produtivo_min: 446, ocioso_min: 151, areas: ["Pátios Primários", "Aciaria 2"], apontamentos: [] },
+      { vaga: "AV 08", placas: [], produtivo_min: 0, ocioso_min: 0, areas: [], apontamentos: [] },
+    ]);
+    expect(t).toBe(
+      [
+        "📋 *RELATÓRIO DO TURNO*",
+        "_Dia · Letra C · Terça, 20/10 · 06:40–18:40_",
+        "👷 Supervisor: *Israel*",
+        "",
+        "> 🚛 *AP 01* · EGC2983",
+        "📍 Pátios Primários · Aciaria 2",
+        "`Produtivo ▰▰▰▰▰▰▱▱▱▱  62% 7h26`",
+        "`Ocioso    ▰▰▱▱▱▱▱▱▱▱  21% 2h31`",
+        "📝 Sem apontamentos",
+        "",
+        "> 🚛 *AV 08*",
+        "_Sem dados do GAUSS no turno_",
+        "",
+        "",
+        "_Relatório de turno · GrupoGPS_",
+      ].join("\n"),
+    );
+  });
+});

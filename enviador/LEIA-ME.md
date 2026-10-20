@@ -15,3 +15,12 @@ e marca como enviado (nunca repete). Se o PC ficou desligado, alerta que já aca
 - Dois cliques em `Ligar envio de alertas.bat`. Para desligar, fechar a janela.
 
 O endereço e a chave do Supabase vêm do `.env.local` do site (pasta de cima): não precisa repetir.
+
+## Relatório de fim de turno (P-088)
+O mesmo programa manda, no fim de cada turno do 4x4, um relatório no mesmo grupo dos alertas: supervisor, letra,
+data e um cartão por vaga de 24 h (AP 01, AP 08, AV 01, AV 08) com o caminhão, as áreas atendidas, as barras de
+produtivo e ocioso e os apontamentos do tablet.
+- Sai às **07:00** (noite que acabou às 06:40) e às **19:00** (dia que acabou às 18:40): espera 20 min para o GAUSS chegar.
+- Manda uma vez só (guarda em `enviador/.relatorio-turno.json`). PC ligado mais de 3 h depois do fim: não manda o velho.
+- Produtivo: bomba ligada (Alta Pressão) ou parado ligado (Auto Vácuo). Ocioso: motor ligado sem produzir.
+- Ver como fica sem mandar: dois cliques em `Testar relatório do turno.bat`.

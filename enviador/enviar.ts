@@ -9,10 +9,13 @@
 // Uso: npx tsx enviador/enviar.ts            (fica rodando)
 //      npx tsx enviador/enviar.ts --teste    (mostra a mensagem, não manda nem marca)
 //      npx tsx enviador/enviar.ts --grupos   (lista os grupos do número, para achar o código do grupo)
-import { existsSync, readFileSync } from "node:fs";
+//      npx tsx enviador/enviar.ts --teste --relatorio   (mostra o relatório do último turno, não manda)
+// No fim de cada turno do 4x4 manda também o relatório do turno (turno.ts, P-088).
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { montarMensagem, numeroDestino, paraEnviar, type AlertaEnvio } from "./mensagem";
+import { montarRelatorio, resumirVagas, turnoEncerrado, ultimoTurno, type ApontTurno, type EventoTurno, type LinhaTurno, type Turno } from "./turno";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const INTERVALO_MS = 60_000;
@@ -37,6 +40,10 @@ const EVOLUTION_CHAVE = cfg.EVOLUTION_CHAVE;
 const INSTANCIA = cfg.EVOLUTION_INSTANCIA ?? "alertas-frota";
 const DESTINO = cfg.WHATSAPP_DESTINO ? numeroDestino(cfg.WHATSAPP_DESTINO) : undefined;
 const TESTE = process.argv.includes("--teste");
+/** Monta já o relatório do último turno que acabou (com --teste, só mostra). */
+const RELATORIO_AGORA = process.argv.includes("--relatorio");
+/** Guarda o último relatório de turno mandado (fica só no PC, fora do Git): nunca repete. */
+const ARQ_RELATORIO = join(AQUI, ".relatorio-turno.json");
 
 const hora = () => new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" });
 const log = (msg: string) => console.log(`[${hora()}] ${msg}`);
@@ -45,8 +52,8 @@ const hojeLocal = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sa
 function faltando(): string[] {
   const f: string[] = [];
   if (!SUPABASE_URL || !SUPABASE_CHAVE) f.push("endereço/chave do Supabase (o .env.local do site, na pasta de cima)");
-  if (!EVOLUTION_CHAVE) f.push("EVOLUTION_CHAVE no enviador/.env.enviador");
-  if (!DESTINO && !process.argv.includes("--grupos")) f.push("WHATSAPP_DESTINO no enviador/.env.enviador");
+  if (!EVOLUTION_CHAVE && !TESTE) f.push("EVOLUTION_CHAVE no enviador/.env.enviador");
+  if (!DESTINO && !TESTE && !process.argv.includes("--grupos")) f.push("WHATSAPP_DESTINO no enviador/.env.enviador");
   return f;
 }
 
@@ -101,6 +108,52 @@ async function ciclo() {
   log(`✅ mandou ${novos.length} alerta(s) para ${DESTINO}`);
 }
 
+/** Todas as linhas de uma consulta, de 1000 em 1000. */
+async function todas<T>(caminho: string): Promise<T[]> {
+  const out: T[] = [];
+  for (let de = 0; ; de += 1000) {
+    const r = await supa(caminho, { headers: { Range: `${de}-${de + 999}` } });
+    if (!r.ok) throw new Error(`Supabase respondeu ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    const pg = (await r.json()) as T[];
+    out.push(...pg);
+    if (pg.length < 1000) return out;
+  }
+}
+
+async function relatorioDoTurno(t: Turno): Promise<string> {
+  const [ini, fim] = [encodeURIComponent(t.ini), encodeURIComponent(t.fim)];
+  const dias = [...new Set([t.ini.slice(0, 10), t.fim.slice(0, 10)])].join(",");
+  const [linhas, eventos, apont] = await Promise.all([
+    todas<LinhaTurno>(`timeline_motor_vaga?select=vaga_nome,placa,placa_ou_codigo,inicio,fim,status&inicio=lt.${fim}&fim=gt.${ini}&order=inicio`),
+    todas<EventoTurno>(`loc_eventos?select=t:dados->>t,placa:dados->>placa,tipo:dados->>tipo,area:dados->>area&dia=in.(${dias})&order=id`),
+    todas<ApontTurno>(`demoras_categorizadas?select=placa,inicio,fim,categoria_demora&inicio=lt.${fim}&or=(fim.is.null,fim.gt.${ini})&order=inicio`),
+  ]);
+  return montarRelatorio(t, resumirVagas(linhas, eventos, apont, t));
+}
+
+const ultimoMandado = () => {
+  try {
+    return (JSON.parse(readFileSync(ARQ_RELATORIO, "utf-8")) as { chave?: string }).chave ?? null;
+  } catch {
+    return null;
+  }
+};
+
+/** No fim de cada turno do 4x4 (com a espera do GAUSS), manda o relatório uma vez só. */
+async function cicloRelatorio() {
+  const t = RELATORIO_AGORA ? ultimoTurno(new Date()) : turnoEncerrado(new Date());
+  if (!t || (!RELATORIO_AGORA && ultimoMandado() === t.chave)) return;
+  const texto = await relatorioDoTurno(t);
+  if (TESTE) {
+    log(`TESTE (não mandou): relatório do turno ${t.chave}\n${texto}\n`);
+    if (!RELATORIO_AGORA) writeFileSync(ARQ_RELATORIO, JSON.stringify({ chave: t.chave }));
+    return;
+  }
+  await mandar(texto);
+  writeFileSync(ARQ_RELATORIO, JSON.stringify({ chave: t.chave, enviado_em: new Date().toISOString() }));
+  log(`✅ mandou o relatório do turno ${t.chave} para ${DESTINO}`);
+}
+
 async function listarGrupos() {
   const r = await evo(`/group/fetchAllGroups/${encodeURIComponent(INSTANCIA)}?getParticipants=false`);
   if (!r.ok) throw new Error(`Evolution respondeu ${r.status}: ${(await r.text()).slice(0, 200)}`);
@@ -117,11 +170,14 @@ async function principal() {
   if (process.argv.includes("--grupos")) return listarGrupos();
   log(`Enviador de alertas ligado${TESTE ? " (modo teste: não manda)" : ""}. Confere a cada minuto. Para desligar, feche esta janela.`);
   for (;;) {
-    try {
-      await ciclo();
-    } catch (e) {
-      log(`⚠ ${e instanceof Error ? e.message : String(e)} (tenta de novo em 1 min)`);
-    }
+    // um não trava o outro: alerta com erro não impede o relatório, e vice-versa
+    for (const passo of RELATORIO_AGORA ? [cicloRelatorio] : [ciclo, cicloRelatorio])
+      try {
+        await passo();
+      } catch (e) {
+        log(`⚠ ${e instanceof Error ? e.message : String(e)} (tenta de novo em 1 min)`);
+      }
+    if (RELATORIO_AGORA) return;
     if (process.argv.includes("--uma-vez")) return;
     await new Promise((r) => setTimeout(r, INTERVALO_MS));
   }
