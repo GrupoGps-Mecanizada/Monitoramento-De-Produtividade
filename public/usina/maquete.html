@@ -94,6 +94,18 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 .recolher svg{width:12px;height:12px;transition:transform .25s var(--ease)}
 .recolhido .recolher svg{transform:rotate(-90deg)}
 .recolhido .corpo{display:none}
+.camadas{top:16px;right:16px;padding:10px 12px;width:min(270px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;z-index:3}
+.camadas .cabeca{align-items:center}
+.camadas:not(.recolhido) .cabeca{margin-bottom:6px}
+.camadas .grupo{padding:10px 0 4px}
+.opcao{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:0;background:transparent;padding:6px 2px;font:13px var(--body);color:var(--fg);cursor:pointer;text-align:left;border-radius:7px}
+.opcao:hover{background:var(--accent-soft)}
+.opcao i{flex:none;width:30px;height:17px;border-radius:9px;background:#c5ccd4;position:relative;transition:background .2s}
+.opcao i::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .2s var(--ease)}
+.opcao[aria-pressed="true"] i{background:var(--accent)}
+.opcao[aria-pressed="true"] i::after{transform:translateX(13px)}
+.camadas .btn{width:100%;margin-top:6px}
+.ficha{top:72px}
 .legenda .cabeca{margin-bottom:8px}
 .legenda.recolhido .cabeca{margin-bottom:0}
 @media (max-width:720px){
@@ -105,6 +117,7 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
   .lista.aberta{display:flex}
   .ficha{top:auto;bottom:16px;left:16px;right:16px;width:auto}
   .legenda,.rodape,.marca{display:none}
+  .camadas{top:auto;bottom:16px;max-height:62dvh}
   .linha{left:16px;right:16px;bottom:16px;width:auto;min-width:0;transform:none;flex-wrap:wrap}
   .ficha.aberta~.linha{display:none}
 }
@@ -188,6 +201,12 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
     <button type="button" class="recolher" data-recolhe="painelLegenda" aria-expanded="true" aria-label="Recolher legenda"><svg viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
   </div>
   <div class="corpo" id="legenda"></div>
+</section>
+<section class="painel camadas recolhido" id="painelCamadas" aria-label="Camadas">
+  <div class="cabeca"><span class="grupo" style="padding:4px 0 0">Camadas</span>
+    <button type="button" class="recolher" data-recolhe="painelCamadas" aria-expanded="false" aria-label="Abrir ou recolher as camadas"><svg viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+  </div>
+  <div class="corpo" id="camadas"></div>
 </section>
 <div class="rodape" id="rodape">Foto: Esri · prédios, ferrovia e chaminés: © OpenStreetMap · cercas do GAUSS · alturas ilustrativas · caminhões 5x maiores</div>
 <div class="marca"><b>Grupo GPS</b> / Mecanizada</div>
@@ -1727,8 +1746,12 @@ function disco(x, z, r, y) { // remenda a curva e o cruzamento (a faixa reta dei
   return pos;
 }
 /* as ruas são uma camada própria, em destaque: aparecem na Cidade e por cima da foto */
-const CAMADAS = { ruas: true, nomes: true, predios: true, industria: true, patios: true, ferrovia: true, areas: true };
-const NOMES_CAMADAS = { ruas: "Ruas", nomes: "Nomes das ruas", predios: "Prédios", industria: "Indústria (fornos, gasômetros...)", patios: "Pátios e correias", ferrovia: "Ferrovia", areas: "Placas das áreas" };
+const CAMADAS = { areas: true, nomesEstruturas: true, nomes: true, nomesCaminhoes: true, ruas: true, predios: true, industria: true, patios: true, ferrovia: true, contornos: true };
+const GRUPOS_CAMADAS = [ // painel do canto: o que aparece escrito na tela e o que aparece no mapa
+  ["Textos na tela", { areas: "Títulos das áreas", nomesEstruturas: "Nomes das estruturas", nomes: "Nomes das ruas", nomesCaminhoes: "Nome dos caminhões" }],
+  ["Mapa", { ruas: "Ruas", predios: "Prédios", industria: "Indústria (fornos, gasômetros...)", patios: "Pátios e correias", ferrovia: "Ferrovia", contornos: "Contorno das áreas" }],
+];
+const TEXTOS = Object.keys(GRUPOS_CAMADAS[0][1]);
 try { Object.assign(CAMADAS, JSON.parse(localStorage.getItem("usina-camadas") || "{}")); } catch {}
 const camadaLigada = (c) => CAMADAS[c] !== false;
 const grupoRuas = new THREE.Group(), MATS_RUA = {};
@@ -2207,6 +2230,7 @@ function aplicarVisual() {
   PAREDES_PREDIOS.forEach((m) => { m.visible = predios; });
   for (const [camada, malha] of Object.entries(MALHAS_ESTRUTURAS)) malha.visible = camadaLigada(camada);
   FERROVIA.forEach((m) => { m.visible = camadaLigada("ferrovia"); });
+  contorno.visible = camadaLigada("contornos");
   Object.assign(contorno.material, { vertexColors: real, opacity: real ? 0.9 : cidade ? 0.3 : 0.18 });
   contorno.material.color.set(real ? 0xffffff : 0x13202f); contorno.material.needsUpdate = true;
   PECAS.forEach((p, i) => {
@@ -2436,7 +2460,7 @@ function atualizarPlacas() {
     if (!forcar && ocupado.some((o) => r[0] < o[2] && r[2] > o[0] && r[1] < o[3] && r[3] > o[1])) return false;
     ocupado.push(r); return true;
   };
-  for (const c of caminhoesVisiveis) {
+  if (camadaLigada("nomesCaminhoes")) for (const c of caminhoesVisiveis) {
     const [x, z, , andando] = ondeEsta(c), p = naTela(x, (c.alturaTela || 0) + 42, z);
     if (!p) continue;
     const w = 26 + c.nome.length * 7, sel = estado.caminhao === c;
@@ -2448,7 +2472,7 @@ function atualizarPlacas() {
   }
   const focal = innerHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
   let n = 0;
-  if (estado.visual === "cidade" || estado.visual === "real") for (const r of ESTRUTURAS_COM_PLACA) { // altos-fornos, gasômetros...
+  if ((estado.visual === "cidade" || estado.visual === "real") && camadaLigada("nomesEstruturas")) for (const r of ESTRUTURAS_COM_PLACA) { // altos-fornos, gasômetros...
     if (!MALHAS_ESTRUTURAS[r.camada]?.visible || camera.position.distanceTo(vPlaca.set(r.xz[0], r.h, r.xz[1])) > 3500) continue;
     const p = naTela(r.xz[0], r.h + 4, r.xz[1]);
     if (!p) continue;
@@ -2510,7 +2534,7 @@ function marcarBorda(anel, h) {
 function abrirFicha(eyebrow, nome, linhas) {
   $("fichaSetor").textContent = eyebrow; $("fichaNome").textContent = nome;
   $("fichaDados").innerHTML = linhas.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
-  $("ficha").classList.add("aberta"); $("lista").classList.remove("aberta");
+  $("ficha").classList.add("aberta"); $("lista").classList.remove("aberta"); recolherPainel("painelCamadas", true);
 }
 
 function selecionar(a, voarAte = true) {
@@ -2653,21 +2677,28 @@ function montarLegenda() {
     topo = `<div class="grupo">Horas paradas na área, 30 dias</div><div class="escala">${ESCALA.slice(1).map((c) => `<i style="background:${c}"></i>`).join("")}</div>
       <div class="escala-txt"><span>até ${a} h</span><span>${b}</span><span>${c}</span><span>${d}</span><span>mais</span></div>`;
   }
-  const camadas = estado.visual === "cidade" || estado.visual === "real" ? `<div class="grupo" style="padding-top:12px">Camadas</div><div class="chips">${Object.entries(NOMES_CAMADAS).map(([c, n]) =>
-    `<button type="button" class="chip" data-camada="${c}" aria-pressed="${camadaLigada(c)}">${n}</button>`).join("")}</div>` : "";
-  $("legenda").innerHTML = topo + camadas + status + qualidade;
-  $("legenda").querySelectorAll("[data-camada]").forEach((b) => b.addEventListener("click", () => {
-    CAMADAS[b.dataset.camada] = !camadaLigada(b.dataset.camada);
-    try { localStorage.setItem("usina-camadas", JSON.stringify(CAMADAS)); } catch {}
-    aplicarVisual();
-  }));
+  $("legenda").innerHTML = topo + status;
+  montarCamadas(qualidade);
   $("legenda").querySelectorAll("[data-setor]").forEach((b) => b.addEventListener("click", () => {
     const s = b.dataset.setor;
     estado.setoresAtivos.has(s) ? estado.setoresAtivos.delete(s) : estado.setoresAtivos.add(s);
     if (!estado.setoresAtivos.size) ORDEM.forEach((o) => estado.setoresAtivos.add(o));
     montarLegenda(); pintarTudo();
   }));
-  $("legenda").querySelectorAll("[data-qualidade]").forEach((b) => b.addEventListener("click", () => mudarQualidade(b.dataset.qualidade)));
+}
+function salvarCamadas() { try { localStorage.setItem("usina-camadas", JSON.stringify(CAMADAS)); } catch {} }
+function montarCamadas(qualidade) { // painel do canto: liga e desliga cada camada; um toque esconde todos os textos
+  const algumTexto = TEXTOS.some(camadaLigada);
+  $("camadas").innerHTML = GRUPOS_CAMADAS.map(([titulo, itens]) => `<div class="grupo">${titulo}</div>${Object.entries(itens).map(([c, n]) =>
+    `<button type="button" class="opcao" data-camada="${c}" aria-pressed="${camadaLigada(c)}"><span>${n}</span><i></i></button>`).join("")}`).join("")
+    + `<button type="button" class="btn" id="todosTextos">${algumTexto ? "Esconder todos os textos" : "Mostrar todos os textos"}</button>`
+    + qualidade.replace('style="padding-top:12px"', "");
+  $("camadas").querySelectorAll("[data-camada]").forEach((b) => b.addEventListener("click", () => {
+    CAMADAS[b.dataset.camada] = !camadaLigada(b.dataset.camada);
+    salvarCamadas(); aplicarVisual();
+  }));
+  $("todosTextos").addEventListener("click", () => { TEXTOS.forEach((c) => { CAMADAS[c] = !algumTexto; }); salvarCamadas(); aplicarVisual(); });
+  $("camadas").querySelectorAll("[data-qualidade]").forEach((b) => b.addEventListener("click", () => mudarQualidade(b.dataset.qualidade)));
 }
 
 function mudarQualidade(q) {
@@ -2689,7 +2720,8 @@ function recolherPainel(id, recolhido) {
 }
 document.querySelectorAll("[data-recolhe]").forEach((b) => {
   const id = b.dataset.recolhe;
-  if (lembrar(`maquete.${id}`) === "1") recolherPainel(id, true);
+  const salvo = lembrar(`maquete.${id}`);
+  if (salvo === "1" || salvo === "0") recolherPainel(id, salvo === "1");
   b.addEventListener("click", () => recolherPainel(id, !$(id).classList.contains("recolhido")));
 });
 
