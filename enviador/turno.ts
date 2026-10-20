@@ -69,7 +69,8 @@ export interface ResumoVaga {
   /** tempo coberto pelos apontamentos do tablet no turno */
   justificado_min: number;
   areas: string[];
-  apontamentos: string[];
+  /** quantos apontamentos o tablet fez no turno (o dono quer só o número, 20/10/2026) */
+  apontamentos: number;
 }
 
 const LIGADO = new Set(["on", "stopped", "secondary_motor_on"]);
@@ -146,11 +147,11 @@ function areasDe(eventos: EventoTurno[], placas: Set<string>, ini: number, fim: 
 }
 
 /**
- * Apontamentos do tablet no turno: agrupados pela categoria ("Refeição (2)"), o tempo que cobrem (sobrepostos contam
+ * Apontamentos do tablet no turno: quantos foram, o tempo que cobrem (sobrepostos contam
  * uma vez; aberto conta até o fim do turno) e o motorista que mais apontou.
  */
 function apontamentosDe(apont: ApontTurno[], placas: Set<string>, ini: number, fim: number) {
-  const conta = new Map<string, number>();
+  let n = 0;
   const porMotorista = new Map<string, number>();
   const trechos: [number, number][] = [];
   for (const a of apont) {
@@ -158,8 +159,7 @@ function apontamentosDe(apont: ApontTurno[], placas: Set<string>, ini: number, f
     const a0 = ms(a.inicio);
     const a1 = a.fim ? ms(a.fim) : Math.max(a0, fim);
     if (a0 >= fim || a1 <= ini) continue;
-    const cat = nomeLocal(a.categoria_demora.trim());
-    conta.set(cat, (conta.get(cat) ?? 0) + 1);
+    n++;
     trechos.push([Math.max(a0, ini), Math.min(a1, fim)]);
     // o tablet manda "--" quando o motorista não se identificou
     const m = a.motorista?.trim();
@@ -174,7 +174,7 @@ function apontamentosDe(apont: ApontTurno[], placas: Set<string>, ini: number, f
   }
   const motorista = [...porMotorista].sort((p, q) => q[1] - p[1])[0]?.[0];
   return {
-    lista: [...conta].map(([c, n]) => (n > 1 ? `${c} (${n})` : c)),
+    n,
     min: Math.round(min),
     motorista: motorista ? nomeLocal(motorista) : null,
   };
@@ -218,12 +218,12 @@ export function resumirVagas(linhas: LinhaTurno[], eventos: EventoTurno[], apont
         ocioso_min: Math.round(ocioso),
         justificado_min: ap.min,
         areas: areasDe(eventos, set, ini, fim),
-        apontamentos: ap.lista,
+        apontamentos: ap.n,
       };
     });
   // as 4 vagas sempre aparecem: a que o GAUSS não mandou fica "sem dados"
   return VAGAS_24H.map(
-    (v) => resumos.find((r) => r.vaga === v) ?? { vaga: v, placas: [], motorista: null, produtivo_min: 0, ocioso_min: 0, justificado_min: 0, areas: [], apontamentos: [] },
+    (v) => resumos.find((r) => r.vaga === v) ?? { vaga: v, placas: [], motorista: null, produtivo_min: 0, ocioso_min: 0, justificado_min: 0, areas: [], apontamentos: 0 },
   );
 }
 
@@ -246,7 +246,7 @@ function cartao(v: ResumoVaga): string[] {
     cab,
     ...(v.motorista ? [`*Motorista:* ${v.motorista}`] : []),
     `*Local:* ${v.areas.length ? [...v.areas.slice(0, MAX_AREAS), ...(v.areas.length > MAX_AREAS ? [`+${v.areas.length - MAX_AREAS}`] : [])].join(" · ") : "Sem registro"}`,
-    `*Apontamentos:* ${v.apontamentos.length ? v.apontamentos.join(" · ") : "Nenhum"}`,
+    `*Apontamentos:* ${v.apontamentos || "Nenhum"}`,
     linhaBarra("Produtivo", v.produtivo_min),
     linhaBarra("Ocioso", v.ocioso_min),
     linhaBarra("Justificado", v.justificado_min),

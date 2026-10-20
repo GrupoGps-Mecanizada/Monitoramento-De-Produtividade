@@ -68,7 +68,7 @@ describe("resumo de cada vaga no turno", () => {
     ];
     const r = resumirVagas([lin(AP01, "EGC2983", "06:40", "18:40", "on")], eventos, apont, TURNO);
     expect(r[0].areas).toEqual(["Pátios Primários", "Aciaria 2"]);
-    expect(r[0].apontamentos).toEqual(["Refeição (2)", "Documentação", "Aguardando Liberação de Área"]);
+    expect(r[0].apontamentos).toBe(4);
     // justificado: 60 + 30 + 160 (16:00 até 18:40)
     expect(r[0]).toMatchObject({ justificado_min: 250, motorista: "José da Silva" });
   });
@@ -83,9 +83,9 @@ describe("texto do relatório (cartão por vaga, escolhido pelo dono em 20/10/20
   it("cabeçalho com turno, letra, data e supervisor; um cartão por vaga com motorista, local, apontamentos e 3 barras", () => {
     const turno = turnoEncerrado(em("2026-10-20T19:00:00"))!;
     const t = montarRelatorio(turno, [
-      { vaga: "AP 01", placas: ["EGC2983"], motorista: "José da Silva", produtivo_min: 446, ocioso_min: 151, justificado_min: 95, areas: ["Pátios Primários", "Aciaria 2"], apontamentos: ["Refeição Motorista"] },
-      { vaga: "AP 08", placas: ["EGC2985"], motorista: null, produtivo_min: 60, ocioso_min: 0, justificado_min: 0, areas: [], apontamentos: [] },
-      { vaga: "AV 08", placas: [], motorista: null, produtivo_min: 0, ocioso_min: 0, justificado_min: 0, areas: [], apontamentos: [] },
+      { vaga: "AP 01", placas: ["EGC2983"], motorista: "José da Silva", produtivo_min: 446, ocioso_min: 151, justificado_min: 95, areas: ["Pátios Primários", "Aciaria 2"], apontamentos: 3 },
+      { vaga: "AP 08", placas: ["EGC2985"], motorista: null, produtivo_min: 60, ocioso_min: 0, justificado_min: 0, areas: [], apontamentos: 0 },
+      { vaga: "AV 08", placas: [], motorista: null, produtivo_min: 0, ocioso_min: 0, justificado_min: 0, areas: [], apontamentos: 0 },
     ]);
     expect(t).toBe(
       [
@@ -96,7 +96,7 @@ describe("texto do relatório (cartão por vaga, escolhido pelo dono em 20/10/20
         "> *AP 01* · EGC2983",
         "*Motorista:* José da Silva",
         "*Local:* Pátios Primários · Aciaria 2",
-        "*Apontamentos:* Refeição Motorista",
+        "*Apontamentos:* 3",
         "`Produtivo   ▰▰▰▰▰▰▱▱▱▱  62% 7h26`",
         "`Ocioso      ▰▰▱▱▱▱▱▱▱▱  21% 2h31`",
         "`Justificado ▰▱▱▱▱▱▱▱▱▱  13% 1h35`",
