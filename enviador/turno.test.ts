@@ -42,11 +42,11 @@ describe("resumo de cada vaga no turno", () => {
     expect(r[1]).toMatchObject({ placas: [], produtivo_min: 0, ocioso_min: 0 });
     expect(r[3]).toMatchObject({ placas: ["HKT4410"], produtivo_min: 180, ocioso_min: 45 });
   });
-  it("bomba ligada na base (Pátio do Transporte, Garagem) não conta como produtivo, igual ao site", () => {
+  it("bomba ligada conta em qualquer lugar, até no Pátio (o equipamento pode trabalhar na baia)", () => {
     const ev = (t: string, tipo: string, area: string): EventoTurno => ({ t: `2026-10-20T${t}:00-03:00`, placa: "EGC2983", tipo, area });
     const eventos = [ev("06:00", "abertura", "PÁTIO DO TRANSPORTE"), ev("07:30", "entrada", "ACIARIA 2")];
     const r = resumirVagas([lin(AP01, "EGC2983", "07:00", "09:00", "secondary_motor_on")], eventos, [], TURNO);
-    expect(r[0].produtivo_min).toBe(90); // 07:00–07:30 no Pátio do Transporte fica de fora
+    expect(r[0].produtivo_min).toBe(120);
   });
   it("trecho repetido não conta duas vezes", () => {
     const r = resumirVagas([lin(AP01, "EGC2983", "07:00", "08:00", "secondary_motor_on"), lin(AP01, "EGC2983", "07:30", "08:00", "secondary_motor_on")], [], [], TURNO);

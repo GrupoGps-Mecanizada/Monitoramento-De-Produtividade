@@ -1,7 +1,7 @@
 // Relatório de fim de turno no WhatsApp (P-088, pedido do dono em 20/10/2026): no fim de cada turno do 4x4, um
 // cartão por vaga de 24 h (AP/AV 01 e 08) com o caminhão, as áreas atendidas, os apontamentos e as barras.
 // Tudo puro (o enviar.ts só lê, manda e guarda que já mandou).
-//   Produtivo: a regra do tipo (Alta Pressão: bomba ligada; Auto Vácuo: parado ligado), fora da base (igual ao site).
+//   Produtivo: a regra do tipo (Alta Pressão: bomba ligada; Auto Vácuo: parado ligado), em qualquer lugar.
 //   Ocioso: motor desligado (para o dono, 20/10/2026, ocioso é motor desligado; andando ligado é só deslocamento).
 //   Justificado: tempo coberto pelos apontamentos do tablet.
 import { letraDaEscala, SUPERVISOR_DA_LETRA } from "../src/lib/dominio/filtros-crono";
@@ -202,12 +202,6 @@ export function resumirVagas(linhas: LinhaTurno[], eventos: EventoTurno[], apont
       let produtivo = 0;
       let ocioso = 0;
       const minPorPlaca = new Map<string, number>();
-      // na base (Pátio do Transporte, Garagem) a bomba ligada não conta como produtivo, igual ao site (regra de 08/10/2026)
-      const naBase = new Map<string, [number, number][]>();
-      const base = (placa: string) => {
-        if (!naBase.has(placa)) naBase.set(placa, estadias(eventos, new Set([placa]), ini, fim).filter(([area]) => ehBase(area)).map(([, a, b]) => [a, b]));
-        return naBase.get(placa)!;
-      };
       // trecho repetido ou sobreposto: cada minuto conta uma vez só
       let ate = -Infinity;
       for (const l of [...ls].sort((p, q) => ms(p.inicio) - ms(q.inicio))) {
@@ -219,7 +213,8 @@ export function resumirVagas(linhas: LinhaTurno[], eventos: EventoTurno[], apont
         if (!min) continue;
         const placa = placaLimpa(l.placa ?? l.placa_ou_codigo);
         if (placa) minPorPlaca.set(placa, (minPorPlaca.get(placa) ?? 0) + min);
-        if (l.status === statusProdutivo(tipo, placa)) produtivo += min - base(placa).reduce((s, [x, y]) => s + dentro(a, b, Math.max(x, ini), Math.min(y, fim)), 0);
+        // conta em qualquer lugar, até no Pátio: às vezes o equipamento trabalha na baia (dono, 20/10/2026)
+        if (l.status === statusProdutivo(tipo, placa)) produtivo += min;
         else if (DESLIGADO.has(l.status)) ocioso += min;
       }
       // caminhão que só passou pela vaga (menos de 30 min) não aparece, a não ser que seja o único
