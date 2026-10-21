@@ -79,6 +79,13 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 .grupo{padding:10px 14px 4px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .item{display:flex;gap:10px;align-items:center;width:100%;border:0;background:transparent;text-align:left;padding:7px 14px;cursor:pointer;font:13px var(--body);color:inherit}
 .item:hover,.item[aria-current="true"]{background:var(--accent-soft)}
+.abas-lista{display:flex;gap:2px;margin:10px 10px 0;padding:3px;border-radius:10px;background:rgba(19,32,47,.06)}
+.abas-lista button{flex:1;border:0;background:transparent;border-radius:8px;padding:6px 4px;font:600 12px var(--body);color:var(--muted);cursor:pointer}
+.abas-lista button[aria-selected="true"]{background:#fff;color:inherit;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.item small{display:block;color:var(--muted);font-size:11px}
+.dados dd.largo{grid-column:1/-1}
+.ficha-grupos{display:grid;grid-template-columns:auto 1fr auto;gap:3px 8px;align-items:center;margin-top:8px;font-size:12px}
+.ficha-grupos b{font-variant-numeric:tabular-nums}
 .item span{flex:1}
 .item em{font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
 .cor{width:10px;height:10px;border-radius:3px;flex:none;display:inline-block}
@@ -262,6 +269,11 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
   <header><span>Áreas · <span id="contagem">0</span></span>
     <button type="button" class="recolher" data-recolhe="lista" aria-expanded="true" aria-label="Recolher lista"><svg viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
   </header>
+  <div class="abas-lista corpo" role="tablist" aria-label="O que listar">
+    <button type="button" role="tab" data-aba="gerais" aria-selected="true">Áreas gerais</button>
+    <button type="button" role="tab" data-aba="sub" aria-selected="false">Subáreas</button>
+    <button type="button" role="tab" data-aba="cam" aria-selected="false">Caminhões</button>
+  </div>
   <input type="search" id="busca" class="corpo" placeholder="Buscar área ou placa" aria-label="Buscar área ou placa">
   <div class="rolagem corpo" id="rolagem"></div>
 </section>
@@ -492,9 +504,9 @@ const ORDEM = Object.keys(SETORES);
 const ESCALA = ["#DCE7F4", "#A9C6E8", "#6FA0D6", "#3C77BE", "#1D5FB8", "#123F7D"];
 /* situação de cada caminhão com os status e as cores da Timeline do Monitoramento (códigos do GAUSS) */
 const SITUACAO = {
-  on: ["Ligado", "#2F9E5F"], stopped: ["Parado ligado", "#D9A21B"], off: ["Desligado", "#D64545"],
-  secondary_motor_on: ["Motor 2º ligado", "#0891B2"], categorized_stop: ["Parada apontada", "#6D8FBF"], maintenance: ["Em manutenção", "#E07B28"],
-  main_switch_off: ["Chave geral desligada", "#D64545"], out_of_plant: ["Fora da planta", "#A3ABB3"], not_appropriated: ["Sem apropriação", "#A3ABB3"], no_data: ["Sem sinal", "#A3ABB3"],
+  on: ["Ligado", "#22C55E"], stopped: ["Parado ligado", "#FACC15"], off: ["Desligado", "#EF4444"], // cores vivas (pedido do dono, 20/10/2026)
+  secondary_motor_on: ["Motor 2º ligado", "#06B6D4"], categorized_stop: ["Parada apontada", "#60A5FA"], maintenance: ["Em manutenção", "#F97316"],
+  main_switch_off: ["Chave geral desligada", "#E11D48"], out_of_plant: ["Fora da planta", "#B8C0CA"], not_appropriated: ["Sem apropriação", "#B8C0CA"], no_data: ["Sem sinal", "#B8C0CA"],
 };
 const COR_STATUS = Object.fromEntries(Object.entries(SITUACAO).map(([k, [, cor]]) => [k, cor]));
 const ROTULO_SITUACAO = Object.fromEntries(Object.entries(SITUACAO).map(([k, [rotulo]]) => [k, rotulo]));
@@ -659,7 +671,7 @@ refazerFrotaDasAreas();
    ========================================================================= */
 
 const leve = /Mobi|Android|iPad|iPhone/i.test(navigator.userAgent) || innerWidth < 720; // computador vai em Alta: a tela só desenha quando algo muda
-const estado = { visual: "cidade", frota: "ativas", setoresAtivos: new Set(ORDEM), hover: null, selecionada: null, caminhao: null, qualidade: leve ? "leve" : "alta",
+const estado = { visual: "cidade", frota: "ativas", setoresAtivos: new Set(ORDEM), hover: null, selecionada: null, setor: null, aba: "gerais", caminhao: null, qualidade: leve ? "leve" : "alta",
   periodo: "agora", tempo: 0, tocando: false, velocidade: 10 };
 
 const renderer = new THREE.WebGLRenderer({ canvas: $("cena"), antialias: true, alpha: true, powerPreference: "high-performance" });
@@ -1566,6 +1578,43 @@ const PEGADAS = ELEMENTOS.map((e) => {
 const ocupadoPorEstrutura = (xz) => PEGADAS.some((g) => g.e.t !== "correia" && g.e.t !== "viaduto" && g.e.t !== "subestacao" &&
   (g.anel ? dentro(xz, g.anel) : g.centro ? Math.hypot(xz[0] - g.centro[0], xz[1] - g.centro[1]) < g.raio + 2 : false));
 
+/* --- onde tem rua: prédios e estruturas não podem cair em cima dela (pedido do dono, 20/10/2026) --- */
+const MEIA_RUA = { trunk: 10, primary: 9.5, secondary: 8.5, tertiary: 7, unclassified: 6.5, residential: 6.5, living_street: 5, road: 5.5, service: 4.8, track: 3 };
+// ruas do GAUSS (Rua 44...): o eixo do retângulo cadastrado, no máximo 8 m de largura (muitas são de terra e não estão no mapa público)
+const EIXOS_GAUSS = RUAS_GAUSS.map(([, poligono]) => {
+  const anel = anelLimpo(poligono), R = anel.length >= 3 && retanguloMinimo(anel);
+  if (!R || R.A < 40 || !pecaDe(R.c)) return null;
+  return { pts: [pontoRet(R, -R.A, 0, 0), pontoRet(R, R.A, 0, 0)].map(([x, , z]) => [x, z]), l: Math.min(8, R.B * 2) };
+}).filter(Boolean);
+const naRua = (() => {
+  const CEL = 50, grade = new Map(), k = (x, z) => `${Math.floor(x / CEL)},${Math.floor(z / CEL)}`;
+  const guardar = (a, b, meia) => { // o trecho entra em todas as células que ele atravessa
+    const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / (CEL / 2)) + 1;
+    for (let j = 0; j <= n; j++) {
+      const x = a[0] + ((b[0] - a[0]) * j) / n, z = a[1] + ((b[1] - a[1]) * j) / n, c = k(x, z);
+      (grade.get(c) || grade.set(c, new Set()).get(c)).add([a, b, meia]);
+    }
+  };
+  VIAS.forEach((linha, i) => {
+    const meia = MEIA_RUA[(VIAS_INFO[i]?.[0] || "service").replace(/_link$/, "")] || 5, pts = linha.map(paraXZ);
+    for (let j = 1; j < pts.length; j++) if (pecaDe(pts[j]) || pecaDe(pts[j - 1])) guardar(pts[j - 1], pts[j], meia);
+  });
+  EIXOS_GAUSS.forEach((e) => guardar(e.pts[0], e.pts[1], e.l / 2));
+  const dist = ([x, z], [a, b]) => {
+    const dx = b[0] - a[0], dz = b[1] - a[1], t = THREE.MathUtils.clamp(((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz || 1), 0, 1);
+    return Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t);
+  };
+  /** O ponto está na pista (até `folga` metros além da borda)? */
+  return (p, folga = 0) => {
+    const [cx, cz] = [Math.floor(p[0] / CEL), Math.floor(p[1] / CEL)];
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++)
+      for (const [a, b, meia] of grade.get(`${cx + i},${cz + j}`) || []) if (dist(p, [a, b]) < meia + folga) return true;
+    return false;
+  };
+})();
+/** O prédio invade a rua? O meio dele está na pista, ou metade dos cantos está. */
+const invadeRua = (anel, c) => naRua(c, 1) || anel.filter((p) => naRua(p)).length * 2 >= anel.length;
+
 const REGISTRO_ESTRUTURAS = [], MALHAS_ESTRUTURAS = {}; // camada -> malha (industria, patios)
 {
   const chaminesOSM = OSM.filter((o) => o.t === "chimney").map((o) => paraXZ(o.p[0]));
@@ -1583,6 +1632,7 @@ const REGISTRO_ESTRUTURAS = [], MALHAS_ESTRUTURAS = {}; // camada -> malha (indu
   };
   for (const { e, anel, R, centro } of PEGADAS) {
     if (e.t === "subestacao") continue; // os prédios e equipamentos da subestação já estão no mapa
+    if (centro && !e.linha && naRua(centro)) continue; // estrutura em cima da rua: fica fora (correias e galerias passam por cima)
     if (e.t === "chamine" && centro && chaminesOSM.some(([x, z]) => Math.hypot(x - centro[0], z - centro[1]) < 15)) continue; // já desenhada pelo OSM
     const h = Array.isArray(e.h) ? Math.max(...e.h) : e.h || 10;
     if (e.linha?.length >= 2 && e.t === "empilhadeira") { // a linha é a lança da máquina
@@ -1649,6 +1699,7 @@ let telhadoCidade = null, equipTelhado = null; // telhados (com a cor real tirad
     if (anel.length < 3) return;
     const c = centroDe(anel), peca = pecaDe(c), area = Math.abs(areaComSinal(anel));
     if (!peca || area < 12 || ocupadoPorEstrutura(c)) return; // no lugar de uma estrutura identificada na foto, vale o modelo dela
+    if (invadeRua(anel, c)) return; // prédio em cima da rua (erro do mapa): fica fora
     const h = o.h || alturaPredio(area, c, i);
     const ehGalpao = area > 600, R = ehGalpao ? retanguloMinimo(anel) : null;
     const duasAguas = !!R && area / R.area > 0.8 && R.B > 6;
@@ -1860,7 +1911,8 @@ const PERFIL_RUA = { // l: asfalto (m), c: calçada de cada lado, meio: linha ce
   trunk: { l: 14, c: 3, meio: "dupla", borda: true }, primary: { l: 13, c: 3, meio: "dupla", borda: true },
   secondary: { l: 11, c: 2.5, meio: "tracejada", borda: true }, tertiary: { l: 9, c: 2, meio: "tracejada", borda: true },
   unclassified: { l: 8, c: 1.5, meio: "tracejada", borda: true }, residential: { l: 7.5, c: 2, meio: "tracejada", borda: true },
-  living_street: { l: 6, c: 1.5, borda: true }, road: { l: 7, c: 1.5, borda: true }, service: { l: 6.5, c: 0.9, interna: true, borda: true }, track: { l: 4.5, c: 0, terra: true },
+  living_street: { l: 6, c: 1.5, meio: "tracejada", borda: true }, road: { l: 7, c: 1.5, meio: "tracejada", borda: true },
+  service: { l: 6.5, c: 0.9, meio: "tracejada", interna: true, borda: true }, track: { l: 4.5, c: 0, terra: true }, // faixa amarela em toda rua de mão dupla (pedido do dono, 20/10)
 };
 const DESTAQUE_RUA = 1.25;
 function perfilDaRua(i) {
@@ -1912,7 +1964,7 @@ const grupoRuas = new THREE.Group(), MATS_RUA = {};
 cena.add(grupoRuas);
 const NOMES_RUAS = []; // [nome, x, z, dx, dz, comprimento]: placas com o nome das ruas
 {
-  const calcada = [], asfalto = [], terra = [], branca = [], amarela = [];
+  const calcada = [], asfalto = [], terra = [], branca = [], amarela = [], chao = [];
   // cruzamento: ponto onde chegam 3 ou mais pedaços de rua
   const grau = new Map(), k5 = ([a, b]) => `${a},${b}`;
   VIAS.forEach((linha) => linha.forEach((p, j) => { const k = k5(p); grau.set(k, (grau.get(k) || 0) + (j === 0 || j === linha.length - 1 ? 1 : 2)); }));
@@ -1944,7 +1996,7 @@ const NOMES_RUAS = []; // [nome, x, z, dx, dz, comprimento]: placas com o nome d
       if (b - a < 3) continue;
       const parte = pedacoDaLinha(pts, acum, a, b);
       if (perfil.meio === "dupla") amarela.push(...faixa(deslocar(parte, 0.18), 0.15, 0.7), ...faixa(deslocar(parte, -0.18), 0.15, 0.7));
-      else if (perfil.meio === "tracejada") amarela.push(...faixaTracejada(parte, 0.15, 0.7, 3, 5));
+      else if (perfil.meio === "tracejada") amarela.push(...faixaTracejada(parte, 0.32, 0.7, 2.5, 3)); // larga o bastante para ver de longe
       if (perfil.borda) branca.push(...faixa(deslocar(parte, l / 2 - 0.45), 0.15, 0.7), ...faixa(deslocar(parte, -(l / 2 - 0.45)), 0.15, 0.7));
       const porSentido = perfil.meio ? Math.ceil(perfil.faixas / 2) : perfil.faixas, largura = (perfil.meio ? l / 2 : l) / Math.max(1, porSentido);
       for (let f = 1; f < porSentido; f++) for (const lado of perfil.meio ? [1, -1] : [1]) { // divisão entre faixas do mesmo sentido
@@ -1979,6 +2031,7 @@ const NOMES_RUAS = []; // [nome, x, z, dx, dz, comprimento]: placas com o nome d
     if (!atual || atual[5] < R.A * 2) doGauss.set(nome, [nome, R.c[0], R.c[1], R.ea[0] * 2, R.ea[1] * 2, R.A * 2]);
   }
   NOMES_RUAS.push(...[...melhorNome.values(), ...doGauss.values()].sort((a, b) => b[5] - a[5]));
+  for (const eixo of EIXOS_GAUSS) chao.push(...faixa(eixo.pts, eixo.l, 0.62));
   // estacionamentos: piso de asfalto mais claro com contorno branco
   const vagas = [];
   OSM.filter((o) => o.t === "estacionamento").forEach((o) => {
@@ -1987,7 +2040,7 @@ const NOMES_RUAS = []; // [nome, x, z, dx, dz, comprimento]: placas com o nome d
     vagas.push(...triangulos(anel, 0.64).pos);
     branca.push(...faixa([...anel, anel[0]], 0.15, 0.69));
   });
-  const camadas = { calcada: [calcada, 0xb9b5ac], asfalto: [asfalto, 0x3f4247], terra: [terra, 0x9b8466], vagas: [vagas, 0x5c5f64], branca: [branca, 0xf6f4ee], amarela: [amarela, 0xe8b52c] };
+  const camadas = { calcada: [calcada, 0xb9b5ac], asfalto: [asfalto, 0x3f4247], terra: [terra, 0x9b7653], chao: [chao, 0xa57c55], vagas: [vagas, 0x5c5f64], branca: [branca, 0xf6f4ee], amarela: [amarela, 0xe8b52c] };
   for (const [nome, [pos, cor]] of Object.entries(camadas)) {
     if (!pos.length) continue;
     const material = MATS_RUA[nome] = new THREE.MeshLambertMaterial({ color: cor, side: THREE.DoubleSide });
@@ -2008,7 +2061,7 @@ const NOMES_RUAS = []; // [nome, x, z, dx, dz, comprimento]: placas com o nome d
   }
 }
 
-const FERROVIA = [];
+const FERROVIA = [], TRILHOS = []; // TRILHOS: trechos com mais de 250 m, por onde o trem anda
 /* --- ferrovia interna: lastro de brita com o par de trilhos escuro por cima --- */
 function faixa(pontos, largura, y) {
   const pos = [];
@@ -2021,9 +2074,10 @@ function faixa(pontos, largura, y) {
 }
 {
   const lastro = [], trilho = [];
+  const guardarTrilho = (t) => { let L = 0; for (let k = 1; k < t.length; k++) L += Math.hypot(t[k][0] - t[k - 1][0], t[k][1] - t[k - 1][1]); if (L > 250) TRILHOS.push({ pts: t, L }); };
   OSM.filter((o) => o.t === "trilho").forEach((o) => {
     let trecho = [];
-    const fechar = () => { if (trecho.length > 1) { lastro.push(...faixa(trecho, 4.2, 0.78)); trilho.push(...faixa(trecho, 1.6, 0.86)); } trecho = []; }; // acima do asfalto
+    const fechar = () => { if (trecho.length > 1) { lastro.push(...faixa(trecho, 4.2, 0.78)); trilho.push(...faixa(trecho, 1.6, 0.86)); guardarTrilho(trecho); } trecho = []; }; // acima do asfalto
     for (const p of o.p.map(paraXZ)) { if (pecaDe(p)) trecho.push(p); else fechar(); } // só o que está sobre a maquete
     fechar();
   });
@@ -2354,14 +2408,16 @@ const fundo = new THREE.Color(0xe9eef4), branco = new THREE.Color(0xffffff), rea
 function pintarArea(a) {
   const cores = geoAreas.attributes.color.array, cidade = ehCidade(), analise = estado.visual === "analise", real = estado.visual === "real" || cidade; // Foto e Cidade: áreas no chão
   const ativo = estado.visual !== "setores" || estado.setoresAtivos.has(a.setor);
-  const focoOutra = !analise && estado.selecionada && estado.selecionada !== a; // na Análise as outras áreas ficam normais
+  const escolhida = estado.selecionada === a || estado.setor === a.setor; // clicada na lista (subárea) ou no setor (área geral)
+  const focoOutra = !analise && (estado.selecionada || estado.setor) && !escolhida; // na Análise as outras áreas ficam normais
   corTmp.set(estado.visual === "atendimento" ? corAtendimento(a.atend?.horas) : estado.visual === "analise" ? corAnalise(a) : SETORES[a.setor].cor);
   corTopo.copy(cidade && !a.peca.texSolo ? COR_SEM_SOLO : real ? branco : corTmp);
   if (analise && estado.selecionada === a && RANK.some((x) => x.area === a)) corTopo.lerp(corTmp, 0.7); // só a área clicada ganha a cor do % produzindo
+  else if (!analise && escolhida) corTopo.copy(corTmp).lerp(branco, 0.12); // o chão da área escolhida fica colorido (pedido do dono, 20/10)
   for (const c of [corTmp, corTopo]) {
     if (!ativo) c.lerp(fundo, 0.85);
     else if (focoOutra) c.lerp(real ? escuro : fundo, real ? 0.25 : 0.55);
-    if (real && !analise && (estado.hover === a || estado.selecionada === a)) c.lerp(realce, 0.45);
+    if (real && !analise && !escolhida && estado.hover === a) c.lerp(realce, 0.45);
     else if (!real && estado.hover === a && !focoOutra) c.lerp(branco, 0.28);
   }
   const escrever = ([ini, fim], c) => { for (let v = ini; v < fim; v++) { const s = SOMBRA[v]; cores[v * 3] = c.r * s; cores[v * 3 + 1] = c.g * s; cores[v * 3 + 2] = c.b * s; } };
@@ -2425,12 +2481,113 @@ controles.maxPolarAngle = 1.32; controles.minDistance = 60; controles.maxDistanc
 controles.screenSpacePanning = false;
 
 const fatorTela = () => Math.max(1, 1.3 / camera.aspect);
+/* --- vida na maquete (pedido do dono, 20/10/2026): fogo no alto-forno às vezes, trem de bobinas e luzes vermelhas nas torres --- */
+const FOGOS = [], LUZES = [];
+const fogo = (() => { // chamas nas chaminés perto dos altos-fornos (ou no topo do próprio alto-forno)
+  const fornos = REGISTRO_ESTRUTURAS.filter((r) => r.e.t === "alto_forno").map((r) => ({ xz: r.xz, h: r.h || (Array.isArray(r.e.h) ? Math.max(...r.e.h) : r.e.h) || 80 }));
+  const perto = FUMACA.filter((c) => fornos.some((f) => Math.hypot(f.xz[0] - c.x, f.xz[1] - c.z) < 350));
+  const bocas = perto.length ? perto.map((c) => [c.x, c.h, c.z]) : fornos.map((f) => [f.xz[0], f.h, f.xz[1]]);
+  const grupo = new THREE.Group();
+  const externa = new THREE.ConeGeometry(3.4, 14, 10, 1, true).translate(0, 7, 0), interna = new THREE.ConeGeometry(2, 9, 10, 1, true).translate(0, 4.5, 0);
+  const matE = new THREE.MeshBasicMaterial({ color: 0xff6a1a, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const matI = new THREE.MeshBasicMaterial({ color: 0xffd34d, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  bocas.forEach(([x, h, z], i) => {
+    const g = new THREE.Group(); g.add(new THREE.Mesh(externa, matE), new THREE.Mesh(interna, matI));
+    g.position.set(x, h, z); g.scale.setScalar(0.001); grupo.add(g);
+    FOGOS.push({ g, i, liga: 6 + acaso(i * 7) * 14, desliga: 10 + acaso(i * 13) * 25, fase: acaso(i * 3) * 40 });
+  });
+  grupoReal.add(grupo);
+  return grupo;
+})();
+function animarFogo(t) { // cada chama tem o próprio ciclo: acende alguns segundos, apaga outros
+  for (const f of FOGOS) {
+    const ciclo = f.liga + f.desliga, x = (t + f.fase) % ciclo;
+    const forca = x < f.liga ? Math.min(1, x / 1.2, (f.liga - x) / 1.2) : 0;
+    const tremor = 0.8 + 0.25 * Math.sin(t * 17 + f.i) + 0.12 * Math.sin(t * 31 + f.i * 2);
+    f.g.visible = forca > 0.01;
+    f.g.scale.set(forca * (0.9 + 0.1 * Math.sin(t * 23 + f.i)), forca * tremor, forca * (0.9 + 0.1 * Math.cos(t * 19 + f.i)));
+  }
+}
+const sinalizacao = (() => { // luz de sinalização no alto das chaminés mais altas, piscando em vermelho
+  const altas = [...FUMACA].sort((a, b) => b.h - a.h).filter((_, k) => k % 2 === 0); // algumas torres, não todas
+  const bola = new THREE.SphereGeometry(1.8, 10, 8), halo = new THREE.SphereGeometry(5, 12, 10);
+  const matL = new THREE.MeshBasicMaterial({ color: 0xff2020 }), matH = new THREE.MeshBasicMaterial({ color: 0xff3030, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false });
+  const grupo = new THREE.Group();
+  altas.forEach((c, i) => {
+    const l = new THREE.Mesh(bola, matL), hl = new THREE.Mesh(halo, matH);
+    l.position.set(c.x, c.h + 2, c.z); hl.position.copy(l.position); grupo.add(l, hl);
+    LUZES.push({ l, hl, fase: (i % 2) * 0.5 });
+  });
+  grupoReal.add(grupo);
+  return { matL, matH };
+})();
+function animarLuzes(t) {
+  for (const z of LUZES) { const acesa = (t / 1.4 + z.fase) % 1 < 0.35; z.l.visible = true; z.hl.visible = acesa; z.l.material = acesa ? sinalizacao.matL : MAT_LUZ_APAGADA; }
+}
+const MAT_LUZ_APAGADA = new THREE.MeshBasicMaterial({ color: 0x5a1010 });
+const trem = (() => { // locomotiva e 3 vagões com bobinas de aço, num trecho da ferrovia; vai, para e volta
+  if (!TRILHOS.length) return null;
+  const E = 2.2; // um pouco maior que o real, como os caminhões, para ver de longe
+  const caixa = (c, l, a, cor, y = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(c * E, a * E, l * E).translate(0, (a / 2 + y) * E, 0), new THREE.MeshLambertMaterial({ color: cor })); m.castShadow = true; return m; };
+  const loco = new THREE.Group();
+  loco.add(caixa(16, 3, 0.9, 0x2b2b2b, 0.4), caixa(15, 2.8, 2.6, 0xf2b705, 1.3), caixa(4, 2.9, 1.2, 0xd1d5db, 3.9).translateX(4 * E));
+  const bobina = new THREE.CylinderGeometry(1.15 * E, 1.15 * E, 1.6 * E, 18).rotateZ(Math.PI / 2);
+  const matBob = new THREE.MeshStandardMaterial({ color: 0xc9d1d9, metalness: 0.75, roughness: 0.35 });
+  const vagao = () => {
+    const g = new THREE.Group(); g.add(caixa(14, 3, 0.9, 0x6b4a32, 0.4), caixa(14, 3, 0.4, 0x3d3d3d, 1.3));
+    for (const dx of [-4.2, 0, 4.2]) { const b = new THREE.Mesh(bobina, matBob); b.position.set(dx * E, (1.7 + 1.15) * E, 0); b.castShadow = true; g.add(b); }
+    return g;
+  };
+  const carros = [loco, vagao(), vagao(), vagao()], passo = [0, 15.5, 30.5, 45.5].map((d) => d * E);
+  const grupo = new THREE.Group(); carros.forEach((c) => grupo.add(c)); grupoReal.add(grupo); FERROVIA.push(grupo);
+  const t = { carros, passo, grupo, trecho: null, s: 0, dir: 1, vel: 0, alvo: 9, espera: 0, n: 0 };
+  const escolher = () => { // trecho sorteado entre os mais compridos
+    const longos = [...TRILHOS].sort((a, b) => b.L - a.L).slice(0, 6);
+    t.trecho = longos[Math.floor(Math.random() * longos.length)];
+    t.acum = [0]; for (let k = 1; k < t.trecho.pts.length; k++) t.acum.push(t.acum[k - 1] + Math.hypot(t.trecho.pts[k][0] - t.trecho.pts[k - 1][0], t.trecho.pts[k][1] - t.trecho.pts[k - 1][1]));
+    // sentido: para que lado a locomotiva olha (os vagões ficam atrás dela); dir: para que lado o trem anda (ré empurra os vagões)
+    t.sentido = Math.random() < 0.5 ? 1 : -1; t.dir = Math.random() < 0.5 ? 1 : -1; t.vel = 0;
+    const [min, max] = limites(); t.s = min + (max - min) * Math.random();
+  };
+  const limites = () => (t.sentido > 0 ? [passo.at(-1) + 5, t.trecho.L - 5] : [5, t.trecho.L - passo.at(-1) - 5]);
+  t.limites = limites;
+  escolher();
+  t.escolher = escolher;
+  return t;
+})();
+function pontoDoTrilho(s) {
+  const { pts } = trem.trecho, acum = trem.acum;
+  s = THREE.MathUtils.clamp(s, 0, trem.trecho.L);
+  let k = 1; while (k < acum.length - 1 && acum[k] < s) k++;
+  const [ax, az] = pts[k - 1], [bx, bz] = pts[k], u = (s - acum[k - 1]) / ((acum[k] - acum[k - 1]) || 1);
+  return [ax + (bx - ax) * u, az + (bz - az) * u, Math.atan2(bz - az, bx - ax)];
+}
+function animarTrem(dt) {
+  if (!trem) return;
+  if (trem.espera > 0) { trem.espera -= dt; if (trem.espera <= 0 && ++trem.n % 4 === 0) trem.escolher(); }
+  else {
+    trem.vel += Math.sign(trem.alvo - trem.vel) * Math.min(Math.abs(trem.alvo - trem.vel), dt * 2); // acelera e freia devagar
+    trem.s += trem.dir * trem.vel * dt;
+    const [min, max] = trem.limites();
+    if (trem.s >= max || trem.s <= min) { // chegou na ponta do trecho: para um pouco e volta (de ré, empurrando os vagões)
+      trem.s = THREE.MathUtils.clamp(trem.s, min, max); trem.vel = 0; trem.dir *= -1; trem.espera = 4 + Math.random() * 8; trem.alvo = 6 + Math.random() * 8;
+    }
+    if (Math.random() < dt * 0.05) trem.alvo = 6 + Math.random() * 8; // muda a velocidade de vez em quando
+  }
+  trem.carros.forEach((c, k) => {
+    const [x, z, ang] = pontoDoTrilho(trem.s - trem.sentido * trem.passo[k]);
+    c.position.set(x, 0.9, z); c.rotation.y = -ang + (trem.sentido < 0 ? Math.PI : 0);
+  });
+}
+const vidaViva = () => (estado.visual === "real" || ehCidade()) && estado.qualidade === "alta" && !reduzirMovimento && !fumacaParada
+  && camera.position.distanceTo(controles.target) < 9000;
+
 let pedido = false, viagem = null, ultimoQuadro = 0, fumacaParada = false;
 const fumacaViva = () => (estado.visual === "real" || ehCidade()) && estado.qualidade === "alta" && !reduzirMovimento && !fumacaParada && FUMACA.length > 0
   && camera.position.distanceTo(controles.target) < 6500; // de longe a fumaça parada já basta
 let interagindo = false, voltarNitidez = null;
 const frotaAndando = () => (estado.periodo === "replay" && estado.tocando) || CAMINHOES.some((c) => c.anim);
-const animando = () => fumacaViva() || frotaAndando();
+const animando = () => fumacaViva() || frotaAndando() || vidaViva();
 
 /* Ajuste automático: se a fumaça animada pesar, alivia em degraus até ficar fluido */
 const medidor = { tempos: [], degrau: 0 };
@@ -2465,6 +2622,7 @@ function desenhar(agora) {
   if (controles.update()) pedirDesenho();
   if (frotaAndando()) { atualizarInstancias(); desenharRastros(); }
   if (fumacaViva()) animarFumaca(dt);
+  if (vidaViva()) { const t = agora / 1000; animarFogo(t); animarLuzes(t); animarTrem(dt); }
   medir(dt);
   if (animando()) pedirDesenho();
   renderer.render(cena, camera);
@@ -2709,7 +2867,7 @@ function marcarBorda(anel, h) {
 }
 function abrirFicha(eyebrow, nome, linhas) {
   $("fichaSetor").textContent = eyebrow; $("fichaNome").textContent = nome;
-  $("fichaDados").innerHTML = linhas.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+  $("fichaDados").innerHTML = linhas.map(([k, v]) => (k ? `<dt>${k}</dt><dd>${v}</dd>` : `<dd class="largo">${v}</dd>`)).join("");
   $("ficha").classList.add("aberta"); $("lista").classList.remove("aberta"); abrirFiltros(false); // a ficha abre no lugar do painel de filtros
 }
 
@@ -2958,7 +3116,7 @@ function selecionarNaAnalise(a) {
 function selecionar(a, voarAte = true) {
   if (estado.visual === "analise") return selecionarNaAnalise(a);
   const antes = estado.selecionada;
-  estado.selecionada = a; estado.caminhao = null;
+  estado.selecionada = a; estado.setor = null; estado.caminhao = null;
   posicionarCaminhoes(); pintarTudo(); marcarBorda(a.anel, a.h);
   const linhas = [["Setor", SETORES[a.setor].nome], ["Área", a.area >= 10000 ? `${fmt(a.area / 10000, 1)} ha` : `${fmt(a.area)} m²`], ["Perímetro", `${fmt(a.perim)} m`]];
   if (a.atend) {
@@ -2966,14 +3124,50 @@ function selecionar(a, voarAte = true) {
     linhas.push(["Atendimento", `${fmt(a.atend.horas, 1)} h em ${fmt(a.atend.paradas)} paradas (30 dias)`], ["Mais presentes", top]);
   } else linhas.push(["Atendimento", "Sem paradas nos últimos 30 dias"]);
   linhas.push(["Agora", a.frota.length ? a.frota.map((f) => `${f.nome}${f.vaga ? " · " + f.placa : ""} · ${ROTULO_SITUACAO[f.situacao].toLowerCase()}`).join("<br>") : "Nenhum caminhão na área"]);
+  linhas.push(...linhasAnalise([a]));
   abrirFicha(SETORES[a.setor].nome, a.nome, linhas);
   marcarNaLista();
   if (voarAte || antes !== a) voarPara(a.centro, THREE.MathUtils.clamp(Math.sqrt(a.area) * 4, 750, 3200));
 }
 
+/** Análise do último dia fechado somada nas áreas dadas: % produzindo e horas por grupo (para a ficha). */
+function linhasAnalise(areas) {
+  if (!ANALISE?.dias.length) return [];
+  const dia = ANALISE.dias[an.i], nomes = new Set(areas.map((a) => chave(a.name)));
+  let p = 0; const soma = new Map();
+  for (const [nome, porDia] of Object.entries(ANALISE.areas)) {
+    const x = nomes.has(chave(nome)) && porDia[dia];
+    if (!x) continue;
+    p += x.p || 0;
+    for (const [k, v] of Object.entries(x.a || {})) { const g = grupoDe(k); soma.set(g, (soma.get(g) || 0) + v); }
+  }
+  const itens = [{ ...PRODUZ, min: p }, ...GRUPOS_APONT.map((g, gi) => ({ nome: g.nome, cor: corG(gi), min: soma.get(gi) || 0 }))].filter((it) => it.min > 0);
+  const total = itens.reduce((t, it) => t + it.min, 0);
+  if (total < 1) return [[`Análise · ${diaBR(dia)}`, "Sem parada neste dia"]];
+  const pct = Math.round((100 * p) / total);
+  return [[`Análise · ${diaBR(dia)}`, `<b style="color:#${corPct(pct).getHexString()}">${pct}%</b> do tempo parado produzindo · ${hm(total)} parados`],
+    ["", `${barraMotivos(itens, total)}<div class="ficha-grupos">${itens.map((it) => `<i class="cor" style="background:${it.cor}"></i><span>${it.nome}</span><b>${hm(it.min)}</b>`).join("")}</div>`]];
+}
+/** Área geral (setor): o chão de todas as subáreas fica colorido e a ficha mostra os dados somados. */
+function selecionarSetor(s) {
+  estado.setor = s; estado.selecionada = null; estado.caminhao = null;
+  marcarBorda(null); posicionarCaminhoes(); pintarTudo(); marcarNaLista();
+  const areas = AREAS.filter((a) => a.setor === s);
+  const xs = areas.map((a) => a.centro[0]), zs = areas.map((a) => a.centro[1]);
+  const meio = [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2];
+  voarPara(meio, THREE.MathUtils.clamp(Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)) * 1.3, 1500, 6000));
+  if (estado.visual === "analise") return; // na Análise o painel da direita já mostra os dados
+  const horas = areas.reduce((t, a) => t + (a.atend?.horas || 0), 0), paradas = areas.reduce((t, a) => t + (a.atend?.paradas || 0), 0);
+  const top = areas.filter((a) => a.atend).sort((x, y) => y.atend.horas - x.atend.horas).slice(0, 3).map((a) => `${a.nome} (${fmt(a.atend.horas)} h)`).join("<br>");
+  const frota = areas.flatMap((a) => a.frota.map((f) => `<i class="cor" style="background:${COR_STATUS[f.situacao]}"></i> ${f.nome}`)); // só os nomes: o setor pode ter muitos
+  abrirFicha("Área geral", SETORES[s].nome, [["Subáreas", fmt(areas.length)], ["Tamanho", `${fmt(areas.reduce((t, a) => t + a.area, 0) / 10000, 1)} ha`],
+    ["Atendimento", horas ? `${fmt(horas, 1)} h em ${fmt(paradas)} paradas (30 dias)` : "Sem paradas nos últimos 30 dias"], ...(top ? [["Mais atendidas", top]] : []),
+    ["Agora", frota.length ? `${frota.length} caminhões<br>${frota.join(" · ")}` : "Nenhum caminhão"], ...linhasAnalise(areas)]);
+}
+
 function selecionarCaminhao(c) {
   const antes = estado.selecionada;
-  estado.caminhao = c; estado.selecionada = null;
+  estado.caminhao = c; estado.selecionada = null; estado.setor = null;
   posicionarCaminhoes(); if (antes) pintarTudo(); marcarBorda(null);
   const base = [["Placa", c.placa], ["Vaga", c.vaga ? c.vaga.texto : "Sem vaga"], ["Tipo", (c.grupo || "—").replace(/^CAMINHÃO\s+/i, "")]];
   if (estado.periodo === "replay" && c.rota) {
@@ -3048,9 +3242,9 @@ addEventListener("message", (e) => {
 
 function fechar() {
   if (estado.visual === "analise") { an.aberta = null; estado.selecionada = null; marcarBorda(null); pintarTudo(); montarAnalise(); return; }
-  if (!estado.selecionada && !estado.caminhao) return;
-  const tinha = estado.selecionada;
-  estado.selecionada = null; estado.caminhao = null;
+  if (!estado.selecionada && !estado.caminhao && !estado.setor) return;
+  const tinha = estado.selecionada || estado.setor;
+  estado.selecionada = null; estado.caminhao = null; estado.setor = null;
   marcarBorda(null); posicionarCaminhoes();
   $("ficha").classList.remove("aberta"); $("dica").style.display = "none";
   if (tinha) pintarTudo();
@@ -3058,25 +3252,42 @@ function fechar() {
 }
 
 function montarLista() {
-  const termo = chave($("busca").value);
-  const areas = AREAS.filter((a) => !termo || chave(a.name).includes(termo));
-  const frota = caminhoesVisiveis.filter((c) => !termo || chave(c.placa + c.nome).includes(termo));
-  if (estado.periodo === "replay") frota.sort((a, b) => (b.rota?.km || 0) - (a.rota?.km || 0)); // quem mais andou primeiro
-  $("contagem").textContent = areas.length;
-  const grupos = ORDEM.map((s) => {
-    const g = areas.filter((a) => a.setor === s);
-    return g.length ? `<div class="grupo">${SETORES[s].nome}</div>` + g.map((a) =>
-      `<button type="button" class="item" data-i="${a.i}"><i class="cor" style="background:${SETORES[s].cor}"></i><span>${a.nome}</span><em>${a.atend ? fmt(a.atend.horas) + " h" : ""}</em></button>`).join("") : "";
-  }).join("");
-  const cams = frota.length ? `<div class="grupo">Caminhões</div>` + frota.map((c) =>
-    `<button type="button" class="item" data-c="${CAMINHOES.indexOf(c)}"><i class="cor" style="background:${COR_STATUS[c.situacao]};box-shadow:0 0 0 1px rgba(19,32,47,.3)"></i><span>${c.nome}</span><em>${
-      estado.periodo === "replay" ? (c.rota?.andou ? `${fmt(c.rota.km, 1)} km` : "parado") : c.vaga ? c.placa : ""}</em></button>`).join("") : "";
-  $("rolagem").innerHTML = cams + grupos || '<div class="grupo">Nada encontrado</div>';
+  const termo = chave($("busca").value), aba = estado.aba;
+  document.querySelectorAll("[data-aba]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.aba === aba)));
+  const areas = AREAS.filter((a) => !termo || chave(a.name).includes(termo) || chave(SETORES[a.setor].nome).includes(termo));
+  let html = "", n = 0;
+  if (aba === "gerais") { // um setor por linha, com quantas subáreas e as horas de atendimento em 30 dias
+    const setores = ORDEM.filter((s) => areas.some((a) => a.setor === s));
+    n = setores.length;
+    html = setores.map((s) => {
+      const g = AREAS.filter((a) => a.setor === s), horas = g.reduce((t, a) => t + (a.atend?.horas || 0), 0);
+      return `<button type="button" class="item" data-s="${s}"><i class="cor" style="background:${SETORES[s].cor}"></i><span>${SETORES[s].nome}<small>${g.length} subáreas</small></span><em>${horas ? fmt(horas) + " h" : ""}</em></button>`;
+    }).join("");
+  } else if (aba === "sub") {
+    n = areas.length;
+    html = ORDEM.map((s) => {
+      const g = areas.filter((a) => a.setor === s);
+      return g.length ? `<div class="grupo">${SETORES[s].nome}</div>` + g.map((a) =>
+        `<button type="button" class="item" data-i="${a.i}"><i class="cor" style="background:${SETORES[s].cor}"></i><span>${a.nome}</span><em>${a.atend ? fmt(a.atend.horas) + " h" : ""}</em></button>`).join("") : "";
+    }).join("");
+  } else {
+    const frota = caminhoesVisiveis.filter((c) => !termo || chave(c.placa + c.nome).includes(termo));
+    if (estado.periodo === "replay") frota.sort((a, b) => (b.rota?.km || 0) - (a.rota?.km || 0)); // quem mais andou primeiro
+    n = frota.length;
+    html = frota.map((c) =>
+      `<button type="button" class="item" data-c="${CAMINHOES.indexOf(c)}"><i class="cor" style="background:${COR_STATUS[c.situacao]};box-shadow:0 0 0 1px rgba(19,32,47,.3)"></i><span>${c.nome}</span><em>${
+        estado.periodo === "replay" ? (c.rota?.andou ? `${fmt(c.rota.km, 1)} km` : "parado") : c.vaga ? c.placa : ""}</em></button>`).join("");
+  }
+  $("contagem").textContent = n;
+  $("rolagem").innerHTML = html || '<div class="grupo">Nada encontrado</div>';
+  $("rolagem").querySelectorAll("[data-s]").forEach((b) => b.addEventListener("click", () => selecionarSetor(b.dataset.s)));
   $("rolagem").querySelectorAll("[data-i]").forEach((b) => b.addEventListener("click", () => selecionar(AREAS[+b.dataset.i])));
   $("rolagem").querySelectorAll("[data-c]").forEach((b) => b.addEventListener("click", () => selecionarCaminhao(CAMINHOES[+b.dataset.c])));
   marcarNaLista();
 }
+document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => { estado.aba = b.dataset.aba; montarLista(); }));
 function marcarNaLista() {
+  $("rolagem").querySelectorAll("[data-s]").forEach((b) => b.setAttribute("aria-current", String(estado.setor === b.dataset.s)));
   $("rolagem").querySelectorAll("[data-i]").forEach((b) => b.setAttribute("aria-current", String(estado.selecionada?.i === +b.dataset.i)));
   $("rolagem").querySelectorAll("[data-c]").forEach((b) => b.setAttribute("aria-current", String(estado.caminhao === CAMINHOES[+b.dataset.c])));
 }
@@ -3281,6 +3492,7 @@ window.usina = { // usado nos testes automáticos
     };
     passo();
   }), chamadas: () => renderer.info.render.calls, triangulos: () => renderer.info.render.triangles,
+  vida: (t = 5) => { animarFogo(t); animarLuzes(t); if (trem) { trem.espera = 0; animarTrem(0.1); } pedirDesenho(); return { fogos: FOGOS.length, luzes: LUZES.length, trilhos: TRILHOS.length, trem: trem ? trem.carros[0].position.toArray().map(Math.round) : null, viva: vidaViva() }; },
   fps: () => new Promise((r) => { let n = 0; const t0 = performance.now(); const f = () => { n++; pedirDesenho(); if (performance.now() - t0 < 3000) requestAnimationFrame(f); else r(Math.round(n / 3)); }; f(); }),
 };
 </script>
