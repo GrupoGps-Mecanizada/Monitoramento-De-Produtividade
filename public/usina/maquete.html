@@ -244,6 +244,9 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 .an-leg .chip{font-size:11.5px;padding:3px 8px 3px 6px}
 @media (max-width:720px){.analise{max-height:55dvh}}
 
+/* nada de texto selecionado sem querer ao arrastar o mapa; nos campos e na ficha dá para copiar */
+body{-webkit-user-select:none;user-select:none}
+input,textarea,.dados,.dados *{-webkit-user-select:text;user-select:text}
 </style>
 
 <canvas id="cena" tabindex="0" aria-label="Maquete 3D da usina, do aterro e do Poço Redondo, com os caminhões"></canvas>
@@ -2525,7 +2528,8 @@ function animarLuzes(t) {
   for (const z of LUZES) { const acesa = (t / 1.4 + z.fase) % 1 < 0.35; z.l.visible = true; z.hl.visible = acesa; z.l.material = acesa ? sinalizacao.matL : MAT_LUZ_APAGADA; }
 }
 const MAT_LUZ_APAGADA = new THREE.MeshBasicMaterial({ color: 0x5a1010 });
-const trem = (() => { // locomotiva e 3 vagões com bobinas de aço, num trecho da ferrovia; vai, para e volta
+const VAGOES = 10; // pedido do dono, 20/10/2026
+const trem = (() => { // locomotiva e 10 vagões com bobinas de aço, num trecho da ferrovia; vai e volta sem parar
   if (!TRILHOS.length) return null;
   const E = 2.2; // um pouco maior que o real, como os caminhões, para ver de longe
   const caixa = (c, l, a, cor, y = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(c * E, a * E, l * E).translate(0, (a / 2 + y) * E, 0), new THREE.MeshLambertMaterial({ color: cor })); m.castShadow = true; return m; };
@@ -2538,11 +2542,12 @@ const trem = (() => { // locomotiva e 3 vagões com bobinas de aço, num trecho 
     for (const dx of [-4.2, 0, 4.2]) { const b = new THREE.Mesh(bobina, matBob); b.position.set(dx * E, (1.7 + 1.15) * E, 0); b.castShadow = true; g.add(b); }
     return g;
   };
-  const carros = [loco, vagao(), vagao(), vagao()], passo = [0, 15.5, 30.5, 45.5].map((d) => d * E);
+  const carros = [loco, ...Array.from({ length: VAGOES }, vagao)], passo = carros.map((_, k) => (k ? 15.5 + (k - 1) * 15 : 0) * E);
   const grupo = new THREE.Group(); carros.forEach((c) => grupo.add(c)); grupoReal.add(grupo); FERROVIA.push(grupo);
   const t = { carros, passo, grupo, trecho: null, s: 0, dir: 1, vel: 0, alvo: 9, espera: 0, n: 0 };
   const escolher = () => { // trecho sorteado entre os mais compridos
-    const longos = [...TRILHOS].sort((a, b) => b.L - a.L).slice(0, 6);
+    const cabem = TRILHOS.filter((x) => x.L > passo.at(-1) + 150); // o trem inteiro precisa caber, com folga para andar
+    const longos = (cabem.length ? cabem : TRILHOS).sort((a, b) => b.L - a.L).slice(0, 6);
     t.trecho = longos[Math.floor(Math.random() * longos.length)];
     t.acum = [0]; for (let k = 1; k < t.trecho.pts.length; k++) t.acum.push(t.acum[k - 1] + Math.hypot(t.trecho.pts[k][0] - t.trecho.pts[k - 1][0], t.trecho.pts[k][1] - t.trecho.pts[k - 1][1]));
     // sentido: para que lado a locomotiva olha (os vagões ficam atrás dela); dir: para que lado o trem anda (ré empurra os vagões)
@@ -2564,13 +2569,12 @@ function pontoDoTrilho(s) {
 }
 function animarTrem(dt) {
   if (!trem) return;
-  if (trem.espera > 0) { trem.espera -= dt; if (trem.espera <= 0 && ++trem.n % 4 === 0) trem.escolher(); }
-  else {
+  {
     trem.vel += Math.sign(trem.alvo - trem.vel) * Math.min(Math.abs(trem.alvo - trem.vel), dt * 2); // acelera e freia devagar
     trem.s += trem.dir * trem.vel * dt;
     const [min, max] = trem.limites();
     if (trem.s >= max || trem.s <= min) { // chegou na ponta do trecho: para um pouco e volta (de ré, empurrando os vagões)
-      trem.s = THREE.MathUtils.clamp(trem.s, min, max); trem.vel = 0; trem.dir *= -1; trem.espera = 4 + Math.random() * 8; trem.alvo = 6 + Math.random() * 8;
+      trem.s = THREE.MathUtils.clamp(trem.s, min, max); trem.vel = 0; trem.dir *= -1; trem.alvo = 6 + Math.random() * 8; if (++trem.n % 4 === 0) trem.escolher(); // volta na hora, sem parar
     }
     if (Math.random() < dt * 0.05) trem.alvo = 6 + Math.random() * 8; // muda a velocidade de vez em quando
   }
@@ -2579,6 +2583,9 @@ function animarTrem(dt) {
     c.position.set(x, 0.9, z); c.rotation.y = -ang + (trem.sentido < 0 ? Math.PI : 0);
   });
 }
+if (trem) animarTrem(0); // já começa no trilho, mesmo sem animação (modo Leve)
+// arrastar o mapa não seleciona os nomes da tela (pedido do dono, 20/10/2026)
+$("cena").addEventListener("pointerdown", () => { const sel = getSelection(); if (sel && !sel.isCollapsed) sel.removeAllRanges(); });
 const vidaViva = () => (estado.visual === "real" || ehCidade()) && estado.qualidade === "alta" && !reduzirMovimento && !fumacaParada
   && camera.position.distanceTo(controles.target) < 9000;
 
@@ -2587,7 +2594,8 @@ const fumacaViva = () => (estado.visual === "real" || ehCidade()) && estado.qual
   && camera.position.distanceTo(controles.target) < 6500; // de longe a fumaça parada já basta
 let interagindo = false, voltarNitidez = null;
 const frotaAndando = () => (estado.periodo === "replay" && estado.tocando) || CAMINHOES.some((c) => c.anim);
-const animando = () => fumacaViva() || frotaAndando() || vidaViva();
+const tremAndando = () => !!trem && (estado.visual === "real" || ehCidade()) && camadaLigada("ferrovia") && !reduzirMovimento;
+const animando = () => fumacaViva() || frotaAndando() || vidaViva() || tremAndando();
 
 /* Ajuste automático: se a fumaça animada pesar, alivia em degraus até ficar fluido */
 const medidor = { tempos: [], degrau: 0 };
@@ -2622,7 +2630,8 @@ function desenhar(agora) {
   if (controles.update()) pedirDesenho();
   if (frotaAndando()) { atualizarInstancias(); desenharRastros(); }
   if (fumacaViva()) animarFumaca(dt);
-  if (vidaViva()) { const t = agora / 1000; animarFogo(t); animarLuzes(t); animarTrem(dt); }
+  if (vidaViva()) { const t = agora / 1000; animarFogo(t); animarLuzes(t); }
+  if (tremAndando()) animarTrem(dt);
   medir(dt);
   if (animando()) pedirDesenho();
   renderer.render(cena, camera);
@@ -3274,7 +3283,7 @@ function montarLista() {
     const frota = caminhoesVisiveis.filter((c) => !termo || chave(c.placa + c.nome).includes(termo));
     if (estado.periodo === "replay") frota.sort((a, b) => (b.rota?.km || 0) - (a.rota?.km || 0)); // quem mais andou primeiro
     n = frota.length;
-    html = frota.map((c) =>
+    html = (trem && (!termo || "trem".includes(termo)) ? `<button type="button" class="item" data-trem><i class="cor" style="background:#f2b705"></i><span>Trem de bobinas<small>locomotiva e ${VAGOES} vagões</small></span><em>ir até</em></button>` : "") + frota.map((c) =>
       `<button type="button" class="item" data-c="${CAMINHOES.indexOf(c)}"><i class="cor" style="background:${COR_STATUS[c.situacao]};box-shadow:0 0 0 1px rgba(19,32,47,.3)"></i><span>${c.nome}</span><em>${
         estado.periodo === "replay" ? (c.rota?.andou ? `${fmt(c.rota.km, 1)} km` : "parado") : c.vaga ? c.placa : ""}</em></button>`).join("");
   }
@@ -3283,6 +3292,7 @@ function montarLista() {
   $("rolagem").querySelectorAll("[data-s]").forEach((b) => b.addEventListener("click", () => selecionarSetor(b.dataset.s)));
   $("rolagem").querySelectorAll("[data-i]").forEach((b) => b.addEventListener("click", () => selecionar(AREAS[+b.dataset.i])));
   $("rolagem").querySelectorAll("[data-c]").forEach((b) => b.addEventListener("click", () => selecionarCaminhao(CAMINHOES[+b.dataset.c])));
+  $("rolagem").querySelector("[data-trem]")?.addEventListener("click", () => { const p = trem.carros[0].position; voarPara([p.x, p.z], 700); });
   marcarNaLista();
 }
 document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => { estado.aba = b.dataset.aba; montarLista(); }));
@@ -3492,7 +3502,7 @@ window.usina = { // usado nos testes automáticos
     };
     passo();
   }), chamadas: () => renderer.info.render.calls, triangulos: () => renderer.info.render.triangles,
-  vida: (t = 5) => { animarFogo(t); animarLuzes(t); if (trem) { trem.espera = 0; animarTrem(0.1); } pedirDesenho(); return { fogos: FOGOS.length, luzes: LUZES.length, trilhos: TRILHOS.length, trem: trem ? trem.carros[0].position.toArray().map(Math.round) : null, viva: vidaViva() }; },
+  vida: (t = 5) => { animarFogo(t); animarLuzes(t); if (trem) animarTrem(0.1); pedirDesenho(); return { fogos: FOGOS.length, luzes: LUZES.length, trilhos: TRILHOS.length, trem: trem ? trem.carros[0].position.toArray().map(Math.round) : null, viva: vidaViva() }; },
   fps: () => new Promise((r) => { let n = 0; const t0 = performance.now(); const f = () => { n++; pedirDesenho(); if (performance.now() - t0 < 3000) requestAnimationFrame(f); else r(Math.round(n / 3)); }; f(); }),
 };
 </script>
