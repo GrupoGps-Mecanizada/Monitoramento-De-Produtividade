@@ -869,23 +869,35 @@ PECAS.forEach((p) => {
 const uvDoRecorte = (r) => (x, z) => [(x - r.lim.x0) / (r.lim.x1 - r.lim.x0), (r.lim.zS - z) / (r.lim.zS - r.lim.zN)];
 const uvFoto = (p) => uvDoRecorte(p.recorte);
 
-/* Detalhe sob demanda: perto da câmera, um pedaço de 1,2 km em resolução máxima (~0,5 m por ponto) por cima da foto geral.
-   É uma imagem só (2048 px), trocada quando a câmera anda: mais nítido sem pesar. */
-const detalhe = { mapa: { value: null }, ret: { value: new THREE.Vector4(0, 0, 0, 0) }, centro: null, carregando: false, tex: null };
+/* Detalhe sob demanda: perto da câmera, a foto na resolução máxima que existe (zoom 18, ~0,56 m por ponto: WorldView-2 de
+   30/06/2024, 0,5 m; acima do 18 o serviço não tem imagem) por cima da foto geral. No computador é um quadro 4K (4096 px,
+   ~2,3 km de lado); no celular, 2048 px (~1,2 km). Trocado quando a câmera anda: mais nítido sem pesar. */
+const LADO_DETALHE = !celular && LIMITE_TEX >= 4096 ? 16 : 8; // tiles de 256 px por lado
+const detalhe = { mapa: { value: null }, ret: { value: new THREE.Vector4(0, 0, 0, 0) }, texel: { value: new THREE.Vector2(1 / 2048, 1 / 2048) }, centro: null, carregando: false, tex: null };
+/* Grão de perto (pedido do dono, 24/10/2026: "ao dar zoom pareça que estou dentro da maquete"): acima de 0,5 m a foto não
+   tem mais o que mostrar e fica borrada. Perto da câmera entra um grão fino desenhado (tufos no mato, grão miúdo no carvão
+   e no piso), que some com a distância. É ilustrativo: só textura, não muda cor nem forma do que a foto mostra. */
+const GRAO = { value: 1 };
 /* Material com a foto: pedaço em alta perto da câmera (só na usina), nitidez adaptativa e correção de cor, tudo feito na
    placa de vídeo. A nitidez segue o AMD CAS (Contrast Adaptive Sharpening, licença MIT): reforça a borda de cada telhado,
    rua e pilha conforme o contraste em volta, sem estourar o que já é nítido. É o "DLSS" possível no navegador: não inventa
    detalhe, só tira o borrado da foto. A foto de satélite também vem lavada pela neblina: aqui ganha contraste e cor. */
 const NITIDEZ = { value: 0.6 }; // 0 = desligada, 1 = máxima (acima de 0,7 a foto fica com cara de relevo)
-function aplicarFoto(material, comDetalhe) {
+function aplicarFoto(material, comDetalhe, peca) {
   material.userData.texel = { value: new THREE.Vector2(1 / 4096, 1 / 4096) };
+  const lim = peca.recorte.lim, tam = { value: new THREE.Vector2(lim.x1 - lim.x0, lim.zS - lim.zN) }; // metros da foto da peça
   material.onBeforeCompile = (s) => {
-    s.uniforms.mapaDetalhe = detalhe.mapa; s.uniforms.retDetalhe = detalhe.ret;
-    s.uniforms.texelFoto = material.userData.texel; s.uniforms.nitidez = NITIDEZ;
+    s.uniforms.mapaDetalhe = detalhe.mapa; s.uniforms.retDetalhe = detalhe.ret; s.uniforms.texelDetalhe = detalhe.texel;
+    s.uniforms.texelFoto = material.userData.texel; s.uniforms.nitidez = NITIDEZ; s.uniforms.tamFoto = tam; s.uniforms.grao = GRAO;
     s.fragmentShader = `uniform sampler2D mapaDetalhe;
 uniform vec4 retDetalhe;
-uniform vec2 texelFoto;
-uniform float nitidez;
+uniform vec2 texelFoto, texelDetalhe, tamFoto;
+uniform float nitidez, grao;
+float acasoGrao(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float ruidoGrao(vec2 p) { // ruído suave (valor interpolado): 0 a 1
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(acasoGrao(i), acasoGrao(i + vec2(1.0, 0.0)), f.x), mix(acasoGrao(i + vec2(0.0, 1.0)), acasoGrao(i + 1.0), f.x), f.y);
+}
 vec3 nitido(sampler2D t, vec2 uv, vec2 px) { // AMD CAS em cruz (5 leituras)
   vec3 c = texture2D(t, uv).rgb;
   if (nitidez <= 0.0) return c;
@@ -901,14 +913,22 @@ vec3 nitido(sampler2D t, vec2 uv, vec2 px) { // AMD CAS em cruz (5 leituras)
   diffuseColor.rgb = diffuse * nitido(map, vMapUv, texelFoto);
   ${comDetalhe ? `if (retDetalhe.z > 0.0) {
     vec2 uvD = (vMapUv - retDetalhe.xy) / retDetalhe.zw;
-    if (uvD.x > 0.0 && uvD.y > 0.0 && uvD.x < 1.0 && uvD.y < 1.0) diffuseColor.rgb = diffuse * nitido(mapaDetalhe, uvD, vec2(1.0 / 2048.0));
+    if (uvD.x > 0.0 && uvD.y > 0.0 && uvD.x < 1.0 && uvD.y < 1.0) diffuseColor.rgb = diffuse * nitido(mapaDetalhe, uvD, texelDetalhe);
   }` : ""}
   float luz = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
   diffuseColor.rgb = mix(vec3(luz), diffuseColor.rgb, 1.22);
   diffuseColor.rgb = max((diffuseColor.rgb - 0.1) * 1.16 + 0.1, 0.0);
+  float dist = length(vViewPosition), kFino = grao * (1.0 - smoothstep(90.0, 260.0, dist)), kGrosso = grao * (1.0 - smoothstep(200.0, 650.0, dist));
+  if (kGrosso > 0.0) { // grão de perto: ~0,15 m e ~0,45 m, some antes de virar chuvisco na tela
+    vec2 m = vMapUv * tamFoto;
+    vec3 c = diffuseColor.rgb;
+    float l = dot(c, vec3(0.299, 0.587, 0.114)), verde = clamp((c.g - max(c.r, c.b)) * 7.0, 0.0, 1.0), escuro = 1.0 - smoothstep(0.1, 0.28, l);
+    float g = (ruidoGrao(m * 2.2) - 0.5) * kGrosso * mix(0.09, 0.22, verde) + (ruidoGrao(m * 6.5) - 0.5) * kFino * (0.08 + 0.06 * escuro);
+    diffuseColor.rgb = c * (1.0 + g * 2.0);
+  }
 #endif`);
   };
-  material.customProgramCacheKey = () => (comDetalhe ? "foto-detalhe" : "foto");
+  material.customProgramCacheKey = () => (comDetalhe ? "foto-detalhe-grao" : "foto-grao");
 }
 function ajustarTexel(material) { // a nitidez lê o vizinho exato: precisa saber o tamanho da imagem em uso
   const img = material.map?.image;
@@ -917,10 +937,11 @@ function ajustarTexel(material) { // a nitidez lê o vizinho exato: precisa sabe
 async function carregarDetalhe() {
   const p = PECAS[0], t = controles.target;
   if (!fotos || estado.visual !== "real" || detalhe.carregando || celular) return;
-  if (camera.position.distanceTo(t) > 2200 || !dentro([t.x, t.z], p.anel)) return;
-  if (detalhe.centro && Math.hypot(t.x - detalhe.centro[0], t.z - detalhe.centro[1]) < 300) return;
+  const z = 18, n = LADO_DETALHE, lado = n * 144; // ~144 m por tile no zoom 18, nesta latitude
+  if (camera.position.distanceTo(t) > lado * 1.6 || !dentro([t.x, t.z], p.anel)) return;
+  if (detalhe.centro && Math.hypot(t.x - detalhe.centro[0], t.z - detalhe.centro[1]) < lado / 4) return;
   detalhe.carregando = true;
-  const z = 18, n = 8, [lat, lng] = paraLatLng([t.x, t.z]), x0 = Math.floor(tx(lng, z)) - n / 2, y0 = Math.floor(ty(lat, z)) - n / 2;
+  const [lat, lng] = paraLatLng([t.x, t.z]), x0 = Math.floor(tx(lng, z)) - n / 2, y0 = Math.floor(ty(lat, z)) - n / 2;
   const tela = document.createElement("canvas"); tela.width = tela.height = n * 256;
   const ctx = tela.getContext("2d"), fila = [];
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) fila.push([i, j]);
@@ -935,8 +956,9 @@ async function carregarDetalhe() {
   if (certos > n * n * 0.8) {
     const uv = uvFoto(p), [ox, oz] = paraXZ([latDe(y0, z), lngDe(x0, z)]), [lx, lz] = paraXZ([latDe(y0 + n, z), lngDe(x0 + n, z)]);
     const [u0, vN] = uv(ox, oz), [u1, vS] = uv(lx, lz);
-    const tex = new THREE.CanvasTexture(tela); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = Math.min(4, ANISO);
-    detalhe.tex?.dispose(); detalhe.tex = tex; detalhe.mapa.value = tex;
+    const tex = new THREE.CanvasTexture(tela); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = ANISO; // nítida também de lado
+    renderer.initTexture(tex); // envia para a placa agora (câmera parada), não no meio de um movimento
+    detalhe.tex?.dispose(); detalhe.tex = tex; detalhe.mapa.value = tex; detalhe.texel.value.set(1 / tela.width, 1 / tela.height);
     detalhe.ret.value.set(u0, vS, u1 - u0, vN - vS);
     detalhe.centro = [t.x, t.z];
     pedirDesenho();
@@ -1019,7 +1041,7 @@ geoAreas.setAttribute("color", new THREE.Float32BufferAttribute(new Float32Array
 geoAreas.computeVertexNormals();
 const matParedesAreas = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
 const matToposAreas = PECAS.map(() => new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
-PECAS.forEach((p, i) => { aplicarFoto(p.matChao, i === 0); aplicarFoto(matToposAreas[i], i === 0); }); // chão, telhados e áreas; detalhe só na usina
+PECAS.forEach((p, i) => { aplicarFoto(p.matChao, i === 0, p); aplicarFoto(matToposAreas[i], i === 0, p); }); // chão, telhados e áreas; detalhe só na usina
 const blocos = new THREE.Mesh(geoAreas, [matParedesAreas, ...matToposAreas]);
 blocos.castShadow = true; blocos.receiveShadow = true;
 grupoAreas.add(blocos);
@@ -4737,6 +4759,7 @@ window.usina = { // usado nos testes automáticos
   ver: (x, y, z, tx, tz) => voar(new THREE.Vector3(tx, 0, tz), new THREE.Vector3(x, y, z), 0),
   perto: (tipo, i = 0, d = 260) => { const r = REGISTRO_ESTRUTURAS.filter((x) => x.e.t === tipo)[i]; if (r) voarPara(r.xz, d, 0); return r?.e.n; },
   suavizacao: () => (INTEL_HD ? "FXAA" : "MSAA 4x"),
+  grao: (v) => { GRAO.value = v; pedirDesenho(); return { lado: LADO_DETALHE * 256, carregado: !!detalhe.tex, centro: detalhe.centro?.map(Math.round) }; },
   ruaDeTerra: (i = 0, d = 220) => { const e = EIXOS_GAUSS[i]; if (e) voarPara([(e.pts[0][0] + e.pts[1][0]) / 2, (e.pts[0][1] + e.pts[1][1]) / 2], d, 0); return EIXOS_GAUSS.length; },
   pronto: () => fotosReduzidas.size > 0, estruturas: () => ESTRUTURAS_COM_PLACA.map((r) => [r.e.n, ...r.xz.map(Math.round)]), todas: () => REGISTRO_ESTRUTURAS.map((r) => [r.e.t, r.e.n, ...r.xz.map(Math.round), Math.round(r.h || 0)]), faltam: () => ELEMENTOS.filter((e) => !REGISTRO_ESTRUTURAS.some((r) => r.e === e)).map((e) => [e.t, e.n]), dica: (x, y) => textoDaDica(oQueEstaSob(x, y)), nitidez: (n) => { NITIDEZ.value = n; pedirDesenho(); }, ruas: () => NOMES_RUAS.slice(0, 4).map((r) => [r[0], Math.round(r[1]), Math.round(r[2])]), lagos: () => OSM.filter((o) => o.t === "agua").map((o) => paraXZ(o.p[0]).map(Math.round)), degrau: () => medidor.degrau, periodo: mudarPeriodo, tempo: (t) => { estado.tempo = t; estado.tocando = false; atualizarRelogio(); atualizarInstancias(); desenharRastros(); pedirDesenho(); },
   rotas: () => { const t0 = performance.now(); calcularRotas(); const r = CAMINHOES.filter((c) => c.rota); return `${r.length} trajetos, ${r.filter((c) => c.rota.andou).length} andaram, ${Math.round(r.reduce((s, c) => s + c.rota.km, 0))} km, ${Math.round(performance.now() - t0)} ms`; },
