@@ -46,12 +46,19 @@ export function BarraSuperior() {
     </button>
   );
 
-  const logo = (tam: string) => (
-    <span className={cx("flex shrink-0 items-center justify-center rounded-md bg-white p-1 shadow-sm ring-1 ring-black/5", tam)}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={MARCA.logo} alt={MARCA.dona} className="h-full w-full object-contain" />
-    </span>
-  );
+  // no portal: só o desenho do SGE (o mesmo da barra do portal), sem a caixa branca
+  const logo = (tam: string) =>
+    noPortal ? (
+      <span className={cx("flex shrink-0 items-center justify-center", tam)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/sge-core-/v1/assets/sge-logo-recortado.svg" alt={MARCA.dona} className="h-full w-full object-contain" />
+      </span>
+    ) : (
+      <span className={cx("flex shrink-0 items-center justify-center rounded-md bg-white p-1 shadow-sm ring-1 ring-black/5", tam)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={MARCA.logo} alt={MARCA.dona} className="h-full w-full object-contain" />
+      </span>
+    );
   const botaoTema = (
     <button
       type="button"
@@ -75,7 +82,7 @@ export function BarraSuperior() {
   return (
     <>
       {/* computador */}
-      <header className="sticky top-0 z-[1000] hidden h-[62px] items-center gap-3 border-b border-nav-borda bg-nav px-5 text-nav-texto shadow-[0_1px_0_rgba(255,255,255,0.04),0_6px_16px_-8px_rgba(0,0,0,0.5)] md:flex">
+      <header className="barra-sge sticky top-0 z-[1000] hidden h-[62px] items-center gap-3 border-b border-nav-borda bg-nav px-5 text-nav-texto shadow-[0_1px_0_rgba(255,255,255,0.04),0_6px_16px_-8px_rgba(0,0,0,0.5)] md:flex">
         <Link href="/" onClick={inicioDoPortal} className="flex shrink-0 items-center gap-3 whitespace-nowrap hover:no-underline">
           {logo("h-9 w-9")}
           <span className="leading-tight">
@@ -110,7 +117,7 @@ export function BarraSuperior() {
       </header>
 
       {/* celular */}
-      <header className="sticky top-0 z-[1000] flex h-14 items-center gap-2.5 border-b border-nav-borda bg-nav px-3.5 text-nav-texto md:hidden">
+      <header className="barra-sge sticky top-0 z-[1000] flex h-14 items-center gap-2.5 border-b border-nav-borda bg-nav px-3.5 text-nav-texto md:hidden">
         {noPortal ? (
           <button type="button" onClick={inicioDoPortal} title="Início do portal" aria-label="Início do portal" className="shrink-0">
             {logo("h-[34px] w-[34px]")}

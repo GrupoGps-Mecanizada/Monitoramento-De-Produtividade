@@ -1,5 +1,8 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Barra clara no portal · 25/10/2026
+- Dentro do Portal SGE a barra de cima fica clara, em azul ardósia, igual à do portal (classe `no-portal` em `lib/portal.ts`, cores em `globals.css`), e o logo é só o desenho do SGE, sem a caixa branca. Fora do portal nada muda. Pedido do dono (P-139).
+
 ## Equipamentos sem o cartão de cima · 22/10/2026
 - Sai o cartão do topo da tela Equipamentos (título "Matriz de equipamentos", aviso e filtros por status), pedido do dono. Os botões "+ Novo equipamento" e "Supervisores e regimes" passam para a faixa da planilha (no celular, em cima da lista) e a planilha fica mais alta.
 

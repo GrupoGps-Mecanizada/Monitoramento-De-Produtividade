@@ -28,8 +28,10 @@ export function portalSGE(): Portal | null {
 
 /** A barra do Monitoramento se apresenta ao portal (ele esconde a dele). */
 export function avisarBarraAoPortal() {
+  const portal = portalSGE();
+  if (portal) document.documentElement.classList.add("no-portal"); // barra clara, na cor do portal (globals.css)
   try {
-    portalSGE()?.registrarBarra(window);
+    portal?.registrarBarra(window);
   } catch {
     /* portal antigo: segue com as duas barras */
   }
