@@ -46,9 +46,9 @@ export function BarraSuperior() {
     </button>
   );
 
-  // no portal: só o desenho do SGE (o mesmo da barra do portal), sem a caixa branca
+  // no portal e no tema claro: só o desenho do SGE (o mesmo da barra do portal), sem a caixa branca
   const logo = (tam: string) =>
-    noPortal ? (
+    noPortal && tema === "claro" ? (
       <span className={cx("flex shrink-0 items-center justify-center", tam)}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/sge-core-/v1/assets/sge-logo-recortado.svg" alt={MARCA.dona} className="h-full w-full object-contain" />

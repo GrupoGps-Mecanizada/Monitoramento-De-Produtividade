@@ -438,9 +438,9 @@ textarea:focus {
   gap: 6px;
 }
 
-/* Dentro do Portal SGE: barra de cima clara, em azul ardósia, igual à do portal (classe posta por avisarBarraAoPortal).
+/* Dentro do Portal SGE, no tema claro: barra de cima clara, em azul ardósia, igual à do portal (classe posta por avisarBarraAoPortal).
    Os números coloridos (tabular-nums) continuam brancos. */
-html.no-portal {
+html.no-portal:not([data-tema="escuro"]) {
   --nav: #dbe3ed !important;
   --nav-texto: #0f172a !important;
   --nav-suave: #475569 !important;
@@ -448,9 +448,11 @@ html.no-portal {
   --nav-ativo: rgba(36, 64, 95, 0.14) !important;
   --nav-borda: #c2cedd !important;
 }
-html.no-portal .barra-sge { box-shadow: none; }
-html.no-portal .barra-sge .text-white:not(.tabular-nums),
-html.no-portal .barra-sge .hover\:text-white:hover { color: #0f172a; }
-html.no-portal .barra-sge [class*="border-white"] { border-color: rgba(15, 23, 42, 0.12); }
-html.no-portal .barra-sge [class*="bg-white/"] { background-color: #fff; }
-html.no-portal .barra-sge [class*="bg-white/"]:hover { background-color: #f1f5f9; }
+html.no-portal:not([data-tema="escuro"]) .barra-sge { box-shadow: none; }
+html.no-portal:not([data-tema="escuro"]) .barra-sge .text-white:not(.tabular-nums),
+html.no-portal:not([data-tema="escuro"]) .barra-sge .hover\:text-white:hover { color: #0f172a; }
+html.no-portal:not([data-tema="escuro"]) .barra-sge [class*="border-white"] { border-color: rgba(15, 23, 42, 0.12); }
+html.no-portal:not([data-tema="escuro"]) .barra-sge [class*="bg-white/"] { background-color: #fff; }
+html.no-portal:not([data-tema="escuro"]) .barra-sge [class*="bg-white/"]:hover { background-color: #f1f5f9; }
+/* No tema escuro: o mesmo azul-marinho da barra escura do portal. */
+html.no-portal[data-tema="escuro"] { --nav: #0d1b2e !important; --nav-borda: rgba(255, 255, 255, 0.08) !important; }

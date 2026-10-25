@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#12151b" };
 
 /** Aplica o tema escolhido antes da primeira pintura (sem piscar). */
-const TEMA = `try{var t=localStorage.getItem("mon-tema");if(t==="claro"||t==="escuro")document.documentElement.dataset.tema=t}catch(e){}`;
+const TEMA = `var t="claro";try{t=localStorage.getItem("sge_tema")||"claro"}catch(e){}document.documentElement.dataset.tema=t==="escuro"?"escuro":"claro"`;
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (

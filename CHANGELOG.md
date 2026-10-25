@@ -1,5 +1,8 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Tema único com o portal · 25/10/2026
+- Tema claro/escuro igual ao do Portal SGE e dos outros sistemas (chave `sge_tema`, `lib/tema.ts` e o script do `app/layout.tsx`): trocar o tema em qualquer barra troca o Monitoramento junto; **sem escolha, sempre claro**. No portal, a barra fica clara (ardósia) no tema claro e azul-marinho no escuro, com o logo na caixa branca. Pedido do dono (P-142).
+
 ## Barra clara no portal · 25/10/2026
 - Dentro do Portal SGE a barra de cima fica clara, em azul ardósia, igual à do portal (classe `no-portal` em `lib/portal.ts`, cores em `globals.css`), e o logo é só o desenho do SGE, sem a caixa branca. Fora do portal nada muda. Pedido do dono (P-139).
 
