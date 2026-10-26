@@ -456,3 +456,11 @@ html.no-portal:not([data-tema="escuro"]) .barra-sge [class*="bg-white/"] { backg
 html.no-portal:not([data-tema="escuro"]) .barra-sge [class*="bg-white/"]:hover { background-color: #f1f5f9; }
 /* No tema escuro: o mesmo azul-marinho da barra escura do portal. */
 html.no-portal[data-tema="escuro"] { --nav: #0d1b2e !important; --nav-borda: rgba(255, 255, 255, 0.08) !important; }
+
+/* Menu da barra de cima só com ícones: o nome abre ao lado do ícone ao passar o mouse (ou focar/abrir),
+   como a barra lateral do portal; parado, fica escondido. */
+.rotulo-expande, .seta-expande { display: inline-block; max-width: 0; opacity: 0; margin-left: 0; overflow: hidden; white-space: nowrap; vertical-align: middle;
+  transition: max-width .25s ease, opacity .2s ease, margin-left .25s ease; }
+nav[aria-label="Menu principal"] :is(a, button):is(:hover, :focus-visible, [aria-expanded="true"]) .rotulo-expande { max-width: 240px; opacity: 1; margin-left: 8px; }
+nav[aria-label="Menu principal"] :is(a, button):is(:hover, :focus-visible, [aria-expanded="true"]) .seta-expande { max-width: 14px; opacity: 1; margin-left: 4px; }
+@media (prefers-reduced-motion: reduce) { .rotulo-expande, .seta-expande { transition: none; } }

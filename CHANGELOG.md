@@ -1,5 +1,8 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Menu só com ícones · 26/10/2026
+- Menu da barra de cima só com os ícones; o nome (e a setinha) abre ao lado ao passar o mouse, focar ou abrir, como a barra lateral do Portal SGE (`menu-categorias.tsx`, `globals.css`). Pedido do dono (P-166).
+
 ## Tema único com o portal · 25/10/2026
 - Tema claro/escuro igual ao do Portal SGE e dos outros sistemas (chave `sge_tema`, `lib/tema.ts` e o script do `app/layout.tsx`): trocar o tema em qualquer barra troca o Monitoramento junto; **sem escolha, sempre claro**. No portal, a barra fica clara (ardósia) no tema claro e azul-marinho no escuro, com o logo na caixa branca. Pedido do dono (P-142).
 
