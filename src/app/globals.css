@@ -362,7 +362,7 @@ textarea:focus {
 
 /* telas de mapa ocupam o espaço entre a barra superior e (no celular) a barra inferior */
 .altura-tela { height: calc(100dvh - 56px - 64px); }
-@media (min-width: 768px) { .altura-tela { height: calc(100dvh - 62px); } }
+@media (min-width: 768px) { .altura-tela { height: calc(100dvh - 48px); } }
 
 .leaflet-container { font-family: var(--font-sans); background: #1b1f27; }
 .leaflet-tooltip.rotulo-cerca { font: 600 11px var(--font-sans); }

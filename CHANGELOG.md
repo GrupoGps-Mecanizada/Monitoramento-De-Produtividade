@@ -1,5 +1,8 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Barra de cima mais fina · 28/10/2026
+- Barra de cima de 62 para 48 px no computador, igual à barra universal do sge-core 1.9.2. Logo, botões e avatar menores para caber. Pedido do Warlison.
+
 ## Menu só com ícones · 26/10/2026
 - Menu da barra de cima só com os ícones; o nome (e a setinha) abre ao lado ao passar o mouse, focar ou abrir, como a barra lateral do Portal SGE (`menu-categorias.tsx`, `globals.css`). Pedido do dono (P-166).
 

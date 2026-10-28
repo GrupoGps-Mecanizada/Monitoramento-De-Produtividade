@@ -38,7 +38,7 @@ export function BarraSuperior() {
       onClick={() => portalSGE()?.sair()}
       title="Sair do portal"
       aria-label="Sair"
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.05] text-nav-texto transition-colors hover:bg-white/[0.1]"
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.05] text-nav-texto transition-colors hover:bg-white/[0.1]"
     >
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10" />
@@ -65,7 +65,7 @@ export function BarraSuperior() {
       onClick={alternarTema}
       title={tema === "escuro" ? "Tema claro" : "Tema escuro"}
       aria-label="Alternar tema"
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.05] text-nav-texto transition-colors hover:bg-white/[0.1]"
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.05] text-nav-texto transition-colors hover:bg-white/[0.1]"
     >
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden>
         <circle cx="12" cy="12" r="8" />
@@ -82,9 +82,9 @@ export function BarraSuperior() {
   return (
     <>
       {/* computador */}
-      <header className="barra-sge sticky top-0 z-[1000] hidden h-[62px] items-center gap-3 border-b border-nav-borda bg-nav px-5 text-nav-texto shadow-[0_1px_0_rgba(255,255,255,0.04),0_6px_16px_-8px_rgba(0,0,0,0.5)] md:flex">
+      <header className="barra-sge sticky top-0 z-[1000] hidden h-[48px] items-center gap-3 border-b border-nav-borda bg-nav px-4 text-nav-texto shadow-[0_1px_0_rgba(255,255,255,0.04),0_6px_16px_-8px_rgba(0,0,0,0.5)] md:flex">
         <Link href="/" onClick={inicioDoPortal} className="flex shrink-0 items-center gap-3 whitespace-nowrap hover:no-underline">
-          {logo("h-9 w-9")}
+          {logo("h-8 w-8")}
           <span className="leading-tight">
             <span className="block text-[15px] font-semibold tracking-tight text-white">
               {MARCA.sigla} <span className="font-normal text-nav-suave">·</span> {MARCA.empresa}
@@ -106,7 +106,7 @@ export function BarraSuperior() {
           type="button"
           onClick={abrirPaleta}
           title="Buscar (Ctrl K)"
-          className="flex h-9 min-w-9 shrink items-center gap-2.5 overflow-hidden whitespace-nowrap rounded-lg border border-white/[0.08] bg-white/[0.05] px-2.5 text-[13px] text-nav-suave transition-colors hover:border-white/15 hover:bg-white/[0.08] hover:text-nav-texto min-[1700px]:w-60"
+          className="flex h-8 min-w-8 shrink items-center gap-2.5 overflow-hidden whitespace-nowrap rounded-lg border border-white/[0.08] bg-white/[0.05] px-2.5 text-[13px] text-nav-suave transition-colors hover:border-white/15 hover:bg-white/[0.08] hover:text-nav-texto min-[1700px]:w-60"
         >
           {iconeBusca("h-[15px] w-[15px] shrink-0")}
           <span className="hidden flex-1 text-left min-[1700px]:inline">Buscar veículo, área…</span>
@@ -120,10 +120,10 @@ export function BarraSuperior() {
       <header className="barra-sge sticky top-0 z-[1000] flex h-14 items-center gap-2.5 border-b border-nav-borda bg-nav px-3.5 text-nav-texto md:hidden">
         {noPortal ? (
           <button type="button" onClick={inicioDoPortal} title="Início do portal" aria-label="Início do portal" className="shrink-0">
-            {logo("h-[34px] w-[34px]")}
+            {logo("h-[30px] w-[30px]")}
           </button>
         ) : (
-          logo("h-[34px] w-[34px]")
+          logo("h-[30px] w-[30px]")
         )}
         <div className="min-w-0 flex-1 leading-tight">
           <p className="text-sm font-semibold">

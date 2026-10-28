@@ -125,7 +125,7 @@ export function Alertas({ topo }: { topo?: ReactNode } = {}) {
         ) : (
           blocos.map((b) => (
             <div key={b.rotulo}>
-              <h3 className="sticky top-[56px] z-10 flex items-center justify-between border-b border-borda bg-superficie-2 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-suave md:top-[62px]">
+              <h3 className="sticky top-[56px] z-10 flex items-center justify-between border-b border-borda bg-superficie-2 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-suave md:top-[48px]">
                 <span>{b.rotulo}</span>
                 <Contador n={b.eventos.length} />
               </h3>
