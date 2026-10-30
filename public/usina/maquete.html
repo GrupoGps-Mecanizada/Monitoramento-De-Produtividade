@@ -2486,12 +2486,18 @@ for (const g of PEGADAS) { // estruturas: retângulo aparado; redondas empurrada
   if (["correia", "viaduto", "subestacao", "tubovia"].includes(g.e.t) || g.e.linha) continue;
   if (g.R) {
     g.R = apararRetangulo(g.R);
-    if (g.R.A < 20) for (let i = 0; i < 12; i++) { // estrutura pequena (torre): se ainda encosta, anda um pouco para longe da pista
-      let sx = 0, sz = 0;
-      for (const [u, v] of [[-1, -1], [1, -1], [1, 1], [-1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]) { const q = pontoRet(g.R, u * g.R.A, v * g.R.B, 0); if (naRua([q[0], q[2]], 1)) { sx += g.R.c[0] - q[0]; sz += g.R.c[1] - q[2]; } }
-      const l = Math.hypot(sx, sz);
-      if (!l) break;
-      g.R = { ...g.R, c: [g.R.c[0] + sx / l, g.R.c[1] + sz / l] };
+    if (g.R.A < 20 || g.e.t === "torre_transferencia") { // estrutura pequena (torre): se ainda encosta, sai de lado, para longe do eixo da pista
+      const pontas = () => [[-1, -1], [1, -1], [1, 1], [-1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]].map(([u, v]) => { const q = pontoRet(g.R, u * g.R.A, v * g.R.B, 0); return [q[0], q[2]]; });
+      if (pontas().some((p) => naRua(p, 0.5))) {
+        const c = g.R.c; let t = null, dm = Infinity;
+        for (const [a, b] of PISTAS_DO_MAPA) { const dx = b[0] - a[0], dz = b[1] - a[1], k = THREE.MathUtils.clamp(((c[0] - a[0]) * dx + (c[1] - a[1]) * dz) / (dx * dx + dz * dz || 1), 0, 1), d = Math.hypot(c[0] - a[0] - dx * k, c[1] - a[1] - dz * k); if (d < dm) { dm = d; t = [dx, dz]; } }
+        const l = Math.hypot(...t), n = [-t[1] / l, t[0] / l], R0 = g.R;
+        for (let d = 1; d < 40; d++) { // o lado que libera primeiro
+          const achou = [1, -1].find((s) => { g.R = { ...R0, c: [c[0] + n[0] * s * d, c[1] + n[1] * s * d] }; return !pontas().some((p) => naRua(p, 0.5)); });
+          if (achou) break;
+          g.R = R0;
+        }
+      }
     }
   }
   else if (g.centro) for (let i = 0; i < g.raio + 4; i++) {
