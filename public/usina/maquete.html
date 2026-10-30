@@ -739,7 +739,7 @@ const INTEL_HD = SEM_FORCA && /Intel/i.test(PLACA);
    uma passada só sobre a imagem pronta, quase do mesmo jeito e a 60 quadros/s. Nas outras placas fica a de 4 amostras. */
 const renderer = new THREE.WebGLRenderer({ canvas: $("cena"), antialias: !INTEL_HD, alpha: true, powerPreference: "high-performance" });
 renderer.setClearColor(0x000000, 0);
-let nitidezMaxima = 1.5;
+let nitidezMaxima = INTEL_HD ? 1 : 1.5; // na Intel HD fica em 1: tela com zoom do Windows (125%, 150%) custava até 2x mais pontos
 const nitidez = () => Math.min(devicePixelRatio, estado.qualidade === "alta" ? nitidezMaxima : 1);
 renderer.setPixelRatio(nitidez());
 renderer.setSize(innerWidth, innerHeight);
@@ -3765,7 +3765,7 @@ function texturaDetalheChao() {
   }
   const tex = new THREE.DataTexture(dados, N, N, THREE.RGBAFormat);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearMipmapLinearFilter;
-  tex.generateMipmaps = true; tex.anisotropy = Math.min(8, ANISO); tex.needsUpdate = true;
+  tex.generateMipmaps = true; tex.anisotropy = 4; tex.needsUpdate = true;
   return tex;
 }
 const GLSL_RUIDO = `
@@ -3789,20 +3789,12 @@ function texturizarChao(mat, classes) {
   int classeP = int(vClasse + 0.5);
   vec2 pm = vMundo;
   if (forcaPadrao > 0.0) {
-    diffuseColor.rgb = mix(diffuseColor.rgb, mediasClasse[classeP], retalho);
-    vec2 uvF = vec2((pm.x - retFundo.x) / retFundo.z, 1.0 - (pm.y - retFundo.y) / retFundo.w);
-    if (temFundo > 0.0 && classeP != 0 && uvF.x > 0.0 && uvF.y > 0.0 && uvF.x < 1.0 && uvF.y < 1.0) { // a foto bem desfocada, com a mesma correção de cor da visão Foto
-      vec3 fo = texture2D(fundoChao, uvF).rgb; float lf = dot(fo, vec3(0.2126, 0.7152, 0.0722));
-      fo = max((mix(vec3(lf), fo, 1.22) - 0.1) * 1.16 + 0.1, 0.0);
-      diffuseColor.rgb = mix(diffuseColor.rgb, fo, misturaFundo);
-    }
     vec4 dA = texture2D(texDetalheChao, pm / 64.0);         // copas, grão de 0,5 m, manchas de 4 m e de 16 m
-    float largo = texture2D(texDetalheChao, pm / 640.0 + 0.37).a - 0.5; // manchas de ~160 m
+    float largo = 0.0;
     vec4 g = dA - 0.5;
     float f = 1.0;
     if (classeP == 0) { // mata: copas; uma segunda leitura girada e em outra escala esconde a repetição a cada 64 m
-      float c2 = texture2D(texDetalheChao, mat2(0.8, -0.6, 0.6, 0.8) * pm / 83.0 + 0.31).r;
-      f = mix(dA.r, c2, smoothstep(0.35, 0.65, dA.a)) * 2.0 + largo * 0.18;
+      f = dA.r * 2.0;
     } else if (classeP == 1) f = 1.0 + g.g * 0.2 + g.b * 0.18 + g.a * 0.12 + largo * 0.12;    // gramado
     else if (classeP == 3) f = 1.0 + g.g * 0.36 + g.b * 0.3 + g.a * 0.3 + largo * 0.2;       // carvão
     else if (classeP == 4) f = 1.0 + g.g * 0.28 + g.b * 0.24 + g.a * 0.26 + largo * 0.16;    // minério
@@ -3826,7 +3818,7 @@ function texturizarChao(mat, classes) {
     totalEmissiveRadiance += vec3(0.62, 0.72, 0.8) * fres * 0.55 * forcaPadrao;
   }`);
   };
-  mat.customProgramCacheKey = () => "chao-padrao-2";
+  mat.customProgramCacheKey = () => "chao-padrao-3";
 }
 
 /* Oclusão de contato (30/10/2026): o chão escurece de leve junto ao pé de cada prédio e estrutura, como na luz real
@@ -3914,38 +3906,69 @@ PECAS.forEach((p) => {
 });
 
 function montarChao() { // monta a malha só na primeira vez que o chão detalhado aparece
-  const { classes, escala, pecas } = SOLO_VETOR, Y = 0.02, pos = [], cor = [], idx = [], cls = [], c3 = new THREE.Color();
+  /* em pedaços de ~600 m (30/10/2026, "rodar extremamente liso"): com a câmera perto, a placa só desenha os pedaços que
+     aparecem na tela, em vez das ~110 mil faces do chão inteiro */
+  const { classes, escala, pecas } = SOLO_VETOR, Y = 0.02, c3 = new THREE.Color(), LADO = 600, pedacos = new Map();
   const anel = (a) => { const v = []; for (let i = 0; i < a.length; i += 2) v.push(new THREE.Vector2(a[i] * escala, a[i + 1] * escala)); return v; };
   classes.forEach((k, c) => {
     for (const peca of pecas) peca.polis[c].forEach(([fora, ...furos], j) => {
       const real = peca.cores?.[c]?.[j];
       c3.set(real ? `#${real}` : COR_SOLO[k]); // a cor da foto naquele lugar; sem foto, a média da classe
-      const contorno = anel(fora), buracos = furos.map(anel), base = pos.length / 3, todos = [contorno, ...buracos].flat();
+      const contorno = anel(fora), buracos = furos.map(anel), todos = [contorno, ...buracos].flat();
       const id = PADRAO_DA_CLASSE[k] ?? 7;
-      for (const v of todos) { pos.push(v.x, Y, v.y); cor.push(c3.r, c3.g, c3.b); cls.push(id); }
-      for (const [a, b, d] of THREE.ShapeUtils.triangulateShape(contorno, buracos)) {
-        const A = todos[a], B = todos[b], D = todos[d], cruz = (B.x - A.x) * (D.y - A.y) - (B.y - A.y) * (D.x - A.x);
-        idx.push(base + a, base + (cruz > 0 ? d : b), base + (cruz > 0 ? b : d)); // sempre virado para cima
+      c3.lerp(new THREE.Color(COR_SOLO[k] || "#888888"), PADRAO_CHAO.retalho.value); // puxa para a média da classe
+      const chave = `${Math.floor(contorno[0].x / LADO)},${Math.floor(contorno[0].y / LADO)}`;
+      const d = pedacos.get(chave) || pedacos.set(chave, { pos: [], cor: [], idx: [], cls: [] }).get(chave), base = d.pos.length / 3;
+      for (const v of todos) { d.pos.push(v.x, Y, v.y); d.cor.push(c3.r, c3.g, c3.b); d.cls.push(id); }
+      for (const [a, b, e] of THREE.ShapeUtils.triangulateShape(contorno, buracos)) {
+        const A = todos[a], B = todos[b], D = todos[e], cruz = (B.x - A.x) * (D.y - A.y) - (B.y - A.y) * (D.x - A.x);
+        d.idx.push(base + a, base + (cruz > 0 ? e : b), base + (cruz > 0 ? b : e)); // sempre virado para cima
       }
     });
   });
-  const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute("normal", new THREE.Float32BufferAttribute(new Float32Array(pos.length).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
-  g.setAttribute("color", new THREE.Float32BufferAttribute(cor, 3));
-  g.setAttribute("classe", new THREE.Float32BufferAttribute(cls, 1));
-  g.setIndex(idx);
-  // uma malha só (uma chamada de desenho), desenhada antes do chão liso: o chão por baixo nem chega a ser pintado ali
+  // desenhados antes do chão liso: o chão por baixo nem chega a ser pintado ali
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -2 });
   texturizarChao(mat, classes);
-  CHAO.malha = new THREE.Mesh(g, mat);
-  CHAO.malha.renderOrder = -1; CHAO.malha.receiveShadow = true; CHAO.malha.matrixAutoUpdate = false;
-  grupoChao.add(CHAO.malha);
+  CHAO.pedacos = [];
+  for (const d of pedacos.values()) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(d.pos, 3));
+    g.setAttribute("normal", new THREE.Float32BufferAttribute(new Float32Array(d.pos.length).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
+    g.setAttribute("color", new THREE.Float32BufferAttribute(d.cor, 3));
+    g.setAttribute("classe", new THREE.Float32BufferAttribute(d.cls, 1));
+    g.userData.corBase = Float32Array.from(d.cor);
+    g.setIndex(d.idx); g.computeBoundingSphere();
+    const m = new THREE.Mesh(g, mat);
+    m.renderOrder = -1; m.receiveShadow = true; m.matrixAutoUpdate = false;
+    grupoChao.add(m); CHAO.pedacos.push(m);
+  }
+  CHAO.malha = CHAO.pedacos[0];
   // película das áreas por cima do chão detalhado: multiplica a cor (branca = invisível; a área escolhida ganha a cor do setor)
   CHAO.topos = matToposAreas.map((m) => new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, transparent: true, depthWrite: false,
     blending: THREE.MultiplyBlending, premultipliedAlpha: true, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -6 }));
 }
 
+/* mistura a foto desfocada da usina na cor de cada vértice (uma vez, quando a foto chega): a cor varia dentro de cada
+   mancha e a borda entre manchas fica mais suave, sem custo nenhum por quadro */
+function assarFundo() {
+  const p0 = PECAS[0], img = p0.texFundo?.image;
+  if (!img || !CHAO.pedacos || CHAO.fundoAssado === p0.texFundo) return;
+  CHAO.fundoAssado = p0.texFundo;
+  const W = img.width, H = img.height, px = img.getContext("2d").getImageData(0, 0, W, H).data, L = p0.recorte.lim;
+  for (const malha of CHAO.pedacos) { const g = malha.geometry;
+  const P = g.attributes.position.array, C = g.attributes.color.array, B = g.userData.corBase, cls = g.attributes.classe.array, k = PADRAO_CHAO.mistura.value, cor = new THREE.Color();
+  for (let v = 0; v < cls.length; v++) {
+    C[v * 3] = B[v * 3]; C[v * 3 + 1] = B[v * 3 + 1]; C[v * 3 + 2] = B[v * 3 + 2];
+    if (cls[v] === 0) continue; // a mata fica com a cor dela (as copas já dão a variação)
+    const u = (P[v * 3] - L.x0) / (L.x1 - L.x0), w = (P[v * 3 + 2] - L.zN) / (L.zS - L.zN);
+    if (u < 0 || w < 0 || u >= 1 || w >= 1) continue;
+    const i = (Math.floor(w * H) * W + Math.floor(u * W)) * 4;
+    cor.setRGB(px[i] / 255, px[i + 1] / 255, px[i + 2] / 255, THREE.SRGBColorSpace);
+    const l = 0.2126 * cor.r + 0.7152 * cor.g + 0.0722 * cor.b, ajusta = (c) => Math.max(0, (l + (c - l) * 1.22 - 0.1) * 1.16 + 0.1);
+    C[v * 3] += (ajusta(cor.r) - C[v * 3]) * k; C[v * 3 + 1] += (ajusta(cor.g) - C[v * 3 + 1]) * k; C[v * 3 + 2] += (ajusta(cor.b) - C[v * 3 + 2]) * k;
+  }
+  g.attributes.color.needsUpdate = true; }
+}
 function aplicarChao() { // chamada pela aplicarVisual
   const det = chaoDetalhado();
   if (det && !CHAO.malha) montarChao();
@@ -3954,6 +3977,7 @@ function aplicarChao() { // chamada pela aplicarVisual
   OCLUSAO.forca.value = OCLUSAO.mapa.value && ehCidade() && camadaLigada("predios") ? 1 : 0;
   FUNDO_CIDADE.value = ehCidade() ? 1 : 0;
   const p0 = PECAS[0];
+  if (det) assarFundo();
   if (p0.texFundo && PADRAO_CHAO.fundo.value !== p0.texFundo) { // a foto desfocada da usina, para suavizar as manchas
     const L = p0.recorte.lim;
     PADRAO_CHAO.fundo.value = p0.texFundo; PADRAO_CHAO.temFundo.value = 1; PADRAO_CHAO.retFundo.value.set(L.x0, L.zN, L.x1 - L.x0, L.zS - L.zN);
@@ -4361,8 +4385,19 @@ const animando = () => fumacaViva() || frotaAndando() || vidaViva() || tremAndan
 const medidor = { tempos: [], mexendo: [], degrau: 0 };
 const DEGRAUS = [
   ["nitidez", () => { nitidezMaxima = 1; renderer.setPixelRatio(nitidez()); renderer.setSize(innerWidth, innerHeight); }],
+  ["resolução em movimento 80%", () => { fatorMovimento = 0.8; }],
+  ["textura do chão simples", () => { if (typeof PADRAO_CHAO !== "undefined") PADRAO_CHAO.forca.value = 0; }],
   ["fumaça parada", () => { fumacaParada = true; }],
+  ["resolução em movimento 65%", () => { fatorMovimento = 0.65; }],
 ];
+/* resolução dinâmica (30/10/2026, "rodar extremamente liso"): numa placa fraca, enquanto a câmera anda o quadro é desenhado
+   com menos pontos (fatorMovimento, ligado pelo ajuste automático); parada, volta à nitidez cheia logo em seguida */
+let fatorMovimento = 1, timerNitidez = null;
+function resolucaoDoQuadro(mexendo) {
+  const alvo = nitidez() * (mexendo ? fatorMovimento : 1);
+  if (Math.abs(renderer.getPixelRatio() - alvo) > 0.01) { renderer.setPixelRatio(alvo); renderer.setSize(innerWidth, innerHeight); }
+  if (alvo < nitidez()) { clearTimeout(timerNitidez); timerNitidez = setTimeout(pedirDesenho, 450); } // parou: um quadro nítido
+}
 function medir(dt) {
   if (viagem || medidor.degrau >= DEGRAUS.length) return;
   // com a câmera andando o movimento tem de ficar liso (abaixo de ~38 quadros/s alivia); parada, a animação já vai a ~30 de propósito
@@ -4373,7 +4408,7 @@ function medir(dt) {
   if (lista.length < 60) return;
   const tipico = lista.sort((a, b) => a - b)[lista.length >> 1]; // o quadro do meio: um tranco solto (carregando a foto) não conta
   lista.length = 0;
-  if (tipico > (mexendo ? 0.026 : 0.045)) DEGRAUS[medidor.degrau++][1]();
+  if (tipico > (mexendo ? 0.021 : 0.06)) { DEGRAUS[medidor.degrau++][1](); pedirDesenho(); }
 }
 function pedirDesenho() { if (!pedido) { pedido = true; requestAnimationFrame(desenhar); } }
 /* zoom suave: a rodinha marca quanto aproximar e a câmera chega lá aos poucos, na direção do ponto sob o mouse
@@ -4404,7 +4439,7 @@ function aplicarZoom(dt) {
 let mexeuEm = 0; // última vez que a câmera andou: enquanto ela anda (e no deslize ao soltar), tudo a quadro cheio
 function desenhar(agora) {
   pedido = false;
-  if (animando() && !interagindo && !viagem && !zoom.resto && agora - mexeuEm > 400 && agora - ultimoQuadro < 32) { pedirDesenho(); return; } // câmera parada: fumaça e trem a ~30 quadros por segundo
+  if (animando() && !interagindo && !viagem && !zoom.resto && agora - mexeuEm > 400 && agora - ultimoQuadro < 48) { pedirDesenho(); return; } // câmera parada: fumaça e trem a ~20 quadros por segundo (menos calor na placa)
   const dt = Math.min(0.1, (agora - (ultimoQuadro || agora)) / 1000); ultimoQuadro = agora;
   if (aplicarZoom(dt || 1 / 60)) pedirDesenho();
   if (viagem) {
@@ -4426,6 +4461,7 @@ function desenhar(agora) {
   if (tremAndando()) animarTrem(dt);
   medir(dt);
   if (animando()) pedirDesenho();
+  resolucaoDoQuadro(interagindo || zoom.resto !== 0 || !!viagem || performance.now() - mexeuEm < 400);
   desenharCena();
   atualizarPlacas();
   if (estado.selecionada || estado.caminhao) posicionarDica();
@@ -5149,7 +5185,8 @@ function montarCamadas(qualidade) { // aba Camadas: um cartão por grupo, com in
 
 function mudarQualidade(q) {
   estado.qualidade = q;
-  if (q === "alta") { nitidezMaxima = 1.5; fumacaParada = false; medidor.degrau = DEGRAUS.length; } // o dono pediu Alta: não alivia sozinho
+  if (q === "alta") { nitidezMaxima = INTEL_HD ? 1 : 1.5; fumacaParada = false; medidor.degrau = DEGRAUS.length; } // o dono pediu Alta: não alivia sozinho
+  if (typeof PADRAO_CHAO !== "undefined") PADRAO_CHAO.forca.value = q === "alta" ? 1 : 0; // no Leve, o chão sem textura
   renderer.setPixelRatio(nitidez());
   renderer.setSize(innerWidth, innerHeight);
   refazerSombras();
@@ -5302,6 +5339,15 @@ window.usina = { // usado nos testes automáticos
   receber: receberFrota, nos: () => GRAFO.nos.length, placa: () => `${PLACA} → ${estado.qualidade}`,
   carga: () => { let t = 0, n = 0; cena.traverseVisible((o) => { const g = o.geometry; if (!o.isMesh || !g?.attributes?.position) return; const k = (g.index ? g.index.count : g.attributes.position.count) / 3; t += o.isInstancedMesh ? k * o.count : g.isInstancedBufferGeometry ? k * (g.instanceCount || 0) : k; n++; }); return { triangulos: Math.round(t), malhas: n }; }, // tudo o que está ligado na cena
   chao: (forca, oclusao, mistura) => { if (typeof PADRAO_CHAO === "undefined") return null; if (forca != null) PADRAO_CHAO.forca.value = forca; if (oclusao != null) OCLUSAO.forca.value = oclusao; if (mistura != null) PADRAO_CHAO.temFundo.value = mistura; pedirDesenho(); return { forca: PADRAO_CHAO.forca.value, oclusao: OCLUSAO.forca.value, fundo: PADRAO_CHAO.temFundo.value }; }, // teste: liga/desliga a textura e a oclusão do chão
+  quadroMs: (n = 30) => { const gl = renderer.getContext(), px = new Uint8Array(4); desenharCena(); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); const t0 = performance.now(); for (let i = 0; i < n; i++) { camera.rotation.z += 0; desenharCena(); } gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return +((performance.now() - t0) / n).toFixed(2); }, // tempo de um quadro (ms), esperando a placa
+  malhas: () => { const l = []; cena.traverseVisible((o) => { const g = o.geometry; if (!(o.isMesh || o.isLineSegments || o.isPoints) || !g?.attributes?.position) return; const k = (g.index ? g.index.count : g.attributes.position.count) / 3; l.push([o.name || o.parent?.name || o.type, o.material?.type || "", Math.round(o.isInstancedMesh ? k * o.count : k), o.isInstancedMesh ? o.count : 1]); }); return l.sort((a, b) => b[2] - a[2]); },
+  alternar: (nome) => { // teste de desempenho: liga/desliga um grupo e devolve o estado
+    const grupos = { chao: [grupoChao], predios: [...PAREDES_PREDIOS, telhadoCidade, equipTelhado], estruturas: Object.values(MALHAS_ESTRUTURAS), ruas: [grupoRuas], detalhes: DETALHES ? [DETALHES.grupo] : [], areas: [grupoAreas], cidade: [grupoCidade], pecas: PECAS.flatMap((p) => [p.chao]), caminhoes: [...Object.values(CORPOS), ...Object.values(PINTURAS), luzes, pilares] };
+    if (nome === "sombra") { renderer.shadowMap.enabled = !renderer.shadowMap.enabled; cena.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => { m.needsUpdate = true; }); }); return renderer.shadowMap.enabled; }
+    if (nome === "dpr") { renderer.setPixelRatio(renderer.getPixelRatio() > 0.8 ? 0.75 : 1); return renderer.getPixelRatio(); }
+    const l = grupos[nome] || []; l.forEach((o) => { if (o) o.visible = !o.visible; }); return l[0]?.visible;
+  },
+  cpuMs: (n = 30) => { const t0 = performance.now(); for (let i = 0; i < n; i++) { controles.update(); atualizarPlacas(); if (DETALHES) DETALHES.animar(i / 30, 1 / 30, true); if (typeof animarVidaEstruturas === "function") animarVidaEstruturas(i / 30, 1 / 30); } return +((performance.now() - t0) / n).toFixed(2); }, // custo do processador por quadro (placas, vida)
   camera: () => [...camera.position.toArray().map(Math.round), Math.round(controles.target.x), Math.round(controles.target.z)], // [x, y, z, alvoX, alvoZ] para usina.ver()
   areas: () => AREAS.map((a) => { const c = centroDe(a.anel), cx = caixaDe(a.anel); return [a.name, a.setor, Math.round(c[0]), Math.round(c[1]), Math.round(Math.max(cx.x1 - cx.x0, cx.zS - cx.zN))]; }),
   predios: (x, z, r = 150) => REGISTRO_PREDIOS.filter((p) => Math.hypot(p.c[0] - x, p.c[1] - z) < r).map((p) => [p.tipo, p.nome || "", Math.round(p.c[0]), Math.round(p.c[1]), Math.round(p.h), Math.round(p.area)]),
