@@ -1,5 +1,8 @@
 # CHANGELOG · Monitoramento de Localização
 
+## DSY6474 produz parado ligado · 30/10/2026
+- A DSY6474 (AP 02) é Alta Pressão sem motor secundário, igual à DSY6472: parado ligado conta como produção e não gera mais alerta "Ligado sem produzir" (P-293). Vale também para os números de produtividade dessa placa.
+
 ## Barra de cima mais fina · 28/10/2026
 - Barra de cima de 62 para 48 px no computador, igual à barra universal do sge-core 1.9.2. Logo, botões e avatar menores para caber. Pedido do Warlison.
 

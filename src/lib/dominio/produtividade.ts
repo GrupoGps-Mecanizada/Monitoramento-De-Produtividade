@@ -13,8 +13,8 @@ const POR_TIPO: Partial<Record<TipoEquip, string>> = {
   av: "stopped", // Alto Vácuo: parado ligado (o vácuo trabalha com o caminhão parado e o motor ligado)
   // Hiper Vácuo, Brook e Aspiradores: sem regra (decisão do dono, 08/10/2026; o GAUSS não registra motor 2º do Hiper Vácuo)
 };
-/** Exceções por placa (sem hífen): o DSY6472 é Alta Pressão, mas produz parado ligado. */
-const POR_PLACA: Record<string, string> = { DSY6472: "stopped" };
+/** Exceções por placa (sem hífen): DSY6472 e DSY6474 são Alta Pressão sem motor secundário, produzem parado ligado. */
+const POR_PLACA: Record<string, string> = { DSY6472: "stopped", DSY6474: "stopped" };
 
 /** Código do status produtivo do equipamento (ex.: "secondary_motor_on"), ou null quando o tipo não tem regra. */
 export function statusProdutivo(tipo: TipoEquip | undefined, placa: string): string | null {
