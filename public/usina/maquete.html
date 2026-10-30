@@ -380,7 +380,7 @@ input,textarea,.dados,.dados *{-webkit-user-select:text;user-select:text}
   </div>
   <div class="corpo" id="legenda"></div>
 </section>
-<div class="rodape" id="rodape">Foto: Esri · prédios, ferrovia, chaminés e linhas de energia: © OpenStreetMap · cercas do GAUSS · alturas ilustrativas · caminhões 5x maiores · carros ilustrativos</div>
+<div class="rodape" id="rodape">Foto: Esri · prédios, ferrovia, chaminés e linhas de energia: © OpenStreetMap · cercas do GAUSS · alturas, fachadas e texturas do chão ilustrativas · tubovias da varredura da foto · caminhões 5x maiores · carros ilustrativos</div>
 <div class="marca"><b>Grupo GPS</b> / Mecanizada</div>
 
 <script type="importmap">
@@ -633,8 +633,8 @@ function triangulos(anel, y, uv) { // topo plano de um polígono, sempre virado 
   }
   return { pos, uvs };
 }
-function paredes(anel, y0, y1, uvU = 1, uvV = 1) { // paredes de um polígono, com normal para fora
-  const pos = [], nor = [], uvs = [], sentido = Math.sign(areaComSinal(anel)) || 1;
+function paredes(anel, y0, y1, uvU = 1, uvV = 1) { // paredes de um polígono, com normal para fora; seg = [metro no lado, tamanho do lado]
+  const pos = [], nor = [], uvs = [], seg = [], sentido = Math.sign(areaComSinal(anel)) || 1;
   let percorrido = 0;
   for (let k = 0; k < anel.length; k++) {
     const [ax, az] = anel[k], [bx, bz] = anel[(k + 1) % anel.length], comp = Math.hypot(bx - ax, bz - az);
@@ -645,9 +645,9 @@ function paredes(anel, y0, y1, uvU = 1, uvV = 1) { // paredes de um polígono, c
     const q = sentido > 0
       ? [[ax, y0, az, u0, v0], [ax, y1, az, u0, v1], [bx, y0, bz, u1, v0], [bx, y0, bz, u1, v0], [ax, y1, az, u0, v1], [bx, y1, bz, u1, v1]]
       : [[ax, y0, az, u0, v0], [bx, y0, bz, u1, v0], [ax, y1, az, u0, v1], [bx, y0, bz, u1, v0], [bx, y1, bz, u1, v1], [ax, y1, az, u0, v1]];
-    for (const [x, y, z, u, v] of q) { pos.push(x, y, z); nor.push(nx, 0, nz); uvs.push(u, v); }
+    for (const [x, y, z, u, v] of q) { pos.push(x, y, z); nor.push(nx, 0, nz); uvs.push(u, v); seg.push((u - u0) * uvU, comp); }
   }
-  return { pos, nor, uvs };
+  return { pos, nor, uvs, seg };
 }
 function geometria({ pos, nor, uvs, cor }) {
   const g = new THREE.BufferGeometry();
@@ -1064,23 +1064,89 @@ cena.add(grupoReal);
 const PALETA_GALPAO = ["#c3c7cb", "#a9b3bd", "#8d9fb2", "#b8b0a3", "#9aa7a0", "#a8927a", "#7f8f9e"].map((c) => new THREE.Color(c));
 const PALETA_PREDIO = ["#e4ded3", "#d6cdbd", "#cfd5da", "#e8e4dc", "#c9c1b4"].map((c) => new THREE.Color(c));
 
-function texturaJanelas() { // um andar (3,5 m) por 6 m de fachada
-  const t = document.createElement("canvas"); t.width = 128; t.height = 96;
-  const ctx = t.getContext("2d");
-  ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, 128, 96);
-  ctx.fillStyle = "#e6e6e6"; ctx.fillRect(0, 0, 128, 10);
-  for (let k = 0; k < 3; k++) { ctx.fillStyle = "#3d5266"; ctx.fillRect(8 + k * 40, 30, 30, 40); ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.fillRect(8 + k * 40, 30, 30, 8); }
-  const tex = new THREE.CanvasTexture(t); tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.anisotropy = ANISO;
-  return tex;
+/* fachada desenhada na placa de vídeo, em metros (não estica com a altura); de longe o desenho some sozinho (sem chuvisco) */
+const GLSL_PREDIO = `
+float aparecePredio(float s, float w) { return 1.0 - smoothstep(0.25 * s, 0.7 * s, w); }
+float acasoPredio(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+`;
+function materialFachada() {
+  const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+  m.onBeforeCompile = (s) => {
+    s.vertexShader = s.vertexShader
+      .replace("#include <common>", "#include <common>\nattribute vec4 fachada;\nvarying vec4 vFac;\nvarying float vYP;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvFac = fachada;\nvYP = (modelMatrix * vec4(transformed, 1.0)).y;");
+    s.fragmentShader = s.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying vec4 vFac;\nvarying float vYP;\n" + GLSL_PREDIO)
+      .replace("#include <color_fragment>", `#include <color_fragment>
+  {
+    float u = vFac.x, L = vFac.y, H = vFac.z, y = vYP; int tipo = int(vFac.w + 0.5);
+    float wU = fwidth(u), wY = fwidth(y), w = max(wU, wY), f = 1.0;
+    if (y > H + 0.02) f = L > 0.0 ? 0.62 : 1.0; // platibanda (os oitões das naves seguem a telha)
+    else if (tipo == 0 || tipo == 3) { // galpão e nave: telha metálica
+      float nave = tipo == 3 ? 1.0 : 0.0, base = 1.0 - step(1.8 + nave * 0.7, y);
+      f = mix(1.0, 0.8, base);
+      f *= 1.0 - (1.0 - base) * 0.09 * (0.5 + 0.5 * sin(u * 25.13)) * aparecePredio(0.25, wU); // nervuras a cada 25 cm
+      float passoP = mix(8.0, 10.0, nave), dp = abs(fract(u / passoP) - 0.5) * passoP;
+      f *= 1.0 - 0.12 * (1.0 - smoothstep(0.15, 0.3, dp)) * aparecePredio(0.6, wU) * (1.0 - base) * step(1.0, L); // pilares
+      if (H > 7.0) f = mix(f, 1.22, step(H - 3.4 - nave * 1.5, y) * step(y, H - 1.6) * aparecePredio(1.0, wY)); // telha translúcida
+      f *= 1.0 - 0.35 * step(H - 0.45, y) * step(1.0, L); // calha no beiral
+      if (L > 12.0) { // portões de enrolar: um a cada ~32 m (45 m na nave) em cada lado
+        float n = max(1.0, floor(L / mix(32.0, 45.0, nave))), passo = L / n, du = abs(mod(u, passo) - passo * 0.5);
+        float larg = mix(2.6, 4.0, nave), alt = min(mix(5.5, 9.0, nave), H - 2.2);
+        if (du < larg && y < alt) f = (du > larg - 0.25 || y > alt - 0.3) ? 0.85 : 0.52 + 0.07 * (0.5 + 0.5 * sin(y * 34.9)) * aparecePredio(0.18, wY);
+      }
+      f *= 1.0 - 0.1 * (1.0 - smoothstep(0.0, 3.5, y)) * (1.0 - base); // sujeira subindo do chão
+    } else if (tipo == 1) { // administrativo: janelas em fita por andar, montantes a cada 1,5 m e entrada no térreo
+      float ya = mod(y, 3.5), mont = abs(fract(u / 1.5) - 0.5) * 1.5;
+      float jan = step(1.0, ya) * step(ya, 2.5) * step(y, H - 0.8) * step(0.06, mont) * step(0.6, u) * step(u, L - 0.6);
+      f = mix(1.0, 0.3 + 0.16 * (ya - 1.0) / 1.5, jan * aparecePredio(0.6, w));
+      if (L > 10.0 && abs(u - L * 0.5) < 1.4 && y < 2.6) f = 0.36;
+      f *= 1.0 - 0.1 * (1.0 - smoothstep(0.0, 0.6, y));
+    } else if (tipo == 2) { // casa técnica: reboco, janelinhas, venezianas no alto e porta
+      float q = abs(mod(u, 6.0) - 3.0);
+      f = mix(1.0, 0.4, step(q, 0.6) * step(1.7, y) * step(y, min(2.7, H - 0.6)) * aparecePredio(0.5, w));
+      float ven = step(H - 1.6, y) * step(y, H - 0.5) * step(abs(mod(u + 3.0, 6.0) - 3.0), 1.0) * step(3.2, H);
+      f = mix(f, 0.6 + 0.14 * (0.5 + 0.5 * sin(y * 52.4)) * aparecePredio(0.12, wY), ven * aparecePredio(0.6, w));
+      if (L > 5.0 && abs(u - L * 0.3) < 0.6 && y < 2.3) f = 0.45;
+      f *= 1.0 - 0.12 * (1.0 - smoothstep(0.0, 0.5, y));
+    }
+    diffuseColor.rgb *= f;
+  }`);
+  };
+  m.customProgramCacheKey = () => "fachada-1";
+  return m;
 }
-function texturaTelha() { // faixas da telha metálica, com a sujeira escorrendo de baixo
-  const t = document.createElement("canvas"); t.width = 128; t.height = 128;
-  const ctx = t.getContext("2d");
-  for (let x = 0; x < 128; x++) { const v = 228 + Math.round(Math.sin((x / 128) * Math.PI * 2 * 12) * 18); ctx.fillStyle = `rgb(${v},${v},${v})`; ctx.fillRect(x, 0, 1, 128); }
-  const g = ctx.createLinearGradient(0, 128, 0, 70); g.addColorStop(0, "rgba(60,48,38,.35)"); g.addColorStop(1, "rgba(60,48,38,0)");
-  ctx.fillStyle = g; ctx.fillRect(0, 70, 128, 58);
-  const tex = new THREE.CanvasTexture(t); tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = THREE.RepeatWrapping; tex.anisotropy = ANISO;
-  return tex;
+/* telhado da Cidade: telha ondulada descendo a água, faixas de telha translúcida, cumeeira e beiral marcados; laje com manta
+   em placas; lanternim com venezianas. A cor de cada telhado continua sendo a medida na foto. */
+function materialTelhado() {
+  const m = new THREE.MeshLambertMaterial({ vertexColors: true });
+  m.onBeforeCompile = (s) => {
+    s.vertexShader = s.vertexShader
+      .replace("#include <common>", "#include <common>\nattribute vec4 telha;\nvarying vec4 vTel;\nvarying vec3 vMP;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvTel = telha;\nvMP = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+    s.fragmentShader = s.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying vec4 vTel;\nvarying vec3 vMP;\n" + GLSL_PREDIO)
+      .replace("#include <color_fragment>", `#include <color_fragment>
+  {
+    int tt = int(vTel.w + 0.5); float f = 1.0;
+    if (tt == 1) { // duas águas
+      float sR = dot(vMP.xz, vTel.xy), v = abs(vTel.z), wS = fwidth(sR), wV = fwidth(v);
+      f = 1.0 - 0.08 * (0.5 + 0.5 * sin(sR * 20.94)) * aparecePredio(0.3, wS); // nervuras a cada 30 cm
+      float clara = step(0.4, v) * step(v, 0.55) * step(0.55, fract(sR / 9.0)); // telhas translúcidas em faixa no meio da água
+      f = mix(f, 1.28, clara * aparecePredio(1.2, max(wS, wV * 20.0)));
+      f *= 1.0 - 0.2 * (1.0 - smoothstep(0.0, 0.04, v)) - 0.14 * smoothstep(0.9, 1.0, v); // cumeeira e beiral
+    } else if (tt == 2) { // lanternim: venezianas nas laterais
+      f = 1.0 - 0.18 * (0.5 + 0.5 * sin(vMP.y * 41.9)) * aparecePredio(0.15, fwidth(vMP.y));
+    } else { // laje: manta em placas de 1 x 2 m, com manchas
+      vec2 q = vMP.xz / vec2(1.0, 2.0), r = abs(fract(q) - 0.5);
+      float w = max(fwidth(vMP.x), fwidth(vMP.z));
+      f = 1.0 - 0.06 * step(0.47, max(r.x, r.y)) * aparecePredio(0.8, w) + (acasoPredio(floor(vMP.xz / 6.0)) - 0.5) * 0.08 * aparecePredio(6.0, w);
+    }
+    diffuseColor.rgb *= f;
+  }`);
+  };
+  m.customProgramCacheKey = () => "telhado-1";
+  return m;
 }
 
 function alturaPredio(area, centro, semente) {
@@ -2171,6 +2237,120 @@ const CATALOGO_3D = {
   correia: modeloCorreia, torre_transferencia: modeloTorreTransferencia, pilha: modeloPilha, empilhadeira: modeloEmpilhadeira,
   subestacao: modeloSubestacao, viaduto: modeloViaduto, outro: modeloOutro, espessador: modeloEspessador, resfriador: modeloResfriadorSinter,
 };
+const MODULOS_3D = { nomes: {}, corPropria: new Set(), dados: {"tubovias":[{"n":"Feixe de tubulacoes / correia amarela","linha":[[-19.486842,-42.549604],[-19.486498,-42.54904],[-19.486109,-42.548182]],"larg":7.8,"h":6,"cor":"amarelo","fonte":"varredura da foto z18, 24/10/2026 (q012)","conf":0.5},{"n":"Tubovia elevada","linha":[[-19.485376,-42.543547],[-19.485517,-42.543118],[-19.485841,-42.54308]],"larg":2.2,"h":5,"cor":"claro","fonte":"varredura da foto z18, 24/10/2026 (q018)","conf":0.45},{"n":"Galeria de tubulação (anel)","linha":[[-19.493037,-42.543949],[-19.492835,-42.543494],[-19.493442,-42.543161],[-19.493568,-42.543402]],"larg":1.7,"h":6,"cor":"claro","fonte":"varredura da foto z18, 24/10/2026 (q019)","conf":0.6},{"n":"Galeria de tubulação para galpão","linha":[[-19.493442,-42.543182],[-19.493341,-42.54285]],"larg":1.7,"h":6,"cor":"claro","fonte":"varredura da foto z18, 24/10/2026 (q019)","conf":0.5},{"n":"Galeria longa sul (contorno da área dos espessadores)","linha":[[-19.481664,-42.539958],[-19.482008,-42.540103],[-19.482776,-42.539771],[-19.483105,-42.539363],[-19.483302,-42.539299]],"larg":4.5,"h":8,"cor":"concreto","fonte":"varredura da foto z18, 24/10/2026 (q022)","conf":0.5},{"n":"Tubulação ao longo do galpão comprido","linha":[[-19.483307,-42.539288],[-19.483363,-42.539014],[-19.483661,-42.538033],[-19.483803,-42.537571]],"larg":4.5,"h":10,"cor":"claro","fonte":"varredura da foto z18, 24/10/2026 (q022)","conf":0.6},{"n":"Duto de gás vertical (leste)","linha":[[-19.48308,-42.537705],[-19.483535,-42.537383],[-19.483838,-42.537437],[-19.484243,-42.537544],[-19.484597,-42.537652]],"larg":4.5,"h":12,"cor":"amarelo","fonte":"varredura da foto z18, 24/10/2026 (q022)","conf":0.5},{"n":"Duto de gás diagonal","linha":[[-19.482286,-42.538016],[-19.482468,-42.537324]],"larg":3.9,"h":20,"cor":"amarelo","fonte":"varredura da foto z18, 24/10/2026 (q022)","conf":0.5},{"n":"Tubulação de gás elevada (oeste do gasômetro)","linha":[[-19.485249,-42.538],[-19.485553,-42.537813],[-19.485983,-42.537598],[-19.486134,-42.537491]],"larg":4.5,"h":12,"cor":"amarelo","fonte":"varredura da foto z18, 24/10/2026 (q023)","conf":0.6},{"n":"Tubulação de gás elevada (leste do gasômetro)","linha":[[-19.48487,-42.537223],[-19.4853,-42.537008],[-19.485527,-42.536767],[-19.48578,-42.536606],[-19.486134,-42.536552]],"larg":5.6,"h":12,"cor":"amarelo","fonte":"varredura da foto z18, 24/10/2026 (q023)","conf":0.6},{"n":"Tubulação de gás elevada (diagonal sul)","linha":[[-19.488461,-42.539395],[-19.487854,-42.538483],[-19.487651,-42.538054],[-19.487247,-42.537625],[-19.486943,-42.537357],[-19.486539,-42.536981],[-19.486438,-42.536713]],"larg":4.5,"h":8,"cor":"amarelo","fonte":"varredura da foto z18, 24/10/2026 (q023)","conf":0.55},{"n":"Feixe de tubulações amarelas (vertical)","linha":[[-19.482483,-42.532282],[-19.483267,-42.532443],[-19.483975,-42.532684],[-19.48401,-42.532899],[-19.484718,-42.533087]],"larg":5.6,"h":6,"cor":"amarelo","fonte":"varredura da foto z18, 24/10/2026 (q027)","conf":0.6},{"n":"Feixe de tubulações amarelas (sudoeste)","linha":[[-19.484658,-42.534733],[-19.484344,-42.53417],[-19.484,-42.533569]],"larg":6.7,"h":5,"cor":"amarelo","fonte":"varredura da foto z18, 24/10/2026 (q027)","conf":0.55},{"n":"Feixe de tubulações (sudeste)","linha":[[-19.483899,-42.532496],[-19.484116,-42.531703],[-19.484405,-42.530823]],"larg":4.5,"h":5,"cor":"claro","fonte":"varredura da foto z18, 24/10/2026 (q027)","conf":0.45},{"n":"Rack de tubulações principal (diagonal)","linha":[[-19.486175,-42.536316],[-19.485795,-42.535602],[-19.485492,-42.534959],[-19.485376,-42.534814]],"larg":10.1,"h":8,"cor":"ferrugem","fonte":"varredura da foto z18, 24/10/2026 (q028)","conf":0.75},{"n":"Rack de tubos vertical","linha":[[-19.484718,-42.53476],[-19.485173,-42.534825],[-19.485426,-42.534894]],"larg":6.7,"h":8,"cor":"claro","fonte":"varredura da foto z18, 24/10/2026 (q028)","conf":0.7},{"n":"Tubulação diagonal para nordeste","linha":[[-19.485376,-42.534959],[-19.485133,-42.534315],[-19.484769,-42.533151]],"larg":3.4,"h":8,"cor":"claro","fonte":"varredura da foto z18, 24/10/2026 (q028)","conf":0.6},{"n":"Tubulação secundária","linha":[[-19.485527,-42.534948],[-19.48529,-42.534315],[-19.485123,-42.533795]],"larg":2.8,"h":6,"cor":"claro","fonte":"varredura da foto z18, 24/10/2026 (q028)","conf":0.4},{"n":"Tubulação ao longo da avenida","linha":[[-19.485199,-42.533312],[-19.485704,-42.5313]],"larg":2.2,"h":5,"cor":"claro","fonte":"varredura da foto z18, 24/10/2026 (q028)","conf":0.5},{"n":"Tubulação aérea principal (gás)","linha":[[-19.483191,-42.530136],[-19.482903,-42.530018],[-19.482802,-42.529804],[-19.482827,-42.529267],[-19.482888,-42.528827]],"larg":3.4,"h":8,"cor":"amarelo","fonte":"varredura da foto z18, 24/10/2026 (q030)","conf":0.6},{"n":"Tubulação aérea vertical (centro)","linha":[[-19.48218,-42.529079],[-19.482473,-42.528838],[-19.48308,-42.528827]],"larg":2.8,"h":8,"cor":"claro","fonte":"varredura da foto z18, 24/10/2026 (q030)","conf":0.55},{"n":"Tubulação aérea norte-sul","linha":[[-19.482271,-42.529535],[-19.482776,-42.5296]],"larg":3.4,"h":8,"cor":"claro","fonte":"varredura da foto z18, 24/10/2026 (q030)","conf":0.5}]} };
+
+/* ===== módulo patios.js ===== */
+/* =========================================================================
+   Pátios de matérias-primas (30/10/2026): pilhas no formato real de pátio.
+   Pilha longitudinal com encosta reta no ângulo de repouso (~37°), crista estreita (ou topo plano quando a altura medida
+   é menor que a do ângulo), pontas em meio cone, pé levemente esparramado, camadas do empilhamento (faixas de tom pela
+   altura), facetas com variação natural de cor e marcas da retomada. Antes eram "bolhas" arredondadas.
+   Medidas (comprimento, largura, altura) e cor vêm do levantamento da foto; o relevo fino é ilustrativo.
+   ========================================================================= */
+function modeloPilhaPatio({ comprimento = 200, largura = 40, altura = 14, material, elem } = {}) {
+  const L = Math.max(4, comprimento), W = Math.max(2, largura / 2), rep = Math.tan((37 * Math.PI) / 180);
+  const h = Math.max(1.2, Math.min(altura || W * rep, W * rep * 0.97)), wt = Math.max(0, W - h / rep); // meia largura do topo plano
+  const asp = elem?.aspecto, cor = new THREE.Color(material ? MODELO_MATERIAL[material] ?? MODELO_MATERIAL.minerio : MODELO_ASPECTO[asp] ?? MODELO_MATERIAL.misto);
+  if (material && asp) { if (["vermelho", "marrom", "cinza"].includes(asp) && material === "minerio") cor.set(MODELO_ASPECTO[asp]); else if (asp === "claro") cor.multiplyScalar(1.3); else if (asp === "escuro") cor.multiplyScalar(0.8); }
+  const semente = Math.round(Math.abs(L * 13 + W * 7));
+  // perfil: [distância do eixo em metros, altura em metros]; crista arredondada, encosta reta, pé esparramado
+  const st = wt / W, S = [0, st * 0.5, st, st + (1 - st) * 0.06, st + (1 - st) * 0.18, st + (1 - st) * 0.36, st + (1 - st) * 0.55, st + (1 - st) * 0.74, st + (1 - st) * 0.9, 0.97, 1];
+  const alturaEm = (s) => {
+    if (s <= st) return h * (1 - 0.02 * (st > 0 ? s / st : 0));
+    const t = (s - st) / Math.max(1e-6, 1 - st), crista = st > 0 ? 0 : 0.06; // sem topo plano: arredonda a ponta
+    let y = 1 - t;
+    if (t < crista) y = 1 - crista / 2 - (t * t) / (2 * crista); // concordância suave na crista (parábola tangente à encosta)
+    if (t > 0.9) y *= 0.85 + 0.15 * (1 - (t - 0.9) / 0.1); // pé esparramado
+    return h * Math.max(0, y);
+  };
+  const perfil = [...new Set(S.map((s) => Math.min(1, Math.max(0, s))))].sort((a, b) => a - b).map((s) => [s * W, s >= 0.999 ? 0 : alturaEm(s)]);
+  const k = perfil.length, xr = Math.max(0, L / 2 - W);
+  const relevo = (i, j) => 1 + 0.045 * (modeloAcaso(semente + i * 31 + j * 7) - 0.5);
+  const retomada = (x) => 1 - 0.06 * Math.max(0, Math.sin(((x + semente) / (L + 1)) * 11)) ** 6; // trechos já retomados (mais baixos)
+  const pos = [], idx = [], linhas = [];
+  const grade = (ls) => {
+    const base = pos.length / 3, m = ls[0].length;
+    for (const l of ls) for (const q of l) pos.push(...q);
+    for (let i = 0; i < ls.length - 1; i++) for (let j = 0; j < m - 1; j++) { const a = base + i * m + j, b = a + m; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+  };
+  const nx = Math.max(1, Math.round((2 * xr) / Math.max(6, L / 30)));
+  for (let i = 0; i <= nx && xr > 0; i++) { // trecho reto: o perfil de um lado ao outro (-W a +W)
+    const x = -xr + (2 * xr * i) / nx, l = [];
+    for (let j = 0; j < 2 * k - 1; j++) {
+      const [r, y] = perfil[Math.abs(j - (k - 1))], v = (j < k - 1 ? 1 : -1) * r;
+      l.push([x, y === 0 ? 0 : y * relevo(i, j) * retomada(x), v]);
+    }
+    linhas.push(l);
+  }
+  if (linhas.length) grade(linhas);
+  for (const lado of [1, -1]) { // pontas: meio cone com o mesmo perfil
+    const na = 9, l2 = [];
+    for (let i = 0; i <= na; i++) {
+      const a = -Math.PI / 2 + (Math.PI * i) / na, l = [];
+      for (let j = 0; j < k; j++) { const [r, y] = perfil[j]; l.push([lado * (xr + Math.cos(a) * r), y === 0 ? 0 : y * (j === 0 ? 1 : relevo(i + 50 * lado, j)) * retomada(lado * xr), Math.sin(a) * r * lado]); }
+      l2.push(l);
+    }
+    grade(l2);
+  }
+  const g0 = new THREE.BufferGeometry();
+  g0.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g0.setIndex(idx);
+  const g = modeloJuntar([modeloPintar(g0, cor, 0.12)]), c = g.attributes.color.array, P = g.attributes.position.array, azul = new THREE.Color(0x3c6c9a);
+  for (let i = 0; i < c.length; i += 9) { // camadas do empilhamento: faixas de tom pela altura; pé mais escuro, crista um pouco mais clara
+    const y = (P[i + 1] + P[i + 4] + P[i + 7]) / 3, f = (0.9 + 0.12 * (y / h)) * (1 + 0.05 * Math.sin((y / 1.6) * Math.PI + semente));
+    for (let j = 0; j < 9; j++) c[i + j] *= f;
+  }
+  if (elem?.lona) for (let i = 0; i < c.length; i += 9) { // lona azul cobrindo a parte de cima, em retalhos
+    const y = (P[i + 1] + P[i + 4] + P[i + 7]) / 3;
+    if (y > 0.4 * h) for (let j = 0; j < 9; j += 3) { const f = 0.92 + 0.12 * modeloAcaso(i / 9); c[i + j] = azul.r * f; c[i + j + 1] = azul.g * f; c[i + j + 2] = azul.b * f; }
+  }
+  return g;
+}
+CATALOGO_3D.pilha = modeloPilhaPatio;
+
+
+/* ===== módulo tubovias.js ===== */
+/* =========================================================================
+   Tubovias (30/10/2026): os racks de tubulação aérea que ligam as unidades (gás dos altos-fornos e da coqueria, água,
+   vapor, ar). Posição e largura do feixe vêm da varredura da foto (ferramentas/tubovias.py -> dados/json/extra/tubovias.json);
+   na junção da varredura elas tinham ficado de fora ou virado "correia" por engano. Cor aparente na foto: amarelo
+   (gás, pela norma), claro (alumínio/cinza), enferrujado ou concreto. Pórticos, quantidade e diâmetro dos tubos: ilustrativos.
+   ========================================================================= */
+const COR_TUBOVIA = { amarelo: [0xe0b52a, 0xd9a91f, 0xe8c24a, 0x9aa1a8], claro: [0xc4c7ca, 0xaeb3b8, 0x7f9a86, 0xd8d6d0], ferrugem: [0x8a5a3e, 0x7b4e3e, 0x9c6a48, 0xaeb3b8], concreto: [0xb1ada4, 0x9a968e, 0xc4c7ca, 0xaeb3b8] };
+function modeloTubovia({ comprimento = 30, h0 = 6, elem } = {}) {
+  const C = MODELO_COR, L = Math.max(1, comprimento), h = Math.max(3.5, Math.min(h0 || 6, 14)), larg = Math.max(1.2, Math.min(elem?.larg || 3, 10));
+  const cores = COR_TUBOVIA[elem?.corTubo] || COR_TUBOVIA.claro, semente = Math.round(L * 7 + larg * 13 + h);
+  const meia = larg / 2 + 0.35, niveis = larg > 5.5 ? [h - 1.8, h] : [h], p = [];
+  const n = Math.max(1, Math.round(L / 7)); // pórtico a cada ~7 m
+  for (let i = 0; i <= n; i++) {
+    const x = -L / 2 + (L * i) / n;
+    for (const z of [-meia, meia]) p.push(modeloCaixa(0.32, h + 0.25, 0.32, x, 0, z, C.pintado, "yY"));
+    for (const y of niveis) p.push(modeloCaixa(0.28, 0.32, 2 * meia + 0.4, x, y - 0.32, 0, C.pintado, ""));
+    if (i % 3 === 0 && h > 6) p.push(modeloBarra([x, 0.6, -meia], [x, h - 0.5, meia], 0.08, C.sombra, 4)); // contraventamento
+  }
+  for (const z of [-meia, meia]) p.push(modeloCaixa(L + 0.3, 0.22, 0.18, 0, h - 0.22, z, C.pintado, "")); // longarinas
+  for (const [k, y] of niveis.entries()) { // feixe de tubos lado a lado, diâmetros variados
+    let z = -larg / 2;
+    for (let t = 0; t < 9 && z < larg / 2 - 0.2; t++) {
+      const r = Math.min(0.75, 0.16 + 0.42 * modeloAcaso(semente + t * 7 + k * 31) ** 2 + (larg > 6 && t === 0 ? 0.3 : 0)), zc = z + r;
+      if (zc + r > larg / 2 + 0.2) break;
+      const cor = cores[Math.floor(modeloAcaso(semente + t * 3 + k) * (t === 0 ? 1 : cores.length)) % cores.length];
+      p.push(modeloBarra([-L / 2, y + r, zc], [L / 2, y + r, zc], r, cor, 6, 0.35));
+      z = zc + r + 0.18;
+    }
+  }
+  return modeloJuntar(p);
+}
+CATALOGO_3D.tubovia = modeloTubovia;
+MODULOS_3D.nomes.tubovia = "Tubovia (tubulação aérea)";
+MODULOS_3D.corPropria.add("tubovia");
+try {
+  const lista = MODULOS_3D.dados.tubovias || [];
+  if (lista.length) {
+    // o que a varredura juntou como "correia" mas é tubo sai da lista de correias (vira tubovia abaixo)
+    for (let i = ELEMENTOS.length - 1; i >= 0; i--) { const e = ELEMENTOS[i]; if (e.t === "correia" && /tubula|tubovia|duto|rack de tubo|feixe de tubo/i.test(e.n || "")) ELEMENTOS.splice(i, 1); }
+    for (const t of lista) if (t.linha?.length >= 2) ELEMENTOS.push({ t: "tubovia", n: t.n, linha: t.linha, h: t.h, larg: t.larg, corTubo: t.cor, camada: "industria", fonte: t.fonte });
+  }
+} catch (erro) { console.warn("tubovias:", erro); }
 
 const MODELOS = typeof CATALOGO_3D === "undefined" ? {} : CATALOGO_3D;
 const NOME_TIPO = {
@@ -2180,6 +2360,7 @@ const NOME_TIPO = {
   empilhadeira: "Empilhadeira / recuperadora", correia: "Correia transportadora", torre_transferencia: "Torre de transferência",
   viaduto: "Galeria elevada", subestacao: "Subestação", outro: "Estrutura",
 };
+if (typeof MODULOS_3D !== "undefined") Object.assign(NOME_TIPO, MODULOS_3D.nomes); // tipos novos dos módulos (templates/modelos)
 const MATERIAL_PILHA = { minerio: "minério", carvao: "carvão", coque: "coque", sinter: "sínter", escoria: "escória", sucata: "sucata" };
 function blocoSimples({ comprimento = 20, largura = 12, altura = 10 }, cor = 0x9aa1a8) { // tipo sem modelo próprio: bloco industrial
   const g = new THREE.BoxGeometry(comprimento, altura, largura).translate(0, altura / 2, 0).toNonIndexed();
@@ -2265,6 +2446,7 @@ const REGISTRO_ESTRUTURAS = [], MALHAS_ESTRUTURAS = {}; // camada -> malha (indu
    e os detalhes do modelo (escadas, faixas, guarda-corpos) continuam aparecendo. Altos-fornos e gasômetros ficam amarelos
    (escolha do dono, 22/10) e as chaminés com as faixas vermelho e branco. */
 const COR_DO_MODELO = new Set(["gasometro", "alto_forno", "chamine"]);
+if (typeof MODULOS_3D !== "undefined") MODULOS_3D.corPropria.forEach((t) => COR_DO_MODELO.add(t));
 function tingirPelaFoto(geo, cor) {
   const N = geo.attributes.normal.array, C = geo.attributes.color.array;
   for (let i = 0; i < C.length; i += 3) {
@@ -2837,9 +3019,42 @@ const DETALHES = typeof DETALHES_MAPA === "undefined" ? null : DETALHES_MAPA; //
 
 const REGISTRO_PREDIOS = [], PAREDES_PREDIOS = [], TELHADOS_FOTO = [], TOM_TELHADO = [];
 let telhadoCidade = null, equipTelhado = null; // telhados (com a cor real tirada da foto) e equipamentos no teto: só na visão Cidade
+/* Tipos de construção (30/10/2026, "parecia um bairro, não uma usina"): pelo nome do mapa, tamanho, forma e o setor do GAUSS
+   onde está. Cada tipo tem a sua fachada desenhada na placa de vídeo (ilustrativa): nave e galpão com telha metálica, faixa de
+   alvenaria no pé, pilares, faixa de telha translúcida e portões de enrolar; prédio administrativo com janelas por andar e
+   entrada; casa técnica (sala elétrica, casa de bombas) com reboco, janelas pequenas, venezianas e porta. */
+const FACHADA = { galpao: 0, administrativo: 1, tecnica: 2, nave: 3, lisa: 4 };
+const NOME_FACHADA = ["Galpão industrial", "Prédio administrativo", "Casa técnica / sala elétrica", "Nave industrial", "Tanque / silo"];
+const SETORES_ADMIN = new Set(["apoio", "restaurantes", "portoes", "estacionamentos"]);
+function setorNoPonto(c) {
+  let melhor = null, menor = Infinity;
+  for (const a of AREAS) if (a.peca.i === 0 && dentro(c, a.anel)) { const ar = Math.abs(areaComSinal(a.anel)); if (ar < menor) { menor = ar; melhor = a; } }
+  return melhor?.setor || null;
+}
+function fachadaDoPredio(o, anel, area, R, i) {
+  const n = (o.n || "").toLowerCase(), redondo = (4 * Math.PI * area) / perimetro(anel) ** 2;
+  if (redondo > 0.8 && area < 6000) return FACHADA.lisa;
+  if (/escrit|administ|sede|portaria|recep|ambulat|refeit|restaur|vesti|laborat|treinam|clube|escola|centro de|hotel|banco/.test(n) && !/industrial|torre|usina/.test(n)) return FACHADA.administrativo;
+  if (/subesta|casa de|sala el|cabine|compressor|bomba|el[eé]tric/.test(n)) return FACHADA.tecnica;
+  if (/galp|armaz|oficina|dep[oó]sito|almox|cobert|estrutura|hangar/.test(n)) return R && (area > 9000 || 2 * R.A > 160) ? FACHADA.nave : FACHADA.galpao;
+  if (area > 600) return R && (area > 9000 || 2 * R.A > 160) ? FACHADA.nave : FACHADA.galpao;
+  const setor = setorNoPonto(centroDe(anel));
+  if (SETORES_ADMIN.has(setor)) return FACHADA.administrativo;
+  if (area < 120) return FACHADA.tecnica;
+  if (setor) return acaso(i + 31) < 0.3 ? FACHADA.administrativo : FACHADA.tecnica; // dentro das áreas industriais: quase tudo é casa técnica
+  return area > 300 ? FACHADA.administrativo : FACHADA.tecnica;
+}
 {
-  const galpoes = { pos: [], nor: [], uvs: [], cor: [] }, escritorios = { pos: [], nor: [], uvs: [], cor: [] }, telhados = new Map();
-  const cidade = { pos: [], tom: TOM_TELHADO }, equip = { pos: [] };
+  const novo = () => ({ pos: [], nor: [], uvs: [], cor: [], fac: [] });
+  const galpoes = novo(), escritorios = novo(), telhados = new Map();
+  const cidade = { pos: [], tom: TOM_TELHADO, tel: [] }, equip = { pos: [] };
+  const completarTelhado = (de, tipo, R, vc, Bb) => { // atributo "telha" dos vértices novos: eixo da cumeeira, posição na água (0 cumeeira, 1 beiral) e tipo
+    for (let v = de; v < cidade.pos.length / 3; v++) {
+      let rel = 0;
+      if (R && Bb) { const x = cidade.pos[v * 3] - R.c[0], z = cidade.pos[v * 3 + 2] - R.c[1]; rel = (x * R.eb[0] + z * R.eb[1] - vc) / Bb; }
+      cidade.tel.push(R ? R.ea[0] : 0, R ? R.ea[1] : 0, rel, tipo);
+    }
+  };
   PREDIOS.forEach((o, i) => {
     let anel = anelLimpo(o.p);
     if (anel.length < 3) return;
@@ -2849,21 +3064,27 @@ let telhadoCidade = null, equipTelhado = null; // telhados (com a cor real tirad
     const h = o.h || alturaPredio(area, c, i);
     const ehGalpao = area > 600, R = ehGalpao ? retanguloMinimo(anel) : null;
     const duasAguas = !!R && area / R.area > 0.8 && R.B > 6;
-    const tipo = tipoDoPredio(anel, area, ehGalpao, duasAguas), anelOriginal = anel;
+    const fachada = fachadaDoPredio(o, anel, area, R, i), anelOriginal = anel;
+    const tipo = fachada === FACHADA.lisa ? "Tanque / silo" : area < 150 && fachada !== FACHADA.tecnica ? "Edificação pequena" : NOME_FACHADA[fachada];
     if (duasAguas) anel = [pontoRet(R, -R.A, -R.B, 0), pontoRet(R, R.A, -R.B, 0), pontoRet(R, R.A, R.B, 0), pontoRet(R, -R.A, R.B, 0)].map(([x, , z]) => [x, z]);
     const destino = ehGalpao ? galpoes : escritorios;
     const base = (ehGalpao ? PALETA_GALPAO : PALETA_PREDIO)[Math.floor(acaso(i + 7) * (ehGalpao ? 7 : 5))];
     const ini = destino.pos.length / 3;
-    const partes = [paredes(anel, 0, h, 6, ehGalpao ? 8 : 3.5)];
-    if (!duasAguas) partes.push(paredes(anel, h, h + (ehGalpao ? 1.1 : 0.7), 6, 8)); // mureta escura em volta da laje
-    for (const parte of partes) { destino.pos.push(...parte.pos); destino.nor.push(...parte.nor); destino.uvs.push(...parte.uvs); }
-    const sobe = duasAguas ? Math.min(4, R.B * 0.13) : 0;
-    if (duasAguas) for (const s of [-1, 1]) { // oitões: as pontas triangulares, na cor da parede
-      const a = s * R.A, pts = [pontoRet(R, a, -R.B, h), pontoRet(R, a, R.B, h), pontoRet(R, a, 0, h + sobe)];
+    const partes = [paredes(anel, 0, h, 1, 1)];
+    if (!duasAguas) partes.push(paredes(anel, h, h + (ehGalpao ? 1.1 : 0.7), 1, 1)); // platibanda (mureta) em volta da laje
+    for (const parte of partes) {
+      destino.pos.push(...parte.pos); destino.nor.push(...parte.nor); destino.uvs.push(...parte.uvs);
+      for (let k = 0; k < parte.seg.length; k += 2) destino.fac.push(parte.seg[k], parte.seg[k + 1], h, fachada);
+    }
+    // naves largas (mais de ~44 m) viram várias naves lado a lado, cada uma com a sua cumeeira (como na foto da usina)
+    const naves = duasAguas ? Math.max(1, Math.round((2 * R.B) / 30)) : 1, Bb = duasAguas ? R.B / naves : 0, sobe = duasAguas ? Math.min(4, Bb * 0.13) : 0;
+    const centroNave = (k) => -R.B + (2 * k + 1) * Bb;
+    if (duasAguas) for (const s of [-1, 1]) for (let k = 0; k < naves; k++) { // oitões: as pontas triangulares de cada nave, na cor da parede
+      const a = s * R.A, vc = centroNave(k), pts = [pontoRet(R, a, vc - Bb, h), pontoRet(R, a, vc + Bb, h), pontoRet(R, a, vc, h + sobe)];
       const oit = { pos: [] };
       face(oit, [R.c[0], h, R.c[1]], pts);
       destino.pos.push(...oit.pos);
-      for (let k = 0; k < 3; k++) { destino.nor.push(R.ea[0] * s, 0, R.ea[1] * s); destino.uvs.push(0, 0); }
+      for (let q = 0; q < 3; q++) { destino.nor.push(R.ea[0] * s, 0, R.ea[1] * s); destino.uvs.push(0, 0); destino.fac.push(0, 0, h + sobe + 1, fachada); }
     }
     for (let v = ini; v < destino.pos.length / 3; v++) destino.cor.push(base.r, base.g, base.b);
     const t = triangulos(anel, h, uvFoto(peca));
@@ -2873,17 +3094,26 @@ let telhadoCidade = null, equipTelhado = null; // telhados (com a cor real tirad
     const fFim = lista.pos.length / 3;
     const tIni = cidade.pos.length / 3;
     if (duasAguas) {
-      const A = R.A + 0.5, B = R.B + 0.9, yb = h - sobe * (0.9 / R.B), topo = h + sobe, dentroDe = [R.c[0], h - 8, R.c[1]];
-      for (const s of [-1, 1]) face(cidade, dentroDe, [pontoRet(R, -A, s * B, yb), pontoRet(R, A, s * B, yb), pontoRet(R, A, 0, topo), pontoRet(R, -A, 0, topo)], 1);
-      if (R.B > 10) { // lanternim: faixa de ventilação no alto do telhado, laterais escuras
-        const w = Math.max(1.6, R.B * 0.12), alto = 1.4 + R.B * 0.02, [cx, , cz] = pontoRet(R, 0, 0, 0);
-        caixa(cidade, cx, cz, topo - 0.4, R.A * 1.7, w * 2, alto, Math.atan2(R.ea[1], R.ea[0]), 0.5);
-        const fim = cidade.pos.length / 3; // o tampo do lanternim fica na cor do telhado
-        for (let v = fim - 30; v < fim - 24; v++) TOM_TELHADO[v] = 1.05;
+      const A = R.A + 0.5, yb = h - sobe * (0.9 / Bb), topo = h + sobe;
+      for (let k = 0; k < naves; k++) {
+        const vc = centroNave(k), de = cidade.pos.length / 3, dentroDe = pontoRet(R, 0, vc, h - 8);
+        const fora0 = k === 0 ? 0.9 : 0, fora1 = k === naves - 1 ? 0.9 : 0; // beiral só nos lados de fora
+        face(cidade, dentroDe, [pontoRet(R, -A, vc - Bb - fora0, k === 0 ? yb : h), pontoRet(R, A, vc - Bb - fora0, k === 0 ? yb : h), pontoRet(R, A, vc, topo), pontoRet(R, -A, vc, topo)], 1);
+        face(cidade, dentroDe, [pontoRet(R, -A, vc + Bb + fora1, k === naves - 1 ? yb : h), pontoRet(R, A, vc + Bb + fora1, k === naves - 1 ? yb : h), pontoRet(R, A, vc, topo), pontoRet(R, -A, vc, topo)], 1);
+        completarTelhado(de, 1, R, vc, Bb);
+        if (Bb > 10) { // lanternim: faixa de ventilação no alto de cada nave, laterais escuras com venezianas
+          const w = Math.max(1.6, Bb * 0.12), alto = 1.4 + Bb * 0.02, [cx, , cz] = pontoRet(R, 0, vc, 0), de2 = cidade.pos.length / 3;
+          caixa(cidade, cx, cz, topo - 0.4, R.A * 1.7, w * 2, alto, Math.atan2(R.ea[1], R.ea[0]), 0.5);
+          const fimL = cidade.pos.length / 3; // o tampo do lanternim fica na cor do telhado
+          for (let v = fimL - 30; v < fimL - 24; v++) TOM_TELHADO[v] = 1.05;
+          completarTelhado(de2, 2, R, vc, 0);
+        }
       }
     } else {
+      const de = cidade.pos.length / 3;
       cidade.pos.push(...t.pos);
       for (let v = 0; v < t.pos.length / 3; v++) TOM_TELHADO.push(1);
+      completarTelhado(de, 0, null, 0, 0);
       const n = area > 150 ? Math.min(5, 1 + Math.floor(area / 500)) : 0, cx = caixaDe(anel);
       for (let k = 0, tentativas = 0; k < n && tentativas < 30; tentativas++) { // equipamentos no teto (ar-condicionado, casa de máquinas)
         const x = cx.x0 + acaso(i * 13 + tentativas) * (cx.x1 - cx.x0), z = cx.zN + acaso(i * 17 + tentativas * 3) * (cx.zS - cx.zN);
@@ -2894,15 +3124,17 @@ let telhadoCidade = null, equipTelhado = null; // telhados (com a cor real tirad
       }
     }
     REGISTRO_PREDIOS.push({ malha: ehGalpao ? 0 : 1, ini, fim: destino.pos.length / 3, tIni, tFim: cidade.pos.length / 3, fIni, fFim, c, peca, h, base, duasAguas,
-      anel: anelOriginal, tipo, nome: o.n, area, corFoto: o.cor, medidas: R && duasAguas ? [2 * R.A, 2 * R.B] : null });
+      anel: anelOriginal, tipo, fachada, naves, nome: o.n, area, corFoto: o.cor, medidas: R && duasAguas ? [2 * R.A, 2 * R.B] : null });
   });
-  telhadoCidade = new THREE.Mesh(geometria({ pos: cidade.pos, cor: new Array(cidade.pos.length).fill(0.7) }), new THREE.MeshLambertMaterial({ vertexColors: true }));
+  const geoTelhado = geometria({ pos: cidade.pos, cor: new Array(cidade.pos.length).fill(0.7) });
+  geoTelhado.setAttribute("telha", new THREE.Float32BufferAttribute(cidade.tel, 4));
+  telhadoCidade = new THREE.Mesh(geoTelhado, materialTelhado());
   telhadoCidade.castShadow = telhadoCidade.receiveShadow = true;
   equipTelhado = new THREE.Mesh(geometria(equip), new THREE.MeshLambertMaterial({ color: 0xc4c6c8 }));
   equipTelhado.castShadow = equipTelhado.receiveShadow = true;
   grupoReal.add(telhadoCidade, equipTelhado);
-  const mGalpoes = new THREE.Mesh(geometria(galpoes), new THREE.MeshLambertMaterial({ vertexColors: true, map: texturaTelha(), normalMap: mapaNormalOndulado(), side: THREE.DoubleSide }));
-  const mEscritorios = new THREE.Mesh(geometria(escritorios), new THREE.MeshLambertMaterial({ vertexColors: true, map: texturaJanelas(), side: THREE.DoubleSide }));
+  const malhaParedes = (d) => { const g = geometria(d); g.setAttribute("fachada", new THREE.Float32BufferAttribute(d.fac, 4)); return new THREE.Mesh(g, materialFachada()); };
+  const mGalpoes = malhaParedes(galpoes), mEscritorios = malhaParedes(escritorios);
   PAREDES_PREDIOS.push(mGalpoes, mEscritorios);
   REGISTRO_PREDIOS.forEach((r) => pintarParede(r, r.base)); // antes da foto chegar: cor da paleta
   for (const m of [mGalpoes, mEscritorios]) { m.castShadow = m.receiveShadow = true; grupoReal.add(m); }
@@ -2976,7 +3208,7 @@ function pintarTelhado(r, cor) {
 function pintarParede(r, cor) { // pé da parede sujo, beiral escuro no topo
   const malha = PAREDES_PREDIOS[r.malha], P = malha.geometry.attributes.position.array, C = malha.geometry.attributes.color.array;
   for (let v = r.ini; v < r.fim; v++) {
-    const y = P[v * 3 + 1], s = y < 0.01 ? 0.7 : y > r.h + 0.01 && !r.duasAguas ? 0.55 : 1;
+    const s = 1;
     C[v * 3] = cor.r * s; C[v * 3 + 1] = cor.g * s; C[v * 3 + 2] = cor.b * s;
   }
 }
@@ -3485,15 +3717,212 @@ const chaoDetalhado = () => !!SOLO_VETOR && estado.visual === "cidade" && CHAO.m
 const grupoChao = new THREE.Group();
 grupoChao.visible = false; cena.add(grupoChao);
 
+/* Textura do chão (29-30/10/2026, "o chão parecia camuflagem"): cada classe ganha o seu padrão, em metros do mundo,
+   por cima da cor real medida na foto: copas de árvore vistas de cima na mata, grão no gramado, salpicado na terra,
+   grão no carvão e no minério, agregado no asfalto, placas com junta no piso industrial e ondulação com reflexo do céu
+   na água. Ilustrativo: só textura, não muda forma nem cor média. Também aproxima a cor de cada mancha da média da
+   classe e mistura um pouco da foto desfocada (manchas vizinhas deixam de parecer retalhos de camuflagem).
+   Leve: o desenho vem de UMA textura pequena gerada aqui uma vez (texturaDetalheChao) e lida com mipmap; de longe ela
+   vira a própria média e o padrão some sozinho, sem chuvisco. */
+const PADRAO_DA_CLASSE = { mata: 0, grama: 1, agua: 2, carvao: 3, minerio: 4, terra: 5, asfalto: 6, industrial: 7 };
+const PADRAO_CHAO = { forca: { value: 1 }, retalho: { value: 0.3 }, fundo: { value: null }, temFundo: { value: 0 }, retFundo: { value: new THREE.Vector4(0, 0, 1, 1) }, mistura: { value: 0.35 }, det: { value: null } };
+/* 512 x 512 pontos, repete a cada 64 m. R = copas de árvore (meia esfera iluminada pelo sol, sombra do sub-bosque entre elas;
+   média 0,5), G = grão de ~0,5 m, B = manchas de ~4 m, A = manchas de ~16 m (média 0,5 em todos) */
+function texturaDetalheChao() {
+  const N = 512, dados = new Uint8Array(N * N * 4);
+  const acaso3 = (x, y, s) => { const v = Math.sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453; return v - Math.floor(v); };
+  const ruido = (x, y, per, s) => { // ruído de valor que repete a cada "per" células (fecha certinho na borda da textura)
+    const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+    const h = (i, j) => acaso3(((i % per) + per) % per, ((j % per) + per) % per, s);
+    return (h(xi, yi) * (1 - ux) + h(xi + 1, yi) * ux) * (1 - uy) + (h(xi, yi + 1) * (1 - ux) + h(xi + 1, yi + 1) * ux) * uy;
+  };
+  const C = 16, cel = N / C, porCel = Array.from({ length: C * C }, () => []);
+  for (let i = 0; i < C; i++) for (let j = 0; j < C; j++) for (let k = 0; k < 2; k++) // duas copas por célula de 4 m
+    porCel[j * C + i].push({ x: (i + acaso3(i, j, k + 1)) * cel, y: (j + acaso3(i, j, k + 5)) * cel, r: cel * (0.42 + 0.45 * acaso3(i, j, k + 9)), a: 0.75 + 0.5 * acaso3(i, j, k + 13), t: acaso3(i, j, k + 17) });
+  const sol = [-0.62, 0.72, 0.31], ns = Math.hypot(...sol), luzes = new Float32Array(N * N);
+  let soma = 0;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const ci = Math.floor(x / cel), cj = Math.floor(y / cel);
+    let alto = 0, nx = 0, ny = 1, nz = 0, tom = 0.5;
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+      const ii = (((ci + di) % C) + C) % C, jj = (((cj + dj) % C) + C) % C, ox = (ci + di - ii) * cel, oy = (cj + dj - jj) * cel;
+      for (const c of porCel[jj * C + ii]) {
+        const rx = (x + 0.5 - c.x - ox) / c.r, ry = (y + 0.5 - c.y - oy) / c.r, dd = rx * rx + ry * ry;
+        if (dd < 1) { const hh = Math.sqrt(1 - dd) * c.a; if (hh > alto) { alto = hh; const l = Math.hypot(rx, hh, ry); nx = rx / l; ny = hh / l; nz = ry / l; tom = c.t; } }
+      }
+    }
+    // linha y da textura = sentido +z do mundo (flipY desligado): o lado da copa virado para o sol fica claro
+    const luz = alto > 0 ? 0.5 + 0.62 * Math.max(0, (nx * sol[0] + ny * sol[1] + nz * sol[2]) / ns) + (tom - 0.5) * 0.16 : 0.42;
+    luzes[y * N + x] = luz; soma += luz;
+  }
+  const media = soma / (N * N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const i = (y * N + x) * 4;
+    dados[i] = Math.round(255 * Math.min(1, (luzes[y * N + x] / media) * 0.5));
+    dados[i + 1] = Math.round(255 * (0.6 * ruido(x / 4, y / 4, 128, 1) + 0.4 * ruido(x / 2, y / 2, 256, 2)));
+    dados[i + 2] = Math.round(255 * (0.6 * ruido(x / 32, y / 32, 16, 3) + 0.4 * ruido(x / 16, y / 16, 32, 4)));
+    dados[i + 3] = Math.round(255 * (0.7 * ruido(x / 128, y / 128, 4, 5) + 0.3 * ruido(x / 64, y / 64, 8, 6)));
+  }
+  const tex = new THREE.DataTexture(dados, N, N, THREE.RGBAFormat);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.generateMipmaps = true; tex.anisotropy = Math.min(8, ANISO); tex.needsUpdate = true;
+  return tex;
+}
+const GLSL_RUIDO = `
+uniform sampler2D texDetalheChao;
+float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float aparece(float s, float w) { return 1.0 - smoothstep(0.25 * s, 0.7 * s, w); } // some quando o detalhe (s metros) fica menor que ~2 pontos
+`;
+function texturizarChao(mat, classes) {
+  const medias = classes.map((k) => new THREE.Color(COR_SOLO[k] || "#888888"));
+  const ordem = Object.keys(PADRAO_DA_CLASSE).map((k) => medias[classes.indexOf(k)] || new THREE.Color(0x888888)); // média de cada padrão
+  PADRAO_CHAO.det.value ||= texturaDetalheChao();
+  mat.onBeforeCompile = (s) => {
+    s.uniforms.mapaOclusao = OCLUSAO.mapa; s.uniforms.retOclusao = OCLUSAO.ret; s.uniforms.forcaOclusao = OCLUSAO.forca; s.uniforms.texDetalheChao = PADRAO_CHAO.det;
+    s.uniforms.forcaPadrao = PADRAO_CHAO.forca; s.uniforms.retalho = PADRAO_CHAO.retalho; s.uniforms.fundoChao = PADRAO_CHAO.fundo; s.uniforms.temFundo = PADRAO_CHAO.temFundo; s.uniforms.retFundo = PADRAO_CHAO.retFundo; s.uniforms.misturaFundo = PADRAO_CHAO.mistura; s.uniforms.mediasClasse = { value: ordem };
+    s.vertexShader = s.vertexShader
+      .replace("#include <common>", "#include <common>\nattribute float classe;\nvarying float vClasse;\nvarying vec2 vMundo;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvClasse = classe;\nvMundo = (modelMatrix * vec4(transformed, 1.0)).xz;");
+    s.fragmentShader = s.fragmentShader
+      .replace("#include <common>", "#include <common>\n" + GLSL_OCLUSAO + "uniform float forcaPadrao, retalho, temFundo, misturaFundo;\nuniform sampler2D fundoChao;\nuniform vec4 retFundo;\nuniform vec3 mediasClasse[8];\nvarying float vClasse;\nvarying vec2 vMundo;\n" + GLSL_RUIDO)
+      .replace("#include <color_fragment>", `#include <color_fragment>
+  int classeP = int(vClasse + 0.5);
+  vec2 pm = vMundo;
+  if (forcaPadrao > 0.0) {
+    diffuseColor.rgb = mix(diffuseColor.rgb, mediasClasse[classeP], retalho);
+    vec2 uvF = vec2((pm.x - retFundo.x) / retFundo.z, 1.0 - (pm.y - retFundo.y) / retFundo.w);
+    if (temFundo > 0.0 && classeP != 0 && uvF.x > 0.0 && uvF.y > 0.0 && uvF.x < 1.0 && uvF.y < 1.0) { // a foto bem desfocada, com a mesma correção de cor da visão Foto
+      vec3 fo = texture2D(fundoChao, uvF).rgb; float lf = dot(fo, vec3(0.2126, 0.7152, 0.0722));
+      fo = max((mix(vec3(lf), fo, 1.22) - 0.1) * 1.16 + 0.1, 0.0);
+      diffuseColor.rgb = mix(diffuseColor.rgb, fo, misturaFundo);
+    }
+    vec4 dA = texture2D(texDetalheChao, pm / 64.0);         // copas, grão de 0,5 m, manchas de 4 m e de 16 m
+    float largo = texture2D(texDetalheChao, pm / 640.0 + 0.37).a - 0.5; // manchas de ~160 m
+    vec4 g = dA - 0.5;
+    float f = 1.0;
+    if (classeP == 0) { // mata: copas; uma segunda leitura girada e em outra escala esconde a repetição a cada 64 m
+      float c2 = texture2D(texDetalheChao, mat2(0.8, -0.6, 0.6, 0.8) * pm / 83.0 + 0.31).r;
+      f = mix(dA.r, c2, smoothstep(0.35, 0.65, dA.a)) * 2.0 + largo * 0.18;
+    } else if (classeP == 1) f = 1.0 + g.g * 0.2 + g.b * 0.18 + g.a * 0.12 + largo * 0.12;    // gramado
+    else if (classeP == 3) f = 1.0 + g.g * 0.36 + g.b * 0.3 + g.a * 0.3 + largo * 0.2;       // carvão
+    else if (classeP == 4) f = 1.0 + g.g * 0.28 + g.b * 0.24 + g.a * 0.26 + largo * 0.16;    // minério
+    else if (classeP == 5) f = 1.0 + g.g * 0.24 + g.b * 0.2 + g.a * 0.24 + largo * 0.16;     // terra
+    else if (classeP == 6) f = 1.0 + g.g * 0.1 + g.b * 0.1 + g.a * 0.12;                     // asfalto
+    else if (classeP == 7) { // piso industrial: placas de 6 m com junta, tom de cada placa e manchas
+      float wPx = max(fwidth(pm.x), fwidth(pm.y));
+      vec2 q = abs(fract(pm / 6.0 + 0.5) - 0.5) * 6.0;
+      float junta = 1.0 - smoothstep(0.05, 0.16, min(q.x, q.y));
+      f = 1.0 - 0.2 * junta * aparece(0.4, wPx) + (h21(floor(pm / 6.0)) - 0.5) * 0.1 * aparece(6.0, wPx) + g.b * 0.12 + g.a * 0.14;
+    } else if (classeP == 2) { // água: ondulação parada
+      float wPx = max(fwidth(pm.x), fwidth(pm.y));
+      f = 1.0 + sin(dot(pm, vec2(0.8, 0.6)) * 1.6 + dA.b * 6.0) * 0.035 * aparece(3.9, wPx) + g.a * 0.08;
+    }
+    diffuseColor.rgb *= mix(1.0, f, forcaPadrao);
+  }
+  diffuseColor.rgb *= 1.0 - 0.55 * oclusaoEm(vMundo);`)
+      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+  if (forcaPadrao > 0.0 && int(vClasse + 0.5) == 2) { // água: reflexo do céu quando vista de lado
+    float fres = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 4.0);
+    totalEmissiveRadiance += vec3(0.62, 0.72, 0.8) * fres * 0.55 * forcaPadrao;
+  }`);
+  };
+  mat.customProgramCacheKey = () => "chao-padrao-2";
+}
+
+/* Oclusão de contato (30/10/2026): o chão escurece de leve junto ao pé de cada prédio e estrutura, como na luz real
+   (rente à parede chega menos luz do céu). Calculada UMA vez: a usina vista de cima numa imagem (~2,5 m por ponto)
+   com a altura de cada telhado, desfocada; o chão da Cidade lê essa imagem. Some se a camada Prédios for desligada. */
+const OCLUSAO = { mapa: { value: null }, ret: { value: new THREE.Vector4(0, 0, 1, 1) }, forca: { value: 0 }, pronta: false };
+const GLSL_OCLUSAO = `
+uniform sampler2D mapaOclusao;
+uniform vec4 retOclusao;
+uniform float forcaOclusao;
+float oclusaoEm(vec2 xz) {
+  if (forcaOclusao <= 0.0) return 0.0;
+  vec2 uv = vec2((xz.x - retOclusao.x) / retOclusao.z, 1.0 - (xz.y - retOclusao.y) / retOclusao.w);
+  if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) return 0.0;
+  return texture2D(mapaOclusao, uv).r * forcaOclusao;
+}
+`;
+function calcularOclusao() {
+  if (OCLUSAO.pronta) return;
+  OCLUSAO.pronta = true;
+  try {
+    const b = PECAS[0].caixa, folga = 120, w = b.x1 - b.x0 + 2 * folga, h = b.zS - b.zN + 2 * folga, cx = (b.x0 + b.x1) / 2, cz = (b.zN + b.zS) / 2;
+    const L = Math.min(2048, LIMITE_TEX), A = Math.max(64, Math.round((L * h) / w));
+    const CAMADA = 7, ocluem = [...PAREDES_PREDIOS, telhadoCidade, equipTelhado, ...Object.values(MALHAS_ESTRUTURAS)].filter(Boolean);
+    ocluem.forEach((m) => m.layers.enable(CAMADA));
+    const cam = new THREE.OrthographicCamera(-w / 2, w / 2, h / 2, -h / 2, 1, 3000);
+    cam.position.set(cx, 1500, cz); cam.up.set(0, 0, -1); cam.lookAt(cx, 0, cz); cam.layers.set(CAMADA); cam.updateMatrixWorld();
+    const alvo = () => new THREE.WebGLRenderTarget(L, A, { type: THREE.UnsignedByteType, depthBuffer: true });
+    const [rtA, rtB] = [alvo(), alvo()];
+    const altura = new THREE.ShaderMaterial({
+      vertexShader: "varying float vY; void main(){ vec4 m = modelMatrix * vec4(position, 1.0); vY = m.y; gl_Position = projectionMatrix * viewMatrix * m; }",
+      fragmentShader: "varying float vY; void main(){ gl_FragColor = vec4(vec3(clamp(vY / 26.0, 0.35, 1.0)), 1.0); }",
+      side: THREE.DoubleSide,
+    });
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
+      uniforms: { tex: { value: null }, passo: { value: new THREE.Vector2() } },
+      vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
+      fragmentShader: `uniform sampler2D tex; uniform vec2 passo; varying vec2 vUv;
+        void main(){ float s = 0.0, t = 0.0; for (int i = -7; i <= 7; i++) { float k = exp(-float(i * i) / 18.0); s += texture2D(tex, vUv + passo * float(i)).r * k; t += k; }
+          gl_FragColor = vec4(vec3(s / t), 1.0); }`,
+      depthTest: false, depthWrite: false,
+    }));
+    quad.frustumCulled = false;
+    const cenaQuad = new THREE.Scene(), camQuad = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    cenaQuad.add(quad);
+    const cor = renderer.getClearColor(new THREE.Color()), alfa = renderer.getClearAlpha(), antes = renderer.getRenderTarget(), pendente = renderer.shadowMap.needsUpdate;
+    renderer.shadowMap.needsUpdate = false; // a sombra do sol não precisa ser refeita para esta foto de cima
+    cena.overrideMaterial = altura;
+    renderer.setRenderTarget(rtA); renderer.setClearColor(0x000000, 1); renderer.clear(); renderer.render(cena, cam);
+    cena.overrideMaterial = null;
+    for (const [de, para, dx, dy] of [[rtA, rtB, 1 / L, 0], [rtB, rtA, 0, 1 / A], [rtA, rtB, 1.6 / L, 0], [rtB, rtA, 0, 1.6 / A]]) { // duas vezes: borda bem macia
+      quad.material.uniforms.tex.value = de.texture; quad.material.uniforms.passo.value.set(dx, dy);
+      renderer.setRenderTarget(para); renderer.render(cenaQuad, camQuad);
+    }
+    renderer.setRenderTarget(antes); renderer.setClearColor(cor, alfa); renderer.shadowMap.needsUpdate = pendente;
+    ocluem.forEach((m) => m.layers.disable(CAMADA));
+    rtB.dispose(); altura.dispose(); quad.geometry.dispose(); quad.material.dispose();
+    OCLUSAO.mapa.value = rtA.texture; OCLUSAO.ret.value.set(cx - w / 2, cz - h / 2, w, h);
+  } catch (erro) { console.warn("oclusão de contato:", erro); }
+}
+/* no chão de fundo da Cidade (a foto desfocada onde não há mancha classificada): grão e manchas de pátio e a oclusão;
+   na visão Foto nada muda (forcaFundoCidade = 0) */
+const FUNDO_CIDADE = { value: 0 };
+PECAS.forEach((p) => {
+  const antes = p.matChao.onBeforeCompile, chave = p.matChao.customProgramCacheKey?.bind(p.matChao);
+  p.matChao.onBeforeCompile = (s, r) => {
+    antes?.(s, r);
+    s.uniforms.mapaOclusao = OCLUSAO.mapa; s.uniforms.retOclusao = OCLUSAO.ret; s.uniforms.forcaOclusao = OCLUSAO.forca; s.uniforms.forcaFundoCidade = FUNDO_CIDADE;
+    PADRAO_CHAO.det.value ||= texturaDetalheChao(); s.uniforms.texDetalheChao = PADRAO_CHAO.det;
+    s.uniforms.limFoto = { value: new THREE.Vector4(p.recorte.lim.x0, p.recorte.lim.zS, p.recorte.lim.x1 - p.recorte.lim.x0, p.recorte.lim.zS - p.recorte.lim.zN) };
+    s.fragmentShader = s.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform float forcaFundoCidade;\nuniform vec4 limFoto;\n" + GLSL_RUIDO + GLSL_OCLUSAO)
+      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+#ifdef USE_MAP
+  if (forcaFundoCidade > 0.0) {
+    vec2 xzF = vec2(limFoto.x + vMapUv.x * limFoto.z, limFoto.y - vMapUv.y * limFoto.w);
+    vec4 gF = texture2D(texDetalheChao, xzF / 64.0) - 0.5;
+    float fF = 1.0 + gF.g * 0.18 + gF.b * 0.16 + gF.a * 0.18;
+    diffuseColor.rgb *= mix(1.0, fF, forcaFundoCidade) * (1.0 - 0.55 * oclusaoEm(xzF));
+  }
+#endif`);
+  };
+  p.matChao.customProgramCacheKey = () => (chave ? chave() : "") + "-fundo-cidade";
+  p.matChao.needsUpdate = true;
+});
+
 function montarChao() { // monta a malha só na primeira vez que o chão detalhado aparece
-  const { classes, escala, pecas } = SOLO_VETOR, Y = 0.02, pos = [], cor = [], idx = [], c3 = new THREE.Color();
+  const { classes, escala, pecas } = SOLO_VETOR, Y = 0.02, pos = [], cor = [], idx = [], cls = [], c3 = new THREE.Color();
   const anel = (a) => { const v = []; for (let i = 0; i < a.length; i += 2) v.push(new THREE.Vector2(a[i] * escala, a[i + 1] * escala)); return v; };
   classes.forEach((k, c) => {
     for (const peca of pecas) peca.polis[c].forEach(([fora, ...furos], j) => {
       const real = peca.cores?.[c]?.[j];
       c3.set(real ? `#${real}` : COR_SOLO[k]); // a cor da foto naquele lugar; sem foto, a média da classe
       const contorno = anel(fora), buracos = furos.map(anel), base = pos.length / 3, todos = [contorno, ...buracos].flat();
-      for (const v of todos) { pos.push(v.x, Y, v.y); cor.push(c3.r, c3.g, c3.b); }
+      const id = PADRAO_DA_CLASSE[k] ?? 7;
+      for (const v of todos) { pos.push(v.x, Y, v.y); cor.push(c3.r, c3.g, c3.b); cls.push(id); }
       for (const [a, b, d] of THREE.ShapeUtils.triangulateShape(contorno, buracos)) {
         const A = todos[a], B = todos[b], D = todos[d], cruz = (B.x - A.x) * (D.y - A.y) - (B.y - A.y) * (D.x - A.x);
         idx.push(base + a, base + (cruz > 0 ? d : b), base + (cruz > 0 ? b : d)); // sempre virado para cima
@@ -3504,9 +3933,12 @@ function montarChao() { // monta a malha só na primeira vez que o chão detalha
   g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute("normal", new THREE.Float32BufferAttribute(new Float32Array(pos.length).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
   g.setAttribute("color", new THREE.Float32BufferAttribute(cor, 3));
+  g.setAttribute("classe", new THREE.Float32BufferAttribute(cls, 1));
   g.setIndex(idx);
   // uma malha só (uma chamada de desenho), desenhada antes do chão liso: o chão por baixo nem chega a ser pintado ali
-  CHAO.malha = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -2 }));
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -2 });
+  texturizarChao(mat, classes);
+  CHAO.malha = new THREE.Mesh(g, mat);
   CHAO.malha.renderOrder = -1; CHAO.malha.receiveShadow = true; CHAO.malha.matrixAutoUpdate = false;
   grupoChao.add(CHAO.malha);
   // película das áreas por cima do chão detalhado: multiplica a cor (branca = invisível; a área escolhida ganha a cor do setor)
@@ -3518,6 +3950,14 @@ function aplicarChao() { // chamada pela aplicarVisual
   const det = chaoDetalhado();
   if (det && !CHAO.malha) montarChao();
   grupoChao.visible = det;
+  if (ehCidade()) calcularOclusao();
+  OCLUSAO.forca.value = OCLUSAO.mapa.value && ehCidade() && camadaLigada("predios") ? 1 : 0;
+  FUNDO_CIDADE.value = ehCidade() ? 1 : 0;
+  const p0 = PECAS[0];
+  if (p0.texFundo && PADRAO_CHAO.fundo.value !== p0.texFundo) { // a foto desfocada da usina, para suavizar as manchas
+    const L = p0.recorte.lim;
+    PADRAO_CHAO.fundo.value = p0.texFundo; PADRAO_CHAO.temFundo.value = 1; PADRAO_CHAO.retFundo.value.set(L.x0, L.zN, L.x1 - L.x0, L.zS - L.zN);
+  }
   if (det) PECAS.forEach((p) => { // por baixo das manchas: o tom real da foto desfocada, no lugar do branco do chão liso
     if (!p.texFundo) return;
     p.matChao.map = p.texFundo; p.matChao.color.set(0xffffff); p.matChao.needsUpdate = true; ajustarTexel(p.matChao);
@@ -3543,7 +3983,11 @@ $("padrao")?.addEventListener("click", () => mudarChao("detalhado")); // "Voltar
    9. Caminhões: duas peças instanciadas (corpo e luz de status)
    ========================================================================= */
 
-/* um modelo por tipo de caminhão (vácuo com tanque, alta pressão com carroceria e carretel, demais), cada um numa peça instanciada */
+/* um modelo por tipo de caminhão (30/10/2026, pedido P-092: "idênticos aos reais"): cabine de caminhão brasileiro
+   (para-brisa, grade, para-choque, faróis, retrovisores, degraus), chassi com tanque de combustível e para-lamas;
+   auto vácuo com tanque, tampa traseira com anel de fecho, passarela, bomba e silenciador, mangote; alta pressão com
+   BAÚ de alumínio nervurado, portas traseiras e faixas refletivas (como a foto do dono, 22/09/2026); demais com caçamba.
+   A "pintura" (tanque, baú ou caçamba e a faixa da cabine) é tingida pela cor do status em cada caminhão. Ilustrativo. */
 const MODELOS_CAMINHAO = (() => {
   const parte = (g, x, y, z, cor) => {
     g.translate(x, y, z);
@@ -3552,21 +3996,54 @@ const MODELOS_CAMINHAO = (() => {
     g.setAttribute("color", new THREE.BufferAttribute(arr, 3));
     return g;
   };
-  const roda = (x, z) => parte(new THREE.CylinderGeometry(0.55, 0.55, 0.45, 12).rotateX(Math.PI / 2), x, 0.55, z, 0x1b1d20);
+  const cx = (sx, sy, sz, x, y, z, cor) => parte(new THREE.BoxGeometry(sx, sy, sz), x, y, z, cor); // caixa com centro em (x, y, z)
+  const cil = (r, comp, seg, x, y, z, cor, eixo = "x") => { const g = new THREE.CylinderGeometry(r, r, comp, seg); if (eixo === "x") g.rotateZ(Math.PI / 2); else if (eixo === "z") g.rotateX(Math.PI / 2); return parte(g, x, y, z, cor); };
+  const PRETO = 0x1b1d20, GRAFITE = 0x3b4048, CINZA = 0x8d939a, BRANCO = 0xf4f6f8, VIDRO = 0x1a2633, AMARELO = 0xe8b923, FAROL = 0xfff1c4, VERMELHO = 0xc23b2e;
+  const roda = (x, z) => [cil(0.53, 0.44, 12, x, 0.53, z, PRETO, "z"), cil(0.27, 0.46, 8, x, 0.53, z, CINZA, "z")];
   const base = () => [
-    parte(new THREE.BoxGeometry(8.6, 0.5, 2.2), 0, 1.05, 0, 0x2a2f35),
-    ...[3.0, -1.7, -3.0].flatMap((x) => [roda(x, 1.12), roda(x, -1.12)]),
-    parte(new THREE.BoxGeometry(2.3, 2.4, 2.5), 3.1, 2.4, 0, 0xf4f6f8),
-    parte(new THREE.BoxGeometry(0.1, 0.95, 2.2), 4.27, 2.9, 0, 0x1a2633),
+    cx(8.0, 0.32, 1.0, -0.2, 0.95, 0, GRAFITE), // longarinas
+    ...[3.0, -1.7, -3.0].flatMap((x) => [...roda(x, 1.0), ...roda(x, -1.0)]),
+    cx(2.0, 0.1, 2.5, -2.35, 1.15, 0, PRETO), // para-lamas traseiros
+    cil(0.3, 1.0, 10, 1.3, 0.85, -0.95, CINZA), cx(0.8, 0.45, 0.32, 1.3, 0.85, 1.0, GRAFITE), // tanque de combustível e caixa de baterias
+    cx(2.05, 2.3, 2.44, 3.18, 2.45, 0, BRANCO), // cabine (1,3 a 3,6 m)
+    cx(0.05, 0.85, 2.1, 4.215, 2.95, 0, VIDRO), // para-brisa
+    cx(0.85, 0.62, 0.04, 3.6, 2.95, 1.235, VIDRO), cx(0.85, 0.62, 0.04, 3.6, 2.95, -1.235, VIDRO), // janelas
+    cx(0.06, 0.6, 1.7, 4.22, 1.85, 0, GRAFITE), cx(0.32, 0.34, 2.46, 4.32, 1.2, 0, GRAFITE), // grade e para-choque
+    cx(0.06, 0.2, 0.42, 4.25, 1.62, 0.95, FAROL), cx(0.06, 0.2, 0.42, 4.25, 1.62, -0.95, FAROL), // faróis
+    cx(0.12, 0.55, 0.08, 4.05, 2.9, 1.45, PRETO), cx(0.12, 0.55, 0.08, 4.05, 2.9, -1.45, PRETO), // retrovisores
+    cx(0.5, 0.35, 0.3, 3.7, 1.15, 1.12, GRAFITE), cx(0.5, 0.35, 0.3, 3.7, 1.15, -1.12, GRAFITE), // degraus
+    cx(1.6, 0.1, 2.2, 3.1, 3.65, 0, CINZA), // teto
   ];
-  // pintura: faixa da cabine e carroceria/tanque em branco, tingidos pela cor do status em cada caminhão
-  const faixa = () => parte(new THREE.BoxGeometry(2.32, 0.28, 2.52), 3.1, 1.85, 0, 0xffffff);
+  const faixa = () => [cx(2.0, 0.26, 0.03, 3.18, 1.85, 1.235, 0xffffff), cx(2.0, 0.26, 0.03, 3.18, 1.85, -1.235, 0xffffff)];
+  const listras = (x, z0, z1, y) => { const l = []; for (let k = 0, n = 6; k < n; k++) l.push(cx(0.16, 0.24, (z1 - z0) / n, x, y, z0 + ((k + 0.5) * (z1 - z0)) / n, k % 2 ? PRETO : AMARELO)); return l; };
+  // auto vácuo
+  const vacuoFixo = [...base(),
+    parte(new THREE.TorusGeometry(1.2, 0.06, 4, 18).rotateY(Math.PI / 2), -3.76, 2.45, 0, GRAFITE), cx(0.3, 0.22, 0.7, -3.6, 3.68, 0, GRAFITE), // anel de fecho e dobradiça da tampa
+    cx(4.2, 0.06, 0.55, -1.0, 3.63, 0, CINZA), cx(4.2, 0.05, 0.05, -1.0, 4.15, 0.3, AMARELO), cx(4.2, 0.05, 0.05, -1.0, 4.15, -0.3, AMARELO), // passarela e guarda-corpo
+    ...[-3.0, -1.0, 1.0].flatMap((x) => [cx(0.05, 0.5, 0.05, x, 3.9, 0.3, AMARELO), cx(0.05, 0.5, 0.05, x, 3.9, -0.3, AMARELO)]),
+    cx(0.8, 1.1, 1.5, 1.6, 1.75, 0, GRAFITE), cil(0.2, 1.3, 8, 1.6, 2.95, 0.75, CINZA, "y"), // bomba de vácuo e silenciador
+    cil(0.16, 4.0, 8, -1.2, 1.55, 1.25, PRETO), cil(0.18, 0.6, 8, -3.9, 1.55, 0.6, GRAFITE), // mangote e válvula de descarga
+    ...listras(-4.15, -1.2, 1.2, 0.95)];
+  const vacuoPintura = [...faixa(), cil(1.15, 5.0, 18, -1.0, 2.45, 0, 0xffffff), cil(1.2, 0.22, 18, -3.64, 2.45, 0, 0xe6e6e6),
+    ...[-3.0, -1.0, 1.0].map((x) => cil(1.18, 0.12, 18, x, 2.45, 0, 0xcfcfcf))];
+  // alta pressão (baú)
+  const pressaoFixo = [...base(),
+    ...[-0.9, -0.3, 0.3, 0.9].map((z) => cx(0.05, 2.25, 0.05, -4.1, 2.55, z, CINZA)), // trancas das portas
+    ...[1, -1].flatMap((sz) => Array.from({ length: 10 }, (_, k) => cx(0.5, 0.1, 0.02, -3.85 + k * 0.53, 1.42, sz * 1.25, k % 2 ? VERMELHO : BRANCO))), // faixa refletiva
+    cx(0.15, 0.25, 2.3, -4.15, 0.85, 0, GRAFITE), ...listras(-4.24, -1.15, 1.15, 0.85), // para-choque traseiro
+    cil(0.08, 1.6, 8, 1.95, 3.4, -0.95, CINZA, "y")]; // escapamento vertical
+  const pressaoPintura = [...faixa(), cx(5.5, 2.45, 2.46, -1.3, 2.555, 0, 0xffffff), cx(5.52, 0.1, 2.48, -1.3, 3.8, 0, 0xd6d6d6),
+    ...[1, -1].flatMap((sz) => Array.from({ length: 11 }, (_, k) => cx(0.06, 2.3, 0.04, -3.9 + k * 0.52, 2.55, sz * 1.245, 0xdedede))), // nervuras
+    cx(0.04, 2.3, 1.18, -4.07, 2.55, 0.6, 0xeeeeee), cx(0.04, 2.3, 1.18, -4.07, 2.55, -0.6, 0xeeeeee), // portas traseiras
+    cx(0.9, 1.6, 0.03, 0.6, 2.3, 1.25, 0xe6e6e6)]; // porta lateral
+  // demais (caçamba)
+  const outroFixo = [...base(), cil(0.12, 1.2, 8, 1.2, 1.7, 0, CINZA, "y"), ...listras(-4.0, -1.2, 1.2, 0.9)];
+  const outroPintura = [...faixa(), cx(4.8, 0.15, 2.4, -1.3, 1.45, 0, 0xdddddd), cx(4.8, 1.2, 0.12, -1.3, 2.1, 1.18, 0xffffff), cx(4.8, 1.2, 0.12, -1.3, 2.1, -1.18, 0xffffff),
+    cx(0.15, 1.6, 2.4, 1.05, 2.3, 0, 0xffffff), cx(0.12, 1.2, 2.4, -3.68, 2.1, 0, 0xeeeeee), cx(0.6, 0.12, 2.4, 1.4, 3.1, 0, 0xdddddd)];
   return {
-    vacuo: { fixo: mergeGeometries([...base(), parte(new THREE.CylinderGeometry(1.05, 1.05, 0.2, 18).rotateZ(Math.PI / 2), -4.1, 2.6, 0, 0x3b4048)]),
-      pintura: mergeGeometries([faixa(), parte(new THREE.CylinderGeometry(1.2, 1.2, 5.4, 18).rotateZ(Math.PI / 2), -1.35, 2.6, 0, 0xffffff)]) },
-    pressao: { fixo: mergeGeometries([...base(), parte(new THREE.CylinderGeometry(0.75, 0.75, 1.9, 14).rotateX(Math.PI / 2), -3.4, 3.95, 0, 0x3b4048)]),
-      pintura: mergeGeometries([faixa(), parte(new THREE.BoxGeometry(5.4, 2.2, 2.35), -1.3, 2.35, 0, 0xffffff)]) },
-    outro: { fixo: mergeGeometries(base()), pintura: mergeGeometries([faixa(), parte(new THREE.BoxGeometry(5.4, 2.0, 2.4), -1.3, 2.25, 0, 0xffffff)]) },
+    vacuo: { fixo: mergeGeometries(vacuoFixo), pintura: mergeGeometries(vacuoPintura) },
+    pressao: { fixo: mergeGeometries(pressaoFixo), pintura: mergeGeometries(pressaoPintura) },
+    outro: { fixo: mergeGeometries(outroFixo), pintura: mergeGeometries(outroPintura) },
   };
 })();
 const tipoDoCaminhao = (c) => (/V[ÁA]CUO|ASPIRADOR/i.test(c.grupo || "") ? "vacuo" : /ALTA PRESS/i.test(c.grupo || "") ? "pressao" : "outro");
@@ -4823,6 +5300,11 @@ window.usina = { // usado nos testes automáticos
   pronto: () => fotosReduzidas.size > 0, estruturas: () => ESTRUTURAS_COM_PLACA.map((r) => [r.e.n, ...r.xz.map(Math.round)]), todas: () => REGISTRO_ESTRUTURAS.map((r) => [r.e.t, r.e.n, ...r.xz.map(Math.round), Math.round(r.h || 0)]), faltam: () => ELEMENTOS.filter((e) => !REGISTRO_ESTRUTURAS.some((r) => r.e === e)).map((e) => [e.t, e.n]), dica: (x, y) => textoDaDica(oQueEstaSob(x, y)), nitidez: (n) => { NITIDEZ.value = n; pedirDesenho(); }, ruas: () => NOMES_RUAS.slice(0, 4).map((r) => [r[0], Math.round(r[1]), Math.round(r[2])]), lagos: () => OSM.filter((o) => o.t === "agua").map((o) => paraXZ(o.p[0]).map(Math.round)), degrau: () => medidor.degrau, periodo: mudarPeriodo, tempo: (t) => { estado.tempo = t; estado.tocando = false; atualizarRelogio(); atualizarInstancias(); desenharRastros(); pedirDesenho(); },
   rotas: () => { const t0 = performance.now(); calcularRotas(); const r = CAMINHOES.filter((c) => c.rota); return `${r.length} trajetos, ${r.filter((c) => c.rota.andou).length} andaram, ${Math.round(r.reduce((s, c) => s + c.rota.km, 0))} km, ${Math.round(performance.now() - t0)} ms`; },
   receber: receberFrota, nos: () => GRAFO.nos.length, placa: () => `${PLACA} → ${estado.qualidade}`,
+  carga: () => { let t = 0, n = 0; cena.traverseVisible((o) => { const g = o.geometry; if (!o.isMesh || !g?.attributes?.position) return; const k = (g.index ? g.index.count : g.attributes.position.count) / 3; t += o.isInstancedMesh ? k * o.count : g.isInstancedBufferGeometry ? k * (g.instanceCount || 0) : k; n++; }); return { triangulos: Math.round(t), malhas: n }; }, // tudo o que está ligado na cena
+  chao: (forca, oclusao, mistura) => { if (typeof PADRAO_CHAO === "undefined") return null; if (forca != null) PADRAO_CHAO.forca.value = forca; if (oclusao != null) OCLUSAO.forca.value = oclusao; if (mistura != null) PADRAO_CHAO.temFundo.value = mistura; pedirDesenho(); return { forca: PADRAO_CHAO.forca.value, oclusao: OCLUSAO.forca.value, fundo: PADRAO_CHAO.temFundo.value }; }, // teste: liga/desliga a textura e a oclusão do chão
+  camera: () => [...camera.position.toArray().map(Math.round), Math.round(controles.target.x), Math.round(controles.target.z)], // [x, y, z, alvoX, alvoZ] para usina.ver()
+  areas: () => AREAS.map((a) => { const c = centroDe(a.anel), cx = caixaDe(a.anel); return [a.name, a.setor, Math.round(c[0]), Math.round(c[1]), Math.round(Math.max(cx.x1 - cx.x0, cx.zS - cx.zN))]; }),
+  predios: (x, z, r = 150) => REGISTRO_PREDIOS.filter((p) => Math.hypot(p.c[0] - x, p.c[1] - z) < r).map((p) => [p.tipo, p.nome || "", Math.round(p.c[0]), Math.round(p.c[1]), Math.round(p.h), Math.round(p.area)]),
   girar: (ms = 4000) => new Promise((ok) => { // simula alguém girando a câmera e conta os quadros desenhados por segundo
     controles.dispatchEvent({ type: "start" });
     const f0 = renderer.info.render.frame, t0 = performance.now();
