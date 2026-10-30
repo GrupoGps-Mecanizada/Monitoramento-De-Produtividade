@@ -1850,7 +1850,7 @@ const MODELO_COR_CORREIA = (nome = "") => /carv/i.test(nome) ? MODELO_MATERIAL.c
 // trecho de x=-L/2 (altura h0) a x=+L/2 (altura h1), com pilares a cada ~20 m (não centraliza)
 // no chão (até 2 m): trilho duplo da máquina + correia baixa ao lado; nome "Galeria...": galeria fechada;
 // demais: correia aberta em treliça, com cobertura em gomos e roletes. "altura" só vale quando não vier h0/h1
-function modeloCorreia({ comprimento = 100, h0, h1, altura = 8, largura = 3, secao, elem } = {}) {
+function modeloCorreia({ comprimento = 100, h0, h1, altura = 8, largura = 3, secao, elem, pontoNoMapa } = {}) {
   const C = MODELO_COR, L = comprimento, nome = elem?.n || "", cor = MODELO_COR_CORREIA(nome), p = [];
   h0 = h0 ?? altura; h1 = h1 ?? h0;
   if (Math.max(h0, h1) <= 2.2 && elem?.t !== "viaduto") return modeloLinhaPatio(L, cor);
@@ -1877,6 +1877,7 @@ function modeloCorreia({ comprimento = 100, h0, h1, altura = 8, largura = 3, sec
   for (const x of xs) {
     const yb = h0 + (h1 - h0) * (x + L / 2) / L;
     if (yb < 1.2) continue;
+    if (pontoNoMapa && [zl, -zl].some((z) => naRua(pontoNoMapa(x, z), 0.6))) continue; // pilar não fica na pista: a correia passa por cima
     for (const z of [zl, -zl]) p.push(modeloCaixa(0.5, yb, 0.5, x, 0, z, C.pintado, "yY"));
     p.push(modeloCaixa(0.7, 0.6, 2 * zl + 0.5, x, yb - 0.6, 0, C.pintado, "y"));
     if (yb > 5) p.push(modeloBarra([x, 0.3, -zl], [x, yb - 0.7, zl], 0.12, C.pintado));
@@ -2316,13 +2317,14 @@ CATALOGO_3D.pilha = modeloPilhaPatio;
    (gás, pela norma), claro (alumínio/cinza), enferrujado ou concreto. Pórticos, quantidade e diâmetro dos tubos: ilustrativos.
    ========================================================================= */
 const COR_TUBOVIA = { amarelo: [0xe0b52a, 0xd9a91f, 0xe8c24a, 0x9aa1a8], claro: [0xc4c7ca, 0xaeb3b8, 0x7f9a86, 0xd8d6d0], ferrugem: [0x8a5a3e, 0x7b4e3e, 0x9c6a48, 0xaeb3b8], concreto: [0xb1ada4, 0x9a968e, 0xc4c7ca, 0xaeb3b8] };
-function modeloTubovia({ comprimento = 30, h0 = 6, elem } = {}) {
+function modeloTubovia({ comprimento = 30, h0 = 6, elem, pontoNoMapa } = {}) {
   const C = MODELO_COR, L = Math.max(1, comprimento), h = Math.max(3.5, Math.min(h0 || 6, 14)), larg = Math.max(1.2, Math.min(elem?.larg || 3, 10));
   const cores = COR_TUBOVIA[elem?.corTubo] || COR_TUBOVIA.claro, semente = Math.round(L * 7 + larg * 13 + h);
   const meia = larg / 2 + 0.35, niveis = larg > 5.5 ? [h - 1.8, h] : [h], p = [];
   const n = Math.max(1, Math.round(L / 7)); // pórtico a cada ~7 m
   for (let i = 0; i <= n; i++) {
     const x = -L / 2 + (L * i) / n;
+    if (pontoNoMapa && [-meia, meia].some((z) => naRua(pontoNoMapa(x, z), 0.6))) continue; // pórtico não fica na pista: os tubos passam por cima
     for (const z of [-meia, meia]) p.push(modeloCaixa(0.32, h + 0.25, 0.32, x, 0, z, C.pintado, "yY"));
     for (const y of niveis) p.push(modeloCaixa(0.28, 0.32, 2 * meia + 0.4, x, y - 0.32, 0, C.pintado, ""));
     if (i % 3 === 0 && h > 6) p.push(modeloBarra([x, 0.6, -meia], [x, h - 0.5, meia], 0.08, C.sombra, 4)); // contraventamento
@@ -2439,6 +2441,67 @@ const EIXOS_GAUSS = RUAS_GAUSS.flatMap(([, poligono]) => {
 const naRua = naRuaDoMapa;
 /** O prédio invade a rua? O meio dele está na pista, ou metade dos cantos está. */
 const invadeRua = (anel, c) => naRua(c, 1) || anel.filter((p) => naRua(p)).length * 2 >= anel.length;
+/* Nada em cima da rua (pedido do dono, 30/10/2026): o mapa e a foto não batem ao metro, e prédio ou estrutura que pegava só um
+   pedaço da pista continuava desenhado por cima dela. Agora o contorno é cortado na beira da rua, e o retângulo das naves e
+   estruturas é aparado do lado que invade. */
+function cortarNaRua(anel, c, folga = 1.2) {
+  const area0 = Math.abs(areaComSinal(anel)), cx = caixaDe(anel), m = 16;
+  let atual = anel;
+  for (const [a, b, meia] of PISTAS_DO_MAPA) {
+    if (Math.max(a[0], b[0]) + meia + m < cx.x0 || Math.min(a[0], b[0]) - meia - m > cx.x1 || Math.max(a[1], b[1]) + meia + m < cx.zN || Math.min(a[1], b[1]) - meia - m > cx.zS) continue;
+    const dx = b[0] - a[0], dz = b[1] - a[1], t = THREE.MathUtils.clamp(((c[0] - a[0]) * dx + (c[1] - a[1]) * dz) / (dx * dx + dz * dz || 1), 0, 1);
+    const q = [a[0] + dx * t, a[1] + dz * t], d = Math.hypot(c[0] - q[0], c[1] - q[1]);
+    if (d < 0.5) continue;
+    const nx = (c[0] - q[0]) / d, nz = (c[1] - q[1]) / d, lado = (p) => (p[0] - q[0]) * nx + (p[1] - q[1]) * nz - (meia + folga); // >= 0: fora da rua
+    if (atual.every((p) => lado(p) >= 0)) continue;
+    const nova = [];
+    atual.forEach((p, i) => {
+      const r = atual[(i + 1) % atual.length], lp = lado(p), lr = lado(r);
+      if (lp >= 0) nova.push(p);
+      if ((lp >= 0) !== (lr >= 0)) { const k = lp / (lp - lr); nova.push([p[0] + (r[0] - p[0]) * k, p[1] + (r[1] - p[1]) * k]); }
+    });
+    if (nova.length < 3) continue;
+    // a linha da rua é infinita: só vale o corte que pega a rua de verdade (a pista passa junto do que foi cortado) e não leva o prédio embora
+    const passa = atual.some((p) => lado(p) < 0 && Math.hypot(p[0] - q[0], p[1] - q[1]) < meia + 120 && naRua(p, 3)) || [0.25, 0.5, 0.75].some((k) => dentro([a[0] + dx * k, a[1] + dz * k], atual));
+    if (!passa || Math.abs(areaComSinal(nova)) < 0.55 * area0) continue;
+    atual = nova;
+  }
+  return atual;
+}
+function apararRetangulo(R0, folga = 1) {
+  let a0 = -R0.A, a1 = R0.A, b0 = -R0.B, b1 = R0.B;
+  const conta = (u0, v0, u1, v1) => { const n = Math.max(2, Math.ceil(Math.hypot(u1 - u0, v1 - v0) / 4)); let t = 0; for (let i = 0; i <= n; i++) { const [x, , z] = pontoRet(R0, u0 + ((u1 - u0) * i) / n, v0 + ((v1 - v0) * i) / n, 0); if (naRua([x, z], folga)) t++; } return t; };
+  for (let i = 0; i < 80; i++) {
+    const podeA = a1 - a0 - 1 > 1.3 * R0.A, podeB = b1 - b0 - 1 > 1.3 * R0.B; // no máximo 35% de cada medida
+    const lados = [[podeA ? conta(a0, b0, a0, b1) : 0, 0], [podeA ? conta(a1, b0, a1, b1) : 0, 1], [podeB ? conta(a0, b0, a1, b0) : 0, 2], [podeB ? conta(a0, b1, a1, b1) : 0, 3]].sort((p, q) => q[0] - p[0]);
+    if (!lados[0][0]) break;
+    const k = lados[0][1];
+    if (k === 0) a0 += 1; else if (k === 1) a1 -= 1; else if (k === 2) b0 += 1; else b1 -= 1;
+  }
+  if (a0 === -R0.A && a1 === R0.A && b0 === -R0.B && b1 === R0.B) return R0;
+  const [x, , z] = pontoRet(R0, (a0 + a1) / 2, (b0 + b1) / 2, 0), A = (a1 - a0) / 2, B = (b1 - b0) / 2;
+  return { ...R0, c: [x, z], A, B, area: 4 * A * B };
+}
+for (const g of PEGADAS) { // estruturas: retângulo aparado; redondas empurradas para fora da pista
+  if (["correia", "viaduto", "subestacao", "tubovia"].includes(g.e.t) || g.e.linha) continue;
+  if (g.R) {
+    g.R = apararRetangulo(g.R);
+    if (g.R.A < 20) for (let i = 0; i < 12; i++) { // estrutura pequena (torre): se ainda encosta, anda um pouco para longe da pista
+      let sx = 0, sz = 0;
+      for (const [u, v] of [[-1, -1], [1, -1], [1, 1], [-1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]) { const q = pontoRet(g.R, u * g.R.A, v * g.R.B, 0); if (naRua([q[0], q[2]], 1)) { sx += g.R.c[0] - q[0]; sz += g.R.c[1] - q[2]; } }
+      const l = Math.hypot(sx, sz);
+      if (!l) break;
+      g.R = { ...g.R, c: [g.R.c[0] + sx / l, g.R.c[1] + sz / l] };
+    }
+  }
+  else if (g.centro) for (let i = 0; i < g.raio + 4; i++) {
+    let sx = 0, sz = 0;
+    for (let k = 0; k < 12; k++) { const a = (k / 12) * Math.PI * 2, dx = Math.cos(a), dz = Math.sin(a); if (naRua([g.centro[0] + dx * g.raio, g.centro[1] + dz * g.raio], 1)) { sx -= dx; sz -= dz; } }
+    const l = Math.hypot(sx, sz);
+    if (!l) break;
+    g.centro = [g.centro[0] + sx / l, g.centro[1] + sz / l];
+  }
+}
 
 const REGISTRO_ESTRUTURAS = [], MALHAS_ESTRUTURAS = {}; // camada -> malha (industria, patios)
 /* Cor real (pedido do dono, 25/10/2026: "não está nada parecido com o mapa"): cada estrutura traz a cor medida na foto
@@ -2488,7 +2551,7 @@ if (typeof ajustarEstruturas === "function") ajustarEstruturas(PEGADAS); // empi
         const [ax, az] = pts[k - 1], [bx, bz] = pts[k], L = Math.hypot(bx - ax, bz - az);
         if (L < 1) continue;
         const ha = h0 + (h1 - h0) * (feito / total), hb = h0 + (h1 - h0) * ((feito + L) / total); feito += L;
-        colocar(e, geometriaDoElemento(e, { comprimento: L, h0: Math.max(0.5, ha), h1: Math.max(0.5, hb) }), (ax + bx) / 2, (az + bz) / 2, Math.atan2(-(bz - az), bx - ax), { h: Math.max(ha, hb) });
+        colocar(e, geometriaDoElemento(e, { comprimento: L, h0: Math.max(0.5, ha), h1: Math.max(0.5, hb), pontoNoMapa: (u, v) => [(ax + bx) / 2 + ((bx - ax) / L) * u - ((bz - az) / L) * v, (az + bz) / 2 + ((bz - az) / L) * u + ((bx - ax) / L) * v] }), (ax + bx) / 2, (az + bz) / 2, Math.atan2(-(bz - az), bx - ax), { h: Math.max(ha, hb) });
       }
       continue;
     }
@@ -2889,7 +2952,41 @@ const DETALHES_MAPA = (() => {
       }
     });
     const ocupadas = vagas.filter((v) => v[2] !== null);
-    const parados = ocupadas.slice(0, 400);
+    /* pátio do transporte (pedido do dono, 30/10/2026): lá só tem caminhões e tratores, nada de carro */
+    const PATIOS_PESADOS = AREAS.filter((a) => /TRANSPORTE RODOVI|P[AÁ]TIO DAS TRANSPOR/i.test(a.name));
+    const caixaP = PATIOS_PESADOS.map((a) => caixaDe(a.anel)), FOLGA_P = 80;
+    const noPatioPesado = (p) => caixaP.some((c) => p[0] > c.x0 - FOLGA_P && p[0] < c.x1 + FOLGA_P && p[1] > c.zN - FOLGA_P && p[1] < c.zS + FOLGA_P);
+    const LOTES_P = ESTACIONAMENTOS.filter((a) => noPatioPesado(centroDe(a))); // os pátios asfaltados: os veículos ficam só neles
+    const parados = ocupadas.filter((v) => !noPatioPesado(v)).slice(0, 400);
+    {
+      const cor = (p, x, y, z, w, h, d, c) => bloco(p, x * E, y * E, z * E, w * E, h * E, d * E, c);
+      const chassi = (p, L) => { cor(p, 0, 0.5, 0, L, 0.3, 1.0, 0x2a2d31); for (const x of [L / 2 - 1.2, -L / 2 + 1.6, -L / 2 + 0.5]) for (const z of [-0.95, 0.95]) cor(p, x, 0, z, 1.0, 1.0, 0.4, 0x1d1f22); };
+      const cabine = (p, L) => { cor(p, L / 2 - 1.05, 0.8, 0, 1.9, 2.1, 2.4, 0xffffff); cor(p, L / 2 - 0.06, 1.85, 0, 0.1, 0.8, 2.1, 0x1a2633); };
+      const pCam = []; chassi(pCam, 8.4); cabine(pCam, 8.4); cor(pCam, -1.1, 0.85, 0, 5.6, 2.3, 2.45, 0xd9dbde); // caminhão com carroceria
+      const pTra = []; chassi(pTra, 6.2); cabine(pTra, 6.2); cor(pTra, -1.9, 0.82, 0, 1.3, 0.14, 1.9, 0x3b4048); // trator (cavalo mecânico): só a cabine e a quinta roda
+      const anosDe = PREDIOS.map((o) => anelLimpo(o.p)).filter((a) => a.length >= 3);
+      const CORES = [0xf2f2f0, 0xf2f2f0, 0x2f5f9e, 0xa83a32, 0xe0b52a, 0x4c8a5a], vagasP = [];
+      for (const anelLote of LOTES_P) {
+        const a = { anel: anelLote }, R = retanguloMinimo(a.anel); if (!R) continue;
+        const perto = anosDe.filter((an) => an.some(([x, z]) => Math.hypot(x - R.c[0], z - R.c[1]) < R.A + R.B + 20));
+        const giro = Math.atan2(-R.ea[1], R.ea[0]) + Math.PI / 2, passoA = 4.2 * E, passoB = 13 * E; let s = Math.round(R.c[0]);
+        for (let b = -R.B + passoB / 2; b < R.B; b += passoB) for (let u = -R.A + passoA; u < R.A; u += passoA) {
+          s++;
+          const [x, , z] = pontoRet(R, u, b, 0), cantos = [[0, 0], [7, 0], [-7, 0], [0, 4], [0, -4]].map(([du, dv]) => { const k = pontoRet(R, u + dv, b + du, 0); return [k[0], k[2]]; });
+          if (acaso(s) > 0.55 || !cantos.every((p) => dentro(p, a.anel) && !naRua(p, 1) && !perto.some((an) => dentro(p, an)) && !ocupadoPorEstrutura(p))) continue;
+          vagasP.push([x, z, giro + (acaso(s + 3) - 0.5) * 0.06 + (acaso(s + 5) < 0.5 ? Math.PI : 0), s]);
+        }
+      }
+      const faz = (lista, partes) => {
+        if (!lista.length) return;
+        const inst = new THREE.InstancedMesh(mergeGeometries(partes), new THREE.MeshLambertMaterial({ vertexColors: true }), lista.length);
+        const m = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color(), um = new THREE.Vector3(1, 1, 1);
+        lista.forEach(([x, z, g, n], i) => { inst.setMatrixAt(i, m.compose(new THREE.Vector3(x, 0.3, z), q.setFromAxisAngle(EIXO_Y, g), um)); inst.setColorAt(i, c.set(CORES[Math.floor(acaso(n + 11) * CORES.length)])); });
+        inst.castShadow = true; inst.receiveShadow = true; grupo.add(inst);
+      };
+      faz(vagasP.filter((v) => acaso(v[3] + 7) < 0.6), pCam); faz(vagasP.filter((v) => acaso(v[3] + 7) >= 0.6), pTra);
+      resumo.pesados = vagasP.length;
+    }
     if (parados.length) {
       const inst = new THREE.InstancedMesh(geoCarro, new THREE.MeshLambertMaterial({ vertexColors: true }), parados.length);
       const m = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color(), um = new THREE.Vector3(1, 1, 1);
@@ -3058,12 +3155,19 @@ function fachadaDoPredio(o, anel, area, R, i) {
   PREDIOS.forEach((o, i) => {
     let anel = anelLimpo(o.p);
     if (anel.length < 3) return;
-    const c = centroDe(anel), peca = pecaDe(c), area = Math.abs(areaComSinal(anel));
-    if (!peca || area < 12 || ocupadoPorEstrutura(c)) return; // no lugar de uma estrutura identificada na foto, vale o modelo dela
+    const c = centroDe(anel), peca = pecaDe(c), area0 = Math.abs(areaComSinal(anel));
+    if (!peca || area0 < 12 || ocupadoPorEstrutura(c)) return; // no lugar de uma estrutura identificada na foto, vale o modelo dela
     if (invadeRua(anel, c)) return; // prédio em cima da rua (erro do mapa): fica fora
+    anel = cortarNaRua(anel, c); // pegava só um pedaço da pista: corta na beira da rua
+    if (anel.length < 3 || Math.abs(areaComSinal(anel)) < 12) return;
+    { const cx = caixaDe(anel); // rua atravessando o prédio pelo meio: não dá para cortar, fica fora
+      if (PISTAS_DO_MAPA.some(([a, b]) => { if (Math.max(a[0], b[0]) < cx.x0 || Math.min(a[0], b[0]) > cx.x1 || Math.max(a[1], b[1]) < cx.zN || Math.min(a[1], b[1]) > cx.zS) return false; for (let k = 0; k <= 8; k++) if (dentro([a[0] + ((b[0] - a[0]) * k) / 8, a[1] + ((b[1] - a[1]) * k) / 8], anel)) return true; return false; })) return; }
+    const area = Math.abs(areaComSinal(anel));
     const h = o.h || alturaPredio(area, c, i);
-    const ehGalpao = area > 600, R = ehGalpao ? retanguloMinimo(anel) : null;
+    const ehGalpao = area > 600;
+    let R = ehGalpao ? retanguloMinimo(anel) : null;
     const duasAguas = !!R && area / R.area > 0.8 && R.B > 6;
+    if (duasAguas) R = apararRetangulo(R);
     const fachada = fachadaDoPredio(o, anel, area, R, i), anelOriginal = anel;
     const tipo = fachada === FACHADA.lisa ? "Tanque / silo" : area < 150 && fachada !== FACHADA.tecnica ? "Edificação pequena" : NOME_FACHADA[fachada];
     if (duasAguas) anel = [pontoRet(R, -R.A, -R.B, 0), pontoRet(R, R.A, -R.B, 0), pontoRet(R, R.A, R.B, 0), pontoRet(R, -R.A, R.B, 0)].map(([x, , z]) => [x, z]);
@@ -3124,7 +3228,7 @@ function fachadaDoPredio(o, anel, area, R, i) {
       }
     }
     REGISTRO_PREDIOS.push({ malha: ehGalpao ? 0 : 1, ini, fim: destino.pos.length / 3, tIni, tFim: cidade.pos.length / 3, fIni, fFim, c, peca, h, base, duasAguas,
-      anel: anelOriginal, tipo, fachada, naves, nome: o.n, area, corFoto: o.cor, medidas: R && duasAguas ? [2 * R.A, 2 * R.B] : null });
+      anel: anelOriginal, anelFinal: anel, tipo, fachada, naves, nome: o.n, area, corFoto: o.cor, medidas: R && duasAguas ? [2 * R.A, 2 * R.B] : null });
   });
   const geoTelhado = geometria({ pos: cidade.pos, cor: new Array(cidade.pos.length).fill(0.7) });
   geoTelhado.setAttribute("telha", new THREE.Float32BufferAttribute(cidade.tel, 4));
@@ -5348,6 +5452,11 @@ window.usina = { // usado nos testes automáticos
     const l = grupos[nome] || []; l.forEach((o) => { if (o) o.visible = !o.visible; }); return l[0]?.visible;
   },
   cpuMs: (n = 30) => { const t0 = performance.now(); for (let i = 0; i < n; i++) { controles.update(); atualizarPlacas(); if (DETALHES) DETALHES.animar(i / 30, 1 / 30, true); if (typeof animarVidaEstruturas === "function") animarVidaEstruturas(i / 30, 1 / 30); } return +((performance.now() - t0) / n).toFixed(2); }, // custo do processador por quadro (placas, vida)
+  naPista: () => { const dentroRua = (an) => { for (let i = 0; i < an.length; i++) { const a = an[i], b = an[(i + 1) % an.length], n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 4)); for (let k = 0; k < n; k++) if (naRua([a[0] + ((b[0] - a[0]) * k) / n, a[1] + ((b[1] - a[1]) * k) / n])) return true; } return false; };
+    const pr = REGISTRO_PREDIOS.filter((r) => dentroRua(r.anelFinal)).map((r) => [r.tipo, r.nome || "", ...r.c.map(Math.round), Math.round(r.area)]);
+    const es = PEGADAS.filter((g) => g.R && !["correia", "viaduto", "subestacao", "tubovia"].includes(g.e.t) && !g.e.linha && dentroRua([[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => { const q = pontoRet(g.R, u * g.R.A, v * g.R.B, 0); return [q[0], q[2]]; }))).map((g) => [g.e.t, g.e.n, ...g.R.c.map(Math.round)]);
+    const cruzam = REGISTRO_PREDIOS.filter((r) => { const cx = caixaDe(r.anelFinal); return PISTAS_DO_MAPA.some(([a, b]) => { for (let k = 0; k <= 8; k++) { const p = [a[0] + ((b[0] - a[0]) * k) / 8, a[1] + ((b[1] - a[1]) * k) / 8]; if (p[0] > cx.x0 && p[0] < cx.x1 && p[1] > cx.zN && p[1] < cx.zS && dentro(p, r.anelFinal)) return true; } return false; }); }).map((r) => [r.tipo, r.nome || "", ...r.c.map(Math.round), Math.round(r.area)]);
+    return { predios: pr.length, listaP: pr.slice(0, 25), estruturas: es, cruzam }; }, // o que ainda encosta na pista
   camera: () => [...camera.position.toArray().map(Math.round), Math.round(controles.target.x), Math.round(controles.target.z)], // [x, y, z, alvoX, alvoZ] para usina.ver()
   areas: () => AREAS.map((a) => { const c = centroDe(a.anel), cx = caixaDe(a.anel); return [a.name, a.setor, Math.round(c[0]), Math.round(c[1]), Math.round(Math.max(cx.x1 - cx.x0, cx.zS - cx.zN))]; }),
   predios: (x, z, r = 150) => REGISTRO_PREDIOS.filter((p) => Math.hypot(p.c[0] - x, p.c[1] - z) < r).map((p) => [p.tipo, p.nome || "", Math.round(p.c[0]), Math.round(p.c[1]), Math.round(p.h), Math.round(p.area)]),
