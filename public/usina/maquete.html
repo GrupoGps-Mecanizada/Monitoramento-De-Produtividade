@@ -33,6 +33,12 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 .lista input:focus{outline:2px solid var(--accent);outline-offset:-1px}
 /* Filtros e configurações: gaveta flutuante à direita igual à do SST (cabeçalho, abas, cartões e rodapé) */
 .botao-filtros{position:fixed;top:16px;right:16px;z-index:3;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--g-borda);background:var(--g-superficie);color:var(--g-texto);font:500 14px var(--g-fonte);cursor:pointer;box-shadow:var(--g-sombra-2)}
+.zoom-botoes{position:fixed;right:16px;bottom:52px;z-index:3;display:flex;flex-direction:column;border:1px solid var(--g-borda);border-radius:8px;background:var(--g-superficie);overflow:hidden}
+.zoom-botoes button{width:40px;height:40px;display:grid;place-items:center;border:0;background:none;color:inherit;cursor:pointer;touch-action:none}
+.zoom-botoes button+button{border-top:1px solid var(--g-borda)}
+.zoom-botoes button:hover{background:var(--g-superficie-2)}
+.zoom-botoes button:focus-visible{outline:2px solid var(--g-primaria);outline-offset:-2px}
+.zoom-botoes svg{width:16px;height:16px;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;fill:none}
 .botao-filtros svg{width:16px;height:16px}
 .botao-filtros:hover{background:var(--g-superficie-2)}
 .botao-filtros[aria-expanded="true"]{border-color:var(--g-primaria);background:var(--g-primaria-suave);color:var(--g-primaria)}
@@ -292,6 +298,10 @@ input,textarea,.dados,.dados *{-webkit-user-select:text;user-select:text}
   <div class="rolagem corpo" id="rolagem"></div>
 </section>
 
+<div class="zoom-botoes" role="group" aria-label="Zoom da maquete">
+  <button type="button" id="zoomMais" aria-label="Aproximar" title="Aproximar (tecla +)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button>
+  <button type="button" id="zoomMenos" aria-label="Afastar" title="Afastar (tecla -)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10"/></svg></button>
+</div>
 <button type="button" class="botao-filtros" id="botaoFiltros" aria-expanded="false" aria-controls="painelFiltros"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h8M14 12h0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="11" cy="4" r="1.8" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="8" r="1.8" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="1.8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span>Filtros</span></button>
 <section class="painel filtros" id="painelFiltros" role="dialog" aria-labelledby="filtrosTitulo" hidden>
   <header class="gav-topo">
@@ -4563,6 +4573,25 @@ function aplicarZoom(dt) {
   mexeuEm = performance.now();
   return true;
 }
+/* zoom pelos botões + e - e pelas teclas + e -: sempre para o centro da vista; segurar o botão continua aproximando */
+function darZoom(sentido, passo = 0.42) { // sentido: -1 aproxima, 1 afasta
+  if (viagem) viagem = null;
+  zoom.ponto.copy(controles.target);
+  zoom.resto = THREE.MathUtils.clamp(zoom.resto + sentido * passo, -2.5, 2.5);
+  pedirDesenho();
+}
+for (const [id, sentido] of [["zoomMais", -1], ["zoomMenos", 1]]) {
+  const botao = $(id); let repetir = null;
+  const parar = () => { clearInterval(repetir); repetir = null; };
+  botao.addEventListener("pointerdown", (e) => { e.preventDefault(); darZoom(sentido); parar(); repetir = setInterval(() => darZoom(sentido, 0.22), 130); });
+  for (const fim of ["pointerup", "pointerleave", "pointercancel"]) botao.addEventListener(fim, parar);
+  botao.addEventListener("click", (e) => { if (e.detail === 0) darZoom(sentido); }); // Enter ou espaço com o botão em foco
+}
+addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return; // Ctrl + é o zoom do navegador; digitando na busca, não mexe
+  if (e.key === "+" || e.key === "=") { e.preventDefault(); darZoom(-1); }
+  else if (e.key === "-") { e.preventDefault(); darZoom(1); }
+});
 let mexeuEm = 0; // última vez que a câmera andou: enquanto ela anda (e no deslize ao soltar), tudo a quadro cheio
 function desenhar(agora) {
   pedido = false;
