@@ -274,6 +274,10 @@ body:not(.em-apres) .pa-apres{display:none!important}
 #lista{--fg:#fff;--muted:#a9b6c8;--line:rgba(255,255,255,.16);--accent-soft:rgba(255,255,255,.1);left:0;top:0!important;bottom:0;max-height:none!important;height:auto!important;width:372px;padding:22px 34px 12px 22px;border:0;border-radius:0;box-shadow:none;color:#fff;background:linear-gradient(90deg,rgba(8,14,26,.96) 76%,rgba(8,14,26,.7) 90%,transparent)}
 #lista header{border:0;padding:0 0 4px;font:600 26px Sora,sans-serif;letter-spacing:-.01em;text-transform:none;color:#fff}
 #lista .recolher{background:none;border-color:var(--line);color:#fff}
+#lista{transition:transform .25s}body.lista-fora #lista{transform:translateX(-100%)}
+.puxa-lista{position:fixed;z-index:7;left:372px;top:50%;margin-top:-30px;width:20px;height:60px;border:0;border-radius:0 8px 8px 0;background:rgba(13,27,46,.9);color:#fff;cursor:pointer;display:grid;place-items:center;padding:0;transition:left .25s}
+body.lista-fora .puxa-lista{left:0}.puxa-lista svg{width:12px;height:12px;transition:transform .25s}body.lista-fora .puxa-lista svg{transform:rotate(180deg)}
+body.em-apres .puxa-lista{display:none}
 #lista .abas-lista{margin:10px 0 0;background:rgba(255,255,255,.08)}#lista .abas-lista button{color:#c9d5e6}#lista .abas-lista button[aria-selected="true"]{background:#fff;color:#0d1b2e}
 #lista input{margin:10px 0 6px;background:rgba(255,255,255,.08);border-color:var(--line);color:#fff}#lista input::placeholder{color:#a9b6c8}
 #lista .item{font:400 15px "IBM Plex Sans",sans-serif;padding:8px 6px;border-top:1px solid var(--line)}#lista .item em{font-size:12px}#lista .grupo{padding:12px 6px 4px}
@@ -325,7 +329,7 @@ body.sem-coluna .pa-puxa{left:0}.pa-puxa svg{width:12px;height:12px}body.sem-col
 .bd-int{width:26px;height:14px;border-radius:7px;background:rgba(255,255,255,.2);position:relative;flex:none}.bd-int::after{content:"";position:absolute;left:2px;top:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .12s}
 .bd-i[aria-pressed=true] .bd-int{background:#4f8fe8}.bd-i[aria-pressed=true] .bd-int::after{left:14px}
 .bd-fim{margin-top:auto;border-top:1px solid var(--bd-linha);padding-top:6px}
-@media (max-width:760px){.bd{display:none}.pa-col{width:100%;top:auto;height:50vh;padding:18px 62px 12px 18px;background:rgba(8,14,26,.95)}.pa-col h1{font-size:26px}.pa-puxa,.pa-aviso{display:none}body.sem-coluna .pa-col{transform:translateY(100%)}body .zoom-botoes,body.bd-fixa .zoom-botoes{bottom:auto;top:16px;right:56px}}
+@media (max-width:760px){.bd,.puxa-lista{display:none}.pa-col{width:100%;top:auto;height:50vh;padding:18px 62px 12px 18px;background:rgba(8,14,26,.95)}.pa-col h1{font-size:26px}.pa-puxa,.pa-aviso{display:none}body.sem-coluna .pa-col{transform:translateY(100%)}body .zoom-botoes,body.bd-fixa .zoom-botoes{bottom:auto;top:16px;right:56px}}
 
 </style>
 
@@ -468,6 +472,7 @@ body.sem-coluna .pa-puxa{left:0}.pa-puxa svg{width:12px;height:12px}body.sem-col
   <button class="pa-puxa pa-apres" id="paPuxa" aria-label="Mostrar ou ocultar os dados" title="Mostrar ou ocultar os dados"><svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2"><path d="M8 2 4 6l4 4"/></svg></button>
 </div>
 <nav class="bd pa" id="bd" aria-label="Controles da maquete"></nav>
+<button class="puxa-lista" id="puxaLista" aria-label="Mostrar ou esconder a lista de áreas" title="Mostrar ou esconder a lista de áreas"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2 4 6l4 4"/></svg></button>
 <script>
 (() => {
   /* Barra de controles à direita (no desenho da barra do SST) e modo Apresentação: coluna de dados à esquerda, maquete em tons
@@ -522,6 +527,9 @@ body.sem-coluna .pa-puxa{left:0}.pa-puxa svg{width:12px;height:12px}body.sem-col
     else if (b.id === "paAnt") { parar(); passo(-1); } else if (b.id === "paProx") { parar(); passo(1); } else if (b.id === "paAuto") auto();
   });
   $("paPuxa").onclick = () => B.classList.toggle("sem-coluna");
+  /* lista de áreas retrátil (01/11/2026): começa escondida, o mapa inteiro livre; a escolha fica guardada neste navegador */
+  try { B.classList.toggle("lista-fora", localStorage.getItem("usina-lista") !== "aberta"); } catch { B.classList.add("lista-fora"); }
+  $("puxaLista").onclick = () => { const fora = B.classList.toggle("lista-fora"); try { localStorage.setItem("usina-lista", fora ? "fechada" : "aberta"); } catch {} };
   addEventListener("keydown", (e) => { if (tela.nivel === "ponto" && e.key === "ArrowRight") { parar(); passo(1); } if (tela.nivel === "ponto" && e.key === "ArrowLeft") { parar(); passo(-1); } });
 
   /* barra da direita: lê os controles reais da maquete; cada item aperta o controle verdadeiro */
@@ -947,7 +955,7 @@ const INTEL_HD = SEM_FORCA && /Intel/i.test(PLACA);
    uma passada só sobre a imagem pronta, quase do mesmo jeito e a 60 quadros/s. Nas outras placas fica a de 4 amostras. */
 const renderer = new THREE.WebGLRenderer({ canvas: $("cena"), antialias: !INTEL_HD, alpha: true, powerPreference: "high-performance" });
 renderer.setClearColor(0x000000, 0);
-let nitidezMaxima = INTEL_HD ? 1 : 1.5; // na Intel HD fica em 1: tela com zoom do Windows (125%, 150%) custava até 2x mais pontos
+let nitidezMaxima = INTEL_HD ? 1.25 : 1.5; // 01/11/2026: em 1 a Intel ficava borrada nas telas com zoom do Windows (125%) // na Intel HD fica em 1: tela com zoom do Windows (125%, 150%) custava até 2x mais pontos
 const nitidez = () => Math.min(devicePixelRatio, estado.qualidade === "alta" ? nitidezMaxima : 1);
 renderer.setPixelRatio(nitidez());
 renderer.setSize(innerWidth, innerHeight);
@@ -5598,11 +5606,8 @@ const animando = () => fumacaViva() || frotaAndando() || vidaViva() || tremAndan
 /* Ajuste automático: se a fumaça animada pesar, alivia em degraus até ficar fluido */
 const medidor = { tempos: [], mexendo: [], degrau: 0 };
 const DEGRAUS = [
-  ["nitidez", () => { nitidezMaxima = 1; renderer.setPixelRatio(nitidez()); renderer.setSize(innerWidth, innerHeight); }],
-  ["resolução em movimento 80%", () => { fatorMovimento = 0.8; }],
   ["textura do chão simples", () => { if (typeof PADRAO_CHAO !== "undefined") PADRAO_CHAO.forca.value = 0; }],
   ["fumaça parada", () => { fumacaParada = true; }],
-  ["resolução em movimento 65%", () => { fatorMovimento = 0.65; }],
 ];
 /* resolução dinâmica (30/10/2026, "rodar extremamente liso"): numa placa fraca, enquanto a câmera anda o quadro é desenhado
    com menos pontos (fatorMovimento, ligado pelo ajuste automático); parada, volta à nitidez cheia logo em seguida */
@@ -6419,7 +6424,7 @@ function montarCamadas(qualidade) { // aba Camadas: um cartão por grupo, com in
 
 function mudarQualidade(q) {
   estado.qualidade = q;
-  if (q === "alta") { nitidezMaxima = INTEL_HD ? 1 : 1.5; fumacaParada = false; medidor.degrau = DEGRAUS.length; } // o dono pediu Alta: não alivia sozinho
+  if (q === "alta") { nitidezMaxima = INTEL_HD ? 1.25 : 1.5; fumacaParada = false; medidor.degrau = DEGRAUS.length; } // o dono pediu Alta: não alivia sozinho
   if (typeof PADRAO_CHAO !== "undefined") PADRAO_CHAO.forca.value = q === "alta" ? 1 : 0; // no Leve, o chão sem textura
   renderer.setPixelRatio(nitidez());
   renderer.setSize(innerWidth, innerHeight);
@@ -6521,7 +6526,7 @@ addEventListener("keydown", (e) => { if (e.key === "Escape") fechar(); });
         Monta aos poucos, com a câmera parada: um pedaço por vez, para nunca travar o movimento. Só na qualidade Alta.
    ========================================================================= */
 const PERTO = (() => {
-  const LADO = 250, ALCANCE_CELULA = 540, ALCANCE_ESTRUTURA = 400, MAX_ESTRUTURAS = 32, MAX_GUARDADAS = 48;
+  const LADO = 250, ALCANCE_CELULA = 820, MAX_CELULAS = 420, ALCANCE_ESTRUTURA = 400, MAX_ESTRUTURAS = 32, MAX_GUARDADAS = 48;
   const grupoPlantas = new THREE.Group(), grupoPostes = new THREE.Group(), grupoRelevo = new THREE.Group();
   grupoCidade.add(grupoPlantas); grupoReal.add(grupoPostes, grupoRelevo);
   const celulas = new Map(), ativas = new Map(), guardadas = new Map(), fila = [];
@@ -6745,6 +6750,19 @@ const PERTO = (() => {
   /* ---- modelos pequenos, repetidos com instâncias ---- */
   let geoArvore = null, geoArvoreLonge = null, geoArbusto = null, geoPoste = null;
   const matPlanta = new THREE.MeshLambertMaterial({ vertexColors: true }), matPoste = new THREE.MeshStandardMaterial({ color: 0x8f9499, metalness: 0.5, roughness: 0.55 });
+  /* conforto (01/11/2026, "as árvores somem e aparecem a todo momento"): cada quadra é montada uma vez e fica guardada;
+     nada é desmontado ao mexer a câmera. Longe, a árvore e o poste encolhem suavemente até sumir (na placa de vídeo,
+     sem custo de montagem), então não há o pisca de aparecer de uma vez. */
+  const SUMIR = { ini: { value: 560 }, fim: { value: 760 } };
+  for (const m of [matPlanta, matPoste]) m.onBeforeCompile = (s) => {
+    s.uniforms.sumirIni = SUMIR.ini; s.uniforms.sumirFim = SUMIR.fim;
+    s.vertexShader = s.vertexShader.replace("#include <common>", "#include <common>\nuniform float sumirIni, sumirFim;")
+      .replace("#include <begin_vertex>", `#include <begin_vertex>
+      #ifdef USE_INSTANCING
+        vec3 pe = (modelMatrix * instanceMatrix * vec4(0., 0., 0., 1.)).xyz;
+        transformed *= 1. - smoothstep(sumirIni, sumirFim, distance(pe, cameraPosition));
+      #endif`);
+  };
   const matRelevo = new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   const pintada = (g, r, gg, b) => { const n = g.attributes.position.count, c = new Float32Array(n * 3); for (let i = 0; i < n * 3; i += 3) { c[i] = r; c[i + 1] = gg; c[i + 2] = b; } g.setAttribute("color", new THREE.BufferAttribute(c, 3)); g.deleteAttribute("uv"); return g; };
   function copa(cx, cy, cz, rx, ry, nivel) { // bola amassada, de contorno irregular, escura embaixo e clara em cima
@@ -6759,8 +6777,8 @@ const PERTO = (() => {
   function modelosPequenos() {
     if (geoArvore) return;
     const tronco = pintada(new THREE.CylinderGeometry(0.3, 0.42, 6, 5, 1, true).translate(0, 3, 0).toNonIndexed(), 0.7, 0.53, 0.4);
-    geoArvore = mergeGeometries([tronco, copa(0, 8.8, 0, 4.4, 4.2, 1), copa(1.8, 7.2, 1.2, 2.8, 2.4, 1)]);
-    geoArvoreLonge = mergeGeometries([tronco, copa(0, 8.8, 0, 4.6, 4.4, 0), copa(1.8, 7.2, 1.2, 3, 2.6, 0)]);
+    const sombra = pintada(new THREE.CircleGeometry(4.6, 10).rotateX(-Math.PI / 2).translate(-1.6, 0.15, 0.7).toNonIndexed(), 0.3, 0.3, 0.3); // sombra no chão: some junto com a árvore
+    geoArvore = mergeGeometries([sombra, tronco, copa(0, 8.8, 0, 4.4, 4.2, 1), copa(1.8, 7.2, 1.2, 2.8, 2.4, 0)]);
     geoArbusto = mergeGeometries([copa(0, 1.1, 0, 1.8, 1.2, 0), copa(1.2, 0.8, 0.5, 1.1, 0.8, 0)]);
     geoPoste = mergeGeometries([new THREE.CylinderGeometry(0.09, 0.16, 11, 6, 1, true).translate(0, 5.5, 0), new THREE.CylinderGeometry(0.06, 0.06, 2.2, 5, 1, true).rotateZ(Math.PI / 2).translate(1.1, 10.9, 0), new THREE.BoxGeometry(0.8, 0.12, 0.3).translate(2.2, 10.85, 0)].map((g) => { g = g.toNonIndexed(); g.deleteAttribute("uv"); return g; }));
   }
@@ -6803,7 +6821,7 @@ const PERTO = (() => {
       }
     }
   }
-  function montarCelula(chave, ci, cj, perto) {
+  function montarCelula(chave, ci, cj) {
     modelosPequenos();
     const onde = montarMapaChao(), x0 = ci * LADO, z0 = cj * LADO, arvores = [], arbustos = [], postes = [], malhas = [], passo = 7.5 / Math.sqrt(densidade);
     for (let x = x0; x < x0 + LADO; x += passo) for (let z = z0; z < z0 + LADO; z += passo) {
@@ -6823,7 +6841,7 @@ const PERTO = (() => {
         postes.push({ x: px, z: pz, s: 1, giro: Math.atan2(dx * lado, dz * lado) + Math.PI / 2 });
       }
     }
-    [instancias(perto ? geoArvore : geoArvoreLonge, matPlanta, arvores, grupoPlantas, perto), instancias(geoArbusto, matPlanta, arbustos, grupoPlantas), instancias(geoPoste, matPoste, postes, grupoPostes)].forEach((m) => m && malhas.push(m));
+    [instancias(geoArvore, matPlanta, arvores, grupoPlantas), instancias(geoArbusto, matPlanta, arbustos, grupoPlantas), instancias(geoPoste, matPoste, postes, grupoPostes)].forEach((m) => m && malhas.push(m));
     const sa = { p: [], n: [], c: [] };
     for (const r of REGISTRO_PREDIOS) if (r.c[0] >= x0 && r.c[0] < x0 + LADO && r.c[1] >= z0 && r.c[1] < z0 + LADO) relevoDoPredio(r, sa);
     if (sa.p.length) {
@@ -6844,20 +6862,28 @@ const PERTO = (() => {
     timerAvaliar = null; fila.length = 0;
     const cam = camera.position, alvo = controles.target, longe = !ligado() || cam.y > 900 || cam.distanceTo(alvo) > 1500;
     const querCel = new Map(), querEst = new Set();
-    if (!longe) {
-      const ci0 = Math.floor(alvo.x / LADO), cj0 = Math.floor(alvo.z / LADO), rc = Math.ceil(ALCANCE_CELULA / LADO);
-      for (let i = ci0 - rc; i <= ci0 + rc; i++) for (let j = cj0 - rc; j <= cj0 + rc; j++) {
-        const d = Math.hypot((i + 0.5) * LADO - alvo.x, (j + 0.5) * LADO - alvo.z);
-        if (d <= ALCANCE_CELULA) querCel.set(`${i},${j},${d < 280 ? 1 : 0}`, { i, j, d });
+    if (ligado() && cam.y < SUMIR.fim.value) { // quadras perto do pé da câmera e do ponto olhado (mais longe a árvore já sumiu)
+      const rc = Math.ceil(ALCANCE_CELULA / LADO);
+      for (const [px, pz] of [[cam.x, cam.z], [alvo.x, alvo.z]]) {
+        const ci0 = Math.floor(px / LADO), cj0 = Math.floor(pz / LADO);
+        for (let i = ci0 - rc; i <= ci0 + rc; i++) for (let j = cj0 - rc; j <= cj0 + rc; j++) {
+          const d = Math.hypot((i + 0.5) * LADO - px, (j + 0.5) * LADO - pz), k = `${i},${j}`;
+          if (d <= ALCANCE_CELULA && !(querCel.get(k)?.d <= d)) querCel.set(k, { i, j, d });
+        }
       }
+    }
+    if (!longe) {
       REGISTRO_ESTRUTURAS.filter((r) => (r.fazer || SOBREPOR[r.e.t]) && !r.semPerto && MALHAS_ESTRUTURAS[r.camada]?.visible)
         .map((r) => ({ r, d: Math.min(Math.hypot(r.xz[0] - cam.x, (r.h || 10) / 2 - cam.y, r.xz[1] - cam.z), Math.hypot(r.xz[0] - alvo.x, r.xz[1] - alvo.z)) - (r.raio || r.raioPerto || 10) }))
-        .filter((o) => o.d < ALCANCE_ESTRUTURA).sort((a, b) => a.d - b.d).slice(0, MAX_ESTRUTURAS).forEach((o) => querEst.add(o.r));
+        .filter((o) => o.d < (ativas.has(o.r) ? ALCANCE_ESTRUTURA * 1.5 : ALCANCE_ESTRUTURA)).sort((a, b) => a.d - b.d).slice(0, MAX_ESTRUTURAS).forEach((o) => querEst.add(o.r));
     }
     for (const r of [...ativas.keys()]) if (!querEst.has(r)) fila.push(() => desligarEstrutura(r));
-    for (const k of [...celulas.keys()]) if (!querCel.has(k)) fila.push(() => soltarCelula(k));
+    if (celulas.size > MAX_CELULAS) { // memória: solta só as quadras mais longe, que já estão invisíveis
+      const longe = [...celulas.keys()].filter((k) => !querCel.has(k)).map((k) => { const [i, j] = k.split(",").map(Number); return [k, Math.hypot((i + 0.5) * LADO - cam.x, (j + 0.5) * LADO - cam.z)]; }).sort((a, b) => b[1] - a[1]);
+      longe.slice(0, celulas.size - MAX_CELULAS).forEach(([k]) => fila.push(() => soltarCelula(k)));
+    }
     for (const r of querEst) if (!ativas.has(r)) fila.push(() => ligarEstrutura(r));
-    [...querCel.entries()].filter(([k]) => !celulas.has(k)).sort((a, b) => a[1].d - b[1].d).forEach(([k, { i, j }]) => fila.push(() => montarCelula(k, i, j, k.endsWith(",1"))));
+    [...querCel.entries()].filter(([k]) => !celulas.has(k)).sort((a, b) => a[1].d - b[1].d).forEach(([k, { i, j }]) => fila.push(() => montarCelula(k, i, j)));
     fila.push(ajustarSombra);
     if (!trabalhando) { trabalhando = true; setTimeout(trabalhar, 16); }
   }
@@ -6871,7 +6897,7 @@ const PERTO = (() => {
   function ajustarSombra() {
     const d = camera.position.distanceTo(controles.target), perto = ligado() && d < 1500;
     const meia = perto ? THREE.MathUtils.clamp(d * 1.5, 600, 1600) : 0, x = perto ? Math.round(controles.target.x / 150) * 150 : 0, z = perto ? Math.round(controles.target.z / 150) * 150 : 0;
-    const chave = `${perto}|${meia}|${x}|${z}|${ativas.size}|${celulas.size}`;
+    const chave = `${perto}|${meia}|${x}|${z}|${ativas.size}`;
     if (chave === chaveSombra) return;
     chaveSombra = chave;
     if (!perto) return posicionarSol();
@@ -6885,6 +6911,11 @@ const PERTO = (() => {
     malhas: malhasToque,
     quadro() { // só reavalia quando a câmera sai do lugar (a fumaça e o fogo pedem quadros o tempo todo)
       atualizarCeu(); verFinos();
+      for (const [k, malhas] of celulas) { // quadra toda além do ponto em que a árvore some: nem vai para a placa de vídeo
+        const [i, j] = k.split(","), dx = Math.max(i * LADO - camera.position.x, camera.position.x - (+i + 1) * LADO, 0), dz = Math.max(j * LADO - camera.position.z, camera.position.z - (+j + 1) * LADO, 0);
+        const ver = Math.hypot(dx, dz, camera.position.y) < SUMIR.fim.value + 40;
+        for (const m of malhas) if (m.isInstancedMesh) m.visible = ver;
+      }
       if (camera.position.distanceToSquared(ultimaCamera) > 16 || controles.target.distanceToSquared(ultimoAlvo) > 16) { ultimaCamera.copy(camera.position); ultimoAlvo.copy(controles.target); agendar(); }
     },
     aplicar() {
@@ -6893,7 +6924,7 @@ const PERTO = (() => {
       verFinos();
       agendar();
     },
-    aliviar() { densidade = 0.5; for (const k of [...celulas.keys()]) soltarCelula(k); agendar(); },
+    aliviar() { SUMIR.ini.value = 380; SUMIR.fim.value = 520; pedirDesenho(); }, // placa fraca: árvores somem mais perto, sem remontar
     situacao: (x) => { // teste: usina.detalhe("sem") mostra a versão simples no lugar da rica; usina.detalhe("com") volta
       if (x === "sem" || x === "com") { semRicas = x === "sem"; for (const [r, o] of ativas) { if (o.corpo) o.corpo.visible = !semRicas; if (r.fazer) mostrarPerto(r, !semRicas); } verFinos(); pedirDesenho(); }
       let fino = 0; for (const o of ativas.values()) if (o.fino?.visible) fino++;
