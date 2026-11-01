@@ -264,6 +264,69 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 /* nada de texto selecionado sem querer ao arrastar o mapa; nos campos e na ficha dá para copiar */
 body{-webkit-user-select:none;user-select:none}
 input,textarea,.dados,.dados *{-webkit-user-select:text;user-select:text}
+body.em-apres.neutra #cena{filter:saturate(.28) brightness(.98) contrast(.96)}
+body.em-apres #lista,body.em-apres #topo,body.em-apres .ficha:not(#anPainel){display:none!important}
+body.em-apres #anPainel{left:16px!important;right:auto!important}
+body:not(.em-apres) .pa-apres{display:none!important}
+@media (min-width:761px){
+#botaoFiltros{display:none!important}
+.ficha{right:64px}body.bd-fixa .ficha{right:276px}
+#lista{--fg:#fff;--muted:#a9b6c8;--line:rgba(255,255,255,.16);--accent-soft:rgba(255,255,255,.1);left:0;top:0!important;bottom:0;max-height:none!important;height:auto!important;width:372px;padding:22px 34px 12px 22px;border:0;border-radius:0;box-shadow:none;color:#fff;background:linear-gradient(90deg,rgba(8,14,26,.96) 76%,rgba(8,14,26,.7) 90%,transparent)}
+#lista header{border:0;padding:0 0 4px;font:600 26px Sora,sans-serif;letter-spacing:-.01em;text-transform:none;color:#fff}
+#lista .recolher{background:none;border-color:var(--line);color:#fff}
+#lista .abas-lista{margin:10px 0 0;background:rgba(255,255,255,.08)}#lista .abas-lista button{color:#c9d5e6}#lista .abas-lista button[aria-selected="true"]{background:#fff;color:#0d1b2e}
+#lista input{margin:10px 0 6px;background:rgba(255,255,255,.08);border-color:var(--line);color:#fff}#lista input::placeholder{color:#a9b6c8}
+#lista .item{font:400 15px "IBM Plex Sans",sans-serif;padding:8px 6px;border-top:1px solid var(--line)}#lista .item em{font-size:12px}#lista .grupo{padding:12px 6px 4px}
+}
+#anPainel{left:16px!important;right:auto!important}
+@media (min-width:761px){body .zoom-botoes{right:62px;bottom:20px;z-index:7;transition:right .18s}body.bd-fixa .zoom-botoes{right:276px}}
+.pa{--critica:#e0524f;--irregular:#e3a33a;--corrigida:#37a678;font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;color:#fff}
+.pa button{font:inherit;color:inherit}
+.pa-aviso{position:fixed;z-index:6;top:14px;left:50%;transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(13,27,46,.72);padding:5px 10px;border-radius:6px}
+.pa-pinos{position:fixed;inset:0;z-index:4;pointer-events:none}
+.pa-pino{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.45);pointer-events:auto;cursor:pointer;padding:0;background:var(--c);transition:opacity .2s}
+.pa-pino.foco{width:26px;height:26px;margin:-13px 0 0 -13px;animation:pa-pulso 1.5s infinite}
+@keyframes pa-pulso{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 70%,transparent)}100%{box-shadow:0 0 0 22px transparent}}
+.pa-col{position:fixed;z-index:6;left:0;top:0;bottom:0;width:430px;padding:34px 44px 24px 36px;background:linear-gradient(90deg,rgba(8,14,26,.96) 68%,rgba(8,14,26,.72) 86%,transparent);display:flex;flex-direction:column;transition:transform .25s;overflow:auto;scrollbar-width:thin}
+body.sem-coluna .pa-col{transform:translateX(-100%)}
+.pa-col h1{font:600 42px/1.08 Sora,sans-serif;letter-spacing:-.02em;margin:0 0 8px}
+.pa-sub{font-size:16px;opacity:.75;margin:0 0 24px}
+.pa-f{display:flex;flex-direction:column;gap:2px;margin-bottom:22px}
+.pa-f button{all:unset;cursor:pointer;display:flex;gap:11px;align-items:center;font:400 19px "IBM Plex Sans",sans-serif;opacity:.6;padding:4px 0}
+.pa-f button:hover,.pa-f button:focus-visible{opacity:.9}.pa-f button.on{opacity:1;font-weight:600}
+.pa-f i{width:10px;height:10px;border-radius:50%;background:var(--c)}.pa-f b{font-weight:inherit}
+.pa-ar{all:unset;cursor:pointer;display:flex;justify-content:space-between;font-size:15px;padding:8px 0;border-top:1px solid rgba(255,255,255,.16)}
+.pa-ar:hover,.pa-ar:focus-visible{color:#9cc4ff}.pa-ar small{display:block;font-size:13px;opacity:.65}
+.pa-voltar{all:unset;cursor:pointer;font-size:14px;opacity:.75;margin-bottom:16px}.pa-voltar:hover{opacity:1}
+.pa-col h2{font:600 28px/1.15 Sora,sans-serif;margin:0 0 6px}
+.pa-selo{align-self:flex-start;font-size:13px;font-weight:600;color:#fff;background:var(--c);padding:3px 10px;border-radius:999px;margin-bottom:10px}
+.pa-foto{width:100%;height:190px;border-radius:10px;display:block;margin:6px 0 14px}
+.pa-col dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:15px;margin:0}.pa-col dt{opacity:.65}.pa-col dd{margin:0}
+.pa-nav{display:flex;gap:8px;align-items:center;margin-top:auto;padding-top:16px}
+.pa-nav button{all:unset;cursor:pointer;font-size:14px;font-weight:500;padding:8px 11px;white-space:nowrap;border:1px solid rgba(255,255,255,.3);border-radius:7px}
+.pa-nav .pr{background:#fff;color:#0d1b2e;border-color:#fff}.pa-nav span{margin-left:auto;font-size:13px;opacity:.7;white-space:nowrap}
+.pa-puxa{position:fixed;z-index:7;left:430px;top:50%;margin-top:-22px;width:18px;height:44px;border:0;border-radius:0 7px 7px 0;background:rgba(13,27,46,.85);cursor:pointer;display:grid;place-items:center;transition:left .25s;padding:0}
+body.sem-coluna .pa-puxa{left:0}.pa-puxa svg{width:12px;height:12px}body.sem-coluna .pa-puxa svg{transform:rotate(180deg)}
+.bd{--bd-fundo:#0d1b2e;--bd-linha:rgba(255,255,255,.1);--bd-passar:rgba(255,255,255,.08);--bd-atual:rgba(120,165,235,.25);--bd-icone:#93a6c1;--bd-forte:#fff;--bd-texto:#c9d5e6;position:fixed;z-index:8;right:0;top:0;bottom:0;width:48px;background:var(--bd-fundo);border-left:1px solid var(--bd-linha);display:flex;flex-direction:column;gap:2px;padding:10px 6px;overflow:hidden auto;scrollbar-width:thin;transition:width .18s;font-size:14px;color:var(--bd-texto)}
+.bd:hover,.bd:focus-within,body.bd-fixa .bd{width:260px;box-shadow:-8px 0 24px rgba(0,0,0,.3)}
+.bd .rot{opacity:0;white-space:nowrap;transition:opacity .15s;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.bd:hover .rot,.bd:focus-within .rot,body.bd-fixa .bd .rot{opacity:1}
+.bd-tit{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--bd-icone);padding:4px 8px 6px;white-space:nowrap;min-height:22px}
+.bd-g{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;min-height:36px;padding:6px 8px;border-radius:6px;cursor:pointer;font-weight:500}
+.bd-g:hover,.bd-g:focus-visible{background:var(--bd-passar);color:var(--bd-forte)}
+.bd-g svg{width:18px;height:18px;flex:none;fill:none;stroke:var(--bd-icone);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.bd-g .seta{width:13px;height:13px;transition:transform .15s,opacity .15s;opacity:0}.bd:hover .seta,.bd:focus-within .seta,body.bd-fixa .seta{opacity:1}.bd-g[aria-expanded=true] .seta{transform:rotate(90deg)}
+.bd-ramo{display:none;flex-direction:column;margin-left:16px;padding-left:8px;border-left:1px solid var(--bd-linha)}
+.bd:hover .bd-ramo.ab,.bd:focus-within .bd-ramo.ab,body.bd-fixa .bd-ramo.ab{display:flex}
+.bd-i{all:unset;box-sizing:border-box;position:relative;display:flex;align-items:center;gap:8px;width:100%;min-height:30px;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:13.5px;white-space:nowrap}
+.bd-i::before{content:"";position:absolute;left:-8px;top:50%;width:8px;height:1px;background:var(--bd-linha)}
+.bd-i:hover,.bd-i:focus-visible{background:var(--bd-passar)}.bd-i[aria-pressed=true]{background:var(--bd-atual);color:var(--bd-forte);font-weight:600}
+.bd-i span{flex:1;overflow:hidden;text-overflow:ellipsis}
+.bd-int{width:26px;height:14px;border-radius:7px;background:rgba(255,255,255,.2);position:relative;flex:none}.bd-int::after{content:"";position:absolute;left:2px;top:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .12s}
+.bd-i[aria-pressed=true] .bd-int{background:#4f8fe8}.bd-i[aria-pressed=true] .bd-int::after{left:14px}
+.bd-fim{margin-top:auto;border-top:1px solid var(--bd-linha);padding-top:6px}
+@media (max-width:760px){.bd{display:none}.pa-col{width:100%;top:auto;height:50vh;padding:18px 62px 12px 18px;background:rgba(8,14,26,.95)}.pa-col h1{font-size:26px}.pa-puxa,.pa-aviso{display:none}body.sem-coluna .pa-col{transform:translateY(100%)}body .zoom-botoes,body.bd-fixa .zoom-botoes{bottom:auto;top:16px;right:56px}}
+
 </style>
 
 <canvas id="cena" tabindex="0" aria-label="Maquete 3D da usina, do aterro e do Poço Redondo, com os caminhões"></canvas>
@@ -398,6 +461,131 @@ input,textarea,.dados,.dados *{-webkit-user-select:text;user-select:text}
 <script defer src="maquete-dados/estruturas.js?v=e74333c2"></script>
 <script defer src="maquete-dados/chao.js?v=2886bd94"></script>
 <script defer src="maquete-dados/analise.js?v=8bfe8397"></script>
+<div class="pa" id="pa">
+  <div class="pa-aviso pa-apres">Exemplo · dados fictícios</div><div class="pa-pinos pa-apres" id="paPinos"></div>
+  <aside class="pa-col pa-apres" id="paCol" aria-label="Dados da apresentação"></aside>
+  <button class="pa-puxa pa-apres" id="paPuxa" aria-label="Mostrar ou ocultar os dados" title="Mostrar ou ocultar os dados"><svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2"><path d="M8 2 4 6l4 4"/></svg></button>
+</div>
+<nav class="bd pa" id="bd" aria-label="Controles da maquete"></nav>
+<script>
+(() => {
+  /* Barra de controles à direita (no desenho da barra do SST) e modo Apresentação: coluna de dados à esquerda, maquete em tons
+     neutros e pontos no mapa. A barra só aperta os controles que já existem na maquete. O exemplo das tampas usa dados fictícios. */
+  const SIT = { critica: ["Crítica", "var(--critica)", "Críticas"], irregular: ["Irregular", "var(--irregular)", "Irregulares"], corrigida: ["Corrigida", "var(--corrigida)", "Corrigidas"] };
+  const PROB = ["Tampa trincada", "Sem tampa", "Tampa desnivelada", "Aro solto", "Tampa afundada"], EQ = ["Equipe A", "Equipe B", "Equipe C"];
+  const acaso = (i) => { const x = Math.sin(i * 91.7 + 13.3) * 43758.5453; return x - Math.floor(x); };
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const $ = (id) => document.getElementById(id), B = document.body;
+  let T = [], filtro = "todas", tela = { nivel: "geral" }, pinos = [], rodando = null;
+  const nome = (s) => s.toLowerCase().replace(/(^|[\s-])\S/g, (c) => c.toUpperCase());
+  function foto(t) { // desenho no lugar da foto real
+    const q = { "Tampa trincada": '<path d="M70 62l16 14-8 12 18 20" stroke="#1d1d1d" stroke-width="3" fill="none"/>', "Sem tampa": '<circle cx="190" cy="85" r="36" fill="#141414"/>', "Aro solto": '<circle cx="190" cy="85" r="46" fill="none" stroke="#c9c1b3" stroke-width="5" stroke-dasharray="22 12"/>' }[t.prob] || "";
+    return `<svg class="pa-foto" viewBox="0 0 380 170" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Desenho de exemplo: ${esc(t.prob)}"><rect width="380" height="170" fill="#8d8a84"/><circle cx="190" cy="85" r="44" fill="#55524d"/><circle cx="190" cy="85" r="37" fill="#6c6963"/><g transform="translate(95)">${t.prob === "Tampa trincada" ? q : ""}</g>${t.prob !== "Tampa trincada" ? q : ""}<text x="190" y="160" text-anchor="middle" font-size="11" fill="#fff">desenho de exemplo</text></svg>`;
+  }
+  function montarDados() {
+    const areas = usina.areas().filter((a) => !/PLANTA|ATERRO|PO.O REDONDO|PORT|ESTACION|[AÁ]GUA|LAGOA|BARRAGEM/i.test(a[0]) && (Math.abs(a[2]) + Math.abs(a[3])) > 50);
+    const passo = Math.floor(areas.length / 6);
+    [0, 1, 2, 3, 4, 5].map((i) => areas[i * passo]).forEach((a, i) => { for (let k = 0; k < [6, 4, 3, 3, 2, 2][i]; k++) { const s = T.length + 1, r = acaso(s + 5);
+      T.push({ cod: `T-${String(s).padStart(3, "0")}`, area: nome(a[0]), x: a[2] + (acaso(s) - .5) * 90, z: a[3] + (acaso(s + 2) - .5) * 90, sit: r < .3 ? "critica" : r < .78 ? "irregular" : "corrigida", prob: PROB[Math.floor(acaso(s + 7) * 5)], eq: EQ[s % 3], data: `${String(1 + Math.floor(acaso(s + 9) * 28)).padStart(2, "0")}/10` }); } });
+  }
+  const visiveis = () => T.filter((t) => filtro === "todas" || t.sit === filtro);
+  const areasDe = () => [...new Set(visiveis().map((t) => t.area))].map((a) => ({ a, l: visiveis().filter((t) => t.area === a) })).sort((x, y) => y.l.length - x.l.length);
+  const centro = (l) => [l.reduce((s, t) => s + t.x, 0) / l.length, l.reduce((s, t) => s + t.z, 0) / l.length];
+  const geral = () => usina.palco.voar(...centro(T), 3600);
+  function coluna() {
+    const c = $("paCol"), f = [["todas", "Todas", "#8894a5", T.length], ...Object.entries(SIT).map(([k, s]) => [k, s[2], s[1], T.filter((t) => t.sit === k).length])];
+    if (tela.nivel === "geral") c.innerHTML = `<h1>Tampas<br>irregulares</h1><p class="pa-sub">${visiveis().length} pontos em ${areasDe().length} áreas · outubro</p>
+      <div class="pa-f">${f.map(([k, n, cor, q]) => `<button data-f="${k}" class="${filtro === k ? "on" : ""}" aria-pressed="${filtro === k}" style="--c:${cor}"><i></i>${n} <b>${q}</b></button>`).join("")}</div>
+      ${areasDe().map(({ a, l }) => `<button class="pa-ar" data-a="${esc(a)}"><span>${esc(a)}</span><b>${l.length}</b></button>`).join("")}
+      <div class="pa-nav"><button class="pr" id="paTour">${rodando ? "Parar" : "Apresentar ponto a ponto"}</button></div>`;
+    if (tela.nivel === "area") { const l = visiveis().filter((t) => t.area === tela.a); c.innerHTML = `<button class="pa-voltar" id="paVolta">Voltar ao resumo</button><h2>${esc(tela.a)}</h2><p class="pa-sub">${l.length} pontos</p>
+      ${l.map((t) => `<button class="pa-ar" data-t="${T.indexOf(t)}"><span>${esc(t.cod)} · ${esc(t.prob)}<small>${SIT[t.sit][0]} · ${t.eq}</small></span></button>`).join("")}`; }
+    if (tela.nivel === "ponto") { const t = T[tela.i], s = SIT[t.sit], L = visiveis(), n = L.indexOf(t); c.innerHTML = `<button class="pa-voltar" id="paVolta">Voltar ao resumo</button><span class="pa-selo" style="--c:${s[1]}">${s[0]}</span><h2>${esc(t.prob)}</h2><p class="pa-sub" style="margin-bottom:10px">${esc(t.cod)}</p>${foto(t)}
+      <dl><dt>Área</dt><dd>${esc(t.area)}</dd><dt>Responsável</dt><dd>${t.eq}</dd><dt>Levantamento</dt><dd>${t.data}</dd></dl>
+      <div class="pa-nav"><button id="paAnt">Anterior</button><button class="pr" id="paProx">Próximo</button><button id="paAuto">${rodando ? "Parar" : "Passar sozinho"}</button><span>${n + 1} de ${L.length}</span></div>`; }
+  }
+  function marcarPinos() {
+    pinos = T.map((t, i) => { const b = document.createElement("button"); b.className = "pa-pino" + (tela.nivel === "ponto" && tela.i === i ? " foco" : ""); b.title = `${t.cod} · ${t.prob}`; b.setAttribute("aria-label", b.title); b.style.setProperty("--c", SIT[t.sit][1]); b.onclick = () => { parar(); irPonto(i); }; return { el: b, t }; });
+    $("paPinos").replaceChildren(...pinos.map((p) => p.el));
+  }
+  const atualizar = () => { coluna(); marcarPinos(); };
+  function irPonto(i) { tela = { nivel: "ponto", i }; usina.palco.voar(T[i].x, T[i].z, 170); atualizar(); }
+  function passo(d) { const L = visiveis(), n = L.indexOf(T[tela.i]); irPonto(T.indexOf(L[(n + d + L.length) % L.length])); }
+  function parar() { clearInterval(rodando); rodando = null; }
+  function auto() { if (rodando) { parar(); coluna(); return; } rodando = setInterval(() => passo(1), 5000); coluna(); }
+  function laco() { for (const p of pinos) { const q = usina.palco.naTela(p.t.x, 6, p.t.z), ok = q && (filtro === "todas" || p.t.sit === filtro); p.el.style.display = ok ? "" : "none"; if (ok) { p.el.style.left = q[0] + "px"; p.el.style.top = q[1] + "px"; } } requestAnimationFrame(laco); }
+  $("paCol").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.f) { filtro = b.dataset.f; atualizar(); }
+    else if (b.dataset.a) { tela = { nivel: "area", a: b.dataset.a }; usina.palco.voar(...centro(visiveis().filter((t) => t.area === b.dataset.a)), 420); atualizar(); }
+    else if (b.dataset.t) { parar(); irPonto(+b.dataset.t); }
+    else if (b.id === "paVolta") { parar(); tela = { nivel: "geral" }; geral(); atualizar(); }
+    else if (b.id === "paTour") { irPonto(T.indexOf(visiveis()[0])); auto(); }
+    else if (b.id === "paAnt") { parar(); passo(-1); } else if (b.id === "paProx") { parar(); passo(1); } else if (b.id === "paAuto") auto();
+  });
+  $("paPuxa").onclick = () => B.classList.toggle("sem-coluna");
+  addEventListener("keydown", (e) => { if (tela.nivel === "ponto" && e.key === "ArrowRight") { parar(); passo(1); } if (tela.nivel === "ponto" && e.key === "ArrowLeft") { parar(); passo(-1); } });
+
+  /* barra da direita: lê os controles reais da maquete; cada item aperta o controle verdadeiro */
+  const ICONE = { visao: '<path d="M1 9s3-5.5 8-5.5S17 9 17 9s-3 5.5-8 5.5S1 9 1 9z"/><circle cx="9" cy="9" r="2.3"/>', chao: '<path d="M2 12l7-8 7 8-7 3z"/>', tempo: '<circle cx="9" cy="9" r="7"/><path d="M9 5v4l3 2"/>', caminhoes: '<path d="M1 5h10v8H1zM11 8h4l2 3v2h-6z"/><circle cx="5" cy="14" r="1.6"/><circle cx="13" cy="14" r="1.6"/>', ir: '<path d="M9 1.5a5.5 5.5 0 0 1 5.5 5.5c0 4-5.5 9.5-5.5 9.5S3.500 11 3.500 7A5.500 5.500 0 0 1 9 1.500z"/><circle cx="9" cy="7" r="1.8"/>', textos: '<path d="M3 4h12M9 4v11M6 15h6"/>', camadas: '<path d="M9 2 1.500 6.500 9 11l7.500-4.500zM2 11l7 4 7-4"/>', qualidade: '<path d="M3 5h6M13 5h2M3 13h2M9 13h6"/><circle cx="11" cy="5" r="2"/><circle cx="7" cy="13" r="2"/>', apresentacao: '<path d="M2 3h14v9H2zM9 12v3M6 16h6"/>', fixar: '<path d="M9 11v6M5 11h8l-1.500-3V3h-5v5z"/>' };
+  const SETA = '<svg class="seta" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4"/></svg>';
+  const lista = (sel, tipo) => () => [...document.querySelectorAll(sel)].filter((b) => !b.closest("[hidden]:not(#painelFiltros,.aba)")).map((b) => ({ t: b.querySelector("span")?.textContent || b.textContent.trim(), on: b.getAttribute("aria-pressed") === "true", sw: tipo === "sw", faz: () => { const [k, v] = Object.entries(b.dataset)[0]; document.querySelector(`[data-${k}="${v}"]`).click(); } }));
+  const proprios = () => {
+    const em = B.classList.contains("em-apres"), l = [{ t: "Tampas (exemplo)", on: em, sw: 1, faz: () => (B.classList.contains("em-apres") ? sair() : entrar()) }];
+    if (em) l.push(
+      { t: "Cores neutras", on: B.classList.contains("neutra"), sw: 1, faz: () => B.classList.toggle("neutra") },
+      { t: "Coluna de dados", on: !B.classList.contains("sem-coluna"), sw: 1, faz: () => B.classList.toggle("sem-coluna") },
+      { t: "Pontos no mapa", on: $("paPinos").style.display !== "none", sw: 1, faz: () => { const s = $("paPinos").style; s.display = s.display === "none" ? "" : "none"; } },
+      { t: "Ver a usina inteira", faz: geral });
+    return l;
+  };
+  const GAVETAS = [
+    ["apresentacao", "Apresentação", proprios], ["visao", "Visão", lista("[data-visual]")], ["chao", "Chão", lista("[data-chao]")], ["tempo", "Tempo", lista("[data-periodo]")],
+    ["caminhoes", "Caminhões", lista("[data-frota]")], ["ir", "Ir para", lista("#irPara [data-peca]")],
+    ["textos", "Textos na tela", () => lista('[data-camada="areas"],[data-camada="nomesEstruturas"],[data-camada="nomes"],[data-camada="nomesCaminhoes"]', "sw")()],
+    ["camadas", "Partes do mapa", () => lista("#camadas section:nth-of-type(2) [data-camada]", "sw")()], ["qualidade", "Qualidade", lista("[data-qualidade]")],
+  ];
+  const abertas = new Set(["apresentacao", "visao"]);
+  let itens = [];
+  function barra() {
+    itens = [];
+    $("bd").innerHTML = `<div class="bd-tit"><span class="rot">Controles da maquete</span></div>` + GAVETAS.map(([k, n, f]) => { const l = f(); if (!l.length) return ""; const ab = abertas.has(k);
+      return `<button class="bd-g" data-g="${k}" aria-expanded="${ab}" title="${n}"><svg viewBox="0 0 18 18">${ICONE[k]}</svg><span class="rot">${n}</span>${SETA}</button><div class="bd-ramo ${ab ? "ab" : ""}">${l.map((it) => { itens.push(it); return `<button class="bd-i" data-it="${itens.length - 1}" ${it.on !== undefined ? `aria-pressed="${!!it.on}"` : ""}><span>${esc(it.t)}</span>${it.sw ? '<i class="bd-int"></i>' : ""}</button>`; }).join("")}</div>`; }).join("")
+      + `<div class="bd-fim"><button class="bd-g" id="bdFixa" aria-pressed="${B.classList.contains("bd-fixa")}" title="Fixar a barra aberta"><svg viewBox="0 0 18 18">${ICONE.fixar}</svg><span class="rot">${B.classList.contains("bd-fixa") ? "Desfixar barra" : "Fixar barra"}</span></button></div>`;
+  }
+  $("bd").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.g) { abertas.has(b.dataset.g) ? abertas.delete(b.dataset.g) : abertas.add(b.dataset.g); barra(); return; }
+    if (b.id === "bdFixa") { B.classList.toggle("bd-fixa"); barra(); return; }
+    const it = itens[+b.dataset.it]; if (!it) return;
+    it.faz();
+    if (B.classList.contains("em-apres")) { // colorir faz sentido só no mapa neutro; a Análise usa o lugar da coluna
+      if (/^(Foto|Setores|Atendimento|Análise)/.test(it.t)) B.classList.remove("neutra"); else if (it.t === "Cidade") B.classList.add("neutra");
+      if (it.t === "Análise") B.classList.add("sem-coluna"); else if (/^(Cidade|Foto|Setores|Atendimento)/.test(it.t)) B.classList.remove("sem-coluna");
+    }
+    setTimeout(barra, 120);
+  });
+  let antes = null, lacoLigado = false;
+  function entrar() {
+    antes = { camadas: usina.palco.limpar(), frota: document.querySelector('[data-frota][aria-pressed="true"]')?.dataset.frota };
+    document.querySelector('[data-frota="nenhum"]').click();
+    B.classList.add("em-apres", "neutra"); B.classList.remove("sem-coluna");
+    if (!T.length) montarDados();
+    tela = { nivel: "geral" }; filtro = "todas"; atualizar();
+    if (!lacoLigado) { lacoLigado = true; laco(); }
+    geral();
+  }
+  function sair() {
+    parar(); B.classList.remove("em-apres", "neutra", "sem-coluna"); pinos = []; $("paPinos").replaceChildren();
+    usina.palco.restaurar(antes.camadas);
+    if (antes.frota) document.querySelector(`[data-frota="${antes.frota}"]`).click();
+  }
+  const iniciar = () => { if (!$("carga")?.classList.contains("saiu") || !window.usina?.palco) return setTimeout(iniciar, 200);
+    barra(); if (location.hash === "#apresentacao") { entrar(); setTimeout(barra, 120); } };
+  iniciar();
+})();
+</script>
+
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}
 </script>
@@ -5862,6 +6050,11 @@ document.fonts?.ready.then(encaixarLista);
 })();
 
 window.usina = { // usado nos testes automáticos
+  palco: { // modo Apresentação (apresentacao.html)
+    naTela, voar: (x, z, t, ms = 1600) => voarPara([x, z], t, ms),
+    limpar() { const antes = { ...CAMADAS }; TEXTOS.forEach((k) => { CAMADAS[k] = false; }); CAMADAS.contornos = false; aplicarVisual(); pedirDesenho(); return antes; },
+    restaurar(c) { Object.assign(CAMADAS, c); aplicarVisual(); pedirDesenho(); },
+  },
   detalhe: PERTO.situacao,
   selecionar: (nome) => selecionar(AREAS.find((a) => a.name.includes(nome))),
   caminhao: (placa) => selecionarCaminhao(CAMINHOES.find((c) => c.placa === placa)),
