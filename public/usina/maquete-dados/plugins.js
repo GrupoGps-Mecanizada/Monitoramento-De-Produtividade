@@ -1,0 +1,1 @@
+window.MAQUETE_DADOS=window.MAQUETE_DADOS||{};MAQUETE_DADOS.plugins=[];window.MAQUETE_PLUGINS=window.MAQUETE_PLUGINS||[];
