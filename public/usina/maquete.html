@@ -329,6 +329,21 @@ body.sem-coluna .pa-puxa{left:0}.pa-puxa svg{width:12px;height:12px}body.sem-col
 .bd-int{width:26px;height:14px;border-radius:7px;background:rgba(255,255,255,.2);position:relative;flex:none}.bd-int::after{content:"";position:absolute;left:2px;top:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .12s}
 .bd-i[aria-pressed=true] .bd-int{background:#4f8fe8}.bd-i[aria-pressed=true] .bd-int::after{left:14px}
 .bd-fim{margin-top:auto;border-top:1px solid var(--bd-linha);padding-top:6px}
+body.em-modo #lista,body.em-modo .puxa-lista,body.em-modo #placas,body.em-modo #dica,body.em-modo .zoom-botoes,body.em-modo .ficha,body.em-modo .pa-col,body.em-modo .pa-puxa,body.em-modo .pa-pinos{display:none!important}
+body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
+.modo-hud{position:fixed;inset:0;z-index:6;pointer-events:none;font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;color:#fff}
+.modo-hud[hidden]{display:none}
+.modo-mini{position:absolute;left:22px;bottom:22px;width:190px;height:190px;border-radius:50%;box-shadow:0 6px 24px rgba(0,0,0,.45),0 0 0 3px rgba(255,255,255,.85)}
+.modo-painel{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);text-align:center;background:rgba(8,14,26,.72);padding:10px 26px 12px;border-radius:14px;backdrop-filter:blur(4px);min-width:190px}
+.modo-num b{font:600 46px/1 Sora,sans-serif;font-variant-numeric:tabular-nums}.modo-num span{font-size:14px;opacity:.7;margin-left:6px}
+.modo-sub{font-size:13px;opacity:.8;margin-top:4px}
+.modo-topo{position:absolute;left:50%;top:18px;transform:translateX(-50%);display:flex;gap:8px;align-items:center;pointer-events:auto}
+.modo-topo span{font:600 17px Sora,sans-serif;background:rgba(8,14,26,.72);padding:8px 16px;border-radius:10px;min-width:120px;text-align:center}
+.modo-topo span:empty{display:none}
+.modo-topo button{font:500 14px "IBM Plex Sans",sans-serif;color:#fff;background:rgba(8,14,26,.72);border:1px solid rgba(255,255,255,.25);border-radius:9px;padding:8px 13px;cursor:pointer}
+.modo-topo button:hover{background:rgba(30,45,70,.9)}.modo-topo button[hidden]{display:none}
+.modo-ajuda{position:absolute;right:66px;bottom:22px;max-width:340px;font-size:12.5px;line-height:1.6;background:rgba(8,14,26,.6);padding:8px 12px;border-radius:9px;opacity:.85}
+.modo-ajuda b{font-weight:600}
 @media (max-width:760px){.bd,.puxa-lista{display:none}.pa-col{width:100%;top:auto;height:50vh;padding:18px 62px 12px 18px;background:rgba(8,14,26,.95)}.pa-col h1{font-size:26px}.pa-puxa,.pa-aviso{display:none}body.sem-coluna .pa-col{transform:translateY(100%)}body .zoom-botoes,body.bd-fixa .zoom-botoes{bottom:auto;top:16px;right:56px}}
 
 </style>
@@ -533,7 +548,7 @@ body.sem-coluna .pa-puxa{left:0}.pa-puxa svg{width:12px;height:12px}body.sem-col
   addEventListener("keydown", (e) => { if (tela.nivel === "ponto" && e.key === "ArrowRight") { parar(); passo(1); } if (tela.nivel === "ponto" && e.key === "ArrowLeft") { parar(); passo(-1); } });
 
   /* barra da direita: lê os controles reais da maquete; cada item aperta o controle verdadeiro */
-  const ICONE = { visao: '<path d="M1 9s3-5.5 8-5.5S17 9 17 9s-3 5.5-8 5.5S1 9 1 9z"/><circle cx="9" cy="9" r="2.3"/>', chao: '<path d="M2 12l7-8 7 8-7 3z"/>', tempo: '<circle cx="9" cy="9" r="7"/><path d="M9 5v4l3 2"/>', caminhoes: '<path d="M1 5h10v8H1zM11 8h4l2 3v2h-6z"/><circle cx="5" cy="14" r="1.6"/><circle cx="13" cy="14" r="1.6"/>', ir: '<path d="M9 1.5a5.5 5.5 0 0 1 5.5 5.5c0 4-5.5 9.5-5.5 9.5S3.500 11 3.500 7A5.500 5.500 0 0 1 9 1.500z"/><circle cx="9" cy="7" r="1.8"/>', textos: '<path d="M3 4h12M9 4v11M6 15h6"/>', camadas: '<path d="M9 2 1.500 6.500 9 11l7.500-4.500zM2 11l7 4 7-4"/>', qualidade: '<path d="M3 5h6M13 5h2M3 13h2M9 13h6"/><circle cx="11" cy="5" r="2"/><circle cx="7" cy="13" r="2"/>', apresentacao: '<path d="M2 3h14v9H2zM9 12v3M6 16h6"/>', fixar: '<path d="M9 11v6M5 11h8l-1.500-3V3h-5v5z"/>' };
+  const ICONE = { explorar: '<path d="M2 12.5 6 9h6l4 3.5v2H2z"/><circle cx="5.5" cy="14.5" r="1.5"/><circle cx="12.5" cy="14.5" r="1.5"/><path d="M6 9l1.5-4h3L12 9"/>', visao: '<path d="M1 9s3-5.5 8-5.5S17 9 17 9s-3 5.5-8 5.5S1 9 1 9z"/><circle cx="9" cy="9" r="2.3"/>', chao: '<path d="M2 12l7-8 7 8-7 3z"/>', tempo: '<circle cx="9" cy="9" r="7"/><path d="M9 5v4l3 2"/>', caminhoes: '<path d="M1 5h10v8H1zM11 8h4l2 3v2h-6z"/><circle cx="5" cy="14" r="1.6"/><circle cx="13" cy="14" r="1.6"/>', ir: '<path d="M9 1.5a5.5 5.5 0 0 1 5.5 5.5c0 4-5.5 9.5-5.5 9.5S3.500 11 3.500 7A5.500 5.500 0 0 1 9 1.500z"/><circle cx="9" cy="7" r="1.8"/>', textos: '<path d="M3 4h12M9 4v11M6 15h6"/>', camadas: '<path d="M9 2 1.500 6.500 9 11l7.500-4.500zM2 11l7 4 7-4"/>', qualidade: '<path d="M3 5h6M13 5h2M3 13h2M9 13h6"/><circle cx="11" cy="5" r="2"/><circle cx="7" cy="13" r="2"/>', apresentacao: '<path d="M2 3h14v9H2zM9 12v3M6 16h6"/>', fixar: '<path d="M9 11v6M5 11h8l-1.500-3V3h-5v5z"/>' };
   const SETA = '<svg class="seta" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4"/></svg>';
   const lista = (sel, tipo) => () => [...document.querySelectorAll(sel)].filter((b) => !b.closest("[hidden]:not(#painelFiltros,.aba)")).map((b) => ({ t: b.querySelector("span")?.textContent || b.textContent.trim(), on: b.getAttribute("aria-pressed") === "true", sw: tipo === "sw", faz: () => { const [k, v] = Object.entries(b.dataset)[0]; document.querySelector(`[data-${k}="${v}"]`).click(); } }));
   const proprios = () => {
@@ -549,12 +564,13 @@ body.sem-coluna .pa-puxa{left:0}.pa-puxa svg{width:12px;height:12px}body.sem-col
     return l;
   };
   const GAVETAS = [
+    ["explorar", "Explorar", () => [{ t: "Modo drone", on: window.MODOS?.ativo === "drone", sw: 1, faz: () => MODOS.entrar("drone") }, { t: "Modo carro", on: window.MODOS?.ativo === "carro", sw: 1, faz: () => MODOS.entrar("carro") }]],
     ["apresentacao", "Plugins", proprios], ["visao", "Visão", lista("[data-visual]")], ["chao", "Chão", lista("[data-chao]")], ["tempo", "Tempo", lista("[data-periodo]")],
     ["caminhoes", "Caminhões", lista("[data-frota]")], ["ir", "Ir para", lista("#irPara [data-peca]")],
     ["textos", "Textos na tela", () => lista('[data-camada="areas"],[data-camada="nomesEstruturas"],[data-camada="nomes"],[data-camada="nomesCaminhoes"]', "sw")()],
     ["camadas", "Partes do mapa", () => lista("#camadas section:nth-of-type(2) [data-camada]", "sw")()], ["qualidade", "Qualidade", lista("[data-qualidade]")],
   ];
-  const abertas = new Set(["apresentacao", "visao"]);
+  const abertas = new Set(["explorar", "apresentacao", "visao"]);
   let itens = [];
   function barra() {
     itens = [];
@@ -5994,6 +6010,7 @@ const zoom = { resto: 0, ponto: new THREE.Vector3() }, planoChao = new THREE.Pla
 addEventListener("wheel", (e) => {
   if (e.target !== renderer.domElement) return;
   e.preventDefault(); e.stopImmediatePropagation(); // o OrbitControls não recebe a rodinha
+  if (MODOS.ativo) return MODOS.roda(e); // drone: a rodinha muda a velocidade
   if (viagem) viagem = null;
   const passo = (e.deltaMode === 1 ? e.deltaY * 33 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY) * 0.0012;
   zoom.resto = THREE.MathUtils.clamp(zoom.resto + passo, -2.5, 2.5);
@@ -6028,7 +6045,7 @@ for (const [id, sentido] of [["zoomMais", -1], ["zoomMenos", 1]]) {
   botao.addEventListener("click", (e) => { if (e.detail === 0) darZoom(sentido); }); // Enter ou espaço com o botão em foco
 }
 addEventListener("keydown", (e) => {
-  if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return; // Ctrl + é o zoom do navegador; digitando na busca, não mexe
+  if (MODOS.ativo || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return; // Ctrl + é o zoom do navegador; digitando na busca, não mexe
   if (e.key === "+" || e.key === "=") { e.preventDefault(); darZoom(-1); }
   else if (e.key === "-") { e.preventDefault(); darZoom(1); }
 });
@@ -6049,7 +6066,8 @@ function desenhar(agora) {
     if (estado.tempo >= 1439) alternarPlay(false);
     atualizarRelogio(); seguirCaminhao();
   }
-  if (controles.update()) pedirDesenho();
+  if (MODOS.ativo) MODOS.quadro(dt); // drone ou carro: a câmera é deles
+  else if (controles.update()) pedirDesenho();
   if (frotaAndando()) { atualizarInstancias(); desenharRastros(); }
   if (fumacaViva()) animarFumaca(dt);
   if (vidaViva()) { const t = agora / 1000; animarFogo(t); animarLuzes(t); if (typeof animarVidaEstruturas === "function") animarVidaEstruturas(t, dt); }
@@ -6918,6 +6936,7 @@ const PERTO = (() => {
   function atualizarCeu() {
     const y = camera.position.y, k = estado.qualidade === "alta" ? 1 - THREE.MathUtils.smoothstep(y, 240, 760) : 0;
     ceu.visible = k > 0.01; ceu.position.copy(camera.position); ceu.material.uniforms.forca.value = k;
+    ceu.scale.setScalar(Math.min(1, (camera.far * 0.9) / 60000)); // no drone e no carro a câmera enxerga menos longe
     cena.fog.near = k > 0.01 ? THREE.MathUtils.lerp(30000, 1800, k) : 1e7; cena.fog.far = k > 0.01 ? THREE.MathUtils.lerp(90000, 15000, k) : 2e7;
   }
 
@@ -7347,6 +7366,332 @@ DEGRAUS.splice(3, 0, ["menos árvores perto", () => PERTO.aliviar()]);
 
 
 /* =========================================================================
+   14c. Modos de explorar (02/11/2026, P-347): Drone (voo livre) e Carro (dirigir pelas ruas), em escala real.
+        Entram pela barra da direita (grupo Explorar) e saem com Esc, voltando à vista de antes.
+        Usam o mesmo detalhe de perto (árvores, estruturas ricas, sombra nítida), que segue a câmera.
+        Drone: W A S D anda, arrastar o mouse olha, E/espaço sobe, Q/Shift desce, rodinha muda a velocidade.
+        Carro: setas ou W A S D, espaço freia, C troca a câmera (atrás, cabine, de cima).
+        Nem o drone nem o carro atravessam prédios e estruturas; o carro não sai da maquete.
+   ========================================================================= */
+const MODOS = (() => {
+  const B = document.body, KMH = 3.6;
+  let ativo = null, antes = null;
+  const teclas = new Set();
+
+  /* ---------- obstáculos: prédios e estruturas numa grade, para perguntar rápido "tem coisa aqui?" ---------- */
+  const CEL = 40, grade = new Map();
+  const chave = (i, j) => i * 100003 + j;
+  const guardar = (x0, z0, x1, z1, o) => {
+    for (let i = Math.floor(x0 / CEL); i <= Math.floor(x1 / CEL); i++) for (let j = Math.floor(z0 / CEL); j <= Math.floor(z1 / CEL); j++) (grade.get(chave(i, j)) || grade.set(chave(i, j), []).get(chave(i, j))).push(o);
+  };
+  let montada = false;
+  function montarObstaculos() {
+    if (montada) return;
+    montada = true;
+    for (const r of REGISTRO_PREDIOS) {
+      const an = r.anelFinal;
+      if (!an || an.length < 3 || !(r.h > 1.5)) continue;
+      const xs = an.map((p) => p[0]), zs = an.map((p) => p[1]);
+      guardar(Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs), { anel: an, h: r.h });
+    }
+    for (const r of REGISTRO_ESTRUTURAS) { // só as que ficam no chão (correias e tubovias passam por cima e não entram)
+      const m = r.medidas;
+      if (!m || r.e.linha || r.giro == null || !r.xz || /correia|tubovia|viaduto|galeria/.test(r.e.t)) continue;
+      const h = r.h || m.altura || 10;
+      if (m.comprimento && m.largura && m.comprimento !== m.largura) {
+        const a = m.comprimento / 2, b = m.largura / 2, c = Math.cos(r.giro), s = Math.sin(r.giro), R = Math.hypot(a, b);
+        guardar(r.xz[0] - R, r.xz[1] - R, r.xz[0] + R, r.xz[1] + R, { caixa: { x: r.xz[0], z: r.xz[1], a, b, c, s }, h });
+      } else {
+        const rr = (m.diametro || m.comprimento || 12) / 2;
+        guardar(r.xz[0] - rr, r.xz[1] - rr, r.xz[0] + rr, r.xz[1] + rr, { circ: { x: r.xz[0], z: r.xz[1], r: rr }, h });
+      }
+    }
+  }
+  const dentroDe = (o, x, z) => {
+    if (o.anel) return dentro([x, z], o.anel);
+    if (o.circ) return Math.hypot(x - o.circ.x, z - o.circ.z) < o.circ.r;
+    const { caixa: q } = o, dx = x - q.x, dz = z - q.z, u = dx * q.c - dz * q.s, v = dx * q.s + dz * q.c; // o giro dos modelos é em torno de y
+    return Math.abs(u) < q.a && Math.abs(v) < q.b;
+  };
+  /** altura do que está no chão em (x, z): 0 se é livre */
+  function alturaEm(x, z) {
+    let h = 0;
+    for (const o of grade.get(chave(Math.floor(x / CEL), Math.floor(z / CEL))) || []) if (o.h > h && dentroDe(o, x, z)) h = o.h;
+    return h;
+  }
+
+  /* ---------- nome da rua: ruas do mapa (com nome) e ruas cadastradas no GAUSS ---------- */
+  const CR = 60, gradeRuas = new Map();
+  let ruasMontadas = false, gauss = [];
+  function montarRuas() {
+    if (ruasMontadas) return;
+    ruasMontadas = true;
+    VIAS.forEach((linha, i) => {
+      const nome = VIAS_INFO[i]?.[1];
+      if (!nome) return;
+      const pts = linha.map(paraXZ);
+      for (let k = 1; k < pts.length; k++) {
+        const [a, b] = [pts[k - 1], pts[k]];
+        for (let x = Math.floor(Math.min(a[0], b[0]) / CR); x <= Math.floor(Math.max(a[0], b[0]) / CR); x++)
+          for (let z = Math.floor(Math.min(a[1], b[1]) / CR); z <= Math.floor(Math.max(a[1], b[1]) / CR); z++) (gradeRuas.get(chave(x, z)) || gradeRuas.set(chave(x, z), []).get(chave(x, z))).push([a, b, nome]);
+      }
+    });
+    gauss = RUAS_GAUSS.map(([nome, p]) => [nome, anelLimpo(p)]);
+  }
+  function nomeDaRua(x, z) {
+    let melhor = null, dm = 22;
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const [a, b, nome] of gradeRuas.get(chave(Math.floor(x / CR) + i, Math.floor(z / CR) + j)) || []) {
+      const dx = b[0] - a[0], dz = b[1] - a[1], t = THREE.MathUtils.clamp(((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz || 1), 0, 1), d = Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t);
+      if (d < dm) { dm = d; melhor = nome; }
+    }
+    if (melhor) return melhor;
+    for (const [nome, an] of gauss) if (dentro([x, z], an)) return nome;
+    return pecaDe([x, z]) ? "Área interna" : "";
+  }
+
+  /* ---------- minimapa: desenhado uma vez, recortado em volta de quem está explorando ---------- */
+  let mini = null;
+  function montarMinimapa() {
+    if (mini) return mini;
+    const cx = PECAS.map((p) => p.caixa), x0 = Math.min(...cx.map((c) => c.x0)) - 200, z0 = Math.min(...cx.map((c) => c.zN)) - 200;
+    const x1 = Math.max(...cx.map((c) => c.x1)) + 200, z1 = Math.max(...cx.map((c) => c.zS)) + 200, E = 0.5;
+    const tela = document.createElement("canvas"); tela.width = Math.ceil((x1 - x0) * E); tela.height = Math.ceil((z1 - z0) * E);
+    const c = tela.getContext("2d");
+    c.setTransform(E, 0, 0, E, -x0 * E, -z0 * E);
+    const caminho = (an) => { c.beginPath(); an.forEach(([x, z], i) => (i ? c.lineTo(x, z) : c.moveTo(x, z))); c.closePath(); };
+    c.fillStyle = "#1b2638"; for (const p of PECAS) { caminho(p.anel); c.fill(); }
+    c.fillStyle = "#4a5a70"; for (const r of REGISTRO_PREDIOS) if (r.anelFinal?.length > 2) { caminho(r.anelFinal); c.fill(); }
+    c.strokeStyle = "#c9d4e2"; c.lineCap = "round";
+    for (const [a, b, meia] of PISTAS_DO_MAPA) { c.lineWidth = Math.max(3, meia * 1.6); c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke(); }
+    mini = { tela, x0, z0, E };
+    return mini;
+  }
+
+  /* ---------- painel na tela (HUD) ---------- */
+  const hud = document.createElement("div");
+  hud.className = "modo-hud"; hud.hidden = true;
+  hud.innerHTML = `<canvas class="modo-mini" width="190" height="190" aria-label="Minimapa"></canvas>
+    <div class="modo-painel"><div class="modo-num"><b id="modoNum">0</b><span id="modoUni">km/h</span></div><div class="modo-sub" id="modoSub"></div></div>
+    <div class="modo-topo"><span id="modoNome"></span><button type="button" id="modoCam" title="Trocar a câmera (C)">Câmera</button><button type="button" id="modoFoto" title="Salvar a imagem da tela">Foto</button><button type="button" id="modoSair" title="Sair (Esc)">Sair</button></div>
+    <div class="modo-ajuda" id="modoAjuda"></div>`;
+  document.body.appendChild(hud);
+  const $h = (id) => hud.querySelector("#" + id), cMini = hud.querySelector(".modo-mini").getContext("2d");
+  function desenharMini(x, z, rumo) {
+    const m = montarMinimapa(), r = 95, esc = 1.1; // 1 ponto do minimapa = 1,8 m
+    cMini.save(); cMini.clearRect(0, 0, 190, 190);
+    cMini.beginPath(); cMini.arc(r, r, r, 0, 7); cMini.clip(); cMini.fillStyle = "#0d1523"; cMini.fillRect(0, 0, 190, 190);
+    cMini.translate(r, r); cMini.rotate(-rumo - Math.PI / 2); cMini.scale(esc, esc);
+    cMini.drawImage(m.tela, -(x - m.x0) * m.E, -(z - m.z0) * m.E);
+    cMini.restore();
+    cMini.fillStyle = "#4f9cff"; cMini.strokeStyle = "#fff"; cMini.lineWidth = 2;
+    cMini.beginPath(); cMini.moveTo(r, r - 10); cMini.lineTo(r + 7, r + 8); cMini.lineTo(r, r + 4); cMini.lineTo(r - 7, r + 8); cMini.closePath(); cMini.fill(); cMini.stroke();
+  }
+
+  /* ---------- o carro ---------- */
+  let carro = null;
+  function montarCarro() {
+    if (carro) return carro;
+    const g = new THREE.Group(), corpo = new THREE.Group();
+    const mat = (cor, extra = {}) => new THREE.MeshStandardMaterial({ color: cor, roughness: 0.45, metalness: 0.35, ...extra });
+    const pintura = mat(0xf2f3f5), vidro = mat(0x1b2733, { roughness: 0.1, metalness: 0.6 }), preto = mat(0x1a1b1e, { roughness: 0.8, metalness: 0 });
+    const perfil = new THREE.Shape(); // lateral de um utilitário compacto: frente em +X, 4,3 m de comprimento
+    [[-2.15, 0.32], [-2.18, 0.95], [-2.0, 1.02], [-1.7, 1.55], [0.35, 1.6], [1.15, 1.05], [2.05, 0.92], [2.15, 0.62], [2.12, 0.32]].forEach(([x, y], i) => (i ? perfil.lineTo(x, y) : perfil.moveTo(x, y)));
+    const casco = new THREE.ExtrudeGeometry(perfil, { depth: 1.72, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.06, bevelSegments: 2 }).translate(0, 0, -0.86);
+    corpo.add(new THREE.Mesh(casco, pintura));
+    const janela = new THREE.Shape(); [[-1.6, 1.08], [-1.5, 1.5], [0.3, 1.54], [1.0, 1.08]].forEach(([x, y], i) => (i ? janela.lineTo(x, y) : janela.moveTo(x, y)));
+    const vidros = new THREE.ExtrudeGeometry(janela, { depth: 1.86, bevelEnabled: false }).translate(0, 0, -0.93);
+    corpo.add(new THREE.Mesh(vidros, vidro));
+    corpo.add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.42, 1.46).rotateZ(0.5).translate(-1.86, 1.3, 0), vidro)); // vidro traseiro
+    const para = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.46, 1.5).rotateZ(-0.62).translate(0.72, 1.32, 0), vidro); corpo.add(para); // para-brisa
+    corpo.add(new THREE.Mesh(new THREE.BoxGeometry(4.36, 0.22, 1.8).translate(0, 0.42, 0), preto)); // para-choques e saia
+    corpo.add(new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.05, 0.05).translate(-0.6, 1.66, 0.62), preto), new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.05, 0.05).translate(-0.6, 1.66, -0.62), preto)); // rack
+    const farol = new THREE.MeshBasicMaterial({ color: 0xfff6d8 }), lanterna = new THREE.MeshBasicMaterial({ color: 0x8a1010 });
+    for (const s of [1, -1]) {
+      corpo.add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.38).translate(2.15, 0.78, s * 0.6), farol));
+      corpo.add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.2, 0.3).translate(-2.2, 0.82, s * 0.66), lanterna));
+      corpo.add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.1, 0.22).translate(0.95, 1.08, s * 0.98), preto)); // retrovisor
+    }
+    g.add(corpo);
+    const rodas = [], geoRoda = new THREE.CylinderGeometry(0.34, 0.34, 0.24, 18).rotateX(Math.PI / 2), matRoda = mat(0x202124, { metalness: 0.1, roughness: 0.9 }), calota = new THREE.CylinderGeometry(0.2, 0.2, 0.25, 12).rotateX(Math.PI / 2);
+    for (const [x, s] of [[1.35, 1], [1.35, -1], [-1.35, 1], [-1.35, -1]]) {
+      const pivo = new THREE.Group(), roda = new THREE.Group();
+      roda.add(new THREE.Mesh(geoRoda, matRoda), new THREE.Mesh(calota, mat(0xb9bec4)));
+      pivo.position.set(x, 0.34, s * 0.84); pivo.add(roda); g.add(pivo); rodas.push({ pivo, roda, frente: x > 0 });
+    }
+    /* faróis acesos à noite: um cone de luz no chão (sem custo de luz de verdade) e as lanternas brilhando */
+    const luz = new THREE.Mesh(new THREE.ConeGeometry(7, 26, 24, 1, true).rotateZ(Math.PI / 2).translate(15, 0.2, 0), new THREE.MeshBasicMaterial({ color: 0xfff1c4, transparent: true, opacity: 0.12, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+    luz.scale.y = 0.18; g.add(luz);
+    g.traverse((o) => { if (o.isMesh && o !== luz) { o.castShadow = true; o.receiveShadow = true; } });
+    g.visible = false; cena.add(g);
+    carro = { g, corpo, rodas, luz, lanterna, x: 0, z: 0, rumo: 0, v: 0, volante: 0, giro: 0, cam: "atras", freando: false };
+    return carro;
+  }
+
+  /* ---------- câmera suave ---------- */
+  const olho = new THREE.Vector3(), mira = new THREE.Vector3(), olhoAlvo = new THREE.Vector3(), miraAlvo = new THREE.Vector3();
+  function seguir(dt, k = 6) {
+    const f = 1 - Math.exp(-dt * k);
+    olho.lerp(olhoAlvo, f); mira.lerp(miraAlvo, f);
+    camera.position.copy(olho); camera.lookAt(mira);
+  }
+  function apoiarDetalhe(x, z) { controles.target.set(x, 0, z); } // o detalhe de perto e a sombra seguem este ponto
+
+  /* ---------- drone ---------- */
+  const drone = { x: 0, y: 120, z: 0, guinada: 0, arfagem: -0.35, vel: new THREE.Vector3(), rapidez: 70 }; // 02/11/2026: o dono pediu mais rápido (antes 30)
+  function quadroDrone(dt) {
+    const frente = (teclas.has("w") || teclas.has("arrowup") ? 1 : 0) - (teclas.has("s") || teclas.has("arrowdown") ? 1 : 0);
+    const lado = (teclas.has("d") || teclas.has("arrowright") ? 1 : 0) - (teclas.has("a") || teclas.has("arrowleft") ? 1 : 0);
+    const sobe = (teclas.has("e") || teclas.has(" ") ? 1 : 0) - (teclas.has("q") || teclas.has("shift") ? 1 : 0);
+    const cs = Math.cos(drone.guinada), sn = Math.sin(drone.guinada), alvo = new THREE.Vector3((cs * frente - sn * lado) * drone.rapidez, sobe * drone.rapidez * 0.8, (sn * frente + cs * lado) * drone.rapidez);
+    drone.vel.lerp(alvo, 1 - Math.exp(-dt * 4)); // inércia de drone: acelera e para macio
+    let nx = drone.x + drone.vel.x * dt, nz = drone.z + drone.vel.z * dt, ny = drone.y + drone.vel.y * dt;
+    const chao = alturaEm(nx, nz) + 2.5;
+    if (ny < chao) { if (drone.y < chao - 0.5) { nx = drone.x; nz = drone.z; drone.vel.x = drone.vel.z = 0; } else ny = chao; } // parede: não atravessa
+    drone.x = nx; drone.z = nz; drone.y = THREE.MathUtils.clamp(ny, 1.5, 1800);
+    const ch = Math.cos(drone.arfagem);
+    camera.position.set(drone.x, drone.y, drone.z);
+    camera.lookAt(drone.x + cs * ch * 10, drone.y + Math.sin(drone.arfagem) * 10, drone.z + sn * ch * 10);
+    const d = Math.max(60, Math.min(900, drone.y * 1.6));
+    apoiarDetalhe(drone.x + cs * d * 0.6, drone.z + sn * d * 0.6);
+    $h("modoNum").textContent = Math.round(drone.vel.length() * KMH);
+    $h("modoSub").textContent = `Altura ${Math.round(drone.y)} m · rumo ${["N", "NE", "L", "SE", "S", "SO", "O", "NO"][Math.round((((drone.guinada + Math.PI / 2) / (Math.PI * 2)) * 8 + 16)) % 8]} · velocidade máx. ${Math.round(drone.rapidez * KMH)} km/h`;
+    $h("modoNome").textContent = nomeDaRua(drone.x, drone.z);
+    desenharMini(drone.x, drone.z, drone.guinada);
+    return drone.vel.lengthSq() > 0.01;
+  }
+
+  /* ---------- carro ---------- */
+  const CANTOS = [[2.15, 0.9], [2.15, -0.9], [-2.15, 0.9], [-2.15, -0.9]];
+  const bate = (x, z, rumo) => CANTOS.some(([u, v]) => { const px = x + Math.cos(rumo) * u - Math.sin(rumo) * v, pz = z + Math.sin(rumo) * u + Math.cos(rumo) * v; return !pecaDe([px, pz]) || alturaEm(px, pz) > 0.6; });
+  function quadroCarro(dt) {
+    const c = carro, acel = teclas.has("w") || teclas.has("arrowup"), re = teclas.has("s") || teclas.has("arrowdown"), freio = teclas.has(" ");
+    const esq = teclas.has("a") || teclas.has("arrowleft"), dir = teclas.has("d") || teclas.has("arrowright");
+    if (acel) c.v += (c.v < 0 ? 12 : 7.5 * (1 - c.v / 46)) * dt; // 02/11/2026: mais rápido, até ~160 km/h
+    else if (re) c.v -= (c.v > 0 ? 13 : 4) * dt;
+    if (freio) c.v -= Math.sign(c.v) * Math.min(Math.abs(c.v), 16 * dt);
+    c.v -= c.v * 0.06 * dt + Math.sign(c.v) * Math.min(Math.abs(c.v), (acel || re ? 0 : 0.8) * dt); // atrito do rolamento
+    c.v = THREE.MathUtils.clamp(c.v, -10, 45);
+    const limite = 0.55 / (1 + Math.abs(c.v) / 16); // volante mais leve devagar, mais firme rápido
+    const alvoVolante = ((dir ? 1 : 0) - (esq ? 1 : 0)) * limite;
+    c.volante += THREE.MathUtils.clamp(alvoVolante - c.volante, -dt * 2.4, dt * 2.4);
+    const nrumo = c.rumo + (c.v / 2.7) * Math.tan(c.volante) * dt, nx = c.x + Math.cos(nrumo) * c.v * dt, nz = c.z + Math.sin(nrumo) * c.v * dt;
+    if (bate(nx, nz, nrumo)) { c.v = -c.v * 0.25; c.tranco = 0.25; }
+    else { c.x = nx; c.z = nz; c.rumo = nrumo; }
+    c.freando = freio || (re && c.v > 0.5) || (acel && c.v < -0.5);
+    c.g.position.set(c.x, 0, c.z); c.g.rotation.y = -c.rumo;
+    c.giro += (c.v / 0.34) * dt;
+    for (const r of c.rodas) { r.roda.rotation.z = -c.giro; if (r.frente) r.pivo.rotation.y = -c.volante; }
+    c.corpo.rotation.x = THREE.MathUtils.clamp(c.volante * c.v * 0.004, -0.04, 0.04); // inclina na curva
+    const noite = CEU.noite.value > 0.5;
+    c.luz.visible = noite; c.lanterna.color.setHex(c.freando ? 0xff2a2a : noite ? 0xc01818 : 0x8a1010);
+    const cs = Math.cos(c.rumo), sn = Math.sin(c.rumo), tremer = c.tranco > 0 ? (c.tranco -= dt) * 0.6 : 0;
+    c.corpo.visible = c.cam !== "cabine"; for (const r of c.rodas) r.pivo.visible = c.cam !== "cabine";
+    if (c.cam === "atras") { const longe = 8.5 + Math.abs(c.v) * 0.09; olhoAlvo.set(c.x - cs * longe, 3.1 + Math.abs(c.v) * 0.04, c.z - sn * longe); miraAlvo.set(c.x + cs * 4, 1.3, c.z + sn * 4); }
+    else if (c.cam === "cabine") { olhoAlvo.set(c.x + cs * 0.15 + sn * 0.38, 1.35, c.z + sn * 0.15 - cs * 0.38); miraAlvo.set(c.x + cs * 30, 1.1, c.z + sn * 30); }
+    else { olhoAlvo.set(c.x - cs * 30, 48, c.z - sn * 30); miraAlvo.set(c.x + cs * 6, 0, c.z + sn * 6); }
+    seguir(dt, c.cam === "cabine" ? 30 : 7);
+    if (tremer) camera.position.y += Math.sin(performance.now() / 18) * tremer;
+    apoiarDetalhe(c.x + cs * 90, c.z + sn * 90);
+    $h("modoNum").textContent = Math.round(Math.abs(c.v) * KMH);
+    $h("modoSub").textContent = c.v < -0.3 ? "Ré" : c.freando ? "Freando" : "D";
+    $h("modoNome").textContent = nomeDaRua(c.x, c.z);
+    desenharMini(c.x, c.z, c.rumo);
+    return true;
+  }
+
+  /* ---------- entrar e sair ---------- */
+  function lugarInicial() { // rua mais perto do que se está olhando; se não houver, a mais perto do centro da usina
+    const alvo = [controles.target.x, controles.target.z];
+    let r = encaixar(alvo, 400);
+    if (!r) r = encaixar(PECAS[0].centro, 3000);
+    const { nos, segs } = GRAFO, a = nos[segs[r.s]], b = nos[segs[r.s + 1]];
+    return { x: r.x, z: r.z, rumo: Math.atan2(b.z - a.z, b.x - a.x) };
+  }
+  function entrar(modo) {
+    if (ativo === modo) return sair();
+    if (ativo) sair();
+    montarObstaculos(); montarRuas();
+    antes = { pos: camera.position.clone(), alvo: controles.target.clone(), near: camera.near, far: camera.far, fov: camera.fov, qualidade: estado.qualidade };
+    ativo = modo; viagem = null; zoom.resto = 0;
+    controles.enabled = false;
+    camera.near = 0.3; camera.far = 14000; camera.fov = modo === "carro" ? 62 : 58; camera.updateProjectionMatrix();
+    B.classList.add("em-modo", "modo-" + modo);
+    if (modo === "drone") {
+      const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+      drone.x = camera.position.x; drone.z = camera.position.z; drone.y = Math.min(camera.position.y, 260);
+      drone.guinada = Math.atan2(dir.z, dir.x); drone.arfagem = -0.3; drone.vel.set(0, 0, 0);
+      $h("modoUni").textContent = "km/h";
+      $h("modoAjuda").innerHTML = "<b>W A S D</b> anda · <b>arraste</b> para olhar · <b>E</b>/<b>espaço</b> sobe · <b>Q</b>/<b>Shift</b> desce · <b>rodinha</b> velocidade · <b>Esc</b> sai";
+      $h("modoCam").hidden = true;
+    } else {
+      montarCarro();
+      const p = lugarInicial();
+      Object.assign(carro, { x: p.x, z: p.z, rumo: p.rumo, v: 0, volante: 0, tranco: 0, cam: carro.cam || "atras" });
+      carro.g.visible = true;
+      olho.set(p.x - Math.cos(p.rumo) * 8.5, 3.1, p.z - Math.sin(p.rumo) * 8.5); mira.set(p.x, 1.3, p.z);
+      $h("modoUni").textContent = "km/h";
+      $h("modoAjuda").innerHTML = "<b>↑ ↓</b> ou <b>W S</b> acelera e ré · <b>← →</b> ou <b>A D</b> vira · <b>espaço</b> freia · <b>C</b> câmera · <b>Esc</b> sai";
+      $h("modoCam").hidden = false;
+    }
+    hud.hidden = false;
+    renderer.domElement.focus();
+    pedirDesenho();
+  }
+  function sair() {
+    if (!ativo) return;
+    B.classList.remove("em-modo", "modo-" + ativo);
+    if (carro) carro.g.visible = false;
+    ativo = null; teclas.clear(); hud.hidden = true;
+    camera.near = antes.near; camera.far = antes.far; camera.fov = antes.fov; camera.updateProjectionMatrix();
+    controles.enabled = true;
+    camera.position.copy(antes.pos); controles.target.copy(antes.alvo); camera.lookAt(controles.target);
+    controles.update(); pedirDesenho();
+  }
+  function foto() {
+    desenharCena();
+    renderer.domElement.toBlob((b) => { if (!b) return; const a = document.createElement("a"), d = new Date(); a.href = URL.createObjectURL(b); a.download = `maquete-${d.toISOString().slice(0, 16).replace(/[-:T]/g, "")}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); });
+  }
+
+  /* ---------- teclado e mouse ---------- */
+  const TECLAS = new Set(["w", "a", "s", "d", "q", "e", " ", "shift", "arrowup", "arrowdown", "arrowleft", "arrowright"]);
+  addEventListener("keydown", (e) => {
+    if (!ativo || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    const k = e.key.toLowerCase();
+    if (k === "escape") { e.preventDefault(); sair(); return; }
+    if (k === "c" && ativo === "carro") { const ordem = ["atras", "cabine", "cima"]; carro.cam = ordem[(ordem.indexOf(carro.cam) + 1) % 3]; return; }
+    if (TECLAS.has(k)) { e.preventDefault(); teclas.add(k); pedirDesenho(); }
+  }, true);
+  addEventListener("keyup", (e) => teclas.delete(e.key.toLowerCase()));
+  addEventListener("blur", () => teclas.clear());
+  let arrasto = null;
+  renderer.domElement.addEventListener("pointerdown", (e) => { if (ativo === "drone") { arrasto = [e.clientX, e.clientY]; renderer.domElement.setPointerCapture(e.pointerId); } });
+  renderer.domElement.addEventListener("pointermove", (e) => {
+    if (!arrasto || ativo !== "drone") return;
+    drone.guinada += (e.clientX - arrasto[0]) * 0.0035; drone.arfagem = THREE.MathUtils.clamp(drone.arfagem - (e.clientY - arrasto[1]) * 0.0035, -1.5, 0.6);
+    arrasto = [e.clientX, e.clientY]; pedirDesenho();
+  });
+  renderer.domElement.addEventListener("pointerup", () => { arrasto = null; });
+  $h("modoSair").onclick = sair; $h("modoFoto").onclick = foto;
+  $h("modoCam").onclick = () => { if (carro) { const ordem = ["atras", "cabine", "cima"]; carro.cam = ordem[(ordem.indexOf(carro.cam) + 1) % 3]; } };
+
+  let ultimo = 0;
+  return {
+    get ativo() { return ativo; },
+    entrar, sair, foto,
+    roda(e) { if (ativo === "drone") drone.rapidez = THREE.MathUtils.clamp(drone.rapidez * (e.deltaY > 0 ? 0.85 : 1.18), 5, 320); pedirDesenho(); },
+    quadro(dt) {
+      if (!ativo) return;
+      const mexeu = ativo === "drone" ? quadroDrone(dt) : quadroCarro(dt);
+      mexeuEm = performance.now();
+      const agora = performance.now(); if (mexeu || agora - ultimo < 1500) pedirDesenho(); if (mexeu) ultimo = agora;
+    },
+    teste: () => ({ ativo, carro: carro && { x: Math.round(carro.x), z: Math.round(carro.z), v: +carro.v.toFixed(1) }, drone: { x: Math.round(drone.x), y: Math.round(drone.y), z: Math.round(drone.z) }, rua: ativo === "carro" ? nomeDaRua(carro.x, carro.z) : nomeDaRua(drone.x, drone.z) }),
+    tecla(k, on) { on ? teclas.add(k) : teclas.delete(k); pedirDesenho(); }, // testes automáticos
+  };
+})();
+window.MODOS = MODOS;
+
+/* =========================================================================
    15. Partida: monta a cena, baixa a foto e faz o voo de abertura
    ========================================================================= */
 
@@ -7392,6 +7737,7 @@ document.fonts?.ready.then(encaixarLista);
 })();
 
 window.usina = { // usado nos testes automáticos
+  modo: (m) => (m ? MODOS.entrar(m) : MODOS.sair()), modoTeste: () => MODOS.teste(), tecla: (k, on) => MODOS.tecla(k, on),
   palco: { // modo Apresentação (apresentacao.html)
     naTela, paraXZ, voar: (x, z, t, ms = 1600) => voarPara([x, z], t, ms),
     limpar() { const antes = { ...CAMADAS }; TEXTOS.forEach((k) => { CAMADAS[k] = false; }); CAMADAS.contornos = false; aplicarVisual(); pedirDesenho(); return antes; },
