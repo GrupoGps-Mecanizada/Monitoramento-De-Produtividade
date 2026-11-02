@@ -461,7 +461,7 @@ body.sem-coluna .pa-puxa{left:0}.pa-puxa svg{width:12px;height:12px}body.sem-col
 <div class="marca"><b>Grupo GPS</b> / Mecanizada</div>
 
 <script defer src="maquete-dados/base.js?v=eb1b402e"></script>
-<script defer src="maquete-dados/predios.js?v=1ae8b7d1"></script>
+<script defer src="maquete-dados/predios.js?v=4525e80f"></script>
 <script defer src="maquete-dados/estruturas.js?v=e74333c2"></script>
 <script defer src="maquete-dados/chao.js?v=2886bd94"></script>
 <script defer src="maquete-dados/analise.js?v=8bfe8397"></script>
@@ -992,8 +992,9 @@ const ANISO = renderer.capabilities.getMaxAnisotropy();
 
 const cena = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(36, innerWidth / innerHeight, 20, 80000);
-cena.add(new THREE.HemisphereLight(0xdde8ff, 0x7a6e5e, 1.6)); // céu azulado de um lado, chão quente do outro: a sombra fica azulada
-const sol = new THREE.DirectionalLight(0xffe9cc, 2.35);         // sol de fim de manhã, levemente quente
+const hemi = new THREE.HemisphereLight(0xdde8ff, 0x7a6e5e, 1.6); // céu azulado de um lado, chão quente do outro: a sombra fica azulada
+cena.add(hemi);
+const sol = new THREE.DirectionalLight(0xffe9cc, 2.35);         // sol de fim de manhã, levemente quente (valores finais na hora do dia, abaixo)
 const DIRECAO_SOL = new THREE.Vector3(-0.62, 0.72, 0.31).normalize();
 sol.castShadow = true;
 sol.shadow.mapSize.set(4096, 4096); // calculada uma vez só: pode ser grande
@@ -1010,6 +1011,34 @@ function posicionarSol() { // sombra fixa cobrindo a usina inteira (calculada um
   sol.target.updateMatrixWorld(); sol.updateMatrixWorld();
   refazerSombras();
 }
+
+/* Hora do dia (02/11/2026, Ajustes): manhã, tarde ou noite com as luzes acesas. Muda só a luz, o céu, a névoa, a fumaça e as
+   janelas acesas; nada muda de lugar e a cor de cada prédio (medida na foto) continua a base. A sombra é refeita uma vez.
+   Cores em sRGB (como na tela). Manhã: sol mais forte e luz do céu mais fraca que antes (sombra com mais corpo, sem ficar
+   chapado). Tarde: sol baixo do oeste, dourado. Noite: luar azulado, céu escuro com estrelas, janelas e lanternins acesos. */
+const HORAS = {
+  manha: { nome: "Manhã", sol: [-0.62, 0.72, 0.31], corSol: 0xfff0d8, forcaSol: 2.75, ceuHemi: 0xd4e2ff, chaoHemi: 0x6e6355, forcaHemi: 1.32,
+    zenite: 0x4a82c6, horizonte: 0xc8d6e3, brilho: 1, fumaca: [0.93, 0.93, 0.93], noite: 0 },
+  tarde: { nome: "Tarde", sol: [0.74, 0.42, 0.18], corSol: 0xffcb92, forcaSol: 2.6, ceuHemi: 0xc6d0ea, chaoHemi: 0x7a6250, forcaHemi: 1.18,
+    zenite: 0x4f78b8, horizonte: 0xdfd3c4, brilho: 1.2, fumaca: [0.95, 0.88, 0.8], noite: 0 },
+  noite: { nome: "Noite", sol: [0.3, 0.82, -0.48], corSol: 0xa9bde6, forcaSol: 0.42, ceuHemi: 0x4a5a82, chaoHemi: 0x22201e, forcaHemi: 0.62,
+    zenite: 0x070b18, horizonte: 0x232b40, brilho: 0.35, fumaca: [0.13, 0.14, 0.16], noite: 1 },
+};
+const CEU = { zenite: { value: new THREE.Color() }, horizonte: { value: new THREE.Color() }, solDir: { value: DIRECAO_SOL }, brilhoSol: { value: 1 },
+  fumaca: { value: new THREE.Color(0.93, 0.93, 0.93) }, noite: { value: 0 } };
+let horaAtual = "manha";
+try { if (HORAS[localStorage.getItem("usina-hora")]) horaAtual = localStorage.getItem("usina-hora"); } catch {}
+function aplicarHora(nome, reposicionar = true) {
+  horaAtual = HORAS[nome] ? nome : "manha";
+  const h = HORAS[horaAtual];
+  DIRECAO_SOL.set(...h.sol).normalize();
+  sol.color.set(h.corSol); sol.intensity = h.forcaSol;
+  hemi.color.set(h.ceuHemi); hemi.groundColor.set(h.chaoHemi); hemi.intensity = h.forcaHemi;
+  CEU.zenite.value.set(h.zenite); CEU.horizonte.value.set(h.horizonte); CEU.brilhoSol.value = h.brilho; CEU.fumaca.value.setRGB(...h.fumaca) /* valor cru: o shader da fumaça escreve direto na tela */; CEU.noite.value = h.noite;
+  try { localStorage.setItem("usina-hora", horaAtual); } catch {}
+  if (reposicionar) { posicionarSol(); if (typeof PERTO !== "undefined") PERTO.aplicar(); pedirDesenho(); }
+}
+aplicarHora(horaAtual, false);
 
 /* "mesa" escura onde a maquete apoia: só recebe a sombra do pedestal */
 const mesa = new THREE.Mesh(new THREE.PlaneGeometry(90000, 90000).rotateX(-Math.PI / 2), new THREE.ShadowMaterial({ opacity: 0.5 }));
@@ -1278,90 +1307,143 @@ grupoAreas.add(contorno);
 const grupoReal = new THREE.Group();
 cena.add(grupoReal);
 const PALETA_GALPAO = ["#c3c7cb", "#a9b3bd", "#8d9fb2", "#b8b0a3", "#9aa7a0", "#a8927a", "#7f8f9e"].map((c) => new THREE.Color(c));
+const CHAPA_PAREDE = [new THREE.Color(0xcfccc5), new THREE.Color(0xd9d4ca), new THREE.Color(0xcbc4b8), new THREE.Color(0xc9c8c4)]; // parede clara das naves (ver pintarComFoto)
 const PALETA_PREDIO = ["#e4ded3", "#d6cdbd", "#cfd5da", "#e8e4dc", "#c9c1b4"].map((c) => new THREE.Color(c));
 
 /* fachada desenhada na placa de vídeo, em metros (não estica com a altura); de longe o desenho some sozinho (sem chuvisco) */
 const GLSL_PREDIO = `
+uniform float noitePredio;
 float aparecePredio(float s, float w) { return 1.0 - smoothstep(0.25 * s, 0.7 * s, w); }
 float acasoPredio(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float ruidoPredio(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(acasoPredio(i), acasoPredio(i + vec2(1.0, 0.0)), f.x), mix(acasoPredio(i + vec2(0.0, 1.0)), acasoPredio(i + vec2(1.0, 1.0)), f.x), f.y); }
 `;
+/* luz acesa das janelas à noite (hora do dia): cor de lâmpada de vapor de sódio */
+const LUZ_PREDIO = { noite: CEU.noite };
+const EMISSAO_PREDIO = `#include <emissivemap_fragment>
+  totalEmissiveRadiance += vec3(1.0, 0.76, 0.42) * luzPredio * noitePredio;`;
+/* 02/11/2026 (fotos aéreas da usina em docs/referencias): chapa com painéis de tom levemente diferente, escorridos de ferrugem
+   descendo do beiral, faixa de telha translúcida, oclusão barata (pé da parede, quinas e sombra do beiral) e, à noite, janelas,
+   faixas translúcidas e portões abertos acesos. Tudo desenhado na placa, em metros: nenhum triângulo a mais. */
 function materialFachada() {
   const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
   m.onBeforeCompile = (s) => {
+    s.uniforms.noitePredio = LUZ_PREDIO.noite;
     s.vertexShader = s.vertexShader
       .replace("#include <common>", "#include <common>\nattribute vec4 fachada;\nvarying vec4 vFac;\nvarying float vYP;")
       .replace("#include <begin_vertex>", "#include <begin_vertex>\nvFac = fachada;\nvYP = (modelMatrix * vec4(transformed, 1.0)).y;");
     s.fragmentShader = s.fragmentShader
       .replace("#include <common>", "#include <common>\nvarying vec4 vFac;\nvarying float vYP;\n" + GLSL_PREDIO)
       .replace("#include <color_fragment>", `#include <color_fragment>
+  float luzPredio = 0.0;
   {
     float u = vFac.x, L = vFac.y, H = vFac.z, y = vYP; int tipo = int(vFac.w + 0.5);
     float wU = fwidth(u), wY = fwidth(y), w = max(wU, wY), f = 1.0;
+    float semente = acasoPredio(vec2(H * 7.13, L * 0.37));
+    vec3 tinta = vec3(1.0);
     if (y > H + 0.02) f = L > 0.0 ? 0.62 : 1.0; // platibanda (os oitões das naves seguem a telha)
     else if (tipo == 0 || tipo == 3) { // galpão e nave: telha metálica
       float nave = tipo == 3 ? 1.0 : 0.0, base = 1.0 - step(1.8 + nave * 0.7, y);
       f = mix(1.0, 0.8, base);
       f *= 1.0 - (1.0 - base) * 0.09 * (0.5 + 0.5 * sin(u * 25.13)) * aparecePredio(0.25, wU); // nervuras a cada 25 cm
+      f *= 1.0 + (acasoPredio(vec2(floor(u / 1.05), semente)) - 0.5) * 0.07 * (1.0 - base) * aparecePredio(1.0, wU); // painéis de tom diferente
       float passoP = mix(8.0, 10.0, nave), dp = abs(fract(u / passoP) - 0.5) * passoP;
       f *= 1.0 - 0.12 * (1.0 - smoothstep(0.15, 0.3, dp)) * aparecePredio(0.6, wU) * (1.0 - base) * step(1.0, L); // pilares
-      if (H > 7.0) f = mix(f, 1.22, step(H - 3.4 - nave * 1.5, y) * step(y, H - 1.6) * aparecePredio(1.0, wY)); // telha translúcida
+      if (H > 7.0) { // faixa de telha translúcida no alto
+        float banda = step(H - 3.4 - nave * 1.5, y) * step(y, H - 1.6);
+        f = mix(f, 1.22, banda * aparecePredio(1.0, wY)); luzPredio = banda * 0.4;
+      }
       f *= 1.0 - 0.35 * step(H - 0.45, y) * step(1.0, L); // calha no beiral
       if (L > 12.0) { // portões de enrolar: um a cada ~32 m (45 m na nave) em cada lado
         float n = max(1.0, floor(L / mix(32.0, 45.0, nave))), passo = L / n, du = abs(mod(u, passo) - passo * 0.5);
         float larg = mix(2.6, 4.0, nave), alt = min(mix(5.5, 9.0, nave), H - 2.2);
-        if (du < larg && y < alt) f = (du > larg - 0.25 || y > alt - 0.3) ? 0.85 : 0.52 + 0.07 * (0.5 + 0.5 * sin(y * 34.9)) * aparecePredio(0.18, wY);
+        if (du < larg && y < alt) {
+          f = (du > larg - 0.25 || y > alt - 0.3) ? 0.85 : 0.52 + 0.07 * (0.5 + 0.5 * sin(y * 34.9)) * aparecePredio(0.18, wY);
+          luzPredio = step(0.55, acasoPredio(vec2(floor(u / passo), semente + 3.0))) * 0.9 * step(du, larg - 0.25) * step(y, alt - 0.3); // portão aberto, galpão aceso
+        }
       }
+      // escorridos de ferrugem descendo do beiral: em algumas colunas de chapa, mais fortes no alto
+      float col = acasoPredio(vec2(floor(u / 0.8), semente * 13.0)), compr = 1.5 + 7.0 * col * col;
+      float escorre = smoothstep(0.62, 0.95, col) * smoothstep(H - 0.4 - compr, H - 0.6, y) * (1.0 - base) * step(y, H - 0.45);
+      tinta = mix(vec3(1.0), vec3(0.8, 0.62, 0.5), escorre * 0.75 * aparecePredio(0.8, wU));
       f *= 1.0 - 0.1 * (1.0 - smoothstep(0.0, 3.5, y)) * (1.0 - base); // sujeira subindo do chão
+      tinta *= mix(vec3(1.0), vec3(0.9, 0.84, 0.78), (1.0 - smoothstep(0.0, 1.2, y)) * 0.8); // pó de minério no pé
     } else if (tipo == 1) { // administrativo: janelas em fita por andar, montantes a cada 1,5 m e entrada no térreo
       float ya = mod(y, 3.5), mont = abs(fract(u / 1.5) - 0.5) * 1.5;
       float jan = step(1.0, ya) * step(ya, 2.5) * step(y, H - 0.8) * step(0.06, mont) * step(0.6, u) * step(u, L - 0.6);
-      f = mix(1.0, 0.3 + 0.16 * (ya - 1.0) / 1.5, jan * aparecePredio(0.6, w));
-      if (L > 10.0 && abs(u - L * 0.5) < 1.4 && y < 2.6) f = 0.36;
+      float vidro = 0.3 + 0.16 * (ya - 1.0) / 1.5 + (acasoPredio(vec2(floor(u / 1.5), floor(y / 3.5) + semente)) - 0.5) * 0.08; // reflexo muda de vidro a vidro
+      f = mix(1.0, vidro, jan * aparecePredio(0.6, w));
+      f *= 1.0 - 0.05 * step(2.5, ya) * step(ya, 2.8) * step(y, H - 0.8) * aparecePredio(0.5, wY); // sombra do peitoril
+      if (L > 10.0 && abs(u - L * 0.5) < 1.4 && y < 2.6) { f = 0.36; luzPredio = 0.8; }
+      luzPredio = max(luzPredio, jan * step(0.42, acasoPredio(vec2(floor(u / 4.5), floor(y / 3.5) + semente * 7.0))) * 0.85); // salas acesas
       f *= 1.0 - 0.1 * (1.0 - smoothstep(0.0, 0.6, y));
     } else if (tipo == 2) { // casa técnica: reboco, janelinhas, venezianas no alto e porta
-      float q = abs(mod(u, 6.0) - 3.0);
-      f = mix(1.0, 0.4, step(q, 0.6) * step(1.7, y) * step(y, min(2.7, H - 0.6)) * aparecePredio(0.5, w));
+      float q = abs(mod(u, 6.0) - 3.0), jan = step(q, 0.6) * step(1.7, y) * step(y, min(2.7, H - 0.6));
+      f = mix(1.0, 0.4, jan * aparecePredio(0.5, w));
+      luzPredio = jan * step(0.5, acasoPredio(vec2(floor(u / 6.0), semente))) * 0.7;
       float ven = step(H - 1.6, y) * step(y, H - 0.5) * step(abs(mod(u + 3.0, 6.0) - 3.0), 1.0) * step(3.2, H);
       f = mix(f, 0.6 + 0.14 * (0.5 + 0.5 * sin(y * 52.4)) * aparecePredio(0.12, wY), ven * aparecePredio(0.6, w));
       if (L > 5.0 && abs(u - L * 0.3) < 0.6 && y < 2.3) f = 0.45;
       f *= 1.0 - 0.12 * (1.0 - smoothstep(0.0, 0.5, y));
+      f *= 0.96 + 0.08 * ruidoPredio(vec2(u, y) * 0.5) * aparecePredio(2.0, w); // manchas do reboco
     }
-    diffuseColor.rgb *= f;
-  }`);
+    // oclusão barata: o pé da parede, as quinas e a faixa logo abaixo do beiral recebem menos luz do céu
+    float dq = L > 0.0 ? min(u, L - u) : 99.0;
+    f *= (1.0 - 0.12 * (1.0 - smoothstep(0.0, 2.4, y))) * (1.0 - 0.1 * (1.0 - smoothstep(0.0, 1.4, dq)))
+       * (1.0 - 0.09 * smoothstep(H - 2.6, H - 0.5, y) * step(y, H + 0.02));
+    diffuseColor.rgb *= f * tinta;
+  }`)
+      .replace("#include <emissivemap_fragment>", EMISSAO_PREDIO);
   };
-  m.customProgramCacheKey = () => "fachada-1";
+  m.customProgramCacheKey = () => "fachada-2";
   return m;
 }
 /* telhado da Cidade: telha ondulada descendo a água, faixas de telha translúcida, cumeeira e beiral marcados; laje com manta
-   em placas; lanternim com venezianas. A cor de cada telhado continua sendo a medida na foto. */
+   em placas; lanternim com venezianas. A cor de cada telhado continua sendo a medida na foto. 02/11/2026: emendas das telhas,
+   ferrugem que escorre para o beiral em algumas faixas e manchas largas de desgaste (média neutra: de longe a cor da foto não
+   muda); à noite as faixas translúcidas e o lanternim deixam passar a luz de dentro. */
 function materialTelhado() {
   const m = new THREE.MeshLambertMaterial({ vertexColors: true });
   m.onBeforeCompile = (s) => {
+    s.uniforms.noitePredio = LUZ_PREDIO.noite;
     s.vertexShader = s.vertexShader
       .replace("#include <common>", "#include <common>\nattribute vec4 telha;\nvarying vec4 vTel;\nvarying vec3 vMP;")
       .replace("#include <begin_vertex>", "#include <begin_vertex>\nvTel = telha;\nvMP = (modelMatrix * vec4(transformed, 1.0)).xyz;");
     s.fragmentShader = s.fragmentShader
       .replace("#include <common>", "#include <common>\nvarying vec4 vTel;\nvarying vec3 vMP;\n" + GLSL_PREDIO)
       .replace("#include <color_fragment>", `#include <color_fragment>
+  float luzPredio = 0.0;
   {
-    int tt = int(vTel.w + 0.5); float f = 1.0;
+    int tt = int(vTel.w + 0.5); float f = 1.0; vec3 tinta = vec3(1.0);
+    float wM = max(fwidth(vMP.x), fwidth(vMP.z));
+    float perto = aparecePredio(4.0, wM), mancha = perto > 0.0 ? ruidoPredio(vMP.xz / 14.0) : 0.5; // desgaste largo, média 0,5 (só perto: de longe não custa nada)
     if (tt == 1) { // duas águas
       float sR = dot(vMP.xz, vTel.xy), v = abs(vTel.z), wS = fwidth(sR), wV = fwidth(v);
       f = 1.0 - 0.08 * (0.5 + 0.5 * sin(sR * 20.94)) * aparecePredio(0.3, wS); // nervuras a cada 30 cm
+      f *= 1.0 - 0.07 * (1.0 - smoothstep(0.0, 0.035, abs(fract(v * 3.0 + 0.5) - 0.5))) * aparecePredio(0.9, wV * 20.0); // emendas das telhas
       float clara = step(0.4, v) * step(v, 0.55) * step(0.55, fract(sR / 9.0)); // telhas translúcidas em faixa no meio da água
       f = mix(f, 1.28, clara * aparecePredio(1.2, max(wS, wV * 20.0)));
+      luzPredio = clara * 0.16;
       f *= 1.0 - 0.2 * (1.0 - smoothstep(0.0, 0.04, v)) - 0.14 * smoothstep(0.9, 1.0, v); // cumeeira e beiral
+      if (perto > 0.0) {
+        float faixa = acasoPredio(vec2(floor(sR / 0.9), floor(sR / 40.0) + 5.0)); // ferrugem descendo para o beiral em algumas faixas
+        float ferr = smoothstep(0.7, 0.97, faixa) * smoothstep(0.25, 1.0, v) * aparecePredio(0.7, wS);
+        tinta = mix(vec3(1.0), vec3(1.0, 0.8, 0.66) * 0.86, ferr * 0.8);
+        tinta *= mix(vec3(1.0), vec3(1.03, 0.94, 0.86), smoothstep(0.55, 0.85, mancha) * 0.7 * perto); // chapa mais oxidada
+      }
     } else if (tt == 2) { // lanternim: venezianas nas laterais
       f = 1.0 - 0.18 * (0.5 + 0.5 * sin(vMP.y * 41.9)) * aparecePredio(0.15, fwidth(vMP.y));
+      luzPredio = 0.22;
     } else { // laje: manta em placas de 1 x 2 m, com manchas
       vec2 q = vMP.xz / vec2(1.0, 2.0), r = abs(fract(q) - 0.5);
-      float w = max(fwidth(vMP.x), fwidth(vMP.z));
-      f = 1.0 - 0.06 * step(0.47, max(r.x, r.y)) * aparecePredio(0.8, w) + (acasoPredio(floor(vMP.xz / 6.0)) - 0.5) * 0.08 * aparecePredio(6.0, w);
+      f = 1.0 - 0.06 * step(0.47, max(r.x, r.y)) * aparecePredio(0.8, wM) + (acasoPredio(floor(vMP.xz / 6.0)) - 0.5) * 0.08 * aparecePredio(6.0, wM);
     }
-    diffuseColor.rgb *= f;
-  }`);
+    f *= 1.0 + (mancha - 0.5) * 0.12 * perto; // água parada e poeira: mais claro e mais escuro, sem mudar a média
+    diffuseColor.rgb *= f * tinta;
+  }`)
+      .replace("#include <emissivemap_fragment>", EMISSAO_PREDIO);
   };
-  m.customProgramCacheKey = () => "telhado-1";
+  m.customProgramCacheKey = () => "telhado-3";
   return m;
 }
 
@@ -2009,7 +2091,7 @@ function modeloSilo({ diametro = 10, altura = 30 } = {}) {
 
 function modeloEsfera({ diametro = 14 } = {}) {
   const C = MODELO_COR, R = diametro / 2, yc = 1.45 * R, nP = R > 7 ? 10 : 8, p = [];
-  p.push(modeloPintar(new THREE.SphereGeometry(R, 18, 12).translate(0, yc, 0), C.claro, 0.03));
+  p.push(modeloPintar(new THREE.SphereGeometry(R, Math.min(32, modeloSeg(18)), Math.min(20, modeloSeg(12))).translate(0, yc, 0), C.claro, 0.03)); // de perto sai bem redonda
   p.push(modeloPintar(new THREE.TorusGeometry(R + 0.05, 0.12, 3, modeloSeg(24)).rotateX(Math.PI / 2).translate(0, yc, 0), C.pintado)); // costura do equador
   for (let i = 0; i < nP; i++) {
     const a = i * 2 * Math.PI / nP, b = (i + 1) * 2 * Math.PI / nP, P = (ang, y) => [Math.cos(ang) * R, y, Math.sin(ang) * R];
@@ -2391,11 +2473,11 @@ function criarVidaEstruturas(registro, malhas) {
     const centro = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3), tam = new THREE.InstancedBufferAttribute(new Float32Array(n), 1), opac = new THREE.InstancedBufferAttribute(new Float32Array(n), 1);
     geo.setAttribute("centro", centro); geo.setAttribute("tam", tam); geo.setAttribute("opac", opac);
     const mat = new THREE.ShaderMaterial({
-      transparent: true, depthWrite: false, uniforms: { mapa: { value: tex } },
+      transparent: true, depthWrite: false, uniforms: { mapa: { value: tex }, cor: typeof CEU !== "undefined" ? CEU.fumaca : { value: new THREE.Color(0.97, 0.97, 0.97) } }, // cor acompanha a hora do dia
       vertexShader: `attribute vec3 centro; attribute float tam; attribute float opac; varying vec2 vUv; varying float vO;
         void main(){ vUv = uv; vO = opac; vec4 mv = modelViewMatrix * vec4(centro, 1.0); mv.xy += position.xy * tam; gl_Position = projectionMatrix * mv; }`,
-      fragmentShader: `uniform sampler2D mapa; varying vec2 vUv; varying float vO;
-        void main(){ vec4 t = texture2D(mapa, vUv); gl_FragColor = vec4(vec3(0.97), t.a * vO); }`,
+      fragmentShader: `uniform sampler2D mapa; uniform vec3 cor; varying vec2 vUv; varying float vO;
+        void main(){ vec4 t = texture2D(mapa, vUv); gl_FragColor = vec4(min(cor + 0.05, vec3(0.97)), t.a * vO); }`,
     });
     const m = new THREE.Mesh(geo, mat); m.frustumCulled = false; m.renderOrder = 2;
     malhas[camada].add(m);
@@ -2470,7 +2552,7 @@ const MODULOS_3D = { nomes: {}, corPropria: new Set(), dados: {"tubovias":[{"n":
    Coordenadas do modelo: y para cima, base em y=0. Tudo aqui é ilustrativo: posição e tamanho da estrutura vêm do levantamento.
    ========================================================================= */
 // padrões desenhados na placa de vídeo (quadros por metro, sem textura e sem triângulo a mais); ver materialEstrutura em perto.js
-const PADRAO = { liso: 0, nervura: 1, chapa: 2, tijolo: 3, concreto: 4, grade: 5, grao: 6, veneziana: 7, telha: 8, vidro: 9, ferrugem: 10 };
+const PADRAO = { liso: 0, nervura: 1, chapa: 2, tijolo: 3, concreto: 4, grade: 5, grao: 6, veneziana: 7, telha: 8, vidro: 9, ferrugem: 10, revestimento: 11 };
 const CORES_KIT = new Map();
 function corKit(hex) { // cor linear em 3 bytes, guardada para não refazer a conta
   let c = CORES_KIT.get(hex);
@@ -2837,7 +2919,7 @@ let PADRAO_FACE = null;
 
   function tanqueDetalhe({ diametro = 20, altura = 12 }, c, f, r) {
     const R = diametro / 2, H = altura, nome = r?.e?.n || "";
-    if (/decantador|espessador/i.test(nome) || H <= 5) { const h = Math.max(2.5, H); f.guardaAnel(0, h, 0, R + 0.25, guarda, { passo: 2 }); c.viga([0, h + 1.2, 0], [R + 0.2, h + 0.1, 0], 1.2, 0.15, grade); return; }
+    if (/decantador|espessador/i.test(nome) || H <= 5) return DETALHE_TIPOS.espessador?.({ diametro, altura }, c, f); // bacia redonda (detalhe-2-maquinas.js)
     for (let y = 2.4; y < H; y += 2.4) c.cinta(0, y + 0.5, 0, R, 0.06, 0.04, R > 12 ? 48 : 32, C.sombra);
     // bocais com flange e válvula, tubos descendo ao pé; boca de visita; régua de nível
     for (const [ang, y, rr] of [[0.6, 1.3, 0.35], [1.4, 0.9, 0.25], [3.6, 1.6, 0.3]]) { const co = Math.cos(ang), si = Math.sin(ang);
@@ -2849,7 +2931,6 @@ let PADRAO_FACE = null;
     f.marinheiro(R + 0.05, 0, 0.5, H + 0.5, 1, 0, 0x6f757a, { gaiola: H > 6 });
   }
   DETALHE_TIPOS.tanque = tanqueDetalhe; DETALHE_TIPOS.outro = (m, c, f, r) => { if (!/resfriador|virador|entulho|refrat/i.test(r?.e?.n || "")) tanqueDetalhe(m, c, f, r); };
-  DETALHE_TIPOS.espessador = (m, c, f, r) => tanqueDetalhe({ ...m, altura: Math.min(m.altura || 5, 5) }, c, f, { e: { n: "espessador" } });
 
   DETALHE_TIPOS.silo = ({ diametro = 10, altura = 30 }, c, f) => {
     const R = diametro / 2, H = altura;
@@ -2857,11 +2938,6 @@ let PADRAO_FACE = null;
     f.guarda(quadrado(0.65 * R + 0.2, H + 3.5), guarda); f.marinheiro(-R - 0.05, 0, 1, H, -1, 0);
   };
 
-  DETALHE_TIPOS.esfera = ({ diametro = 14 }, c, f) => {
-    const R = diametro / 2, yc = 1.45 * R;
-    c.tubo([[0, yc - R + 0.2, 0], [0, 0.8, 0], [R + 3, 0.8, 0]], 0.3, C.pintado, { flange: 1.5 }); c.valvula([R * 0.4, 0.8, 0], 0.3, C.sombra, vermelhoValv);
-    c.plataforma(0, yc + R + 0.1, 0, 0.7 * R, 0.7 * R, grade); f.guarda(quadrado(0.35 * R, yc + R + 0.1), guarda);
-  };
 
   DETALHE_TIPOS.chamine = ({ altura = 100, diametro = 6 }, c, f) => {
     const D = diametro, H = Math.max(altura, 8 * D), rb = D / 2, rt = D * 0.31, r = (y) => rb + ((rt - rb) * y) / H, y0 = 0.72 * H, hf = (H - y0) / 5;
@@ -2916,11 +2992,6 @@ let PADRAO_FACE = null;
     for (const [xa, xb, h] of [[-L / 2, 0, 0.62 * A], [0, L / 2, A]]) for (const fr of [0.3, 0.55]) { const y = fr * h + 0.5; f.guarda([[xa, y, -W / 2], [xb, y, -W / 2], [xb, y, W / 2], [xa, y, W / 2]], guarda); }
     c.lances(L / 2 + 2.2, W / 2 - 2, 0, A * 0.78, { larg: 3, fundo: 2.4, f });
   };
-  DETALHE_TIPOS.torre_transferencia = ({ altura: A = 25, largura = 10, profundidade = 10 }, c, f) => {
-    const w = largura / 2, d = profundidade / 2;
-    f.guarda([[-w, 0.3 * A + 0.4, -d + 0.3], [w, 0.3 * A + 0.4, -d + 0.3], [w, 0.3 * A + 0.4, d - 0.3], [-w, 0.3 * A + 0.4, d - 0.3]], guarda, { fechado: true });
-    for (const s of [1, -1]) c.tubo([[s * (w + 0.2), A - 0.2, d + 0.2], [s * (w + 0.2), 0.6 * A, d + 0.3], [s * (w + 0.2), 0.6 * A - 1, d + 0.3]], 0.1, aco, { seg: 5 });
-  };
   DETALHE_TIPOS.torre_resfriamento = ({ diametro = 60, altura = 80, comprimento, largura }, c, f, r) => {
     if (r?.e?.p?.length >= 3 || (comprimento && largura && comprimento > 1.2 * largura)) { // de células
       const W = Math.max(6, largura || 14), L = comprimento || 40, A = Math.max(7, altura), hd = A - 3.2, n = Math.max(1, Math.round(L / W)), cel = L / n, rv = 0.36 * Math.min(cel, W);
@@ -2932,7 +3003,6 @@ let PADRAO_FACE = null;
     const H = Math.max(altura, 1.1 * diametro);
     f.marinheiro(0, diametro * 0.29 + 0.15, H * 0.07, H, 0, 1);
   };
-  DETALHE_TIPOS.subestacao = () => {};
   DETALHE_TIPOS.resfriador = ({ diametro = 30, altura = 10 }, c, f) => { const R = diametro / 2, h = Math.max(6, altura); f.guardaAnel(0, h, 0, R + 0.1, guarda, { passo: 2 }); };
 
   /* que padrão cada face do modelo simples (já em curvas redondas) recebe, pela cor original e pela posição da face */
@@ -2947,6 +3017,284 @@ let PADRAO_FACE = null;
     if (NAVES.has(tipo)) { if (topo) return PADRAO.telha; if (parede) return l < 0.16 ? PADRAO.vidro : l > 0.42 && Math.abs(r - b) < 0.06 && r > b ? PADRAO.concreto : PADRAO.nervura; return PADRAO.liso; }
     if (parede && l > 0.25) return PADRAO.chapa;
     return PADRAO.liso;
+  };
+}
+
+
+/* ===== módulo detalhe-2-maquinas.js ===== */
+/* =========================================================================
+   Detalhe de perto, 2a rodada (02/11/2026): tubovias, subestações, torres de transferência, espessadores, esferas,
+   empilhadeiras e recuperadoras de ponte, inclusive a parte que se mexe (lança, roda de caçambas, ponte do espessador).
+   Usa o kit de detalhe-0-kit.js. Coordenadas como no gerador simples (elementos-3d.js). Detalhes ilustrativos:
+   posição e tamanho vêm do levantamento; o resto segue o padrão das usinas (fotos e vídeos em docs/referencias).
+   ========================================================================= */
+const DETALHE_MOVEIS = {}; // tipo da peça que se mexe -> (registro) => geometria rica no lugar da simples
+let detalheTubovia = null, DETALHE_BASE_EMPILHADEIRA = null;
+{
+  const C = MODELO_COR, aco = 0x8e959b, grafite = 0x4a4f54, guarda = 0xe8b923, grade = 0x5f656b, vermelhoValv = 0xb5352a, porcelana = 0x8d5d4b;
+  const quadrado = (m, y, x = 0, z = 0) => [[x - m, y, z - m], [x + m, y, z - m], [x + m, y, z + m], [x - m, y, z + m]];
+
+  /* ---- tubovia: pórticos com pé de concreto e mão-francesa, tubos redondos sobre sapatas com abraçadeira,
+          flanges, junta de dilatação no gás, lira de dilatação nos trechos longos, revestimento nos tubos isolados ---- */
+  detalheTubovia = ({ L, h0, ponto }, e, c, f) => {
+    const h = Math.max(3.5, Math.min(h0 || 6, 14)), larg = Math.max(1.2, Math.min(e.larg || 3, 10));
+    const cores = COR_TUBOVIA[e.corTubo] || COR_TUBOVIA.claro, semente = Math.round(Math.max(1, L) * 7 + larg * 13 + h);
+    const meia = larg / 2 + 0.35, niveis = larg > 5.5 ? [h - 1.8, h] : [h], n = Math.max(1, Math.round(L / 7)), cor = C.pintado, pes = [];
+    for (let i = 0; i <= n; i++) {
+      const x = -L / 2 + (L * i) / n;
+      if ([-meia, meia].some((z) => naRua(ponto(x, z), 0.6))) continue; // como no simples: pórtico não fica na pista
+      pes.push(x);
+      for (const z of [-meia, meia]) {
+        c.viga([x, 0.3, z], [x, h + 0.25, z], 0.32, 0.32, cor);
+        c.caixa(x, 0, z, 0.7, 0.3, 0.7, C.concreto, { t: PADRAO.concreto, sem: "y" });
+      }
+      for (const y of niveis) {
+        c.viga([x, y - 0.16, -meia - 0.2], [x, y - 0.16, meia + 0.2], 0.28, 0.32, cor);
+        if (meia > 1.3) for (const s of [1, -1]) c.viga([x, y - 1.4, s * meia], [x, y - 0.32, s * (meia - 1.05)], 0.12, 0.12, cor);
+      }
+      if (i % 3 === 0 && h > 6) c.barra([x, 0.6, -meia], [x, h - 0.5, meia], 0.08, C.sombra, 4);
+    }
+    for (const z of [-meia, meia]) c.viga([-L / 2 - 0.15, h - 0.11, z], [L / 2 + 0.15, h - 0.11, z], 0.18, 0.22, cor);
+    const tubos = [];
+    for (const [k, y] of niveis.entries()) { // o mesmo feixe do desenho simples (mesmas cores e diâmetros), 12 cm acima, nas sapatas
+      let z = -larg / 2;
+      for (let t = 0; t < 9 && z < larg / 2 - 0.2; t++) {
+        const r = Math.min(0.75, 0.16 + 0.42 * modeloAcaso(semente + t * 7 + k * 31) ** 2 + (larg > 6 && t === 0 ? 0.3 : 0)), zc = z + r;
+        if (zc + r > larg / 2 + 0.2) break;
+        tubos.push({ y: y + 0.12 + r, base: y, z: zc, r, k, cor: cores[Math.floor(modeloAcaso(semente + t * 3 + k) * (t === 0 ? 1 : cores.length)) % cores.length] });
+        z = zc + r + 0.18;
+      }
+    }
+    const topo = tubos.filter((t) => t.k === niveis.length - 1), lira = L > 42 && topo.length ? topo.at(-1) : null;
+    for (const t of tubos) {
+      const seg = t.r > 0.45 ? 14 : t.r > 0.22 ? 10 : 7, gas = COR_TUBOVIA.amarelo.slice(0, 3).includes(t.cor), isolado = !gas && t.r > 0.2 && [0xc4c7ca, 0xd8d6d0].includes(t.cor);
+      const tp = isolado ? PADRAO.revestimento : 0, a = [-L / 2 - 0.35, t.y, t.z], b = [L / 2 + 0.35, t.y, t.z];
+      if (t === lira && t.r >= 0.2 && t.r <= 0.65) { // lira (laço de dilatação) para fora do feixe, com os seus postes
+        const m = Math.min(L * 0.12, 3 + t.r * 4), D = 3.5 + t.r * 6, zf = t.z + D;
+        c.tubo([a, [-m, t.y, t.z], [-m, t.y, zf], [m, t.y, zf], [m, t.y, t.z], b], t.r, t.cor, { seg, curva: 3, t: tp });
+        for (const x of [-m, m]) { c.viga([x, 0.3, zf + 0.1], [x, t.y - t.r - 0.12, zf + 0.1], 0.26, 0.26, cor); c.viga([x, t.y - t.r - 0.08, meia], [x, t.y - t.r - 0.08, zf + t.r + 0.4], 0.22, 0.2, cor); c.caixa(x, 0, zf + 0.1, 0.6, 0.3, 0.6, C.concreto, { t: PADRAO.concreto, sem: "y" }); }
+      } else c.barra(a, b, t.r, t.cor, seg, { t: tp, tampa: true }); // ponta fechada: no encontro dos trechos não aparece o tubo oco
+      if (t.r > 0.28 && t !== lira) c.flanges(a, b, t.r, t.cor, 12, Math.min(seg, 10), gas && L > 20 ? 0x6f757a : 0);
+      for (const x of pes) { // sapata embaixo e abraçadeira por cima
+        c.caixa(x, t.base, t.z, 0.34, 0.12, Math.max(0.16, t.r * 0.8), C.sombra, { sem: "y" });
+        if (t.r > 0.15) f.tubo([0, 0.6, 1.2, 1.9, 2.5, 3.1].map((g) => [x, t.y + Math.cos(g) * (t.r + 0.03), t.z + Math.sin(g) * (t.r + 0.03)]), 0.022, grafite, { seg: 3, curva: 0.5 });
+      }
+    }
+    if (niveis.length === 1 && L > 10) { // bandeja de cabos presa nos pilares, de um lado
+      c.viga([-L / 2, h - 1.0, -meia - 0.5], [L / 2, h - 1.0, -meia - 0.5], 0.5, 0.12, aco);
+      for (const x of pes) c.viga([x, h - 0.88, -meia], [x, h - 0.88, -meia - 0.75], 0.08, 0.08, aco);
+    }
+    if (pes.length && h > 5) f.marinheiro(pes[0], -meia - 0.22, 0.3, h, 0, -1, 0x6f757a, { gaiola: h > 7 });
+  };
+
+  /* ---- subestação: isoladores de porcelana com saias, chaves seccionadoras, para-raios, cabos com flecha,
+          radiadores aletados e buchas nos transformadores, bacia de óleo, armário de comando, portão ---- */
+  const isolador = (c, x, y0, z, h, r, cor = porcelana) => { // coluna com saias (discos) de porcelana
+    const n = Math.max(3, Math.round(h / 0.22)), p = [];
+    for (let i = 0; i <= n; i++) { const y = y0 + (h * i) / n; p.push([r, y], [r + (i % 2 ? 0 : 0.13 + r * 0.4), y + 0.02]); }
+    p.push([r * 0.6, y0 + h + 0.05]);
+    c.torno(x, z, p, 8, cor);
+  };
+  DETALHE_TIPOS.subestacao = ({ comprimento = 60, largura = 40, altura = 6 }, c, f, r) => {
+    const L = Math.max(14, comprimento), W = Math.max(10, largura), livre = r?.e?._livre || (() => true), hp = Math.max(10, 1.7 * altura);
+    const vao = 11, nb = Math.max(1, Math.floor((L - 6) / vao)), x0 = (-(nb - 1) * vao) / 2, duas = W >= 22, zP = duas ? -W / 4 : 0, zT = duas ? W / 4 : 0;
+    // mureta da cerca, arame no alto e portão
+    for (const s of [1, -1]) { c.caixa(0, 0, s * W / 2, L, 0.3, 0.2, C.concreto, { t: PADRAO.concreto, sem: "y" }); c.caixa(s * L / 2, 0, 0, 0.2, 0.3, W, C.concreto, { t: PADRAO.concreto, sem: "y" }); }
+    for (const s of [1, -1]) for (const y of [2.35, 2.5]) { f.barra([-L / 2, y, s * W / 2], [L / 2, y, s * W / 2], 0.012, grafite, 3); f.barra([s * L / 2, y, -W / 2], [s * L / 2, y, W / 2], 0.012, grafite, 3); }
+    for (const dz of [-2.4, 2.4]) c.caixa(-L / 2, 0, dz, 0.3, 2.6, 0.3, C.pintado, { sem: "y" });
+    for (const y of [0.2, 1.1, 2.0]) f.barra([-L / 2, y, -2.3], [-L / 2, y, 2.3], 0.04, C.pintado, 4);
+    for (let z = -2.3; z <= 2.31; z += 0.46) f.barra([-L / 2, 0.2, z], [-L / 2, 2.0, z], 0.02, C.pintado, 3);
+    c.caixa(L / 2 - 3, 0, -W / 2 + 2, 1.6, 2.1, 0.7, 0xb7bbb7, { sem: "y" }); c.painelZ(L / 2 - 3.7, L / 2 - 2.3, 0.3, 1.9, -W / 2 + 2.36, 1, 0x9aa09c, PADRAO.nervura); // armário de comando
+    c.caixa(0, 0, duas ? 0 : -W / 2 + 1.2, L - 4, 0.12, 0.9, C.concreto, { t: PADRAO.concreto, sem: "y" }); // tampas da canaleta de cabos
+    const portico = (x, z) => {
+      for (const dz of [-4, 4]) for (const s of [1, -1]) c.barra([x - 0.36, 0.3, z + dz + s * 0.36], [x + 0.36, hp - 0.7, z + dz - s * 0.36], 0.04, C.galvanizado, 3); // treliça das colunas
+      for (let u = -4; u < 4; u += 1.2) c.barra([x, hp - 0.68, z + u], [x, hp - 0.02, z + u + 1.2], 0.035, C.galvanizado, 3);
+      for (const dz of [-4, 4]) { c.barra([x, hp, z + dz], [x, hp + 3.2, z + dz], 0.06, C.galvanizado, 4); c.barra([x, hp, z + dz], [x, hp + 3.2, z + dz], 0.025, grafite, 3, { r2: 0.01 }); } // para-raios
+      for (const dz of [-2.5, 0, 2.5]) {
+        isolador(c, x - 2.8, 2.4, z + dz, 1.8, 0.24); isolador(c, x + 2.6, 2.6, z + dz, 1.4, 0.18);
+        c.caixa(x - 2.8, 0.6, z + dz, 0.5, 0.7, 0.4, 0x8f9499, { sem: "y" }); c.caixa(x + 2.6, 0.6, z + dz, 0.6, 0.9, 0.5, 0x8f9499, { sem: "y" }); // comando da chave e do disjuntor
+        c.barra([x - 2.8, 4.3, z + dz], [x - 1.2, 4.6, z + dz], 0.05, C.galvanizado, 4); // lâmina da seccionadora
+        c.barra([x + 2.6, 4.1, z + dz], [x + 2.6, 4.6, z + dz], 0.32, 0x9aa1a8, 8, { tampa: true }); // câmara do disjuntor
+        // cadeia de isoladores pendurada no pórtico e cabo com flecha descendo aos equipamentos
+        f.barra([x, hp - 0.7, z + dz], [x, hp - 2.1, z + dz], 0.13, porcelana, 6);
+        f.tubo([[x, hp - 2.1, z + dz], [x - 1.2, hp - 3.6, z + dz], [x - 2.2, 5.6, z + dz], [x - 2.8, 4.4, z + dz]], 0.03, 0x6b6e70, { seg: 3, curva: 4 });
+        f.tubo([[x, hp - 2.1, z + dz], [x + 1.4, hp - 3.8, z + dz], [x + 2.6, 4.7, z + dz]], 0.03, 0x6b6e70, { seg: 3, curva: 4 });
+      }
+    };
+    const trafo = (x, z) => {
+      for (const s of [1, -1]) for (let k = 0; k < 4; k++) for (let j = -2; j <= 2; j++) c.caixa(x - 1.6 + k * 1.05 + j * 0.17, 0.7, z + s * 2.15, 0.035, 2.8, 1.05, C.trafo, { sem: "y" }); // aletas dos radiadores
+      for (const s of [1, -1]) for (let k = 0; k < 4; k++) { c.barra([x - 1.6 + k * 1.05, 3.4, z + s * 1.6], [x - 1.6 + k * 1.05, 3.4, z + s * 2.15], 0.08, C.trafo, 5); c.barra([x - 1.6 + k * 1.05, 0.95, z + s * 1.6], [x - 1.6 + k * 1.05, 0.95, z + s * 2.15], 0.08, C.trafo, 5); }
+      for (const dx of [-1.4, 0, 1.4]) isolador(c, x + dx, 3.8, z - 0.6, 1.8, 0.2);
+      for (const dx of [-1, 0, 1]) isolador(c, x + dx, 3.8, z + 0.5, 0.9, 0.12, 0x6d4a3d);
+      c.tubo([[x - 1.5, 4.6, z + 1], [x - 1.8, 4.6, z + 1], [x - 1.8, 3.8, z + 0.6]], 0.06, C.trafo, { seg: 5 }); // tubo do conservador (relé Buchholz)
+      c.caixa(x - 1.8, 4.1, z + 0.8, 0.25, 0.25, 0.25, 0x5d6166, { sem: "y" });
+      c.caixa(x, 0, z, 7, 0.35, 5.8, C.concreto, { t: PADRAO.concreto, sem: "y" }); // bacia de contenção de óleo
+      c.caixa(x - 2.4, 0.4, z - 1.85, 0.7, 1.2, 0.45, 0x8f9499, { sem: "y" }); // armário do transformador
+      f.marinheiro(x + 2.35, z, 0.4, 3.8, 1, 0, 0x6f757a, { gaiola: false });
+    };
+    for (let i = 0; i < nb; i++) {
+      const x = x0 + i * vao;
+      if (duas) { if (livre(x, zP)) portico(x, zP); if (i % 2 === 0 && livre(x, zT)) trafo(x, zT); }
+      else if (livre(x, 0)) (i % 2 === 0 ? trafo : portico)(x, 0);
+    }
+    if (nb > 1) for (let i = 0; i < nb - 1; i++) for (const dz of [-2.5, 0, 2.5]) { const xa = x0 + i * vao, xb = xa + vao; f.tubo([[xa, hp - 0.9, zP + dz], [(xa + xb) / 2, hp - 1.7, zP + dz], [xb, hp - 0.9, zP + dz]], 0.035, 0x6b6e70, { seg: 3, curva: 6 }); } // cabos entre pórticos
+  };
+
+  /* ---- torre de transferência: travessas nas pernas, aberturas das correias, lanternim, calhas, filtro de mangas ---- */
+  DETALHE_TIPOS.torre_transferencia = ({ altura: A = 25, largura = 10, profundidade = 10 }, c, f) => {
+    const w = largura / 2, d = profundidade / 2, yc = 0.6 * A, cor = C.pintado, lx = w - 0.5, lz = d - 0.5;
+    for (let y = 4.5; y < yc - 1; y += 4.5) { c.viga([-lx, y, lz], [lx, y, lz], 0.22, 0.3, cor); c.viga([-lx, y, -lz], [lx, y, -lz], 0.22, 0.3, cor); c.viga([lx, y, -lz], [lx, y, lz], 0.22, 0.3, cor); c.viga([-lx, y, -lz], [-lx, y, lz], 0.22, 0.3, cor); }
+    for (const [x, z] of [[lx, lz], [lx, -lz], [-lx, lz], [-lx, -lz]]) c.caixa(x, 0, z, 1.1, 0.35, 1.1, C.concreto, { t: PADRAO.concreto, sem: "y" });
+    for (const s of [1, -1]) { c.painelX(-1.8, 1.8, yc + 1, yc + 3.8, s * (w + 0.04), s, 0x26282a); c.caixa(s * (w + 0.5), yc + 3.8, 0, 1, 0.25, 4.2, cor, { sem: "" }); } // boca das correias com capuz
+    c.caixa(0, A + 0.85, 0, Math.max(2, 2 * w * 0.7), 0.7, 1.4, C.pintado, { t: PADRAO.veneziana }); // lanternim na cumeeira
+    for (const s of [1, -1]) c.caixa(0, A - 0.35, s * (d + 0.25), 2 * w + 0.6, 0.35, 0.4, aco, { sem: "" });
+    const xf = -w - 2.6, zf = d - 2.2, yf = Math.max(3.5, yc * 0.45); // filtro de mangas ao lado, com moegas, pernas e duto
+    c.caixa(xf, yf, zf, 3, 3.4, 3, C.galvanizado, { t: PADRAO.nervura });
+    c.cil(xf, yf - 2.1, zf, 0.25, 2.05, 2.1, 4, C.galvanizado, { a0: Math.PI / 4 });
+    for (const [a, b] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) c.viga([xf + a * 1.4, 0, zf + b * 1.4], [xf + a * 1.4, yf, zf + b * 1.4], 0.2, 0.2, cor);
+    c.tubo([[xf, yf + 3.4, zf], [xf, yc + 2.4, zf], [-w, yc + 2.4, zf]], 0.4, C.pintado, { seg: 10, curva: 2 });
+    c.cil(xf + 1, yf + 3.4, zf, 0.35, 0.35, 1.6, 10, C.pintado); f.guarda(quadrado(1.5, yf + 3.4, xf, zf), guarda, { fechado: true });
+    f.guarda([[w + 0.1, A - 1, -d + 0.5], [w + 2.5, A - 1, -d + 0.5], [w + 2.5, A - 1, -d + 3.5], [w + 0.1, A - 1, -d + 3.5]], guarda);
+    f.marinheiro(w + 1.3, -d + 3.55, A - 1, A + 0.6, 0, 1, 0x6f757a, { gaiola: false });
+  };
+
+  /* ---- espessador: vertedouro em dente, poço de alimentação, escada, saída do transbordo e casa de bombas ---- */
+  DETALHE_TIPOS.espessador = ({ diametro = 25, altura = 5 }, c, f) => {
+    const R = diametro / 2, h = Math.max(2.5, altura), seg = R > 10 ? 64 : 40;
+    c.torno(0, 0, [[R - 1.62, h - 0.85], [R - 1.62, h - 0.3]], seg, C.claro, { t: PADRAO.nervura }); c.torno(0, 0, [[R - 1.66, h - 0.3], [R - 1.66, h - 0.85]], seg, C.claro, { t: PADRAO.nervura });
+    c.cil(0, h - 2.2, 0, 3, 3, 2.7, 24, C.pintado); c.torno(0, 0, [[2.92, h + 0.5], [2.92, h - 2.2]], 24, C.sombra); c.disco(0, h + 0.5, 0, 3, 24, C.pintado, 0, 2.92);
+    f.guardaAnel(0, h, 0, R + 0.25, guarda, { passo: 2 });
+    c.lances(R + 2, 0, 0, h, { larg: 2.6, fundo: 2.2, f, torre: false });
+    c.caixa(-(R + 0.9), h - 1.6, 0, 1.6, 1.2, 1.6, C.concreto, { t: PADRAO.concreto, sem: "" });
+    c.tubo([[-(R + 0.9), h - 1.6, 0], [-(R + 0.9), 0.6, 0], [-(R + 7), 0.6, 0]], 0.35, C.pintado, { seg: 10, flange: 2.2 });
+    c.caixa(0, 0, -(R + 4.5), 4, 3, 3.4, C.galvanizado, { t: PADRAO.nervura }); c.caixa(0, 3, -(R + 4.5), 4.4, 0.25, 3.8, C.pintado, { sem: "" });
+    for (const dx of [-0.9, 0.9]) { c.tubo([[dx, 1, -(R + 2.8)], [dx, 1, -(R + 1.6)], [dx, 0.3, -(R + 1.6)]], 0.2, C.pintado, { seg: 8, flange: 1 }); c.valvula([dx, 1, -(R + 2.3)], 0.2, C.sombra, vermelhoValv); }
+    c.cil(0, h + 3.3, 0, 0.6, 0.6, 0.9, 12, C.azul); c.disco(0, h + 4.2, 0, 0.6, 12, C.azul); f.guarda(quadrado(1.6, h + 3.3), guarda, { fechado: true });
+  };
+
+  /* ---- esfera: costuras das chapas (meridianos e paralelos), contraventamento em X com esticador, sapatas, válvulas no topo ---- */
+  DETALHE_TIPOS.esfera = ({ diametro = 14 }, c, f) => {
+    const R = diametro / 2, yc = 1.45 * R, nP = R > 7 ? 10 : 8, costura = 0xc3c3bd, P = (ang, y) => [Math.cos(ang) * R, y, Math.sin(ang) * R];
+    for (const fi of [-0.62, -0.26, 0.26, 0.62]) c.cinta(0, yc + R * Math.sin(fi) - 0.05, 0, R * Math.cos(fi) + 0.01, 0.1, 0.03, 32, costura);
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2, pts = []; for (let k = -4; k <= 4; k++) { const fi = k * 0.3; pts.push([Math.cos(a) * (R + 0.03) * Math.cos(fi), yc + (R + 0.03) * Math.sin(fi), Math.sin(a) * (R + 0.03) * Math.cos(fi)]); } c.tubo(pts, 0.045, costura, { seg: 3, curva: 0.3 }); }
+    for (let i = 0; i < nP; i++) {
+      const a = (i * 2 * Math.PI) / nP, b = ((i + 1) * 2 * Math.PI) / nP, p0 = i % 2 ? P(b, 0.5) : P(a, 0.5), p1 = i % 2 ? P(a, yc - 0.45 * R) : P(b, yc - 0.45 * R);
+      c.barra(p0, p1, 0.1, C.pintado, 5); const m = [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2, (p0[2] + p1[2]) / 2]; c.cil(m[0], m[1] - 0.3, m[2], 0.16, 0.16, 0.6, 6, C.sombra);
+      c.caixa(Math.cos(a) * (R + 0.05), yc - 0.25 * R, Math.sin(a) * (R + 0.05), 0.4, 0.5 * R, 0.9, C.pintado, { giro: -a });
+      c.caixa(Math.cos(a) * R, 0, Math.sin(a) * R, 1.3, 0.25, 1.3, C.sombra, { sem: "y" });
+    }
+    for (const s of [1, -1]) { c.cil(s * 0.18 * R, yc + R + 0.1, 0, 0.18, 0.18, 1.1, 8, C.sombra); c.cil(s * 0.18 * R, yc + R + 1.2, 0, 0.3, 0.3, 0.5, 8, vermelhoValv); }
+    c.tubo([[0, yc - R + 0.2, 0], [0, 0.8, 0], [R + 3, 0.8, 0]], 0.3, C.pintado, { flange: 1.5 }); c.valvula([R * 0.4, 0.8, 0], 0.3, C.sombra, vermelhoValv);
+    c.plataforma(0, yc + R + 0.1, 0, 0.7 * R, 0.7 * R, grade); f.guarda(quadrado(0.35 * R, yc + R + 0.1), guarda);
+  };
+
+  /* ---- empilhadeira / recuperadora (base): rodas nos truques, balancins, tambor do cabo, para-choques, escada e guarda-corpos ---- */
+  const baseEmpilhadeira = (c, f) => {
+    for (const [x, z] of [[-4.5, -3.5], [4.5, -3.5], [-4.5, 3.5], [4.5, 3.5]]) {
+      for (const dx of [-1.15, 0, 1.15]) c.barra([x + dx, 0.5, z - 0.62], [x + dx, 0.5, z + 0.62], 0.45, grafite, 10, { tampa: true });
+      c.caixa(x, 0.75, z, 3.4, 0.5, 0.35, C.amareloEsc, { sem: "" }); c.caixa(x + 1.9, 0.3, z, 0.5, 0.7, 0.9, C.vermelho, { sem: "y" }); // balancim e para-choque
+      c.caixa(x - 1.2, 1.4, z + (z > 0 ? 0.85 : -0.85), 0.9, 0.6, 0.6, C.azul, { sem: "y" }); // motor de translação
+    }
+    c.barra([-6.6, 2.6, 3.7], [-6.6, 2.6, 4.7], 1.7, 0x6f757a, 16, { tampa: true }); c.barra([-6.6, 2.6, 3.6], [-6.6, 2.6, 3.7], 2.0, C.amarelo, 16, { tampa: true }); c.barra([-6.6, 2.6, 4.7], [-6.6, 2.6, 4.8], 2.0, C.amarelo, 16, { tampa: true });
+    f.marinheiro(2.05, -4.05, 0.3, 4.6, 1, 0, 0x6f757a, { gaiola: false });
+    f.guarda([[-2, 3.42, -4.05], [2, 3.42, -4.05], [2, 3.42, 4.05], [-2, 3.42, 4.05]], guarda, { fechado: true, passo: 1.4 });
+    f.guarda([[-26, 1.4, -5.85], [-6, 8.2, -5.85]], guarda, { passo: 1.6 }); f.guarda([[-26, 1.4, -7.75], [-6, 8.2, -7.75]], guarda, { passo: 1.6 });
+  };
+  const baseRecuperadoraPonte = ({ altura = 18 }, c, f, r) => {
+    const vao = Math.min(80, Math.max(30, r?.e?._vao || 50)), A = Math.max(12, altura), yv = 0.72 * A, z0 = vao / 2;
+    for (const s of [1, -1]) {
+      for (const x of [-3.5, 3.5]) for (const dx of [-0.9, 0.9]) c.barra([x + dx, 0.55, s * z0 - 0.62], [x + dx, 0.55, s * z0 + 0.62], 0.5, grafite, 10, { tampa: true });
+      for (const x of [-4.6, 4.6]) c.caixa(x, 0.2, s * z0, 0.4, 0.8, 1, C.vermelho, { sem: "y" });
+      f.marinheiro(-2.2, s * (z0 - 1.5), 2.4, yv, -1, 0, 0x6f757a, { gaiola: true });
+    }
+    for (const s of [1, -1]) f.guarda([[-1.6, yv + 3.05, -z0 + 1], [-1.6, yv + 3.05, z0 - 1]].map(([x, y, z]) => [x * s, y, z]), guarda, { passo: 2 }); // passarela no alto da ponte
+    c.viga([0, yv + 3.06, -z0 + 1], [0, yv + 3.06, z0 - 1], 3.2, 0.05, grade, PADRAO.grade);
+    for (let i = 1; i < 6; i++) { const k0 = (i - 1) / 6, k1 = i / 6, y0 = yv - (yv - 1.5) * k0, y1 = yv - (yv - 1.5) * k1; for (const s of [1, -1]) c.barra([4.5, y0, s * (z0 - 3) * (1 - k0)], [4.5, y1, -s * (z0 - 3) * (1 - k1) * 0.4], 0.08, C.sombra, 4); } // diagonais do rastelo
+    c.barra([0, yv + 4.2, z0 - 5], [0, yv + 4.2, z0 - 2], 1.3, 0x6f757a, 14, { tampa: true }); // tambor do cabo
+    c.painelX(z0 - 7, z0 - 3.5, yv + 3.8, yv + 5.6, 3.04, 1, 0x55595d, PADRAO.veneziana);
+  };
+  DETALHE_TIPOS.empilhadeira = (m, c, f, r) => (/ponte/i.test(r?.e?.n || "") ? baseRecuperadoraPonte(m, c, f, r) : baseEmpilhadeira(c, f));
+  DETALHE_BASE_EMPILHADEIRA = baseEmpilhadeira;
+
+  /* ---- partes que se mexem, ricas (cada uma no lugar da simples, no mesmo pivô: gira junto) ---- */
+  const medidasEmpilhadeira = (r) => {
+    const e = r.e;
+    let comprimento = r.medidas?.comprimento ?? 65;
+    if (e.linha?.length >= 2) { const a = paraXZ(e.linha[0]), b = paraXZ(e.linha.at(-1)); comprimento = Math.hypot(b[0] - a[0], b[1] - a[1]) + 27; }
+    const altura = r.medidas?.altura ?? r.h ?? 18, L = Math.max(14, comprimento - 27), A = Math.max(12, altura), yp = Math.max(6.5, 0.4 * A), ang = -0.1;
+    const ponta = [2.5 + L * Math.cos(ang), yp + L * Math.sin(ang), 0];
+    return { L, A, yp, yg: 4.6, ang, ponta, topo: [-0.5, A, 0], xr: ponta[0] + 0.8, yr: ponta[1] + 0.6, zr: 1.9, rr: 3.6 };
+  };
+  const trelica = (c, P, L, H, Z, cor, passo, { r = 0.07, banzo = 0.2 } = {}) => { // viga treliçada de 4 banzos; P(u, y, z) leva para o mundo da peça
+    for (const y of [0, H]) for (const z of [-Z, Z]) c.viga(P(0, y, z), P(L, y, z), banzo, banzo, cor);
+    const n = Math.max(1, Math.round(L / passo));
+    for (let i = 0; i <= n; i++) {
+      const u = (L * i) / n;
+      for (const z of [-Z, Z]) c.barra(P(u, 0, z), P(u, H, z), r, cor, 3);
+      c.barra(P(u, 0, -Z), P(u, 0, Z), r, cor, 3); if (i % 2 === 0) c.barra(P(u, H, -Z), P(u, H, Z), r, cor, 3);
+      if (i < n) { const u1 = (L * (i + 1)) / n; for (const z of [-Z, Z]) c.barra(P(u, i % 2 ? H : 0, z), P(u1, i % 2 ? 0 : H, z), r, cor, 3); if (i % 2 === 0) c.barra(P(u, 0, -Z), P(u1, 0, Z), r * 0.8, cor, 3); }
+    }
+  };
+  DETALHE_MOVEIS.lanca = (r) => {
+    const { L, A, yp, yg, ang, ponta, topo, xr, yr, zr } = medidasEmpilhadeira(r), am = C.amarelo, ae = C.amareloEsc, c = new BaldeKit(20000);
+    // giratório, casa de máquinas com venezianas e porta
+    c.caixa(-1, yg, 0, 7, 1, 6, am, { sem: "" });
+    c.caixa(-2.2, yg + 1, 0, 6, 3.4, 5.6, C.galvanizado, { t: PADRAO.nervura, sem: "y" }); c.caixa(-2.2, yg + 4.4, 0, 6.4, 0.3, 6, C.pintado, { sem: "" });
+    c.painelZ(-4.8, -3.0, yg + 2.2, yg + 3.8, 2.82, 1, 0x55595d, PADRAO.veneziana); c.painelZ(-1.3, -0.2, yg + 1, yg + 3.1, 2.82, 1, 0x6d7276);
+    // mastro em A, com travessas e roldana no alto
+    const pernas = [[-1.5, yg + 1, -2.4], [-1.5, yg + 1, 2.4], [2, yg + 1, 0]], meio = (p, k) => [p[0] + (topo[0] - p[0]) * k, p[1] + (topo[1] - p[1]) * k, p[2] + (topo[2] - p[2]) * k];
+    for (const p of pernas) c.barra(p, topo, 0.38, am, 10);
+    for (const k of [0.35, 0.68]) { c.barra(meio(pernas[0], k), meio(pernas[1], k), 0.12, ae, 6); c.barra(meio(pernas[0], k), meio(pernas[2], k), 0.12, ae, 6); c.barra(meio(pernas[1], k), meio(pernas[2], k), 0.12, ae, 6); }
+    c.barra([-0.5, A, -0.7], [-0.5, A, 0.7], 0.6, C.sombra, 12, { tampa: true });
+    // lança treliçada: banzos, montantes e diagonais, correia em calha com roletes, passarela com guarda-corpo
+    const ca = Math.cos(ang), sa = Math.sin(ang), B = (u, y, z) => [2 + u * ca - y * sa, yp + u * sa + y * ca, z];
+    trelica(c, B, L, 2, 1.15, am, 4);
+    c.viga(B(0, 1.3, 0), B(L, 1.3, 0), 1.2, 0.08, C.correia);
+    for (let u = 0.8; u < L; u += 2.2) { c.barra(B(u, 1.18, -0.3), B(u, 1.18, 0.3), 0.06, grafite, 5); c.barra(B(u, 1.18, -0.3), B(u, 1.4, -0.62), 0.06, grafite, 5); c.barra(B(u, 1.18, 0.3), B(u, 1.4, 0.62), 0.06, grafite, 5); }
+    c.viga(B(0, 0.02, 1.75), B(L - 2, 0.02, 1.75), 0.8, 0.06, grade, PADRAO.grade);
+    c.barra(B(0, 1.1, 2.15), B(L - 2, 1.1, 2.15), 0.04, guarda, 3); c.barra(B(0, 0.55, 2.15), B(L - 2, 0.55, 2.15), 0.03, guarda, 3);
+    for (let u = 0; u < L - 2; u += 2) c.barra(B(u, 0, 2.15), B(u, 1.1, 2.15), 0.035, guarda, 3);
+    // braço do contrapeso (treliça) e bloco de concreto
+    const p0 = [-1, yp], p1 = [-17, yp + 2.6], Lc = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]), dc = [(p1[0] - p0[0]) / Lc, (p1[1] - p0[1]) / Lc];
+    trelica(c, (u, y, z) => [p0[0] + dc[0] * u - dc[1] * y, p0[1] + dc[1] * u + dc[0] * y, z], Lc, 1.8, 0.9, am, 4, { r: 0.08 });
+    c.caixa(-17, yp - 1, 0, 4.5, 4, 4, C.concreto, { t: PADRAO.concreto, sem: "" });
+    // estais (pares de cabos) do alto do mastro à ponta da lança, ao meio e ao contrapeso
+    for (const z of [-0.45, 0.45]) { c.barra([topo[0], topo[1], z], [ponta[0] - 1, ponta[1] + 2, z * 2], 0.06, C.escuro, 4); c.barra([topo[0], topo[1], z], [2.5 + L * 0.5, yp + 2 + L * 0.5 * sa, z * 2], 0.06, C.escuro, 4); c.barra([topo[0], topo[1], z], [-16, yp + 3.6, z * 2], 0.06, C.escuro, 4); }
+    // cabine do operador com vidros; redutor e eixo da roda
+    c.caixa(5.5, yp - 2.4, -2.3, 2.4, 2.2, 2.2, C.galvanizado, { sem: "" });
+    c.painelZ(4.4, 6.6, yp - 1.7, yp - 0.6, -3.42, -1, 0x2e3b47, PADRAO.vidro); c.painelX(-3.3, -1.3, yp - 1.7, yp - 0.6, 6.72, 1, 0x2e3b47, PADRAO.vidro);
+    c.barra([ponta[0] - 1, ponta[1], 0.6], [xr, yr, zr - 0.5], 0.35, C.sombra, 10);
+    c.caixa(ponta[0] - 1.6, ponta[1] - 0.6, -1.0, 1.8, 1.4, 1.2, C.sombra, { sem: "" }); c.caixa(ponta[0] - 1.6, ponta[1] - 0.3, -1.9, 0.9, 0.8, 0.6, C.azul, { sem: "" });
+    c.caixa(ponta[0] - 1.2, ponta[1] + 1.2, 0.4, 2, 1.6, 1.6, C.ferrugem, { t: PADRAO.ferrugem }); // chute da roda para a correia
+    return c.geometria(new THREE.Matrix4().makeTranslation(0, -yg, 0));
+  };
+  const rodaCacambas = (rr, esp, nC, cacamba) => { // eixo em Z, centro na origem; caçambas com lábio e dentes
+    const c = new BaldeKit(12000), am = C.amarelo, ae = C.amareloEsc, h = esp / 2;
+    for (const [ra, rb, cor] of [[rr * 0.92, rr, am], [rr * 0.78, rr * 0.84, ae]]) c.torno(0, 0, [[ra, -h], [rb, -h], [rb, h], [ra, h], [ra, -h]], 32, cor);
+    c.cil(0, -h - 0.2, 0, 0.7, 0.7, esp + 0.4, 14, C.sombra); c.disco(0, h + 0.2, 0, 0.7, 14, C.sombra);
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; for (const y of [-h * 0.6, h * 0.6]) c.barra([Math.cos(a) * 0.7, y, Math.sin(a) * 0.7], [Math.cos(a) * rr * 0.8, y, Math.sin(a) * rr * 0.8], 0.12, ae, 5); }
+    for (let i = 0; i < nC; i++) {
+      const a = (i / nC) * Math.PI * 2, co = Math.cos(a), si = Math.sin(a), tx = -si, tz = co, [sr, st, sa] = cacamba, x = co * (rr + sr * 0.2), z = si * (rr + sr * 0.2);
+      c.caixa(x, -sa / 2, z, sr, sa, st, C.escuro, { t: PADRAO.ferrugem, giro: -a, sem: "" });
+      const lx = x + tx * st * 0.5, lz = z + tz * st * 0.5; // lábio na frente da caçamba, com dentes
+      c.barra([lx + co * sr * 0.5, -sa / 2, lz + si * sr * 0.5], [lx + co * sr * 0.5, sa / 2, lz + si * sr * 0.5], 0.1, 0x6f757a, 4);
+      for (const y of [-sa * 0.3, 0, sa * 0.3]) c.barra([lx + co * sr * 0.5, y, lz + si * sr * 0.5], [lx + co * sr * 0.5 + tx * 0.35, y, lz + si * sr * 0.5 + tz * 0.35], 0.07, 0x9aa1a8, 4, { r2: 0.03 });
+    }
+    return c.geometria(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+  };
+  DETALHE_MOVEIS.roda = (r) => (/ponte/i.test(r.e.n || "") ? rodaCacambas(3.4, 1.2, 10, [1.2, 1.0, 1.4]) : rodaCacambas(medidasEmpilhadeira(r).rr, 0.9, 10, [1.3, 1.1, 1.3]));
+  DETALHE_MOVEIS.rodar = (r) => { // ponte radial do espessador: treliça com piso de grade, guarda-corpo, carro na borda
+    const R = (r.medidas?.diametro || r.e.d || 25) / 2, x0 = 1.5, x1 = R, am = C.amarelo, c = new BaldeKit(6000);
+    for (const z of [-0.8, 0.8]) {
+      c.viga([x0, 0.15, z], [x1, 0.15, z], 0.14, 0.3, am); c.barra([x0, 1.1, z], [x1, 1.1, z], 0.05, am, 5); c.barra([x0, 0.6, z], [x1, 0.6, z], 0.035, am, 4);
+      for (let x = x0; x <= x1; x += 1.5) c.barra([x, 0.3, z], [x, 1.1, z], 0.04, am, 4);
+      for (let x = x0; x < x1 - 1.5; x += 3) c.barra([x, 0.3, z], [x + 1.5, 1.1, z], 0.04, C.amareloEsc, 4);
+    }
+    c.viga([x0, 0.32, 0], [x1, 0.32, 0], 1.5, 0.05, grade, PADRAO.grade);
+    c.barra([x0, 0.7, -0.5], [x1 - 1, 0.7, -0.5], 0.16, C.pintado, 8);
+    c.caixa(R - 0.6, -0.2, 0, 1.2, 0.5, 2.2, C.sombra, { sem: "" }); c.barra([R - 0.6, -0.15, -1.15], [R - 0.6, -0.15, -0.9], 0.4, C.escuro, 10, { tampa: true });
+    c.caixa(R - 1.1, 0.35, 0.45, 0.8, 0.6, 0.6, C.azul, { sem: "" });
+    return c.geometria(new THREE.Matrix4());
   };
 }
 
@@ -4075,10 +4423,14 @@ function tingirPredios(telas) {
   refazerSombras();
 }
 /** telhado na cor da foto e parede no mesmo tom, mais escura e menos saturada, como o galpão real */
+/* 02/11/2026: nas fotos aéreas (docs/referencias) a parede das naves e galpões é chapa clara (cinza-gelo, creme) sob o telhado
+   enferrujado, e os prédios de apoio têm fachada clara: a parede parte do tom da foto e se aproxima da cor de chapa */
 function pintarComFoto(r, cor) {
   const cinza = new THREE.Color().setScalar((cor.r + cor.g + cor.b) / 3);
   pintarTelhado(r, cor.clone().lerp(cinza, 0.08));
-  pintarParede(r, cor.clone().lerp(cinza, 0.3).multiplyScalar(0.82).lerp(r.base, 0.15));
+  const parede = cor.clone().lerp(cinza, 0.3).multiplyScalar(0.82).lerp(r.base, 0.15);
+  const chapa = r.fachada === FACHADA.lisa ? 0 : r.fachada === FACHADA.tecnica ? 0.25 : r.fachada === FACHADA.administrativo ? 0.38 : 0.45;
+  pintarParede(r, parede.lerp(CHAPA_PAREDE[(r.fachada * 3 + Math.round(r.c[0] + r.c[1])) & 3], chapa));
 }
 function pintarTelhado(r, cor) {
   const C = telhadoCidade.geometry.attributes.color.array;
@@ -4430,11 +4782,11 @@ const fumaca = (() => {
   geo.setAttribute("centro", centro); geo.setAttribute("tam", tam); geo.setAttribute("opac", opac);
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
-    uniforms: { mapa: { value: texturaFumaca() } },
+    uniforms: { mapa: { value: texturaFumaca() }, corFumaca: CEU.fumaca }, // a cor acompanha a hora do dia (à noite não brilha branca)
     vertexShader: `attribute vec3 centro; attribute float tam; attribute float opac; varying vec2 vUv; varying float vO;
       void main(){ vUv = uv; vO = opac; vec4 mv = modelViewMatrix * vec4(centro, 1.0); mv.xy += position.xy * tam; gl_Position = projectionMatrix * mv; }`,
-    fragmentShader: `uniform sampler2D mapa; varying vec2 vUv; varying float vO;
-      void main(){ vec4 t = texture2D(mapa, vUv); gl_FragColor = vec4(vec3(0.93), t.a * vO); }`,
+    fragmentShader: `uniform sampler2D mapa; uniform vec3 corFumaca; varying vec2 vUv; varying float vO;
+      void main(){ vec4 t = texture2D(mapa, vUv); gl_FragColor = vec4(corFumaca, t.a * vO); }`,
   });
   const m = new THREE.Mesh(geo, mat);
   m.frustumCulled = false;
@@ -4656,13 +5008,14 @@ float aparece(float s, float w) { return 1.0 - smoothstep(0.25 * s, 0.7 * s, w);
 function texturizarChao(mat, mapas) {
   mat.onBeforeCompile = (s) => {
     s.uniforms.mapaOclusao = OCLUSAO.mapa; s.uniforms.retOclusao = OCLUSAO.ret; s.uniforms.forcaOclusao = OCLUSAO.forca; s.uniforms.texDetalheChao = PADRAO_CHAO.det;
+    s.uniforms.ceuAgua = CEU.horizonte; // reflexo da água na cor do céu da hora do dia (02/11/2026)
     s.uniforms.forcaPadrao = PADRAO_CHAO.forca; s.uniforms.mapaCor = mapas.cor; s.uniforms.mapaPesoA = mapas.pesoA; s.uniforms.mapaPesoB = mapas.pesoB; s.uniforms.retMapa = mapas.ret;
     s.uniforms.mediasA = mapas.mediasA; s.uniforms.mediasB = mapas.mediasB;
     s.vertexShader = s.vertexShader
       .replace("#include <common>", "#include <common>\nvarying vec2 vMundo;")
       .replace("#include <begin_vertex>", "#include <begin_vertex>\nvMundo = (modelMatrix * vec4(transformed, 1.0)).xz;");
     s.fragmentShader = s.fragmentShader
-      .replace("#include <common>", "#include <common>\n" + GLSL_OCLUSAO + "uniform float forcaPadrao;\nuniform sampler2D mapaCor, mapaPesoA, mapaPesoB;\nuniform vec4 retMapa;\nuniform vec3 mediasA[4];\nuniform vec3 mediasB[4];\nvarying vec2 vMundo;\n" + GLSL_RUIDO)
+      .replace("#include <common>", "#include <common>\n" + GLSL_OCLUSAO + "uniform float forcaPadrao;\nuniform vec3 ceuAgua;\nuniform sampler2D mapaCor, mapaPesoA, mapaPesoB;\nuniform vec4 retMapa;\nuniform vec3 mediasA[4];\nuniform vec3 mediasB[4];\nvarying vec2 vMundo;\n" + GLSL_RUIDO)
       .replace("#include <color_fragment>", `#include <color_fragment>
   vec2 pm = vMundo;
   vec4 dA = texture2D(texDetalheChao, pm / 64.0);          // copas, grão de 0,5 m, manchas de 4 m e de 16 m
@@ -4711,10 +5064,10 @@ function texturizarChao(mat, mapas) {
       .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
   if (pesoAgua > 0.0) { // água: reflexo do céu quando vista de lado
     float fres = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 4.0);
-    totalEmissiveRadiance += vec3(0.62, 0.72, 0.8) * fres * 0.55 * pesoAgua;
+    totalEmissiveRadiance += ceuAgua * fres * 0.6 * pesoAgua;
   }`);
   };
-  mat.customProgramCacheKey = () => "chao-padrao-4";
+  mat.customProgramCacheKey = () => "chao-padrao-5";
 }
 
 /* Oclusão de contato (30/10/2026): o chão escurece de leve junto ao pé de cada prédio e estrutura, como na luz real
@@ -4972,9 +5325,9 @@ const TIPO_RUA = { asfalto: 0, vagas: 1, calcada: 2, terra: 3, chao: 3, branca: 
 for (const [nome, m] of Object.entries(MATS_RUA)) {
   const tipo = { value: TIPO_RUA[nome] ?? 0 };
   m.onBeforeCompile = (s) => {
-    usarDet(s); s.uniforms.tipoRua = tipo; s.uniforms.forcaRua = FORCA_RUA;
+    usarDet(s); s.uniforms.tipoRua = tipo; s.uniforms.forcaRua = FORCA_RUA; s.uniforms.noiteRua = CEU.noite;
     s.vertexShader = s.vertexShader.replace("#include <common>", GLSL_MUNDO_V[0]).replace("#include <begin_vertex>", GLSL_MUNDO_V[1]);
-    s.fragmentShader = s.fragmentShader.replace("#include <common>", "#include <common>\nuniform float tipoRua, forcaRua;\nvarying vec2 vMundo;\n" + GLSL_RUIDO)
+    s.fragmentShader = s.fragmentShader.replace("#include <common>", "#include <common>\nuniform float tipoRua, forcaRua, noiteRua;\nvarying vec2 vMundo;\n" + GLSL_RUIDO)
       .replace("#include <color_fragment>", `#include <color_fragment>
   if (forcaRua > 0.0) {
     vec2 pr = vMundo;
@@ -4996,9 +5349,14 @@ for (const [nome, m] of Object.entries(MATS_RUA)) {
       float gasto = smoothstep(0.1, 0.42, l.b + g.g * 0.6 + 0.12);
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.1, 0.105, 0.115), gasto * 0.5);
     }
+  }`).replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+  if (noiteRua > 0.0 && tipoRua < 2.5) { // noite (02/11/2026): poças de luz dos postes na pista e na calçada, a cada ~32 m
+    vec2 cel = floor(vMundo / 32.0), off = vec2(h21(cel + 7.0), h21(cel + 13.0)) * 12.0 - 6.0;
+    float dl = length(vMundo - (cel + 0.5) * 32.0 - off), poca = (1.0 - smoothstep(2.0, 13.0, dl)) * step(0.3, h21(cel));
+    totalEmissiveRadiance += vec3(1.0, 0.72, 0.38) * poca * poca * 0.2 * noiteRua;
   }`);
   };
-  m.customProgramCacheKey = () => "rua-padrao-1";
+  m.customProgramCacheKey = () => "rua-padrao-2";
   m.needsUpdate = true;
 }
 
@@ -5186,21 +5544,21 @@ function fita(pts, d0, d1, y0, y1, corHex, pos, cor) {
   if (lago) {
     const m = lago.material;
     m.onBeforeCompile = (s) => {
-      usarDet(s); s.uniforms.tempoAgua = TEMPO_AGUA; s.uniforms.forcaRua = FORCA_RUA;
+      usarDet(s); s.uniforms.tempoAgua = TEMPO_AGUA; s.uniforms.forcaRua = FORCA_RUA; s.uniforms.ceuAgua = CEU.horizonte; s.uniforms.solAgua = CEU.solDir; s.uniforms.brilhoAgua = CEU.brilhoSol;
       s.vertexShader = s.vertexShader.replace("#include <common>", GLSL_MUNDO_V[0]).replace("#include <begin_vertex>", GLSL_MUNDO_V[1]);
-      s.fragmentShader = s.fragmentShader.replace("#include <common>", "#include <common>\nuniform float tempoAgua, forcaRua;\nvarying vec2 vMundo;\n" + GLSL_RUIDO)
+      s.fragmentShader = s.fragmentShader.replace("#include <common>", "#include <common>\nuniform float tempoAgua, forcaRua, brilhoAgua;\nuniform vec3 ceuAgua, solAgua;\nvarying vec2 vMundo;\n" + GLSL_RUIDO)
         .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
   if (forcaRua > 0.0) {
     vec2 o1 = texture2D(texDetalheChao, vMundo / 48.0 + vec2(tempoAgua * 0.006, tempoAgua * 0.004)).bg - 0.5;
     vec2 o2 = texture2D(texDetalheChao, vMundo.yx / 31.0 - vec2(tempoAgua * 0.009, -tempoAgua * 0.005)).bg - 0.5;
     vec3 v = normalize(vViewPosition), n2 = normalize((viewMatrix * vec4(normalize(vec3((o1.x + o2.x) * 0.34, 1.0, (o1.y + o2.y) * 0.34)), 0.0)).xyz);
     float fres = pow(1.0 - clamp(dot(n2, v), 0.0, 1.0), 3.5);
-    vec3 hm = normalize(v + normalize((viewMatrix * vec4(-0.62, 0.72, 0.31, 0.0)).xyz));
+    vec3 hm = normalize(v + normalize((viewMatrix * vec4(solAgua, 0.0)).xyz));
     diffuseColor.rgb *= 0.9 + (o1.x + o2.y) * 0.3;
-    totalEmissiveRadiance += vec3(0.56, 0.68, 0.8) * fres * 0.3 + vec3(1.0, 0.96, 0.86) * pow(max(dot(n2, hm), 0.0), 90.0) * 0.5;
+    totalEmissiveRadiance += ceuAgua * fres * 0.34 + vec3(1.0, 0.96, 0.86) * pow(max(dot(n2, hm), 0.0), 90.0) * 0.5 * brilhoAgua; // céu e sol (ou lua) da hora do dia
   }`);
     };
-    m.customProgramCacheKey = () => "lago-1";
+    m.customProgramCacheKey = () => "lago-2";
     m.needsUpdate = true;
     const pos = [], alfa = [];
     OSM.filter((o) => o.t === "agua").forEach((o) => {
@@ -6386,7 +6744,10 @@ function montarLegenda() {
   const status = `<div class="grupo" style="padding-top:12px">Cor do caminhão (a mesma da Timeline)</div><div class="chips">${Object.entries(COR_STATUS).map(([k, c]) =>
     `<span class="chip" style="cursor:default"><i class="cor" style="background:${c};box-shadow:0 0 0 1px rgba(19,32,47,.3)"></i>${ROTULO_SITUACAO[k]}</span>`).join("")}</div>`;
   const qualidade = `<section class="bloco"><h3>Qualidade da imagem</h3><p>Alta deixa mais nítido; Leve deixa mais rápido em computador simples.</p><div class="opcoes" role="group" aria-label="Qualidade">${["alta", "leve"].map((q) =>
-    `<button type="button" data-qualidade="${q}" aria-pressed="${estado.qualidade === q}">${q === "alta" ? "Alta" : "Leve"}</button>`).join("")}</div></section>`;
+    `<button type="button" data-qualidade="${q}" aria-pressed="${estado.qualidade === q}">${q === "alta" ? "Alta" : "Leve"}</button>`).join("")}</div></section>`
+    // hora do dia (02/11/2026): também usa data-qualidade ("hora-..."), para aparecer no grupo Qualidade da barra da direita sem mexer nela
+    + `<section class="bloco"><h3>Hora do dia</h3><p>Muda a luz, a sombra e o céu. À noite as janelas e os galpões ficam acesos.</p><div class="opcoes c3" role="group" aria-label="Hora do dia">${Object.entries(HORAS).map(([k, h]) =>
+    `<button type="button" data-qualidade="hora-${k}" aria-pressed="${horaAtual === k}">${h.nome}</button>`).join("")}</div></section>`;
   let topo;
   if (estado.visual === "cidade") topo = `<div class="grupo">Chão da usina${typeof chaoDetalhado === "function" && chaoDetalhado() ? " (classificado da foto de satélite)" : ""}</div><div class="chips">${(typeof chaoDetalhado === "function" && chaoDetalhado() ? LEGENDA_SOLO : CHAO_MAPEADO ? LEGENDA_CHAO : LEGENDA_CIDADE).map(([c, n]) =>
     `<span class="chip" style="cursor:default"><i class="cor" style="background:${c}"></i>${n}</span>`).join("")}</div>`;
@@ -6419,7 +6780,10 @@ function montarCamadas(qualidade) { // aba Camadas: um cartão por grupo, com in
     salvarCamadas(); aplicarVisual();
   }));
   $("todosTextos").addEventListener("click", () => { TEXTOS.forEach((c) => { CAMADAS[c] = !algumTexto; }); salvarCamadas(); aplicarVisual(); });
-  $("qualidade").querySelectorAll("[data-qualidade]").forEach((b) => b.addEventListener("click", () => mudarQualidade(b.dataset.qualidade)));
+  $("qualidade").querySelectorAll("[data-qualidade]").forEach((b) => b.addEventListener("click", () => {
+    const q = b.dataset.qualidade;
+    if (q.startsWith("hora-")) { aplicarHora(q.slice(5)); montarLegenda(); } else mudarQualidade(q);
+  }));
 }
 
 function mudarQualidade(q) {
@@ -6534,16 +6898,23 @@ const PERTO = (() => {
 
   /* ---- céu e névoa: com a câmera baixa a maquete vira paisagem; no alto continua sobre a mesa escura ---- */
   const ceu = new THREE.Mesh(new THREE.SphereGeometry(60000, 24, 12), new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false, transparent: true, fog: false, uniforms: { forca: { value: 0 } },
+    // 02/11/2026: cores da hora do dia (CEU, ao lado do sol); o pé do céu é a cor da névoa, sem emenda no horizonte
+    side: THREE.BackSide, depthWrite: false, transparent: true, fog: false,
+    uniforms: { forca: { value: 0 }, zenite: CEU.zenite, horizonte: CEU.horizonte, solDir: CEU.solDir, brilhoSol: CEU.brilhoSol, noite: CEU.noite },
     vertexShader: "varying vec3 d; void main(){ d = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }",
-    fragmentShader: `varying vec3 d; uniform float forca; void main(){ float a = clamp(normalize(d).y, 0., 1.);
-      vec3 c = mix(vec3(.80,.86,.91), vec3(.36,.56,.80), pow(a, .55)); float s = max(dot(normalize(d), normalize(vec3(-.62,.72,.31))), 0.);
-      c += vec3(1.,.93,.8) * (pow(s, 240.) * .9 + pow(s, 12.) * .10); gl_FragColor = vec4(c, forca);
+    fragmentShader: `varying vec3 d; uniform float forca, brilhoSol, noite; uniform vec3 zenite, horizonte, solDir;
+      void main(){ vec3 n = normalize(d); float a = clamp(n.y, 0., 1.);
+      vec3 c = mix(horizonte, zenite, pow(a, .38)); c = mix(c, horizonte * 1.06, exp(-a * 18.) * .5); // faixa de bruma logo acima do horizonte
+      float s = max(dot(n, normalize(solDir)), 0.);
+      c += mix(vec3(1., .9, .74), vec3(.85, .9, 1.), noite) * brilhoSol * (pow(s, 900.) * 2.2 + pow(s, 60.) * .12 + pow(s, 7.) * .07 * (1. - noite));
+      if (noite > 0.) { vec2 q = floor(vec2(atan(n.z, n.x), n.y) * 420.); float e = fract(sin(dot(q, vec2(12.99, 78.23))) * 43758.55);
+        c += vec3(.8, .85, 1.) * step(.9975, e) * (e - .9975) * 300. * smoothstep(.06, .3, a) * noite; } // estrelas
+      gl_FragColor = vec4(c, forca);
       #include <colorspace_fragment>
     }`,
   }));
   ceu.renderOrder = -10; ceu.frustumCulled = false; ceu.visible = false; cena.add(ceu);
-  cena.fog = new THREE.Fog(0xcbd8e3, 1e7, 2e7);
+  cena.fog = new THREE.Fog(0xcbd8e3, 1e7, 2e7); cena.fog.color = CEU.horizonte.value; // a névoa segue a hora do dia
   function atualizarCeu() {
     const y = camera.position.y, k = estado.qualidade === "alta" ? 1 - THREE.MathUtils.smoothstep(y, 240, 760) : 0;
     ceu.visible = k > 0.01; ceu.position.copy(camera.position); ceu.material.uniforms.forca.value = k;
@@ -6558,7 +6929,7 @@ const PERTO = (() => {
     if (matEstrutura) return matEstrutura;
     matEstrutura = new THREE.MeshLambertMaterial({ vertexColors: true }); // na Intel HD o PBR com reflexo do céu custava o dobro por ponto da tela
     matEstrutura.onBeforeCompile = (s) => {
-      s.vertexShader = s.vertexShader.replace("#include <common>", "#include <common>\nattribute vec3 padrao; varying vec3 vPad; varying vec3 vMundo; varying vec3 vNormalMundo;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvMundo = position; vNormalMundo = normal; vPad = padrao;");
+      s.vertexShader = s.vertexShader.replace("#include <common>", "#include <common>\nattribute vec3 padrao; varying vec3 vPad; varying vec3 vMundo; varying vec3 vNormalMundo;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvMundo = (modelMatrix * vec4(position, 1.)).xyz; vNormalMundo = mat3(modelMatrix) * normal; vPad = padrao;");
       s.fragmentShader = s.fragmentShader.replace("#include <common>", `#include <common>
         varying vec3 vMundo; varying vec3 vNormalMundo; varying vec3 vPad;
         float rd(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -6582,7 +6953,8 @@ const PERTO = (() => {
           else if (tp < 7.5) { float y = fract(q.y / .22); diffuseColor.rgb *= mix(.8, .6 + .5 * y, aa); }
           else if (tp < 8.5) { float x = abs(fract(q.x / .3) - .5); diffuseColor.rgb *= mix(.95, .84 + .2 * smoothstep(.1, .25, x), aa); }
           else if (tp < 9.5) { float m = max(linha(q.x, 1.5, .12, fq.x), linha(q.y, 1.1, .12, fq.y)) * aa2; vec3 vid = vec3(.10, .14, .18) + vec3(.10, .12, .15) * ruido(q * .3); diffuseColor.rgb = mix(vid, diffuseColor.rgb * .75, m); }
-          else { diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.25, .12, .06), .4 * ruido(q * vec2(1.5, .3))); }
+          else if (tp < 10.5) { diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.25, .12, .06), .4 * ruido(q * vec2(1.5, .3))); }
+          else { float m = linha(q.y, 1.2, .05, fq.y); diffuseColor.rgb *= mix(.97, (1. - .32 * m) * (.95 + .08 * ruido(q * vec2(.6, .25))), aa2); } // revestimento de tubo isolado: costuras das chapas
         }`);
     };
     return matEstrutura;
@@ -6636,7 +7008,10 @@ const PERTO = (() => {
     } else {
       const fechada = /galeria/i.test(e.n || "") || e.t === "viaduto", lg = fechada ? 2.5 : 3.2, zl = lg / 2 + 0.3, Lr = Math.hypot(L, h1 - h0), gz = Math.atan2(h1 - h0, L), cz = Math.cos(gz), sz = Math.sin(gz);
       const P = (u, y, z) => [-L / 2 + u * cz - y * sz, h0 + u * sz + y * cz, z];
-      if (fechada) { const sc = 2.6; for (let u = 2; u < Lr - 1; u += 4) for (const s of [1, -1]) { const a = P(u - 0.6, sc * 0.45, s * (lg / 2 + 0.06)), b = P(u + 0.6, sc * 0.45, s * (lg / 2 + 0.06)), cc = P(u + 0.6, sc * 0.75, s * (lg / 2 + 0.06)), d = P(u - 0.6, sc * 0.75, s * (lg / 2 + 0.06)); if (s > 0) c.quad(a, b, cc, d, 0x2e3b47, PADRAO.vidro); else c.quad(b, a, d, cc, 0x2e3b47, PADRAO.vidro); } }
+      if (fechada) { const sc = 2.6; for (let u = 2; u < Lr - 1; u += 4) for (const s of [1, -1]) { const a = P(u - 0.6, sc * 0.45, s * (lg / 2 + 0.06)), b = P(u + 0.6, sc * 0.45, s * (lg / 2 + 0.06)), cc = P(u + 0.6, sc * 0.75, s * (lg / 2 + 0.06)), d = P(u - 0.6, sc * 0.75, s * (lg / 2 + 0.06)); if (s > 0) c.quad(a, b, cc, d, 0x2e3b47, PADRAO.vidro); else c.quad(b, a, d, cc, 0x2e3b47, PADRAO.vidro); }
+        for (const s of [1, -1]) c.viga(P(0, sc + 0.12, s * (lg / 2 + 0.38)), P(Lr, sc + 0.12, s * (lg / 2 + 0.38)), 0.22, 0.2, 0x8e959b); // calhas do telhado
+        for (let u = 0; u < Lr - 1; u += 4) { c.barra(P(u, -0.12, -lg / 2), P(u + 4, -0.12, lg / 2), 0.06, cor, 4); c.barra(P(u, -0.12, -lg / 2), P(u, -0.12, lg / 2), 0.06, cor, 4); } // contraventamento do piso, visto de baixo
+        if (Lr > 30) for (const u of [1.2, Lr - 1.2]) { const z = lg / 2 + 0.08; c.quad(P(u - 0.5, 0.1, z), P(u + 0.5, 0.1, z), P(u + 0.5, 2.1, z), P(u - 0.5, 2.1, z), 0x6d7276); } } // portas de saída
       else {
         for (let u = 0.8; u < Lr; u += 1.6) { const zc = 0.35; c.barra(P(u, 0.76, zc - 0.24), P(u, 0.76, zc + 0.24), 0.06, grafite, 5); c.barra(P(u, 0.76, zc - 0.24), P(u, 1.0, zc - 0.62), 0.06, grafite, 5); c.barra(P(u, 0.76, zc + 0.24), P(u, 1.0, zc + 0.62), 0.06, grafite, 5); if ((u / 1.6 | 0) % 2) c.barra(P(u, 0.3, zc - 0.6), P(u, 0.3, zc + 0.6), 0.05, grafite, 4); }
         for (const z of [lg / 2 - 0.12, -lg / 2 + 0.12]) f.guarda([P(0, 0.12, z), P(Lr, 0.12, z)], guarda, { passo: 2 });
@@ -6649,6 +7024,14 @@ const PERTO = (() => {
         for (let y = 4.5; y < yb - 2; y += 4.5) c.viga([x, y, -zl], [x, y, zl], 0.18, 0.18, cor);
         for (const z of [zl, -zl]) c.caixa(x, 0, z, 0.9, 0.06, 0.9, 0x8a8f94, { sem: "y" });
         if (yb > 6) f.marinheiro(x + 0.3, zl, 0.3, yb, 1, 0, 0x6f757a, { gaiola: yb > 8 });
+        const x2 = x + 3.2; // cavalete alto vira torre de 4 pernas, como nas galerias da usina
+        if (yb > 10 && x2 < L / 2 && ![zl, -zl].some((z) => naRua(ponto(x2, z), 0.6))) {
+          const yb2 = h0 + ((h1 - h0) * (x2 + L / 2)) / L;
+          for (const z of [zl, -zl]) { c.viga([x2, 0, z], [x2, yb2 - 0.6, z], 0.45, 0.45, cor); c.caixa(x2, 0, z, 0.9, 0.06, 0.9, 0x8a8f94, { sem: "y" }); }
+          c.viga([x2, yb2 - 0.4, -zl - 0.25], [x2, yb2 - 0.4, zl + 0.25], 0.6, 0.55, cor);
+          for (let y = 4.5; y < yb - 1.5; y += 4.5) for (const z of [zl, -zl]) { c.viga([x, y, z], [x2, y, z], 0.16, 0.16, cor); c.barra([x, y - 4.3, z], [x2, Math.min(y, yb2 - 1), z], 0.07, cor, 4); }
+          for (let y = 4.5; y < yb2 - 2; y += 4.5) c.viga([x2, y, -zl], [x2, y, zl], 0.18, 0.18, cor);
+        }
       }
     }
     return { corpo: c.geometria(posicao(r.xz, t.giro)), fino: f.geometria(posicao(r.xz, t.giro)), raio: L / 2 };
@@ -6657,16 +7040,40 @@ const PERTO = (() => {
     const e = r.e;
     if (/ponte/i.test(e.n || "") || !(e.linha?.length >= 2)) return null;
     const a = paraXZ(e.linha[0]), b = paraXZ(e.linha[e.linha.length - 1]), c = new BaldeKit(4096), f = new BaldeKit(4096);
-    for (const [x, z] of [[-4.5, -3.5], [4.5, -3.5], [-4.5, 3.5], [4.5, 3.5]]) for (const dx of [-1.15, 0, 1.15]) c.barra([x + dx, 0.5, z - 0.62], [x + dx, 0.5, z + 0.62], 0.45, grafite, 10, { tampa: true }); // rodas dos truques
-    c.barra([-6.6, 2.6, 3.7], [-6.6, 2.6, 4.7], 1.7, 0x6f757a, 16, { tampa: true }); c.barra([-6.6, 2.6, 3.6], [-6.6, 2.6, 3.7], 2.0, C_amarelo, 16, { tampa: true }); // tambor do cabo
-    f.marinheiro(2.05, -4.05, 0.3, 4.6, 1, 0, 0x6f757a, { gaiola: false });
-    f.guarda([[-2, 3.42, -4.05], [2, 3.42, -4.05], [2, 3.42, 4.05], [-2, 3.42, 4.05]], guarda, { fechado: true, passo: 1.4 });
-    f.guarda([[-26, 1.4, -5.85], [-6, 8.2, -5.85]], guarda, { passo: 1.6 }); f.guarda([[-26, 1.4, -7.75], [-6, 8.2, -7.75]], guarda, { passo: 1.6 });
+    DETALHE_BASE_EMPILHADEIRA(c, f); // rodas, balancins, tambor do cabo, escada e guarda-corpos (modelos/detalhe-2-maquinas.js)
     const M = posicao(r.xz, Math.atan2(-(b[1] - a[1]), b[0] - a[0])).multiply(new THREE.Matrix4().makeRotationY(e._base || 0));
     return { corpo: c.geometria(M), fino: f.geometria(M), raio: 30 };
   }
-  const SOBREPOR = { correia: correiaPerto, empilhadeira: empilhadeiraPerto };
+  function tuboviaPerto(r) { // tubovia: a versão rica (tubos redondos, sapatas, flanges, lira) troca a simples no mesmo lugar
+    const t = trechoDaCorreia(r);
+    if (!t) return null;
+    const c = new BaldeKit(16384), f = new BaldeKit(8192);
+    detalheTubovia(t, r.e, c, f);
+    return { corpo: c.geometria(posicao(r.xz, t.giro)), fino: f.geometria(posicao(r.xz, t.giro)), raio: t.L / 2, troca: true };
+  }
+  const SOBREPOR = { correia: correiaPerto, viaduto: correiaPerto, empilhadeira: empilhadeiraPerto, tubovia: tuboviaPerto };
 
+  /* peças que se mexem (lança e roda das empilhadeiras, tambor da recuperadora, ponte do espessador): a rica entra no mesmo
+     pivô da simples, então gira junto; a simples fica guardada e volta quando a estrutura sai de perto */
+  function pecasRicas(r) {
+    const lista = [];
+    if (typeof PECAS_MOVEIS === "undefined") return lista;
+    for (const m of PECAS_MOVEIS) {
+      if (m.userData.registro !== r) continue;
+      const tipo = VIDA_3D.giros.find((z) => z.g === m.parent)?.tipo, g = DETALHE_MOVEIS[tipo]?.(r);
+      if (!g) continue;
+      const rica = new THREE.Mesh(g, materialEstrutura()); rica.receiveShadow = true; rica.userData.registro = r;
+      lista.push({ simples: m, rica });
+    }
+    return lista;
+  }
+  function mostrarPecas(o, sim) {
+    for (const { simples, rica } of o.moveis || []) {
+      if (sim) { simples.parent.add(rica); simples.visible = false; } else { rica.parent?.remove(rica); simples.visible = true; }
+    }
+  }
+
+  const trocaSimples = (r) => r.fazer || r.trocar;
   function mostrarPerto(r, sim) { // troca a versão simples pela rica (e volta): a simples fica guardada, nada some da maquete
     const pos = MALHAS_ESTRUTURAS[r.camada]?.geometry.attributes.position;
     if (!pos) return;
@@ -6686,20 +7093,24 @@ const PERTO = (() => {
       const gs = r.fazer ? geometriaPerto(r) : SOBREPOR[r.e.t]?.(r);
       if (!gs?.corpo && !gs?.fino) { r.semPerto = true; return; }
       if (gs.raio) r.raioPerto = gs.raio;
-      o = { corpo: malhaPerto(gs.corpo, r, true), fino: malhaPerto(gs.fino, r, false), centro: new THREE.Vector3(r.xz[0], (r.h || 10) / 2, r.xz[1]) };
+      if (gs.troca) r.trocar = true;
+      o = { corpo: malhaPerto(gs.corpo, r, true), fino: malhaPerto(gs.fino, r, false), centro: new THREE.Vector3(r.xz[0], (r.h || 10) / 2, r.xz[1]), moveis: pecasRicas(r) };
     }
-    for (const m of [o.corpo, o.fino]) if (m) { grupoReal.add(m); malhasToque.push(m); }
+    for (const m of [o.corpo, o.fino, ...o.moveis.map((p) => p.rica)]) if (m) malhasToque.push(m);
+    for (const m of [o.corpo, o.fino]) if (m) grupoReal.add(m);
     if (o.fino) o.fino.visible = false;
     ativas.set(r, o);
-    if (r.fazer) mostrarPerto(r, true);
+    if (trocaSimples(r)) mostrarPerto(r, true);
+    mostrarPecas(o, !semRicas);
     verFinos();
   }
   function desligarEstrutura(r) {
     const o = ativas.get(r); ativas.delete(r);
-    for (const m of [o.corpo, o.fino]) if (m) { grupoReal.remove(m); malhasToque.splice(malhasToque.indexOf(m), 1); }
-    if (r.fazer) mostrarPerto(r, false);
+    for (const m of [o.corpo, o.fino, ...o.moveis.map((p) => p.rica)]) if (m) { m.parent === grupoReal && grupoReal.remove(m); malhasToque.splice(malhasToque.indexOf(m), 1); }
+    if (trocaSimples(r)) mostrarPerto(r, false);
+    mostrarPecas(o, false);
     guardadas.set(r, o);
-    if (guardadas.size > MAX_GUARDADAS) { const [, go] = guardadas.entries().next().value; guardadas.delete(guardadas.keys().next().value); go.corpo?.geometry.dispose(); go.fino?.geometry.dispose(); }
+    if (guardadas.size > MAX_GUARDADAS) { const [, go] = guardadas.entries().next().value; guardadas.delete(guardadas.keys().next().value); go.corpo?.geometry.dispose(); go.fino?.geometry.dispose(); go.moveis.forEach((p) => p.rica.geometry.dispose()); }
   }
   function verFinos() { // o fino (guarda-corpo, escada, grade) só aparece bem perto: longe vira ruído e só custa
     const cam = camera.position;
@@ -6926,9 +7337,9 @@ const PERTO = (() => {
     },
     aliviar() { SUMIR.ini.value = 380; SUMIR.fim.value = 520; pedirDesenho(); }, // placa fraca: árvores somem mais perto, sem remontar
     situacao: (x) => { // teste: usina.detalhe("sem") mostra a versão simples no lugar da rica; usina.detalhe("com") volta
-      if (x === "sem" || x === "com") { semRicas = x === "sem"; for (const [r, o] of ativas) { if (o.corpo) o.corpo.visible = !semRicas; if (r.fazer) mostrarPerto(r, !semRicas); } verFinos(); pedirDesenho(); }
-      let fino = 0; for (const o of ativas.values()) if (o.fino?.visible) fino++;
-      return { quadras: celulas.size, ricas: ativas.size, finas: fino, fila: fila.length, triangulos: renderer.info.render.triangles };
+      if (x === "sem" || x === "com") { semRicas = x === "sem"; for (const [r, o] of ativas) { if (o.corpo) o.corpo.visible = !semRicas; if (trocaSimples(r)) mostrarPerto(r, !semRicas); mostrarPecas(o, !semRicas); } verFinos(); pedirDesenho(); }
+      let fino = 0, moveis = 0; for (const o of ativas.values()) { if (o.fino?.visible) fino++; for (const p of o.moveis) if (p.rica.parent) moveis++; }
+      return { quadras: celulas.size, ricas: ativas.size, finas: fino, moveis, fila: fila.length, triangulos: renderer.info.render.triangles };
     },
   };
 })();
@@ -6993,6 +7404,8 @@ window.usina = { // usado nos testes automáticos
   ver: (x, y, z, tx, tz) => voar(new THREE.Vector3(tx, 0, tz), new THREE.Vector3(x, y, z), 0),
   perto: (tipo, i = 0, d = 260) => { const r = REGISTRO_ESTRUTURAS.filter((x) => x.e.t === tipo)[i]; if (r) voarPara(r.xz, d, 0); return r?.e.n; },
   suavizacao: () => (INTEL_HD ? "FXAA" : "MSAA 4x"),
+  hora: (h) => { if (h) { aplicarHora(h); montarLegenda(); } return horaAtual; }, // manha, tarde ou noite
+  contagem: () => ({ predios: REGISTRO_PREDIOS.length, estruturas: REGISTRO_ESTRUTURAS.length, areas: AREAS.length }),
   grao: (v) => { GRAO.value = v; pedirDesenho(); return { lado: LADO_DETALHE * 256, carregado: !!detalhe.tex, centro: detalhe.centro?.map(Math.round) }; },
   ruaDeTerra: (i = 0, d = 220) => { const e = EIXOS_GAUSS[i]; if (e) voarPara([(e.pts[0][0] + e.pts[1][0]) / 2, (e.pts[0][1] + e.pts[1][1]) / 2], d, 0); return EIXOS_GAUSS.length; },
   pronto: () => fotosReduzidas.size > 0, estruturas: () => ESTRUTURAS_COM_PLACA.map((r) => [r.e.n, ...r.xz.map(Math.round)]), todas: () => REGISTRO_ESTRUTURAS.map((r) => [r.e.t, r.e.n, ...r.xz.map(Math.round), Math.round(r.h || 0)]), faltam: () => ELEMENTOS.filter((e) => !REGISTRO_ESTRUTURAS.some((r) => r.e === e)).map((e) => [e.t, e.n]), dica: (x, y) => textoDaDica(oQueEstaSob(x, y)), nitidez: (n) => { NITIDEZ.value = n; pedirDesenho(); }, ruas: () => NOMES_RUAS.slice(0, 4).map((r) => [r[0], Math.round(r[1]), Math.round(r[2])]), lagos: () => OSM.filter((o) => o.t === "agua").map((o) => paraXZ(o.p[0]).map(Math.round)), degrau: () => medidor.degrau, periodo: mudarPeriodo, tempo: (t) => { estado.tempo = t; estado.tocando = false; atualizarRelogio(); atualizarInstancias(); desenharRastros(); pedirDesenho(); },
