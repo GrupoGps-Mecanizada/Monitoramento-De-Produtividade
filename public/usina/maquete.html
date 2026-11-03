@@ -264,34 +264,61 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 /* nada de texto selecionado sem querer ao arrastar o mapa; nos campos e na ficha dá para copiar */
 body{-webkit-user-select:none;user-select:none}
 input,textarea,.dados,.dados *{-webkit-user-select:text;user-select:text}
+/* Barras laterais na cor da barra de cima do sistema (02/11/2026, pedido do dono): o tom é lido da página que abre a maquete
+   (--nav do Monitoramento/Portal); aberta sozinha, fica o azul ardósia claro do Portal. Escura só se a barra de cima for escura. */
+:root{--lat-fundo:#dbe3ed;--lat-borda:#c2cedd;--lat-texto:#0f172a;--lat-suave:#475569;--lat-passar:rgba(36,64,95,.08);--lat-atual:rgba(36,64,95,.14);--lat-linha:rgba(15,23,42,.12);--lat-campo:#fff;--lat-int:rgba(15,23,42,.2);--lat-realce:#1d4fa3;--lat-larg:372px}
+body.lat-escura{--lat-borda:rgba(255,255,255,.1);--lat-texto:#eef1f6;--lat-suave:#a2aab8;--lat-passar:rgba(255,255,255,.07);--lat-atual:rgba(120,165,235,.25);--lat-linha:rgba(255,255,255,.14);--lat-campo:rgba(255,255,255,.08);--lat-int:rgba(255,255,255,.2);--lat-realce:#9cc4ff}
 body.em-apres.neutra #cena{filter:saturate(.28) brightness(.98) contrast(.96)}
 body.em-apres #lista,body.em-apres #topo,body.em-apres .ficha:not(#anPainel){display:none!important}
-body.em-apres #anPainel{left:16px!important;right:auto!important}
 body:not(.em-apres) .pa-apres{display:none!important}
+/* modo foco: com uma área aberta, os nomes das outras áreas apagam junto com a maquete */
+body.em-foco .placa:not(.foco-sel):not(.caminhao){opacity:.35}
+.ficha-voltar svg{width:10px;height:10px;margin-right:6px;vertical-align:-1px}
+.ficha .btn.ficha-voltar{margin:0 0 10px}
 @media (min-width:761px){
 #botaoFiltros{display:none!important}
-.ficha{right:64px}body.bd-fixa .ficha{right:276px}
-#lista{--fg:#fff;--muted:#a9b6c8;--line:rgba(255,255,255,.16);--accent-soft:rgba(255,255,255,.1);left:0;top:0!important;bottom:0;max-height:none!important;height:auto!important;width:372px;padding:22px 34px 12px 22px;border:0;border-radius:0;box-shadow:none;color:#fff;background:linear-gradient(90deg,rgba(8,14,26,.96) 76%,rgba(8,14,26,.7) 90%,transparent)}
-#lista header{border:0;padding:0 0 4px;font:600 26px Sora,sans-serif;letter-spacing:-.01em;text-transform:none;color:#fff}
-#lista .recolher{background:none;border-color:var(--line);color:#fff}
+/* coluna da esquerda: lista de áreas; a ficha da área, a Análise e os plugins abrem no mesmo lugar, no desenho da coluna editorial */
+#lista,#ficha,#anPainel,.pa-col{--fg:var(--lat-texto);--muted:var(--lat-suave);--line:var(--lat-linha);--accent:var(--lat-realce);--accent-soft:var(--lat-passar);color:var(--lat-texto);background:var(--lat-fundo);border:0;border-right:1px solid var(--lat-borda);border-radius:0;box-shadow:none}
+#lista{left:0;top:0!important;bottom:0;max-height:none!important;height:auto!important;width:var(--lat-larg);padding:22px 26px 12px 22px}
+#lista header{border:0;padding:0 0 4px;font:600 26px Sora,sans-serif;letter-spacing:-.01em;text-transform:none;color:var(--lat-texto)}
+#lista .recolher{background:none;border-color:var(--line);color:var(--lat-texto)}
 #lista{transition:transform .25s}body.lista-fora #lista{transform:translateX(-100%)}
-.puxa-lista{position:fixed;z-index:7;left:372px;top:50%;margin-top:-30px;width:20px;height:60px;border:0;border-radius:0 8px 8px 0;background:rgba(13,27,46,.9);color:#fff;cursor:pointer;display:grid;place-items:center;padding:0;transition:left .25s}
+.puxa-lista{position:fixed;z-index:7;left:var(--lat-larg);top:50%;margin-top:-30px;width:20px;height:60px;border:1px solid var(--lat-borda);border-left:0;border-radius:0 8px 8px 0;background:var(--lat-fundo);color:var(--lat-texto);cursor:pointer;display:grid;place-items:center;padding:0;transition:left .25s}
 body.lista-fora .puxa-lista{left:0}.puxa-lista svg{width:12px;height:12px;transition:transform .25s}body.lista-fora .puxa-lista svg{transform:rotate(180deg)}
-body.em-apres .puxa-lista{display:none}
-#lista .abas-lista{margin:10px 0 0;background:rgba(255,255,255,.08)}#lista .abas-lista button{color:#c9d5e6}#lista .abas-lista button[aria-selected="true"]{background:#fff;color:#0d1b2e}
-#lista input{margin:10px 0 6px;background:rgba(255,255,255,.08);border-color:var(--line);color:#fff}#lista input::placeholder{color:#a9b6c8}
+body.lista-fora:has(#ficha.aberta) .puxa-lista{left:var(--lat-larg)}body.lista-fora:has(#ficha.aberta) .puxa-lista svg{transform:none}
+body.em-apres .puxa-lista,body:has(#anPainel.aberta:not(.recolhida)) .puxa-lista{display:none}
+#lista .abas-lista{margin:10px 0 0;background:var(--lat-passar)}#lista .abas-lista button{color:var(--lat-suave)}#lista .abas-lista button[aria-selected="true"]{background:#fff;color:#0f172a}
+#lista input{margin:10px 0 6px;background:var(--lat-campo);border-color:var(--lat-borda);color:var(--lat-texto)}#lista input::placeholder{color:var(--lat-suave)}
 #lista .item{font:400 15px "IBM Plex Sans",sans-serif;padding:8px 6px;border-top:1px solid var(--line)}#lista .item em{font-size:12px}#lista .grupo{padding:12px 6px 4px}
+/* ficha da área (ou do caminhão) dentro da coluna: título grande, dados em linhas */
+#ficha{z-index:3;left:0;right:auto!important;top:0!important;bottom:0;width:var(--lat-larg);padding:22px 28px 24px 24px;overflow:auto;scrollbar-width:thin;transform:translateX(-14px)}
+#ficha.aberta{transform:none}
+#ficha .ficha-voltar{all:unset;cursor:pointer;display:inline-flex;align-items:center;font:500 14px "IBM Plex Sans",sans-serif;color:var(--lat-suave);margin:0 0 26px}
+#ficha .ficha-voltar svg{width:12px;height:12px}#ficha .ficha-voltar:hover,#ficha .ficha-voltar:focus-visible{color:var(--lat-texto)}
+#ficha .eyebrow{font:600 12px "IBM Plex Sans",sans-serif;letter-spacing:.08em;color:var(--lat-realce)}
+#ficha h2{font:600 34px/1.08 Sora,sans-serif;letter-spacing:-.02em;margin:6px 0 22px}
+#ficha .dados{display:block}
+#ficha .dados dt{font:400 13px "IBM Plex Sans",sans-serif;letter-spacing:0;text-transform:none;color:var(--lat-suave);padding:10px 0 2px;border-top:1px solid var(--lat-linha)}
+#ficha .dados dd{font-size:15.5px;line-height:1.4;padding-bottom:10px}#ficha .dados dd.largo{padding-top:2px}
+/* Análise (relatório) também na coluna da esquerda; pode alargar pela alça da borda direita */
+#anPainel{z-index:3;left:0!important;right:auto!important;top:0!important;bottom:0;max-height:none;width:var(--lat-larg);padding:14px 22px 18px;transform:translateX(-14px)}
+#anPainel.aberta{transform:none}
+#anPainel.larga{width:var(--an-w,min(640px,calc(100vw - 340px)))}#anPainel.larga.cheia{width:calc(100vw - 340px)}
+#anPainel.recolhida{width:auto!important;bottom:auto;padding:6px;border-bottom:1px solid var(--lat-borda);border-radius:0 0 10px 0}
+#anPainel .an-puxa{left:auto;right:-6px}
+#anPainel .an-topo button{border-color:var(--lat-borda);color:var(--lat-suave)}
+.rodape{transition:left .25s}body:not(.lista-fora) .rodape,body:has(#ficha.aberta) .rodape,body:has(#anPainel.aberta:not(.recolhida)) .rodape{left:calc(var(--lat-larg) + 16px);max-width:calc(100vw - var(--lat-larg) - 300px)}
+.marca{right:112px}body.bd-fixa .marca{right:326px}body:has(#anPainel.aberta:not(.recolhida)) .rodape{display:none}
 }
-#anPainel{left:16px!important;right:auto!important}
 @media (min-width:761px){body .zoom-botoes{right:62px;bottom:20px;z-index:7;transition:right .18s}body.bd-fixa .zoom-botoes{right:276px}}
-.pa{--critica:#e0524f;--irregular:#e3a33a;--corrigida:#37a678;font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;color:#fff}
+.pa{--critica:#e0524f;--irregular:#e3a33a;--corrigida:#37a678;font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;color:var(--lat-texto)}
 .pa button{font:inherit;color:inherit}
 .pa-aviso{position:fixed;z-index:6;top:14px;left:50%;transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(13,27,46,.72);padding:5px 10px;border-radius:6px}
 .pa-pinos{position:fixed;inset:0;z-index:4;pointer-events:none}
 .pa-pino{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.45);pointer-events:auto;cursor:pointer;padding:0;background:var(--c);transition:opacity .2s}
 .pa-pino.foco{width:26px;height:26px;margin:-13px 0 0 -13px;animation:pa-pulso 1.5s infinite}
 @keyframes pa-pulso{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 70%,transparent)}100%{box-shadow:0 0 0 22px transparent}}
-.pa-col{position:fixed;z-index:6;left:0;top:0;bottom:0;width:430px;padding:34px 44px 24px 36px;background:linear-gradient(90deg,rgba(8,14,26,.96) 68%,rgba(8,14,26,.72) 86%,transparent);display:flex;flex-direction:column;transition:transform .25s;overflow:auto;scrollbar-width:thin}
+.pa-col{position:fixed;z-index:6;left:0;top:0;bottom:0;width:var(--lat-larg);padding:34px 30px 24px 28px;background:var(--lat-fundo);border-right:1px solid var(--lat-borda);display:flex;flex-direction:column;transition:transform .25s;overflow:auto;scrollbar-width:thin}
 body.sem-coluna .pa-col{transform:translateX(-100%)}
 .pa-col h1{font:600 42px/1.08 Sora,sans-serif;letter-spacing:-.02em;margin:0 0 8px}
 .pa-sub{font-size:16px;opacity:.75;margin:0 0 24px}
@@ -299,20 +326,20 @@ body.sem-coluna .pa-col{transform:translateX(-100%)}
 .pa-f button{all:unset;cursor:pointer;display:flex;gap:11px;align-items:center;font:400 19px "IBM Plex Sans",sans-serif;opacity:.6;padding:4px 0}
 .pa-f button:hover,.pa-f button:focus-visible{opacity:.9}.pa-f button.on{opacity:1;font-weight:600}
 .pa-f i{width:10px;height:10px;border-radius:50%;background:var(--c)}.pa-f b{font-weight:inherit}
-.pa-ar{all:unset;cursor:pointer;display:flex;justify-content:space-between;font-size:15px;padding:8px 0;border-top:1px solid rgba(255,255,255,.16)}
-.pa-ar:hover,.pa-ar:focus-visible{color:#9cc4ff}.pa-ar small{display:block;font-size:13px;opacity:.65}
+.pa-ar{all:unset;cursor:pointer;display:flex;justify-content:space-between;font-size:15px;padding:8px 0;border-top:1px solid var(--lat-linha)}
+.pa-ar:hover,.pa-ar:focus-visible{color:var(--lat-realce)}.pa-ar small{display:block;font-size:13px;opacity:.65}
 .pa-voltar{all:unset;cursor:pointer;font-size:14px;opacity:.75;margin-bottom:16px}.pa-voltar:hover{opacity:1}
 .pa-col h2{font:600 28px/1.15 Sora,sans-serif;margin:0 0 6px}
 .pa-selo{align-self:flex-start;font-size:13px;font-weight:600;color:#fff;background:var(--c);padding:3px 10px;border-radius:999px;margin-bottom:10px}
 .pa-foto{width:100%;height:190px;object-fit:cover;border-radius:10px;display:block;margin:6px 0 14px}
 .pa-col dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:15px;margin:0}.pa-col dt{opacity:.65}.pa-col dd{margin:0}
 .pa-nav{display:flex;gap:8px;align-items:center;margin-top:auto;padding-top:16px}
-.pa-nav button{all:unset;cursor:pointer;font-size:14px;font-weight:500;padding:8px 11px;white-space:nowrap;border:1px solid rgba(255,255,255,.3);border-radius:7px}
-.pa-nav .pr{background:#fff;color:#0d1b2e;border-color:#fff}.pa-nav span{margin-left:auto;font-size:13px;opacity:.7;white-space:nowrap}
-.pa-puxa{position:fixed;z-index:7;left:430px;top:50%;margin-top:-22px;width:18px;height:44px;border:0;border-radius:0 7px 7px 0;background:rgba(13,27,46,.85);cursor:pointer;display:grid;place-items:center;transition:left .25s;padding:0}
+.pa-nav button{all:unset;cursor:pointer;font-size:14px;font-weight:500;padding:8px 11px;white-space:nowrap;border:1px solid var(--lat-borda);border-radius:7px}
+.pa-nav .pr{background:var(--lat-texto);color:var(--lat-fundo);border-color:var(--lat-texto)}.pa-nav span{margin-left:auto;font-size:13px;opacity:.7;white-space:nowrap}
+.pa-puxa{position:fixed;z-index:7;left:var(--lat-larg);top:50%;margin-top:-22px;width:18px;height:44px;border:1px solid var(--lat-borda);border-left:0;border-radius:0 7px 7px 0;background:var(--lat-fundo);color:var(--lat-texto);cursor:pointer;display:grid;place-items:center;transition:left .25s;padding:0}
 body.sem-coluna .pa-puxa{left:0}.pa-puxa svg{width:12px;height:12px}body.sem-coluna .pa-puxa svg{transform:rotate(180deg)}
-.bd{--bd-fundo:#0d1b2e;--bd-linha:rgba(255,255,255,.1);--bd-passar:rgba(255,255,255,.08);--bd-atual:rgba(120,165,235,.25);--bd-icone:#93a6c1;--bd-forte:#fff;--bd-texto:#c9d5e6;position:fixed;z-index:8;right:0;top:0;bottom:0;width:48px;background:var(--bd-fundo);border-left:1px solid var(--bd-linha);display:flex;flex-direction:column;gap:2px;padding:10px 6px;overflow:hidden auto;scrollbar-width:thin;transition:width .18s;font-size:14px;color:var(--bd-texto)}
-.bd:hover,.bd:focus-within,body.bd-fixa .bd{width:260px;box-shadow:-8px 0 24px rgba(0,0,0,.3)}
+.bd{--bd-fundo:var(--lat-fundo);--bd-linha:var(--lat-borda);--bd-passar:var(--lat-passar);--bd-atual:var(--lat-atual);--bd-icone:var(--lat-suave);--bd-forte:var(--lat-texto);--bd-texto:var(--lat-texto);position:fixed;z-index:8;right:0;top:0;bottom:0;width:48px;background:var(--bd-fundo);border-left:1px solid var(--bd-linha);display:flex;flex-direction:column;gap:2px;padding:10px 6px;overflow:hidden auto;scrollbar-width:thin;transition:width .18s;font-size:14px;color:var(--bd-texto)}
+.bd:hover,.bd:focus-within,body.bd-fixa .bd{width:260px;box-shadow:-8px 0 24px rgba(15,23,42,.14)}
 .bd .rot{opacity:0;white-space:nowrap;transition:opacity .15s;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .bd:hover .rot,.bd:focus-within .rot,body.bd-fixa .bd .rot{opacity:1}
 .bd-tit{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--bd-icone);padding:4px 8px 6px;white-space:nowrap;min-height:22px}
@@ -326,8 +353,8 @@ body.sem-coluna .pa-puxa{left:0}.pa-puxa svg{width:12px;height:12px}body.sem-col
 .bd-i::before{content:"";position:absolute;left:-8px;top:50%;width:8px;height:1px;background:var(--bd-linha)}
 .bd-i:hover,.bd-i:focus-visible{background:var(--bd-passar)}.bd-i[aria-pressed=true]{background:var(--bd-atual);color:var(--bd-forte);font-weight:600}
 .bd-i span{flex:1;overflow:hidden;text-overflow:ellipsis}
-.bd-int{width:26px;height:14px;border-radius:7px;background:rgba(255,255,255,.2);position:relative;flex:none}.bd-int::after{content:"";position:absolute;left:2px;top:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .12s}
-.bd-i[aria-pressed=true] .bd-int{background:#4f8fe8}.bd-i[aria-pressed=true] .bd-int::after{left:14px}
+.bd-int{width:26px;height:14px;border-radius:7px;background:var(--lat-int);position:relative;flex:none}.bd-int::after{content:"";position:absolute;left:2px;top:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .12s}
+.bd-i[aria-pressed=true] .bd-int{background:#1d4fa3}.bd-i[aria-pressed=true] .bd-int::after{left:14px}
 .bd-fim{margin-top:auto;border-top:1px solid var(--bd-linha);padding-top:6px}
 body.em-modo #lista,body.em-modo .puxa-lista,body.em-modo #placas,body.em-modo #dica,body.em-modo .zoom-botoes,body.em-modo .ficha,body.em-modo .pa-col,body.em-modo .pa-puxa,body.em-modo .pa-pinos{display:none!important}
 body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
@@ -344,7 +371,7 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
 .modo-topo button:hover{background:rgba(30,45,70,.9)}.modo-topo button[hidden]{display:none}
 .modo-ajuda{position:absolute;right:66px;bottom:22px;max-width:340px;font-size:12.5px;line-height:1.6;background:rgba(8,14,26,.6);padding:8px 12px;border-radius:9px;opacity:.85}
 .modo-ajuda b{font-weight:600}
-@media (max-width:760px){.bd,.puxa-lista{display:none}.pa-col{width:100%;top:auto;height:50vh;padding:18px 62px 12px 18px;background:rgba(8,14,26,.95)}.pa-col h1{font-size:26px}.pa-puxa,.pa-aviso{display:none}body.sem-coluna .pa-col{transform:translateY(100%)}body .zoom-botoes,body.bd-fixa .zoom-botoes{bottom:auto;top:16px;right:56px}}
+@media (max-width:760px){.bd,.puxa-lista{display:none}.pa-col{width:100%;top:auto;height:50vh;padding:18px 62px 12px 18px;border-right:0;border-top:1px solid var(--lat-borda)}.pa-col h1{font-size:26px}.pa-puxa,.pa-aviso{display:none}body.sem-coluna .pa-col{transform:translateY(100%)}body .zoom-botoes,body.bd-fixa .zoom-botoes{bottom:auto;top:16px;right:56px}}
 
 </style>
 
@@ -443,10 +470,10 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
 
 
 <aside class="painel ficha" id="ficha" aria-live="polite">
+  <button type="button" class="btn ficha-voltar" id="fechar"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M8 2 4 6l4 4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Voltar</button>
   <div class="eyebrow" id="fichaSetor"></div>
   <h2 id="fichaNome"></h2>
   <dl class="dados" id="fichaDados"></dl>
-  <button type="button" class="btn" id="fechar">Fechar</button>
 </aside>
 
 <aside class="painel ficha analise" id="anPainel" aria-label="Análise">
@@ -484,7 +511,7 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
 <div class="pa" id="pa">
   <div class="pa-pinos pa-apres" id="paPinos"></div>
   <aside class="pa-col pa-apres" id="paCol" aria-label="Dados da apresentação"></aside>
-  <button class="pa-puxa pa-apres" id="paPuxa" aria-label="Mostrar ou ocultar os dados" title="Mostrar ou ocultar os dados"><svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2"><path d="M8 2 4 6l4 4"/></svg></button>
+  <button class="pa-puxa pa-apres" id="paPuxa" aria-label="Mostrar ou ocultar os dados" title="Mostrar ou ocultar os dados"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2 4 6l4 4"/></svg></button>
 </div>
 <nav class="bd pa" id="bd" aria-label="Controles da maquete"></nav>
 <button class="puxa-lista" id="puxaLista" aria-label="Mostrar ou esconder a lista de áreas" title="Mostrar ou esconder a lista de áreas"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2 4 6l4 4"/></svg></button>
@@ -544,11 +571,26 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
   $("paPuxa").onclick = () => B.classList.toggle("sem-coluna");
   /* lista de áreas retrátil (01/11/2026): começa escondida, o mapa inteiro livre; a escolha fica guardada neste navegador */
   try { B.classList.toggle("lista-fora", localStorage.getItem("usina-lista") !== "aberta"); } catch { B.classList.add("lista-fora"); }
-  $("puxaLista").onclick = () => { const fora = B.classList.toggle("lista-fora"); try { localStorage.setItem("usina-lista", fora ? "fechada" : "aberta"); } catch {} };
+  $("puxaLista").onclick = () => {
+    if ($("ficha").classList.contains("aberta") && B.classList.contains("lista-fora")) return $("fechar").click(); // a ficha ocupa a coluna: a alça fecha a ficha
+    const fora = B.classList.toggle("lista-fora"); try { localStorage.setItem("usina-lista", fora ? "fechada" : "aberta"); } catch {}
+  };
+  /* cor das barras laterais = a da barra de cima do sistema que abriu a maquete (mesmo site); sozinha, fica o tom claro do Portal */
+  function corDasBarras() {
+    let css = null;
+    try { if (parent !== window) css = getComputedStyle(parent.document.documentElement); } catch {}
+    const ler = (k) => css?.getPropertyValue(k).trim() || "", fundo = ler("--nav");
+    for (const [k, v] of [["--lat-fundo", fundo], ["--lat-borda", ler("--nav-borda")], ["--lat-texto", ler("--nav-texto")], ["--lat-suave", ler("--nav-suave")]]) v ? B.style.setProperty(k, v) : B.style.removeProperty(k);
+    let escura = false;
+    if (fundo) { const c = document.createElement("canvas").getContext("2d", { willReadFrequently: true }); c.fillStyle = fundo; c.fillRect(0, 0, 1, 1); const [r, g, b] = c.getImageData(0, 0, 1, 1).data; escura = 0.299 * r + 0.587 * g + 0.114 * b < 128; }
+    B.classList.toggle("lat-escura", escura);
+  }
+  corDasBarras();
+  try { if (parent !== window) new MutationObserver(corDasBarras).observe(parent.document.documentElement, { attributes: true, attributeFilter: ["class", "data-tema"] }); } catch {}
   addEventListener("keydown", (e) => { if (tela.nivel === "ponto" && e.key === "ArrowRight") { parar(); passo(1); } if (tela.nivel === "ponto" && e.key === "ArrowLeft") { parar(); passo(-1); } });
 
   /* barra da direita: lê os controles reais da maquete; cada item aperta o controle verdadeiro */
-  const ICONE = { explorar: '<path d="M2 12.5 6 9h6l4 3.5v2H2z"/><circle cx="5.5" cy="14.5" r="1.5"/><circle cx="12.5" cy="14.5" r="1.5"/><path d="M6 9l1.5-4h3L12 9"/>', visao: '<path d="M1 9s3-5.5 8-5.5S17 9 17 9s-3 5.5-8 5.5S1 9 1 9z"/><circle cx="9" cy="9" r="2.3"/>', chao: '<path d="M2 12l7-8 7 8-7 3z"/>', tempo: '<circle cx="9" cy="9" r="7"/><path d="M9 5v4l3 2"/>', caminhoes: '<path d="M1 5h10v8H1zM11 8h4l2 3v2h-6z"/><circle cx="5" cy="14" r="1.6"/><circle cx="13" cy="14" r="1.6"/>', ir: '<path d="M9 1.5a5.5 5.5 0 0 1 5.5 5.5c0 4-5.5 9.5-5.5 9.5S3.500 11 3.500 7A5.500 5.500 0 0 1 9 1.500z"/><circle cx="9" cy="7" r="1.8"/>', textos: '<path d="M3 4h12M9 4v11M6 15h6"/>', camadas: '<path d="M9 2 1.500 6.500 9 11l7.500-4.500zM2 11l7 4 7-4"/>', qualidade: '<path d="M3 5h6M13 5h2M3 13h2M9 13h6"/><circle cx="11" cy="5" r="2"/><circle cx="7" cy="13" r="2"/>', apresentacao: '<path d="M2 3h14v9H2zM9 12v3M6 16h6"/>', fixar: '<path d="M9 11v6M5 11h8l-1.500-3V3h-5v5z"/>' };
+  const ICONE = { explorar: '<path d="M2 12.5 6 9h6l4 3.5v2H2z"/><circle cx="5.5" cy="14.5" r="1.5"/><circle cx="12.5" cy="14.5" r="1.5"/><path d="M6 9l1.5-4h3L12 9"/>', visao: '<path d="M1 9s3-5.5 8-5.5S17 9 17 9s-3 5.5-8 5.5S1 9 1 9z"/><circle cx="9" cy="9" r="2.3"/>', chao: '<path d="M2 12l7-8 7 8-7 3z"/>', tempo: '<circle cx="9" cy="9" r="7"/><path d="M9 5v4l3 2"/>', caminhoes: '<path d="M1 5h10v8H1zM11 8h4l2 3v2h-6z"/><circle cx="5" cy="14" r="1.6"/><circle cx="13" cy="14" r="1.6"/>', ir: '<path d="M9 1.5a5.5 5.5 0 0 1 5.5 5.5c0 4-5.5 9.5-5.5 9.5S3.500 11 3.500 7A5.500 5.500 0 0 1 9 1.500z"/><circle cx="9" cy="7" r="1.8"/>', textos: '<path d="M3 4h12M9 4v11M6 15h6"/>', camadas: '<path d="M9 2 1.500 6.500 9 11l7.500-4.500zM2 11l7 4 7-4"/>', qualidade: '<path d="M3 5h6M13 5h2M3 13h2M9 13h6"/><circle cx="11" cy="5" r="2"/><circle cx="7" cy="13" r="2"/>', apresentacao: '<path d="M2 3h14v9H2zM9 12v3M6 16h6"/>', tela: '<path d="M2 6.5V2h4.5M11.5 2H16v4.5M16 11.5V16h-4.5M6.5 16H2v-4.5"/>', sairTela: '<path d="M6.5 2v4.5H2M16 6.5h-4.5V2M11.5 16v-4.5H16M2 11.5h4.5V16"/>', fixar: '<path d="M9 11v6M5 11h8l-1.500-3V3h-5v5z"/>' };
   const SETA = '<svg class="seta" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4"/></svg>';
   const lista = (sel, tipo) => () => [...document.querySelectorAll(sel)].filter((b) => !b.closest("[hidden]:not(#painelFiltros,.aba)")).map((b) => ({ t: b.querySelector("span")?.textContent || b.textContent.trim(), on: b.getAttribute("aria-pressed") === "true", sw: tipo === "sw", faz: () => { const [k, v] = Object.entries(b.dataset)[0]; document.querySelector(`[data-${k}="${v}"]`).click(); } }));
   const proprios = () => {
@@ -576,12 +618,13 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
     itens = [];
     $("bd").innerHTML = `<div class="bd-tit"><span class="rot">Controles da maquete</span></div>` + GAVETAS.map(([k, n, f]) => { const l = f(); if (!l.length) return ""; const ab = abertas.has(k);
       return `<button class="bd-g" data-g="${k}" aria-expanded="${ab}" title="${n}"><svg viewBox="0 0 18 18">${ICONE[k]}</svg><span class="rot">${n}</span>${SETA}</button><div class="bd-ramo ${ab ? "ab" : ""}">${l.map((it) => { itens.push(it); return `<button class="bd-i" data-it="${itens.length - 1}" ${it.on !== undefined ? `aria-pressed="${!!it.on}"` : ""}><span>${esc(it.t)}</span>${it.sw ? '<i class="bd-int"></i>' : ""}</button>`; }).join("")}</div>`; }).join("")
-      + `<div class="bd-fim"><button class="bd-g" id="bdFixa" aria-pressed="${B.classList.contains("bd-fixa")}" title="Fixar a barra aberta"><svg viewBox="0 0 18 18">${ICONE.fixar}</svg><span class="rot">${B.classList.contains("bd-fixa") ? "Desfixar barra" : "Fixar barra"}</span></button></div>`;
+      + `<div class="bd-fim">${document.fullscreenEnabled ? `<button class="bd-g" id="bdTela" title="${document.fullscreenElement ? "Sair da tela cheia (Esc)" : "Tela cheia"}"><svg viewBox="0 0 18 18">${document.fullscreenElement ? ICONE.sairTela : ICONE.tela}</svg><span class="rot">${document.fullscreenElement ? "Sair da tela cheia" : "Tela cheia"}</span></button>` : ""}<button class="bd-g" id="bdFixa" aria-pressed="${B.classList.contains("bd-fixa")}" title="Fixar a barra aberta"><svg viewBox="0 0 18 18">${ICONE.fixar}</svg><span class="rot">${B.classList.contains("bd-fixa") ? "Desfixar barra" : "Fixar barra"}</span></button></div>`;
   }
   $("bd").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
     if (b.dataset.g) { abertas.has(b.dataset.g) ? abertas.delete(b.dataset.g) : abertas.add(b.dataset.g); barra(); return; }
     if (b.id === "bdFixa") { B.classList.toggle("bd-fixa"); barra(); return; }
+    if (b.id === "bdTela") { (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {}); return; }
     const it = itens[+b.dataset.it]; if (!it) return;
     it.faz();
     if (B.classList.contains("em-apres")) { // colorir faz sentido só no mapa neutro; a Análise usa o lugar da coluna
@@ -605,6 +648,7 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
     usina.palco.restaurar(antes.camadas);
     if (antes.frota) document.querySelector(`[data-frota="${antes.frota}"]`).click();
   }
+  document.addEventListener("fullscreenchange", () => barra());
   const iniciar = () => { if (!$("carga")?.classList.contains("saiu") || !window.usina?.palco) return setTimeout(iniciar, 200);
     barra(); const p = pontos().find((x) => location.hash === `#plugin=${x.id}`); if (p) { entrar(p); setTimeout(barra, 120); } };
   iniciar();
@@ -626,6 +670,27 @@ import { FXAAShader } from "three/addons/shaders/FXAAShader.js";
 if (!window.MAQUETE_DADOS?.cercas || !MAQUETE_DADOS.predios || !MAQUETE_DADOS.elementos) { // arquivos de maquete-dados/ não chegaram
   document.getElementById("cargaTexto").textContent = "Não consegui carregar os dados da maquete. Recarregue a página.";
   throw new Error("dados da maquete não carregados");
+}
+
+/* Modo foco (02/11/2026, pedido do dono): com uma área aberta, o resto da maquete fica cinza e mais escuro.
+   Todo material ganha a mesma conta no fim do desenho: fora do contorno da área (desenhado num quadro pequeno, a máscara),
+   a cor vira cinza escuro. Desligado, custa só um teste por ponto. Os materiais com receita própria (onBeforeCompile)
+   continuam iguais: a conta do foco entra depois da receita deles. */
+const FOCO = { liga: { value: 0 }, mapa: { value: null }, caixa: { value: new THREE.Vector4(0, 0, 1, 1) } };
+{
+  const injetar = (s) => {
+    if (s.fragmentShader.includes("uFocoLiga") || !s.vertexShader.includes("#include <project_vertex>") || !s.fragmentShader.includes("#include <dithering_fragment>")) return;
+    Object.assign(s.uniforms, { uFocoLiga: FOCO.liga, uFocoMapa: FOCO.mapa, uFocoCaixa: FOCO.caixa });
+    s.vertexShader = "varying vec2 vFocoXZ;\n" + s.vertexShader.replace("#include <project_vertex>",
+      "{ vec4 fw = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\n fw = instanceMatrix * fw;\n#endif\n vFocoXZ = (modelMatrix * fw).xz; }\n#include <project_vertex>");
+    s.fragmentShader = "uniform float uFocoLiga;\nuniform sampler2D uFocoMapa;\nuniform vec4 uFocoCaixa;\nvarying vec2 vFocoXZ;\n" + s.fragmentShader.replace("#include <dithering_fragment>",
+      "#include <dithering_fragment>\nif (uFocoLiga > 0.0) { float fm = textureLod(uFocoMapa, (vFocoXZ - uFocoCaixa.xy) * uFocoCaixa.zw, 0.0).r; float fl = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114)); gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(fl * 0.45 + 0.03), uFocoLiga * (1.0 - fm)); }");
+  };
+  const P = THREE.Material.prototype, padrao = function (s) { injetar(s); };
+  Object.defineProperty(P, "onBeforeCompile", { configurable: true,
+    get() { return this._focoObc || padrao; },
+    set(f) { this._focoSrc = String(f); this._focoObc = function (s, r) { f.call(this, s, r); injetar(s); }; } });
+  P.customProgramCacheKey = function () { return this._focoSrc || ""; }; // a chave segue a receita própria do material, como antes
 }
 const CERCAS = MAQUETE_DADOS.cercas;
 const ATEND = MAQUETE_DADOS.atend;
@@ -971,7 +1036,7 @@ const INTEL_HD = SEM_FORCA && /Intel/i.test(PLACA);
    uma passada só sobre a imagem pronta, quase do mesmo jeito e a 60 quadros/s. Nas outras placas fica a de 4 amostras. */
 const renderer = new THREE.WebGLRenderer({ canvas: $("cena"), antialias: !INTEL_HD, alpha: true, powerPreference: "high-performance" });
 renderer.setClearColor(0x000000, 0);
-let nitidezMaxima = INTEL_HD ? 1.25 : 1.5; // 01/11/2026: em 1 a Intel ficava borrada nas telas com zoom do Windows (125%) // na Intel HD fica em 1: tela com zoom do Windows (125%, 150%) custava até 2x mais pontos
+let nitidezMaxima = 1.5; // 02/11/2026: prioridade é a nitidez (a sombra ficou mais simples para pagar a conta) // 01/11/2026: em 1 a Intel ficava borrada nas telas com zoom do Windows (125%) // na Intel HD fica em 1: tela com zoom do Windows (125%, 150%) custava até 2x mais pontos
 const nitidez = () => Math.min(devicePixelRatio, estado.qualidade === "alta" ? nitidezMaxima : 1);
 renderer.setPixelRatio(nitidez());
 renderer.setSize(innerWidth, innerHeight);
@@ -1013,9 +1078,9 @@ cena.add(hemi);
 const sol = new THREE.DirectionalLight(0xffe9cc, 2.35);         // sol de fim de manhã, levemente quente (valores finais na hora do dia, abaixo)
 const DIRECAO_SOL = new THREE.Vector3(-0.62, 0.72, 0.31).normalize();
 sol.castShadow = true;
-sol.shadow.mapSize.set(4096, 4096); // calculada uma vez só: pode ser grande
+sol.shadow.mapSize.set(SEM_FORCA ? 2048 : 4096, SEM_FORCA ? 2048 : 4096); // calculada uma vez só; placa fraca: menor (02/11/2026, menos sombra e mais nitidez)
 sol.shadow.bias = -0.0004; sol.shadow.normalBias = 0.8;
-sol.shadow.radius = 5; sol.shadow.blurSamples = 10; // tamanho do desfoque da borda da sombra
+sol.shadow.radius = SEM_FORCA ? 3 : 5; sol.shadow.blurSamples = SEM_FORCA ? 6 : 10; // tamanho do desfoque da borda da sombra
 sol.shadow.camera.near = 10; sol.shadow.camera.far = 30000;
 cena.add(sol, sol.target);
 function posicionarSol() { // sombra fixa cobrindo a usina inteira (calculada uma vez)
@@ -5850,7 +5915,7 @@ function aplicarVisual() {
   $("anPainel").classList.toggle("aberta", estado.visual === "analise"); ajustarVista();
   $("painelLegenda").hidden = estado.visual !== "setores"; // legenda só nos Setores, onde ela serve de filtro (pedido do dono, 20/10)
   if (estado.visual === "analise") { an.ativa = true; $("ficha").classList.remove("aberta"); montarAnalise(); }
-  else if (an.ativa) { an.ativa = false; grupoTorres.visible = false; an.aberta = null; estado.selecionada = null; marcarBorda(null); } // saiu da Análise: tira o destaque do ranking
+  else if (an.ativa) { an.ativa = false; grupoTorres.visible = false; an.aberta = null; estado.selecionada = null; marcarBorda(null); focar(null); } // saiu da Análise: tira o destaque do ranking
   montarLegenda(); posicionarCaminhoes(); pintarTudo();
 }
 
@@ -6141,7 +6206,9 @@ let predioRealcado = null;
 function realcarPredio(r) {
   if (r === predioRealcado) return;
   predioRealcado = r; contornoPredio.visible = !!r;
-  if (r) contornoPredio.geometry.setFromPoints(r.anel.map(([x, z]) => new THREE.Vector3(x, r.h + 0.4, z)));
+  // geometria nova a cada prédio: o setFromPoints do three.js reaproveita o tamanho do primeiro contorno e deixava pontos de
+  // prédios antigos na linha (as "linhas" que apareciam ao mexer o mouse, 02/11/2026)
+  if (r) { contornoPredio.geometry.dispose(); contornoPredio.geometry = new THREE.BufferGeometry().setFromPoints(r.anel.map(([x, z]) => new THREE.Vector3(x, r.h + 0.4, z))); }
   pedirDesenho();
 }
 const metros = (n) => Math.round(n).toLocaleString("pt-BR");
@@ -6182,9 +6249,11 @@ renderer.domElement.addEventListener("pointermove", (e) => {
 renderer.domElement.addEventListener("pointerleave", () => { const antes = estado.hover; estado.hover = null; repintar(antes); realcarPredio(null); if (!estado.selecionada && !estado.caminhao) $("dica").style.display = "none"; });
 
 let apertou = null;
-renderer.domElement.addEventListener("pointerdown", (e) => { apertou = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener("pointerdown", (e) => { apertou = e.button === 0 ? [e.clientX, e.clientY, performance.now()] : null; });
 renderer.domElement.addEventListener("pointerup", (e) => {
-  if (!apertou || Math.hypot(e.clientX - apertou[0], e.clientY - apertou[1]) > 6) return;
+  // clique de verdade: botão esquerdo, quase sem mexer e rápido; segurar para girar e soltar não abre nem fecha nada
+  const clique = apertou && Math.hypot(e.clientX - apertou[0], e.clientY - apertou[1]) <= 5 && performance.now() - apertou[2] < 350; apertou = null;
+  if (!clique) return;
   const sob = oQueEstaSob(e.clientX, e.clientY), caminhao = sob.caminhao, area = sob.area || (sob.predio && areaSob(sob.predio.c)) || (sob.estrutura && areaSob(sob.estrutura.xz)); // tocar no prédio ou estrutura abre a área onde está
   if (caminhao) selecionarCaminhao(caminhao); else if (area) selecionar(area, false); else fechar();
 });
@@ -6276,6 +6345,7 @@ function atualizarPlacas() {
     const w = 24 + a.nome.length * 6.6 + (qtd ? 44 : 0);
     if (!cabe(p[0] - w / 2, p[1] - 11, w, 22, sel)) continue;
     const el = placa(`a:${a.i}`, "placa", () => selecionar(a));
+    el.classList.toggle("foco-sel", a === estado.selecionada || a.setor === estado.setor); // modo foco: o nome da área aberta não apaga
     escrever(el, qtd ? `${a.nome} <small>${qtd} cam.</small>` : a.nome, SETORES[a.setor].cor, p[0] - w / 2, p[1] - 11);
     usadas.add(el); n++;
   }
@@ -6308,10 +6378,34 @@ function atualizarPlacas() {
 const fmt = (n, d = 0) => n.toLocaleString("pt-BR", { maximumFractionDigits: d, minimumFractionDigits: d });
 let bordaSelecao = null;
 function marcarBorda(anel, h) {
-  if (bordaSelecao) { grupoAreas.remove(bordaSelecao); bordaSelecao.geometry.dispose(); bordaSelecao = null; }
+  if (bordaSelecao) { grupoAreas.remove(bordaSelecao); bordaSelecao.geometry.dispose(); bordaSelecao.material.dispose(); bordaSelecao = null; }
   if (!anel) return;
   bordaSelecao = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(anel.map(([x, z]) => new THREE.Vector3(x, h + 0.3, z))), new THREE.LineBasicMaterial({ color: 0xffffff }));
   grupoAreas.add(bordaSelecao);
+}
+/* modo foco: máscara da área aberta (branco dentro, preto fora) numa caixa um pouco maior que ela; entra e sai suave */
+const focoTela = document.createElement("canvas"); focoTela.width = focoTela.height = 512;
+FOCO.mapa.value = Object.assign(new THREE.CanvasTexture(focoTela), { flipY: false, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
+let focoAlvo = 0, focoAnim = null;
+function focar(aneis) {
+  if (aneis?.length) {
+    const pts = aneis.flat(), xs = pts.map((p) => p[0]), zs = pts.map((p) => p[1]);
+    const m = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)) * 0.06 + 30;
+    const x0 = Math.min(...xs) - m, z0 = Math.min(...zs) - m, w = Math.max(...xs) + m - x0, h = Math.max(...zs) + m - z0;
+    const c = focoTela.getContext("2d"), S = focoTela.width;
+    c.fillStyle = "#000"; c.fillRect(0, 0, S, S); c.fillStyle = "#fff"; c.beginPath();
+    for (const an of aneis) an.forEach(([x, z], i) => { const px = ((x - x0) / w) * S, pz = ((z - z0) / h) * S; i ? c.lineTo(px, pz) : c.moveTo(px, pz); });
+    c.fill(); FOCO.mapa.value.needsUpdate = true;
+    FOCO.caixa.value.set(x0, z0, 1 / w, 1 / h); focoAlvo = 1;
+  } else focoAlvo = 0;
+  document.body.classList.toggle("em-foco", focoAlvo === 1);
+  if (focoAnim) return;
+  const passo = () => { // anima por conta própria (o Windows do dono tem as animações desligadas)
+    const v = FOCO.liga.value, d = focoAlvo - v;
+    FOCO.liga.value = Math.abs(d) < 0.02 ? focoAlvo : v + d * 0.18; pedirDesenho();
+    focoAnim = FOCO.liga.value === focoAlvo ? null : requestAnimationFrame(passo);
+  };
+  passo();
 }
 function abrirFicha(eyebrow, nome, linhas) {
   $("fichaSetor").textContent = eyebrow; $("fichaNome").textContent = nome;
@@ -6495,7 +6589,7 @@ function detalheAnalise(r) {
 
 function focarAnalise(a) {
   if (estado.selecionada === a) return;
-  estado.selecionada = a; marcarBorda(a ? a.anel : null, a?.h); pintarTudo();
+  estado.selecionada = a; marcarBorda(a ? a.anel : null, a?.h); pintarTudo(); focar(a ? [a.anel] : null);
   if (a) voarPara(a.centro, THREE.MathUtils.clamp(Math.sqrt(a.area) * 5, 1500, 3600), 800); // mais de longe que a ficha: dá para ver a vizinhança
 }
 function abrirAnalise(r) { an.aberta = r; focarAnalise(r.area); montarAnalise(); }
@@ -6517,8 +6611,8 @@ function ligarAnalise() {
 
 /** O painel da Análise fica ao lado do mapa: o centro da imagem vai para o meio do espaço livre à esquerda. */
 function ajustarVista() {
-  const p = $("anPainel"), w = innerWidth > 720 && p.classList.contains("aberta") ? p.offsetWidth + 16 : 0;
-  if (w) camera.setViewOffset(innerWidth, innerHeight, w / 2, 0, innerWidth, innerHeight); else camera.clearViewOffset();
+  const p = $("anPainel"), w = innerWidth > 720 && p.classList.contains("aberta") && !p.classList.contains("recolhida") ? p.offsetWidth : 0;
+  if (w) camera.setViewOffset(innerWidth, innerHeight, -w / 2, 0, innerWidth, innerHeight); else camera.clearViewOffset(); // painel na coluna da esquerda
   pedirDesenho();
 }
 { // largura (arrastando a alça), expandir e recolher; fica guardado neste navegador
@@ -6541,7 +6635,7 @@ function ajustarVista() {
   puxa.addEventListener("pointerdown", (e) => {
     puxa.setPointerCapture(e.pointerId); puxa.classList.add("ativa");
     p.classList.remove("cheia"); p.style.transition = "none";
-    const mover = (ev) => { p.style.setProperty("--an-w", `${limitar(innerWidth - ev.clientX - 16)}px`); ajustarVista(); };
+    const mover = (ev) => { p.style.setProperty("--an-w", `${limitar(ev.clientX)}px`); ajustarVista(); }; // painel à esquerda: a alça fica na borda direita
     const soltar = () => {
       puxa.removeEventListener("pointermove", mover); puxa.classList.remove("ativa"); p.style.transition = "";
       guardar("usina-an-largura", String(parseInt(p.style.getPropertyValue("--an-w")) || "")); guardar("usina-an-cheia", "0"); marcar();
@@ -6565,7 +6659,7 @@ function selecionar(a, voarAte = true) {
   if (estado.visual === "analise") return selecionarNaAnalise(a);
   const antes = estado.selecionada;
   estado.selecionada = a; estado.setor = null; estado.caminhao = null;
-  posicionarCaminhoes(); pintarTudo(); marcarBorda(a.anel, a.h);
+  posicionarCaminhoes(); pintarTudo(); marcarBorda(a.anel, a.h); focar([a.anel]);
   const linhas = [["Setor", SETORES[a.setor].nome], ["Área", a.area >= 10000 ? `${fmt(a.area / 10000, 1)} ha` : `${fmt(a.area)} m²`], ["Perímetro", `${fmt(a.perim)} m`]];
   if (a.atend) {
     const top = [...a.atend.placas].sort((x, y) => y[1] - x[1]).slice(0, 3).map(([p, h]) => `${p} (${fmt(h, 1)} h)`).join(", ");
@@ -6601,6 +6695,7 @@ function selecionarSetor(s) {
   estado.setor = s; estado.selecionada = null; estado.caminhao = null;
   marcarBorda(null); posicionarCaminhoes(); pintarTudo(); marcarNaLista();
   const areas = AREAS.filter((a) => a.setor === s);
+  focar(areas.map((a) => a.anel));
   const xs = areas.map((a) => a.centro[0]), zs = areas.map((a) => a.centro[1]);
   const meio = [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2];
   voarPara(meio, THREE.MathUtils.clamp(Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)) * 1.3, 1500, 6000));
@@ -6616,7 +6711,7 @@ function selecionarSetor(s) {
 function selecionarCaminhao(c) {
   const antes = estado.selecionada;
   estado.caminhao = c; estado.selecionada = null; estado.setor = null;
-  posicionarCaminhoes(); if (antes) pintarTudo(); marcarBorda(null);
+  posicionarCaminhoes(); if (antes) pintarTudo(); marcarBorda(null); focar(null);
   const base = [["Placa", c.placa], ["Vaga", c.vaga ? c.vaga.texto : "Sem vaga"], ["Tipo", (c.grupo || "—").replace(/^CAMINHÃO\s+/i, "")]];
   if (estado.periodo === "replay" && c.rota) {
     abrirFicha(`Replay · ${DIA_REPLAY}`, c.nome, [...base,
@@ -6689,11 +6784,11 @@ addEventListener("message", (e) => {
 });
 
 function fechar() {
-  if (estado.visual === "analise") { an.aberta = null; estado.selecionada = null; marcarBorda(null); pintarTudo(); montarAnalise(); return; }
+  if (estado.visual === "analise") { an.aberta = null; estado.selecionada = null; marcarBorda(null); focar(null); pintarTudo(); montarAnalise(); return; }
   if (!estado.selecionada && !estado.caminhao && !estado.setor) return;
   const tinha = estado.selecionada || estado.setor;
   estado.selecionada = null; estado.caminhao = null; estado.setor = null;
-  marcarBorda(null); posicionarCaminhoes();
+  marcarBorda(null); focar(null); posicionarCaminhoes();
   $("ficha").classList.remove("aberta"); $("dica").style.display = "none";
   if (tinha) pintarTudo();
   marcarNaLista();
@@ -6908,11 +7003,11 @@ addEventListener("keydown", (e) => { if (e.key === "Escape") fechar(); });
         Monta aos poucos, com a câmera parada: um pedaço por vez, para nunca travar o movimento. Só na qualidade Alta.
    ========================================================================= */
 const PERTO = (() => {
-  const LADO = 250, ALCANCE_CELULA = 820, MAX_CELULAS = 420, ALCANCE_ESTRUTURA = 400, MAX_ESTRUTURAS = 32, MAX_GUARDADAS = 48;
+  const LADO = 250, ALCANCE_CELULA = 700, MAX_CELULAS = 420, ALCANCE_ESTRUTURA = 320, MAX_ESTRUTURAS = 20, MAX_GUARDADAS = 48; // 02/11/2026: menos peças longe, onde não se percebe
   const grupoPlantas = new THREE.Group(), grupoPostes = new THREE.Group(), grupoRelevo = new THREE.Group();
   grupoCidade.add(grupoPlantas); grupoReal.add(grupoPostes, grupoRelevo);
   const celulas = new Map(), ativas = new Map(), guardadas = new Map(), fila = [];
-  const malhasToque = []; let timerAvaliar = null, trabalhando = false, densidade = 1, chaveSombra = "";
+  const malhasToque = []; let timerAvaliar = null, trabalhando = false, densidade = 1, tarefaMaisLonga = 0; const TAREFAS_MS = {};
 
   /* ---- céu e névoa: com a câmera baixa a maquete vira paisagem; no alto continua sobre a mesa escura ---- */
   const ceu = new THREE.Mesh(new THREE.SphereGeometry(60000, 24, 12), new THREE.ShaderMaterial({
@@ -6981,7 +7076,7 @@ const PERTO = (() => {
 
   /* ---- versão rica de cada estrutura: o modelo simples em curvas redondas + o detalhe do tipo (templates/modelos/detalhe-*.js) ---- */
   let semRicas = false;
-  const LIMITE_FINO = 230; // guarda-corpos, escadas e grades só abaixo disso (metros da câmera)
+  const LIMITE_FINO = 170; // guarda-corpos, escadas e grades só abaixo disso (metros da câmera)
   const grafite = 0x4a4f54, guarda = 0xe8b923, C_amarelo = MODELO_COR.amarelo;
   const posicao = (xz, giro) => new THREE.Matrix4().compose(new THREE.Vector3(xz[0], 0, xz[1]), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), giro), new THREE.Vector3(1, 1, 1));
   function geometriaPerto(r) {
@@ -7183,7 +7278,7 @@ const PERTO = (() => {
   /* conforto (01/11/2026, "as árvores somem e aparecem a todo momento"): cada quadra é montada uma vez e fica guardada;
      nada é desmontado ao mexer a câmera. Longe, a árvore e o poste encolhem suavemente até sumir (na placa de vídeo,
      sem custo de montagem), então não há o pisca de aparecer de uma vez. */
-  const SUMIR = { ini: { value: 560 }, fim: { value: 760 } };
+  const SUMIR = { ini: { value: 460 }, fim: { value: 640 } }; // árvore e poste encolhem até sumir (longe já não aparecem)
   for (const m of [matPlanta, matPoste]) m.onBeforeCompile = (s) => {
     s.uniforms.sumirIni = SUMIR.ini; s.uniforms.sumirFim = SUMIR.fim;
     s.vertexShader = s.vertexShader.replace("#include <common>", "#include <common>\nuniform float sumirIni, sumirFim;")
@@ -7314,27 +7409,17 @@ const PERTO = (() => {
     }
     for (const r of querEst) if (!ativas.has(r)) fila.push(() => ligarEstrutura(r));
     [...querCel.entries()].filter(([k]) => !celulas.has(k)).sort((a, b) => a[1].d - b[1].d).forEach(([k, { i, j }]) => fila.push(() => montarCelula(k, i, j)));
-    fila.push(ajustarSombra);
     if (!trabalhando) { trabalhando = true; setTimeout(trabalhar, 16); }
   }
   function trabalhar() {
     if (interagindo || viagem || zoom.resto) { setTimeout(trabalhar, 120); return; } // câmera andando: espera, para não dar tranco
     const tarefa = fila.shift();
     if (!tarefa) { trabalhando = false; return; }
-    tarefa(); pedirDesenho(); setTimeout(trabalhar, 8);
+    const t0 = performance.now(); tarefa(); const ms = performance.now() - t0; if (ms > tarefaMaisLonga) tarefaMaisLonga = ms; { const n = tarefa.toString().replace(/^\(\) => /, '').slice(0, 18); TAREFAS_MS[n] = Math.max(TAREFAS_MS[n] || 0, Math.round(ms)); } // teste: usina.detalhe().tarefaMs
+    pedirDesenho(); setTimeout(trabalhar, 8);
   }
-  /* sombra nítida perto da câmera: a da usina inteira é calculada uma vez; parada e perto, ela se concentra na região vista */
-  function ajustarSombra() {
-    const d = camera.position.distanceTo(controles.target), perto = ligado() && d < 1500;
-    const meia = perto ? THREE.MathUtils.clamp(d * 1.5, 600, 1600) : 0, x = perto ? Math.round(controles.target.x / 150) * 150 : 0, z = perto ? Math.round(controles.target.z / 150) * 150 : 0;
-    const chave = `${perto}|${meia}|${x}|${z}|${ativas.size}`;
-    if (chave === chaveSombra) return;
-    chaveSombra = chave;
-    if (!perto) return posicionarSol();
-    Object.assign(sol.shadow.camera, { left: -meia, right: meia, top: meia, bottom: -meia }); sol.shadow.camera.updateProjectionMatrix();
-    sol.target.position.set(x, 0, z); sol.position.copy(sol.target.position).addScaledVector(DIRECAO_SOL, 12000);
-    sol.target.updateMatrixWorld(); sol.updateMatrixWorld(); refazerSombras();
-  }
+  /* sombra: a da usina inteira é calculada uma vez só. A "sombra nítida perto" saiu em 02/11/2026: refazer a sombra a cada
+     parada custava 40 a 65 ms (um tranco) na Intel HD. */
   const ultimaCamera = new THREE.Vector3(), ultimoAlvo = new THREE.Vector3();
   const agendar = () => { clearTimeout(timerAvaliar); timerAvaliar = setTimeout(avaliar, 260); };
   return {
@@ -7354,11 +7439,37 @@ const PERTO = (() => {
       verFinos();
       agendar();
     },
-    aliviar() { SUMIR.ini.value = 380; SUMIR.fim.value = 520; pedirDesenho(); }, // placa fraca: árvores somem mais perto, sem remontar
+    preparar() { // na tela de carga: mapa do chão (era um tranco de ~300 ms na primeira parada) e as receitas da placa de vídeo
+      montarMapaChao(); // das peças de perto, montando peças de verdade (antes, a primeira árvore ou estrutura rica travava 150 a 280 ms)
+      if (!ligado()) return;
+      const vis = [grupoPlantas.visible, grupoPostes.visible, grupoRelevo.visible]; grupoPlantas.visible = grupoPostes.visible = grupoRelevo.visible = true;
+      const tem = { arvore: false, poste: false, relevo: false };
+      for (const r of REGISTRO_PREDIOS) { // quadras perto de prédios até achar árvore, poste e fachada
+        if (tem.arvore && tem.poste && tem.relevo) break;
+        const ci = Math.floor(r.c[0] / LADO), cj = Math.floor(r.c[1] / LADO), k = `${ci},${cj}`;
+        if (celulas.has(k)) continue;
+        montarCelula(k, ci, cj);
+        for (const m of celulas.get(k)) { if (m.material === matPlanta) tem.arvore = true; if (m.material === matPoste) tem.poste = true; if (m.material === matRelevo) tem.relevo = true; }
+        if (celulas.size > 40) break;
+      }
+      const r = REGISTRO_ESTRUTURAS.find((x) => (x.fazer || SOBREPOR[x.e.t]) && !x.semPerto && MALHAS_ESTRUTURAS[x.camada]?.visible);
+      if (r) ligarEstrutura(r);
+      for (const o of ativas.values()) if (o.fino) o.fino.visible = true;
+      // um quadro de verdade, com a câmera baixa perto das peças (céu, névoa e o mesmo caminho de desenho da tela), e volta
+      const pos = camera.position.clone(), alvo = controles.target.clone(), [x, z] = r ? r.xz : [controles.target.x, controles.target.z];
+      camera.position.set(x + 160, 120, z + 160); camera.lookAt(x, 0, z); camera.updateMatrixWorld(); atualizarCeu();
+      const novas = [...celulas.values()].flat(); for (const m of novas) { m.frustumCulled = false; m.visible = true; } // fora da vista também conta
+      try { desenharCena(); } catch (e) { console.warn("pré-compilar", e); }
+      for (const m of novas) m.frustumCulled = true;
+      camera.position.copy(pos); controles.target.copy(alvo); camera.lookAt(alvo); camera.updateMatrixWorld(); atualizarCeu();
+      if (r) desligarEstrutura(r); // fica guardada para quando a câmera chegar perto
+      [grupoPlantas.visible, grupoPostes.visible, grupoRelevo.visible] = vis;
+    },
+    aliviar() { SUMIR.ini.value = 340; SUMIR.fim.value = 460; pedirDesenho(); }, // placa fraca: árvores somem mais perto, sem remontar
     situacao: (x) => { // teste: usina.detalhe("sem") mostra a versão simples no lugar da rica; usina.detalhe("com") volta
       if (x === "sem" || x === "com") { semRicas = x === "sem"; for (const [r, o] of ativas) { if (o.corpo) o.corpo.visible = !semRicas; if (trocaSimples(r)) mostrarPerto(r, !semRicas); mostrarPecas(o, !semRicas); } verFinos(); pedirDesenho(); }
       let fino = 0, moveis = 0; for (const o of ativas.values()) { if (o.fino?.visible) fino++; for (const p of o.moveis) if (p.rica.parent) moveis++; }
-      return { quadras: celulas.size, ricas: ativas.size, finas: fino, moveis, fila: fila.length, triangulos: renderer.info.render.triangles };
+      return { quadras: celulas.size, ricas: ativas.size, finas: fino, moveis, fila: fila.length, triangulos: renderer.info.render.triangles, tarefaMs: Math.round(tarefaMaisLonga), tarefas: TAREFAS_MS };
     },
   };
 })();
@@ -7610,6 +7721,7 @@ const MODOS = (() => {
   function entrar(modo) {
     if (ativo === modo) return sair();
     if (ativo) sair();
+    fechar(); // sem ficha nem modo foco enquanto voa ou dirige
     montarObstaculos(); montarRuas();
     antes = { pos: camera.position.clone(), alvo: controles.target.clone(), near: camera.near, far: camera.far, fov: camera.fov, qualidade: estado.qualidade };
     ativo = modo; viagem = null; zoom.resto = 0;
@@ -7729,6 +7841,7 @@ document.fonts?.ready.then(encaixarLista);
   if (prontas) { $("cargaTexto").textContent = "Mapeando o chão ponto a ponto"; await new Promise((r) => setTimeout(r, 30)); usarLeve(prontas); }
   else baixando.then((p) => { if (usarLeve(p)) { aplicarVisual(); pedirDesenho(); } }); // internet lenta: a cidade abre e o verde chega depois
   aplicarVisual();
+  try { PERTO.preparar(); } catch (e) { console.warn("mapa do chão", e); }
   $("carga").classList.add("saiu");
   if (parent !== window) parent.postMessage({ tipo: "usina:pronta" }, location.origin); // o Monitoramento responde com a frota ao vivo
   if (location.hash === "#replay") mudarPeriodo("replay");
@@ -7761,6 +7874,8 @@ window.usina = { // usado nos testes automáticos
   chao: (forca, oclusao, mistura) => { if (typeof PADRAO_CHAO === "undefined") return null; if (forca != null) PADRAO_CHAO.forca.value = forca; if (oclusao != null) OCLUSAO.forca.value = oclusao; if (mistura != null) PADRAO_CHAO.temFundo.value = mistura; pedirDesenho(); return { forca: PADRAO_CHAO.forca.value, oclusao: OCLUSAO.forca.value, fundo: PADRAO_CHAO.temFundo.value }; }, // teste: liga/desliga a textura e a oclusão do chão
   quadroMs: (n = 30) => { const gl = renderer.getContext(), px = new Uint8Array(4); desenharCena(); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); const t0 = performance.now(); for (let i = 0; i < n; i++) { camera.rotation.z += 0; desenharCena(); } gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return +((performance.now() - t0) / n).toFixed(2); }, // tempo de um quadro (ms), esperando a placa
   malhas: () => { const l = []; cena.traverseVisible((o) => { const g = o.geometry; if (!(o.isMesh || o.isLineSegments || o.isPoints) || !g?.attributes?.position) return; const k = (g.index ? g.index.count : g.attributes.position.count) / 3; l.push([o.name || o.parent?.name || o.type, o.material?.type || "", Math.round(o.isInstancedMesh ? k * o.count : k), o.isInstancedMesh ? o.count : 1]); }); return l.sort((a, b) => b[2] - a[2]); },
+  programas: () => renderer.info.programs?.length || 0, programasNomes: () => (renderer.info.programs || []).map((p) => p.name + " | " + p.cacheKey.replace(/,false/g, "").replace(/(s) =>[sS]*$/, (m) => "RECEITA" + m.length + ":" + m.slice(-120))),
+  sombraMs: (n = 3) => { const gl = renderer.getContext(), px = new Uint8Array(4); desenharCena(); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); const t0 = performance.now(); for (let i = 0; i < n; i++) { renderer.shadowMap.needsUpdate = true; desenharCena(); } gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return +((performance.now() - t0) / n).toFixed(2); }, // quadro com a sombra refeita (pico)
   alternar: (nome) => { // teste de desempenho: liga/desliga um grupo e devolve o estado
     const grupos = { chao: [grupoChao], predios: [...PAREDES_PREDIOS, telhadoCidade, equipTelhado], estruturas: Object.values(MALHAS_ESTRUTURAS), ruas: [grupoRuas], detalhes: DETALHES ? [DETALHES.grupo] : [], areas: [grupoAreas], cidade: [grupoCidade], pecas: PECAS.flatMap((p) => [p.chao]), caminhoes: [...Object.values(CORPOS), ...Object.values(PINTURAS), luzes, pilares] };
     if (nome === "sombra") { renderer.shadowMap.enabled = !renderer.shadowMap.enabled; cena.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => { m.needsUpdate = true; }); }); return renderer.shadowMap.enabled; }
