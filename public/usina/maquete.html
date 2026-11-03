@@ -590,8 +590,8 @@ body.an-por-motivo .placa.pino{display:none!important}
 .placa.balao{flex-direction:column;align-items:flex-start;gap:2px;padding:6px 10px 7px 12px;border-radius:10px;background:#fff;color:#111827;border:1px solid #c9d0db;border-left:4px solid var(--c);box-shadow:0 8px 20px rgba(0,0,0,.35);overflow:visible}
 .placa.balao b{font:600 13px/1.2 Sora,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .placa.balao span{font:500 11.5px "IBM Plex Sans",sans-serif;color:#5b6473}.placa.balao em{font-style:normal;font-weight:700;color:#111827}
-.placa.balao::before{content:"";position:absolute;left:50%;top:100%;width:1.5px;height:var(--haste,40px);background:rgba(17,24,39,.85);transform:translateX(-50%)}
-.placa.balao::after{content:"";position:absolute;left:50%;top:calc(100% + var(--haste,40px));width:16px;height:16px;margin:-8px 0 0 -8px;background:var(--c);opacity:.9;border:1.5px solid #fff;border-radius:3px;transform:scaleY(.55) rotate(45deg)}
+.placa.balao::before{content:"";position:absolute;left:var(--haste-x,50%);top:100%;width:1.5px;height:var(--haste,40px);background:rgba(17,24,39,.85);transform:translateX(-50%)}
+.placa.balao::after{content:"";position:absolute;left:var(--haste-x,50%);top:calc(100% + var(--haste,40px));width:16px;height:16px;margin:-8px 0 0 -8px;background:var(--c);opacity:.9;border:1.5px solid #fff;border-radius:3px;transform:scaleY(.55) rotate(45deg)}
 .placa.balao:hover{background:#f3f6fa}.placa.balao.sel{outline:2px solid var(--c);outline-offset:1px}
 
 .pa-foto-aviso{margin:6px 0 14px;padding:14px 16px;border:1px dashed rgba(255,255,255,.25);border-radius:10px;font-size:14px;color:#c9d3df}
@@ -5592,7 +5592,7 @@ const NOME_SOLO = Object.fromEntries(SOLO.map((s) => [s.id, s.nome]));
 const LEGENDA_SOLO = SOLO_VETOR ? [["concreto"], ...SOLO_VETOR.classes.map((k) => [k])].map(([k]) => [COR_SOLO[k], NOME_SOLO[k]]) : [];
 const CHAO = { modo: "detalhado", malha: null, topos: null };
 try { CHAO.modo = localStorage.getItem("usina-chao") || "detalhado"; } catch {}
-const chaoDetalhado = () => !!SOLO_VETOR && estado.visual === "cidade" && CHAO.modo === "detalhado";
+const chaoDetalhado = () => !!SOLO_VETOR && (estado.visual === "cidade" || estado.visual === "analise") && CHAO.modo === "detalhado"; // a Análise usa o mesmo chão da Cidade (pedido do dono, 03/11/2026)
 const grupoChao = new THREE.Group();
 grupoChao.visible = false; cena.add(grupoChao);
 
@@ -6886,15 +6886,20 @@ function atualizarPlacas() {
   // por motivo (03/11/2026, pedido do dono): balão com uma linha até o chão da área, com as horas daquele motivo; os maiores primeiro
   const mot = estado.visual === "analise" && an.motivo != null ? MOTIVOS().find((m) => m.g === an.motivo) : null;
   const bordaPainel = innerWidth > 760 ? Math.max(0, ...["lista", "ficha", "anPainel", "paCol"].map((id) => { const e = $(id); if (!e) return 0; const q = e.getBoundingClientRect(); return getComputedStyle(e).visibility !== "hidden" && q.right > 0 && q.width > 0 && (id !== "ficha" || e.classList.contains("aberta")) && (id !== "anPainel" || e.classList.contains("aberta")) ? q.right : 0; })) : 0;
-  if (mot) for (const r of RANK.filter((x) => x.area && minDoMotivo(x, mot.g) > 0).sort((x, y) => minDoMotivo(y, mot.g) - minDoMotivo(x, mot.g)).slice(0, 15)) { // os 15 maiores
-    const a = r.area, sel = estado.selecionada === a, chaoP = naTela(a.centro[0], 1, a.centro[1]), topo = naTela(a.centro[0], 120, a.centro[1]);
-    if (!chaoP || !topo) continue;
-    const v = minDoMotivo(r, mot.g), w = Math.min(240, Math.max(160, 30 + a.nome.length * 7.6)), h = 44, x = topo[0] - w / 2, y = topo[1] - h;
-    if (x < bordaPainel + 4 || !cabe(x, y, w, h, sel)) continue; // nunca por baixo do painel
-    const el = placa(`m:${a.i}`, "placa balao", () => selecionarNaAnalise(a));
-    el.classList.toggle("sel", sel); el.style.width = `${w}px`; el.style.setProperty("--haste", `${Math.max(8, chaoP[1] - topo[1])}px`);
-    escrever(el, `<b>${esc(a.nome)}</b><span><em>${hm(v)}</em> · ${Math.round((100 * v) / r.total)}% do parado</span>`, mot.cor, x, y);
-    usadas.add(el);
+  if (mot) { // balão a uma distância fixa na tela (não some com o zoom); os que se encostam sobem, a linha estica até o chão
+    const postos = [];
+    for (const r of RANK.filter((x) => x.area && minDoMotivo(x, mot.g) > 0).sort((x, y) => minDoMotivo(y, mot.g) - minDoMotivo(x, mot.g)).slice(0, 15)) {
+      const a = r.area, sel = estado.selecionada === a, chaoP = naTela(a.centro[0], 1, a.centro[1]);
+      if (!chaoP || chaoP[0] < bordaPainel + 20 || chaoP[0] > innerWidth || chaoP[1] < 0 || chaoP[1] > innerHeight + 40) continue;
+      const v = minDoMotivo(r, mot.g), w = Math.min(240, Math.max(160, 30 + a.nome.length * 7.6)), h = 44, x = Math.max(bordaPainel + 6, chaoP[0] - w / 2);
+      let y = chaoP[1] - 64 - h;
+      for (let k = 0; k < 14; k++) { const bate = postos.find((c) => x < c.x + c.w + 6 && x + w + 6 > c.x && y < c.y + c.h + 6 && y + h + 6 > c.y); if (!bate) break; y = bate.y - h - 8; }
+      postos.push({ x, y, w, h });
+      const el = placa(`m:${a.i}`, "placa balao", () => selecionarNaAnalise(a));
+      el.classList.toggle("sel", sel); el.style.width = `${w}px`; el.style.zIndex = String(100 - postos.length); el.style.setProperty("--haste", `${Math.max(8, chaoP[1] - (y + h))}px`); // quem subiu fica por trás: a linha não cruza o texto dos outros el.style.setProperty("--haste-x", `${chaoP[0] - x}px`);
+      escrever(el, `<b>${esc(a.nome)}</b><span><em>${hm(v)}</em> · ${Math.round((100 * v) / r.total)}% do parado</span>`, mot.cor, x, y);
+      usadas.add(el);
+    }
   }
   if (estado.visual === "analise" && !mot) for (const r of RANK.filter((x) => x.area).sort((x, y) => y.total - x.total)) {
     const a = r.area, sel = estado.selecionada === a, p = naTela(a.centro[0], an.forma === "torres" ? alturaTorre(r, maxT) + 8 : 30, a.centro[1]); // nas torres o pino fica no topo
