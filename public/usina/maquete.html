@@ -264,80 +264,210 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 /* nada de texto selecionado sem querer ao arrastar o mapa; nos campos e na ficha dá para copiar */
 body{-webkit-user-select:none;user-select:none}
 input,textarea,.dados,.dados *{-webkit-user-select:text;user-select:text}
-/* Barras laterais na cor da barra de cima do sistema (02/11/2026, pedido do dono): o tom é lido da página que abre a maquete
-   (--nav do Monitoramento/Portal); aberta sozinha, fica o azul ardósia claro do Portal. Escura só se a barra de cima for escura. */
-:root{--lat-fundo:#dbe3ed;--lat-borda:#c2cedd;--lat-texto:#0f172a;--lat-suave:#475569;--lat-passar:rgba(36,64,95,.08);--lat-atual:rgba(36,64,95,.14);--lat-linha:rgba(15,23,42,.12);--lat-campo:#fff;--lat-int:rgba(15,23,42,.2);--lat-realce:#1d4fa3;--lat-larg:372px}
+/* =========================================================================
+   Desenho da maquete: coluna de dados à esquerda (escura, com degradê para transparente, letras brancas; 02/11/2026,
+   pedido do dono) e barra de controles à direita (na cor da barra de cima do sistema que abre a maquete).
+   ========================================================================= */
+
+/* ---- barra da direita: cor lida da página que abre a maquete (--nav do Monitoramento/Portal); sozinha, o tom claro do Portal ---- */
+:root{--lat-fundo:#dbe3ed;--lat-borda:#c2cedd;--lat-texto:#0f172a;--lat-suave:#475569;--lat-passar:rgba(36,64,95,.08);--lat-atual:rgba(36,64,95,.14);--lat-linha:rgba(15,23,42,.12);--lat-campo:#fff;--lat-int:rgba(15,23,42,.2);--lat-realce:#1d4fa3}
 body.lat-escura{--lat-borda:rgba(255,255,255,.1);--lat-texto:#eef1f6;--lat-suave:#a2aab8;--lat-passar:rgba(255,255,255,.07);--lat-atual:rgba(120,165,235,.25);--lat-linha:rgba(255,255,255,.14);--lat-campo:rgba(255,255,255,.08);--lat-int:rgba(255,255,255,.2);--lat-realce:#9cc4ff}
-body.em-apres.neutra #cena{filter:saturate(.28) brightness(.98) contrast(.96)}
+
+/* ---- coluna da esquerda: uma parte sólida e um degradê que deixa a maquete aparecer ---- */
+:root{
+  --col-larg:360px; --col-fade:0px; --col-tinta:8,13,22;
+  --col-texto:#f4f7fb; --col-suave:#b4c0cf; --col-fraco:#8794a8; --col-realce:#9cc4ff;
+  --col-linha:rgba(255,255,255,.11); --col-linha-forte:rgba(255,255,255,.22);
+  --col-passar:rgba(255,255,255,.06); --col-atual:rgba(124,170,240,.15); --col-campo:rgba(255,255,255,.07);
+  --col-fundo:linear-gradient(90deg,rgba(var(--col-tinta),.97) 0,rgba(var(--col-tinta),.95) calc(100% - var(--col-fade)),rgba(var(--col-tinta),.6) calc(100% - var(--col-fade) * .5),rgba(var(--col-tinta),0) 100%);
+}
+#lista,#ficha,#anPainel,.pa-col{
+  --fg:var(--col-texto); --muted:var(--col-suave); --line:var(--col-linha); --accent:var(--col-realce); --accent-soft:var(--col-passar); --ink:var(--col-texto);
+  color:var(--col-texto); font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased;
+  background:rgba(var(--col-tinta),.96); border:1px solid rgba(255,255,255,.08); box-shadow:0 18px 40px rgba(0,0,0,.35);
+}
 body.em-apres #lista,body.em-apres #topo,body.em-apres .ficha:not(#anPainel){display:none!important}
+/* um painel por vez na coluna: com a ficha ou a Análise aberta, a lista some (os fundos são translúcidos) */
+body:has(#ficha.aberta) #lista,body:has(#anPainel.aberta) #lista{visibility:hidden}
 body:not(.em-apres) .pa-apres{display:none!important}
+body.em-apres.neutra #cena{filter:saturate(.28) brightness(.98) contrast(.96)}
 /* modo foco: com uma área aberta, os nomes das outras áreas apagam junto com a maquete */
 body.em-foco .placa:not(.foco-sel):not(.caminhao){opacity:.35}
+
+/* cabeçalho da coluna: marca, título grande, contagem e abas de texto */
+#lista header.col-topo{display:block;position:relative;padding:0;border:0;font:inherit;text-transform:none;letter-spacing:0;color:inherit;flex:none}
+.col-marca{font:500 11px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--col-realce);margin:0 0 12px}
+.col-titulo{font:600 36px/1.04 Sora,"Segoe UI",sans-serif;letter-spacing:-.025em;margin:0;color:#fff}
+.col-sub{margin:8px 0 0;font-size:14.5px;color:var(--col-suave)}
+.col-sub #contagem{font-variant-numeric:tabular-nums;color:#fff;font-weight:600}
+#lista .recolher{position:absolute;top:0;right:0;background:none;border-color:var(--col-linha-forte);color:#fff}
+.col-abas{display:flex;gap:20px;margin:22px 0 0;border-bottom:1px solid var(--col-linha);overflow-x:auto;scrollbar-width:none}
+.col-abas button{all:unset;cursor:pointer;position:relative;flex:none;display:inline-flex;align-items:baseline;gap:6px;padding:0 0 12px;font:500 14px "IBM Plex Sans",sans-serif;color:var(--col-suave);transition:color .15s}
+.col-abas button b{font:500 11px "IBM Plex Mono",monospace;color:var(--col-fraco)}
+.col-abas button:hover{color:#fff}
+.col-abas button[aria-selected="true"]{color:#fff}
+.col-abas button[aria-selected="true"] b{color:var(--col-realce)}
+.col-abas button[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--col-realce)}
+.col-abas button:focus-visible{outline:2px solid var(--col-realce);outline-offset:4px;border-radius:3px}
+
+/* corpo da coluna: Áreas e Caminhões (lista da maquete), Relatórios e Análises */
+.col-corpo{display:flex;flex-direction:column;min-height:0;flex:1;margin-top:16px}
+.col-corpo[hidden]{display:none}
+#colRelatorios,#colAnalises{overflow:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent;margin-right:-10px;padding-right:10px}
+#lista[data-secao="caminhoes"] .abas-lista{display:none}
+#lista .abas-lista{flex:none;display:inline-flex;align-self:flex-start;gap:2px;margin:0;padding:3px;border-radius:9px;background:var(--col-campo)}
+#lista .abas-lista button{flex:none;padding:6px 12px;border-radius:7px;font:500 12.5px "IBM Plex Sans",sans-serif;color:var(--col-suave)}
+#lista .abas-lista button:hover{color:#fff}
+#lista .abas-lista button[aria-selected="true"]{background:rgba(255,255,255,.14);color:#fff;box-shadow:none}
+#lista input{flex:none;margin:12px 0 6px;padding:10px 12px;border:1px solid var(--col-linha-forte);border-radius:9px;background:var(--col-campo);color:#fff;font:14px "IBM Plex Sans",sans-serif}
+#lista input::placeholder{color:var(--col-fraco)}
+#lista input:focus{outline:2px solid var(--col-realce);outline-offset:-1px;border-color:transparent}
+#rolagem{flex:1;min-height:0;overflow:auto;margin:4px -10px 0 -6px;padding:0 10px 14px 6px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+#lista .item{font:400 15px/1.3 "IBM Plex Sans",sans-serif;padding:10px 8px;border-top:1px solid var(--col-linha);border-radius:0;color:#fff;gap:12px}
+#lista .item small{font-size:12.5px;color:var(--col-suave);margin-top:2px}
+#lista .item em{font:500 12px "IBM Plex Mono",monospace;color:var(--col-suave)}
+#lista .item:hover{background:var(--col-passar)}
+#lista .item[aria-current="true"]{background:var(--col-atual);box-shadow:inset 3px 0 0 var(--col-realce)}
+#lista .item.n1{padding-left:30px}#lista .item.n2{padding-left:46px}
+#lista .grupo{padding:12px 8px 4px;color:var(--col-fraco)}
+#lista .cascata>summary::after{border-color:var(--col-suave)}
+#lista .cascata[open]{background:linear-gradient(90deg,var(--col-realce) 0 2px,transparent 2px)}
+#lista .cor{width:10px;height:10px;border-radius:3px}
+
+/* linhas da coluna (Relatórios e Análises) */
+.col-grupo{margin:22px 0 4px;font:500 10.5px "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--col-fraco)}
+.col-grupo:first-child{margin-top:4px}
+.col-item{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px 14px;width:100%;padding:16px 6px 16px 4px;border-top:1px solid var(--col-linha);transition:background .15s}
+.col-grupo+.col-item{border-top:0}
+.col-item:hover{background:var(--col-passar)}
+.col-item:focus-visible{outline:2px solid var(--col-realce);outline-offset:-2px;border-radius:6px}
+.col-item[aria-pressed="true"]{background:var(--col-atual);box-shadow:inset 3px 0 0 var(--col-realce);padding-left:14px}
+.col-item-t{font:600 17px/1.25 Sora,sans-serif;letter-spacing:-.01em;color:#fff}
+.col-item-s{grid-column:1/-1;font-size:13.5px;line-height:1.45;color:var(--col-suave)}
+.col-item svg{grid-row:1;grid-column:2;width:14px;height:14px;fill:none;stroke:var(--col-suave);stroke-width:1.8}
+.col-item:hover svg{stroke:#fff}
+.col-barra{grid-column:1/-1;display:flex;height:6px;margin-top:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,.08)}
+.col-barra i{display:block;height:100%}
+.col-cont{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--col-suave)}
+.col-cont span{display:inline-flex;align-items:center;gap:6px}.col-cont i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.col-cont b{color:#fff;font-weight:600;font-variant-numeric:tabular-nums}
+.col-vazio{margin:18px 0;font-size:14px;color:var(--col-suave)}
+.col-det{margin:2px 0 8px;padding:4px 0 6px 14px;border-left:2px solid var(--col-linha-forte)}
+.col-escala{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:6px 0 4px}.col-escala i{flex:1}
+.col-escala-t{display:flex;justify-content:space-between;font:500 10.5px "IBM Plex Mono",monospace;color:var(--col-fraco);margin-bottom:6px}
+.col-rank{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:22px 1fr auto;align-items:baseline;gap:4px 10px;width:100%;padding:9px 4px 10px 2px;border-top:1px solid var(--col-linha);font-size:14px;color:#fff}
+.col-rank:hover{background:var(--col-passar)}
+.col-rank em{font:500 11px "IBM Plex Mono",monospace;font-style:normal;color:var(--col-fraco)}
+.col-rank b{font:500 12.5px "IBM Plex Mono",monospace;color:var(--col-suave);font-variant-numeric:tabular-nums}
+.col-rank small{grid-column:2/-1;font-size:12px;color:var(--col-fraco)}
+.col-rank i{grid-column:2/-1;display:block;height:4px;border-radius:2px;background:var(--c);width:var(--w)}
+.col-setor{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:10px;width:100%;padding:8px 4px;border-top:1px solid var(--col-linha);font-size:14px;color:#fff}
+.col-setor i{width:10px;height:10px;border-radius:3px;background:var(--c);flex:none}.col-setor span{flex:1}.col-setor em{font:500 11.5px "IBM Plex Mono",monospace;font-style:normal;color:var(--col-suave)}
+.col-setor[aria-pressed="false"]{opacity:.42}.col-setor:hover{background:var(--col-passar)}
+.col-botao{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:9px 14px;border:1px solid var(--col-linha-forte);border-radius:8px;font:500 13.5px "IBM Plex Sans",sans-serif;color:#fff}
+.col-botao:hover{background:var(--col-passar)}
+
+/* ficha da área (ou do caminhão) */
 .ficha-voltar svg{width:10px;height:10px;margin-right:6px;vertical-align:-1px}
 .ficha .btn.ficha-voltar{margin:0 0 10px}
-@media (min-width:761px){
-#botaoFiltros{display:none!important}
-/* coluna da esquerda: lista de áreas; a ficha da área, a Análise e os plugins abrem no mesmo lugar, no desenho da coluna editorial */
-#lista,#ficha,#anPainel,.pa-col{--fg:var(--lat-texto);--muted:var(--lat-suave);--line:var(--lat-linha);--accent:var(--lat-realce);--accent-soft:var(--lat-passar);color:var(--lat-texto);background:var(--lat-fundo);border:0;border-right:1px solid var(--lat-borda);border-radius:0;box-shadow:none}
-#lista{left:0;top:0!important;bottom:0;max-height:none!important;height:auto!important;width:var(--lat-larg);padding:22px 26px 12px 22px}
-#lista header{border:0;padding:0 0 4px;font:600 26px Sora,sans-serif;letter-spacing:-.01em;text-transform:none;color:var(--lat-texto)}
-#lista .recolher{background:none;border-color:var(--line);color:var(--lat-texto)}
-#lista{transition:transform .25s}body.lista-fora #lista{transform:translateX(-100%)}
-.puxa-lista{position:fixed;z-index:7;left:var(--lat-larg);top:50%;margin-top:-30px;width:20px;height:60px;border:1px solid var(--lat-borda);border-left:0;border-radius:0 8px 8px 0;background:var(--lat-fundo);color:var(--lat-texto);cursor:pointer;display:grid;place-items:center;padding:0;transition:left .25s}
-body.lista-fora .puxa-lista{left:0}.puxa-lista svg{width:12px;height:12px;transition:transform .25s}body.lista-fora .puxa-lista svg{transform:rotate(180deg)}
-body.lista-fora:has(#ficha.aberta) .puxa-lista{left:var(--lat-larg)}body.lista-fora:has(#ficha.aberta) .puxa-lista svg{transform:none}
-body.em-apres .puxa-lista,body:has(#anPainel.aberta:not(.recolhida)) .puxa-lista{display:none}
-#lista .abas-lista{margin:10px 0 0;background:var(--lat-passar)}#lista .abas-lista button{color:var(--lat-suave)}#lista .abas-lista button[aria-selected="true"]{background:#fff;color:#0f172a}
-#lista input{margin:10px 0 6px;background:var(--lat-campo);border-color:var(--lat-borda);color:var(--lat-texto)}#lista input::placeholder{color:var(--lat-suave)}
-#lista .item{font:400 15px "IBM Plex Sans",sans-serif;padding:8px 6px;border-top:1px solid var(--line)}#lista .item em{font-size:12px}#lista .grupo{padding:12px 6px 4px}
-/* ficha da área (ou do caminhão) dentro da coluna: título grande, dados em linhas */
-#ficha{z-index:3;left:0;right:auto!important;top:0!important;bottom:0;width:var(--lat-larg);padding:22px 28px 24px 24px;overflow:auto;scrollbar-width:thin;transform:translateX(-14px)}
-#ficha.aberta{transform:none}
-#ficha .ficha-voltar{all:unset;cursor:pointer;display:inline-flex;align-items:center;font:500 14px "IBM Plex Sans",sans-serif;color:var(--lat-suave);margin:0 0 26px}
-#ficha .ficha-voltar svg{width:12px;height:12px}#ficha .ficha-voltar:hover,#ficha .ficha-voltar:focus-visible{color:var(--lat-texto)}
-#ficha .eyebrow{font:600 12px "IBM Plex Sans",sans-serif;letter-spacing:.08em;color:var(--lat-realce)}
-#ficha h2{font:600 34px/1.08 Sora,sans-serif;letter-spacing:-.02em;margin:6px 0 22px}
+#ficha .ficha-voltar{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:2px;font:500 14px "IBM Plex Sans",sans-serif;color:var(--col-suave);margin:0 0 28px}
+#ficha .ficha-voltar svg{width:12px;height:12px}#ficha .ficha-voltar:hover,#ficha .ficha-voltar:focus-visible{color:#fff}
+#ficha .eyebrow{font:500 11px "IBM Plex Mono",monospace;letter-spacing:.16em;color:var(--col-realce)}
+#ficha h2{font:600 34px/1.06 Sora,sans-serif;letter-spacing:-.025em;margin:8px 0 24px;color:#fff}
 #ficha .dados{display:block}
-#ficha .dados dt{font:400 13px "IBM Plex Sans",sans-serif;letter-spacing:0;text-transform:none;color:var(--lat-suave);padding:10px 0 2px;border-top:1px solid var(--lat-linha)}
-#ficha .dados dd{font-size:15.5px;line-height:1.4;padding-bottom:10px}#ficha .dados dd.largo{padding-top:2px}
-/* Análise (relatório) também na coluna da esquerda; pode alargar pela alça da borda direita */
-#anPainel{z-index:3;left:0!important;right:auto!important;top:0!important;bottom:0;max-height:none;width:var(--lat-larg);padding:14px 22px 18px;transform:translateX(-14px)}
-#anPainel.aberta{transform:none}
-#anPainel.larga{width:var(--an-w,min(640px,calc(100vw - 340px)))}#anPainel.larga.cheia{width:calc(100vw - 340px)}
-#anPainel.recolhida{width:auto!important;bottom:auto;padding:6px;border-bottom:1px solid var(--lat-borda);border-radius:0 0 10px 0}
-#anPainel .an-puxa{left:auto;right:-6px}
-#anPainel .an-topo button{border-color:var(--lat-borda);color:var(--lat-suave)}
-.rodape{transition:left .25s}body:not(.lista-fora) .rodape,body:has(#ficha.aberta) .rodape,body:has(#anPainel.aberta:not(.recolhida)) .rodape{left:calc(var(--lat-larg) + 16px);max-width:calc(100vw - var(--lat-larg) - 300px)}
-.marca{right:112px}body.bd-fixa .marca{right:326px}body:has(#anPainel.aberta:not(.recolhida)) .rodape{display:none}
-}
-@media (min-width:761px){body .zoom-botoes{right:62px;bottom:20px;z-index:7;transition:right .18s}body.bd-fixa .zoom-botoes{right:276px}}
-.pa{--critica:#e0524f;--irregular:#e3a33a;--corrigida:#37a678;font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;color:var(--lat-texto)}
+#ficha .dados dt{font:400 12.5px "IBM Plex Sans",sans-serif;letter-spacing:0;text-transform:none;color:var(--col-suave);padding:12px 0 3px;border-top:1px solid var(--col-linha)}
+#ficha .dados dd{font-size:16px;line-height:1.45;padding-bottom:12px;color:#fff}#ficha .dados dd.largo{padding-top:2px}
+
+/* componentes da Análise e da ficha no fundo escuro */
+#lista .chip,#ficha .chip,#anPainel .chip{background:var(--col-campo);border-color:var(--col-linha-forte);color:#fff}
+#ficha .btn,#anPainel .btn{background:transparent;border-color:var(--col-linha-forte);color:#fff}
+#ficha .btn:hover,#anPainel .btn:hover{border-color:var(--col-realce)}
+#anPainel .seg{background:var(--col-campo)}#anPainel .seg button{color:var(--col-suave)}#anPainel .seg button[aria-pressed="true"]{background:rgba(255,255,255,.16);color:#fff;box-shadow:none}
+#ficha .an-barra,#anPainel .an-barra{background:rgba(255,255,255,.1)}
+#anPainel .an-dica{background:rgba(55,166,120,.15)}#anPainel .an-prog{background:rgba(124,170,240,.14)}#anPainel .an-tablet{background:rgba(150,120,230,.18);color:#ddd2ff}
+#anPainel .an-rk:hover,#anPainel .an-gl.an-row:hover,#anPainel .an-linha:hover{background:var(--col-passar)}
+#anPainel .an-topo{justify-content:space-between;align-items:center;margin:0 0 6px}
+#anPainel .an-topo button{border-color:var(--col-linha-forte);color:var(--col-suave)}
+#anPainel .an-topo .an-sair{all:unset;cursor:pointer;margin-right:auto;font:500 14px "IBM Plex Sans",sans-serif;color:var(--col-suave)}
+#anPainel .an-topo .an-sair:hover{color:#fff}
+#anPainel h2{color:#fff}
+
+/* ---- relatório (plugin de pontos) na coluna ---- */
+.pa{--critica:#e0524f;--irregular:#e3a33a;--corrigida:#37a678;font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;color:var(--col-texto)}
 .pa button{font:inherit;color:inherit}
-.pa-aviso{position:fixed;z-index:6;top:14px;left:50%;transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(13,27,46,.72);padding:5px 10px;border-radius:6px}
+.pa-col{position:fixed;z-index:6;display:flex;flex-direction:column;overflow:auto;scrollbar-width:none;transition:transform .25s}
+body.sem-coluna .pa-col{transform:translateX(-100%)}
+.pa-voltar{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;align-self:flex-start;font:500 14px "IBM Plex Sans",sans-serif;color:var(--col-suave);margin:0 0 26px}
+.pa-voltar svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.8}.pa-voltar:hover,.pa-voltar:focus-visible{color:#fff}
+.pa-marca{font:500 11px "IBM Plex Mono",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--col-realce);margin:0 0 12px}
+.pa-col h1{font:600 40px/1.04 Sora,sans-serif;letter-spacing:-.03em;margin:0 0 10px;color:#fff}
+.pa-col h2{font:600 30px/1.1 Sora,sans-serif;letter-spacing:-.02em;margin:0 0 8px;color:#fff}
+.pa-sub{font-size:15px;line-height:1.5;color:var(--col-suave);margin:0 0 26px}
+.pa-f{display:flex;flex-direction:column;gap:2px;margin:0 0 26px}
+.pa-f button{all:unset;cursor:pointer;display:flex;gap:12px;align-items:center;font:400 18px "IBM Plex Sans",sans-serif;color:var(--col-suave);padding:5px 0}
+.pa-f button:hover,.pa-f button:focus-visible{color:#fff}.pa-f button.on{color:#fff;font-weight:600}
+.pa-f i{width:11px;height:11px;border-radius:50%;background:var(--c);flex:none}
+.pa-f b{font-weight:inherit;font-variant-numeric:tabular-nums;margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:15px}
+.pa-grupo{font:500 10.5px "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--col-fraco);margin:0 0 4px}
+/* local do relatório: barra da cor da classificação, nome, contagem e barrinha */
+.pa-loc{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:14px 4px 14px 16px;border-top:1px solid var(--col-linha);box-shadow:inset 3px 0 0 var(--c);transition:background .15s}
+.pa-loc:hover,.pa-loc:focus-visible{background:var(--col-passar)}
+.pa-loc-t{font:600 16.5px/1.25 Sora,sans-serif;color:#fff}
+.pa-loc-n{font:500 14px "IBM Plex Mono",monospace;color:var(--col-suave);font-variant-numeric:tabular-nums}
+.pa-loc-s{grid-column:1/-1;font-size:13px;color:var(--col-suave)}
+.pa-loc .col-barra{height:5px;margin-top:4px}
+/* item do local: foto pequena, título, situação */
+.pa-it{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:72px 1fr;gap:3px 14px;align-items:start;padding:12px 4px;border-top:1px solid var(--col-linha)}
+.pa-it:hover,.pa-it:focus-visible{background:var(--col-passar)}
+.pa-it-f{grid-row:1/4;width:72px;height:72px;border-radius:9px;object-fit:cover;background:rgba(255,255,255,.06)}
+.pa-it-f.vazia{display:grid;place-items:center;font:500 11px "IBM Plex Mono",monospace;color:var(--col-fraco)}
+.pa-it-t{font:600 15.5px/1.3 Sora,sans-serif;color:#fff}
+.pa-it-s{font-size:12.5px;color:var(--col-suave);display:flex;align-items:center;gap:6px}.pa-it-s i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+.pa-it-o{font-size:13px;line-height:1.4;color:var(--col-fraco);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* ponto: selo, título, foto grande, miniaturas e dados */
+.pa-selo{align-self:flex-start;font-size:12.5px;font-weight:600;color:#fff;background:var(--c);padding:4px 11px;border-radius:999px;margin-bottom:14px}
+.pa-heroi{position:relative;display:block;width:100%;margin:6px 0 10px;padding:0;border:0;border-radius:12px;overflow:hidden;cursor:zoom-in;background:rgba(255,255,255,.05);flex:none}
+.pa-heroi img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+.pa-heroi span{position:absolute;right:10px;bottom:10px;padding:4px 9px;border-radius:999px;background:rgba(8,13,22,.78);font:500 12px "IBM Plex Mono",monospace;color:#fff}
+.pa-minis{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;flex:none}
+.pa-minis button{all:unset;cursor:pointer;width:62px;height:46px;border-radius:7px;overflow:hidden;opacity:.6;box-shadow:0 0 0 1px var(--col-linha-forte)}
+.pa-minis button:hover,.pa-minis button:focus-visible{opacity:1}
+.pa-minis img{width:100%;height:100%;object-fit:cover;display:block}
+.pa-col dl{display:block;margin:4px 0 0;flex:none}
+.pa-col dt{font-size:12.5px;color:var(--col-suave);padding:11px 0 3px;border-top:1px solid var(--col-linha)}
+.pa-col dd{margin:0;padding-bottom:11px;font-size:15.5px;line-height:1.45;color:#fff}
+.pa-nav{display:flex;gap:8px;align-items:center;margin-top:auto;padding-top:22px;flex:none}
+.pa-nav button{all:unset;cursor:pointer;font-size:14px;font-weight:500;padding:9px 13px;white-space:nowrap;border:1px solid var(--col-linha-forte);border-radius:8px;color:#fff}
+.pa-nav button:hover{background:var(--col-passar)}
+.pa-nav .pr{background:#fff;color:#0b1220;border-color:#fff}.pa-nav .pr:hover{background:#e6edf7}
+.pa-nav span{margin-left:auto;font:500 12.5px "IBM Plex Mono",monospace;color:var(--col-suave);white-space:nowrap}
+/* nomes dos locais no mapa, no lugar das bolinhas */
 .pa-pinos{position:fixed;inset:0;z-index:4;pointer-events:none}
-.pa-pino{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.45);pointer-events:auto;cursor:pointer;padding:0;background:var(--c);transition:opacity .2s}
+.pa-etq{position:absolute;left:0;top:0;pointer-events:auto;cursor:pointer;display:flex;flex-direction:column;gap:3px;padding:8px 13px 9px 12px;border:0;border-left:4px solid var(--c);border-radius:9px;background:rgba(var(--col-tinta),.9);color:#fff;box-shadow:0 10px 26px rgba(0,0,0,.42);white-space:nowrap;text-align:left;will-change:transform}
+.pa-etq b{font:600 14px/1.2 Sora,sans-serif}
+.pa-etq span{font:500 12px "IBM Plex Sans",sans-serif;color:#c9d3df}
+.pa-etq::before{content:"";position:absolute;left:23px;top:100%;width:2px;height:var(--l,0px);background:rgba(var(--col-tinta),.9)}
+.pa-etq::after{content:"";position:absolute;left:18px;bottom:calc(-6px - var(--l,0px));border:6px solid transparent;border-bottom:0;border-top-color:rgba(var(--col-tinta),.9)}
+.pa-etq:hover{background:rgba(22,34,54,.96)}
+.pa-etq.on{box-shadow:0 0 0 2px var(--c),0 12px 30px rgba(0,0,0,.5)}
+.pa-pino{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.45);pointer-events:auto;cursor:pointer;padding:0;background:var(--c)}
 .pa-pino.foco{width:26px;height:26px;margin:-13px 0 0 -13px;animation:pa-pulso 1.5s infinite}
 @keyframes pa-pulso{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 70%,transparent)}100%{box-shadow:0 0 0 22px transparent}}
-.pa-col{position:fixed;z-index:6;left:0;top:0;bottom:0;width:var(--lat-larg);padding:34px 30px 24px 28px;background:var(--lat-fundo);border-right:1px solid var(--lat-borda);display:flex;flex-direction:column;transition:transform .25s;overflow:auto;scrollbar-width:thin}
-body.sem-coluna .pa-col{transform:translateX(-100%)}
-.pa-col h1{font:600 42px/1.08 Sora,sans-serif;letter-spacing:-.02em;margin:0 0 8px}
-.pa-sub{font-size:16px;opacity:.75;margin:0 0 24px}
-.pa-f{display:flex;flex-direction:column;gap:2px;margin-bottom:22px}
-.pa-f button{all:unset;cursor:pointer;display:flex;gap:11px;align-items:center;font:400 19px "IBM Plex Sans",sans-serif;opacity:.6;padding:4px 0}
-.pa-f button:hover,.pa-f button:focus-visible{opacity:.9}.pa-f button.on{opacity:1;font-weight:600}
-.pa-f i{width:10px;height:10px;border-radius:50%;background:var(--c)}.pa-f b{font-weight:inherit}
-.pa-ar{all:unset;cursor:pointer;display:flex;justify-content:space-between;font-size:15px;padding:8px 0;border-top:1px solid var(--lat-linha)}
-.pa-ar:hover,.pa-ar:focus-visible{color:var(--lat-realce)}.pa-ar small{display:block;font-size:13px;opacity:.65}
-.pa-voltar{all:unset;cursor:pointer;font-size:14px;opacity:.75;margin-bottom:16px}.pa-voltar:hover{opacity:1}
-.pa-col h2{font:600 28px/1.15 Sora,sans-serif;margin:0 0 6px}
-.pa-selo{align-self:flex-start;font-size:13px;font-weight:600;color:#fff;background:var(--c);padding:3px 10px;border-radius:999px;margin-bottom:10px}
-.pa-foto{width:100%;height:190px;object-fit:cover;border-radius:10px;display:block;margin:6px 0 14px}
-.pa-col dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:15px;margin:0}.pa-col dt{opacity:.65}.pa-col dd{margin:0}
-.pa-nav{display:flex;gap:8px;align-items:center;margin-top:auto;padding-top:16px}
-.pa-nav button{all:unset;cursor:pointer;font-size:14px;font-weight:500;padding:8px 11px;white-space:nowrap;border:1px solid var(--lat-borda);border-radius:7px}
-.pa-nav .pr{background:var(--lat-texto);color:var(--lat-fundo);border-color:var(--lat-texto)}.pa-nav span{margin-left:auto;font-size:13px;opacity:.7;white-space:nowrap}
-.pa-puxa{position:fixed;z-index:7;left:var(--lat-larg);top:50%;margin-top:-22px;width:18px;height:44px;border:1px solid var(--lat-borda);border-left:0;border-radius:0 7px 7px 0;background:var(--lat-fundo);color:var(--lat-texto);cursor:pointer;display:grid;place-items:center;transition:left .25s;padding:0}
-body.sem-coluna .pa-puxa{left:0}.pa-puxa svg{width:12px;height:12px}body.sem-coluna .pa-puxa svg{transform:rotate(180deg)}
+.pa-aviso{position:fixed;z-index:6;top:14px;left:50%;transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(13,27,46,.72);padding:5px 10px;border-radius:6px}
+/* fotos em tela cheia */
+.pa-luz{position:fixed;inset:0;z-index:30;display:grid;grid-template-columns:84px minmax(0,1fr) 84px;align-items:center;background:rgba(4,7,12,.95);color:#fff;font-family:"IBM Plex Sans",sans-serif}
+.pa-luz[hidden]{display:none}
+#luzAnt{grid-column:1;grid-row:1}#luzProx{grid-column:3;grid-row:1}
+.pa-luz figure{grid-column:2;grid-row:1;margin:0;display:flex;flex-direction:column;align-items:center;gap:16px;min-width:0;padding:24px 0}
+.pa-luz img{max-width:100%;max-height:calc(100vh - 150px);object-fit:contain;border-radius:8px;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+.pa-luz figcaption{text-align:center;font:600 17px Sora,sans-serif}.pa-luz figcaption small{display:block;margin-top:5px;font:500 13px "IBM Plex Sans",sans-serif;color:#b4c0cf}
+.pa-luz button{all:unset;cursor:pointer;justify-self:center;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.08)}
+.pa-luz button:hover,.pa-luz button:focus-visible{background:rgba(255,255,255,.18)}
+.pa-luz button svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pa-luz .pa-luz-x{position:fixed;top:18px;right:22px;width:44px;height:44px}
+.pa-luz button.sem{visibility:hidden}
+
+/* ---- barra da direita ---- */
 .bd{--bd-fundo:var(--lat-fundo);--bd-linha:var(--lat-borda);--bd-passar:var(--lat-passar);--bd-atual:var(--lat-atual);--bd-icone:var(--lat-suave);--bd-forte:var(--lat-texto);--bd-texto:var(--lat-texto);position:fixed;z-index:8;right:0;top:0;bottom:0;width:48px;background:var(--bd-fundo);border-left:1px solid var(--bd-linha);display:flex;flex-direction:column;gap:2px;padding:10px 6px;overflow:hidden auto;scrollbar-width:thin;transition:width .18s;font-size:14px;color:var(--bd-texto)}
 .bd:hover,.bd:focus-within,body.bd-fixa .bd{width:260px;box-shadow:-8px 0 24px rgba(15,23,42,.14)}
 .bd .rot{opacity:0;white-space:nowrap;transition:opacity .15s;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -356,6 +486,45 @@ body.sem-coluna .pa-puxa{left:0}.pa-puxa svg{width:12px;height:12px}body.sem-col
 .bd-int{width:26px;height:14px;border-radius:7px;background:var(--lat-int);position:relative;flex:none}.bd-int::after{content:"";position:absolute;left:2px;top:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .12s}
 .bd-i[aria-pressed=true] .bd-int{background:#1d4fa3}.bd-i[aria-pressed=true] .bd-int::after{left:14px}
 .bd-fim{margin-top:auto;border-top:1px solid var(--bd-linha);padding-top:6px}
+
+/* ---- computador: modelo 3 do portfólio (03/11/2026): trilho de ícones sempre à vista + painel sólido ao lado, esticável ---- */
+@media (min-width:761px){
+  #botaoFiltros{display:none!important}
+  .trilho{position:fixed;left:0;top:0;bottom:0;z-index:9;width:72px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 0;background:#0b1220;border-right:1px solid rgba(255,255,255,.08)}
+  .trilho button{all:unset;box-sizing:border-box;cursor:pointer;width:62px;padding:10px 0 8px;border-radius:10px;display:grid;justify-items:center;gap:5px;color:#aab6c6;font:500 10px/1.15 "IBM Plex Sans",sans-serif;text-align:center;transition:background .15s,color .15s}
+  .trilho button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .trilho button:hover{color:#fff;background:rgba(255,255,255,.05)}
+  .trilho button[aria-pressed="true"]{background:rgba(124,170,240,.18);color:#fff}
+  .trilho button:focus-visible{outline:2px solid var(--col-realce);outline-offset:2px}
+  #lista,#ficha,#anPainel,.pa-col{position:fixed;left:72px!important;right:auto!important;top:0!important;bottom:0;max-height:none!important;height:auto!important;
+    width:var(--col-larg);padding:26px 24px 20px;background:#0b1220;border:0;border-right:1px solid rgba(255,255,255,.08);border-radius:0;box-shadow:12px 0 32px rgba(0,0,0,.22)}
+  #lista{display:flex;flex-direction:column;overflow:hidden;transition:transform .22s}
+  body.lista-fora #lista{transform:translateX(calc(-100% - 72px))}
+  #lista .recolher,.col-abas,.puxa-lista,.pa-puxa{display:none!important}
+  #lista.recolhido .col-corpo:not([hidden]){display:flex} /* o recolher antigo (celular) não esvazia a coluna no computador */
+  #ficha{z-index:3;overflow:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent;transform:translateX(-14px)}
+  #ficha.aberta{transform:none}
+  #anPainel{z-index:3;padding-top:18px;transform:translateX(-14px)}
+  #anPainel.aberta{transform:none}
+  #anPainel.larga,#anPainel.larga.cheia{width:var(--col-larg)!important}
+  #anPainel .an-puxa,#anLargura,#anRecolher{display:none!important}
+  .pa-col{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+  body.sem-coluna .pa-col{transform:translateX(calc(-100% - 72px))}
+  /* alça de esticar: a borda direita do painel aberto */
+  .col-alca{position:fixed;z-index:8;top:0;bottom:0;left:calc(72px + var(--col-larg) - 5px);width:10px;cursor:ew-resize;display:none;touch-action:none}
+  .col-alca::after{content:"";position:absolute;left:4px;top:50%;width:3px;height:56px;margin-top:-28px;border-radius:2px;background:rgba(255,255,255,.22);transition:background .15s,height .15s}
+  .col-alca:hover::after,body.esticando .col-alca::after{background:var(--col-realce);height:96px;margin-top:-48px}
+  body:not(.lista-fora) .col-alca,body:has(#ficha.aberta) .col-alca,body:has(#anPainel.aberta) .col-alca,body.em-apres:not(.sem-coluna) .col-alca{display:block}
+  body.esticando,body.esticando *{cursor:ew-resize!important;user-select:none}
+  body.esticando #lista,body.esticando #ficha,body.esticando #anPainel,body.esticando .pa-col{transition:none}
+  .rodape{left:88px;transition:left .22s;max-width:calc(100vw - 380px)}
+  body:not(.lista-fora) .rodape,body:has(#ficha.aberta) .rodape,body.em-apres:not(.sem-coluna) .rodape{left:calc(88px + var(--col-larg));max-width:calc(100vw - var(--col-larg) - 400px)}
+  body:has(#anPainel.aberta) .rodape{display:none}
+  .marca{right:112px;bottom:22px}body.bd-fixa .marca{right:326px}
+  body .zoom-botoes{right:62px;bottom:20px;z-index:7;transition:right .18s}body.bd-fixa .zoom-botoes{right:276px}
+}
+
+/* ---- modos drone e carro ---- */
 body.em-modo #lista,body.em-modo .puxa-lista,body.em-modo #placas,body.em-modo #dica,body.em-modo .zoom-botoes,body.em-modo .ficha,body.em-modo .pa-col,body.em-modo .pa-puxa,body.em-modo .pa-pinos{display:none!important}
 body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
 .modo-hud{position:fixed;inset:0;z-index:6;pointer-events:none;font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;color:#fff}
@@ -371,7 +540,52 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
 .modo-topo button:hover{background:rgba(30,45,70,.9)}.modo-topo button[hidden]{display:none}
 .modo-ajuda{position:absolute;right:66px;bottom:22px;max-width:340px;font-size:12.5px;line-height:1.6;background:rgba(8,14,26,.6);padding:8px 12px;border-radius:9px;opacity:.85}
 .modo-ajuda b{font-weight:600}
-@media (max-width:760px){.bd,.puxa-lista{display:none}.pa-col{width:100%;top:auto;height:50vh;padding:18px 62px 12px 18px;border-right:0;border-top:1px solid var(--lat-borda)}.pa-col h1{font-size:26px}.pa-puxa,.pa-aviso{display:none}body.sem-coluna .pa-col{transform:translateY(100%)}body .zoom-botoes,body.bd-fixa .zoom-botoes{bottom:auto;top:16px;right:56px}}
+
+/* ---- celular ---- */
+@media (max-width:760px){
+  .bd,.puxa-lista{display:none}
+  #lista{padding:16px}
+  .col-titulo{font-size:26px}
+  .col-abas{gap:16px;margin-top:14px}
+  .pa-col{left:0;right:0;width:100%;top:auto;bottom:0;height:52vh;padding:18px 62px 12px 18px;background:rgba(var(--col-tinta),.96);border:0;border-top:1px solid rgba(255,255,255,.12)}
+  .pa-col h1{font-size:26px}.pa-puxa,.pa-aviso{display:none}body.sem-coluna .pa-col{transform:translateY(100%)}
+  body .zoom-botoes,body.bd-fixa .zoom-botoes{bottom:auto;top:16px;right:56px}
+  .pa-luz{grid-template-columns:48px minmax(0,1fr) 48px}.pa-luz button{width:40px;height:40px}
+}
+
+@media (max-width:760px){.trilho,.col-alca{display:none}}
+
+/* ---- Análise enxuta, para ler de relance (03/11/2026) ---- */
+#anPainel .an-corpo,#ficha,#rolagem,#colRelatorios,#colAnalises,.pa-col{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent}
+#anPainel .an-corpo::-webkit-scrollbar{width:8px}#anPainel .an-corpo::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:4px}
+#anPainel .eyebrow{font:500 11px "IBM Plex Mono",monospace;letter-spacing:.16em;color:var(--col-realce)}
+#anPainel .an-corpo>h2{font:600 30px/1.08 Sora,sans-serif;letter-spacing:-.02em;margin:8px 0 10px}
+.an-frase{margin:0 0 18px;font-size:16px;line-height:1.4;color:#fff}.an-frase b{font:600 34px/1 Sora,sans-serif;margin-right:6px;vertical-align:-3px}
+.an-frase span{display:block;margin-top:6px;font-size:13px;color:var(--col-suave)}
+.an-linha-ctrl{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.an-linha-ctrl .an-dia{margin:0;gap:6px;font-size:13px;color:#fff}.an-linha-ctrl .an-dia em{display:none}
+.an-linha-ctrl .an-dia .btn{padding:3px 9px}
+.an-mais{margin:0 0 12px;border-top:1px solid var(--col-linha);border-bottom:1px solid var(--col-linha)}
+.an-mais>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px;padding:10px 2px;font:600 13px "IBM Plex Sans",sans-serif;color:#fff}
+.an-mais>summary::-webkit-details-marker{display:none}
+.an-mais>summary span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400;color:var(--col-suave)}
+.an-mais>summary::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--col-suave);border-bottom:1.5px solid var(--col-suave);transform:rotate(45deg);transition:transform .15s;margin-right:4px}
+.an-mais[open]>summary::after{transform:rotate(-135deg)}
+.an-mais-corpo{padding:0 0 12px}.an-mais-corpo .an-filtro{margin-top:8px}.an-mais-corpo .an-calc{margin:10px 0 0}
+#anPainel .an-resumo{padding:8px 2px 12px}#anPainel .an-resumo .an-barra{height:10px}
+#anPainel .an-leg-g{font-size:11.5px;gap:3px 12px}
+#anPainel .an-rk{padding:10px 4px}#anPainel .an-rk-p{font-size:12px}
+#anPainel .an-resumo-t{display:none} /* a frase do topo já diz o total */
+/* gargalo por motivo: botões e lista ordenada pelo motivo escolhido */
+.an-motivos{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 14px}
+.an-motivos small{width:100%;font:500 10.5px "IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--col-fraco);margin-bottom:2px}
+.an-motivos button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;border:1px solid var(--col-linha-forte);font:500 12.5px "IBM Plex Sans",sans-serif;color:var(--col-suave)}
+.an-motivos button i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.an-motivos button:hover{color:#fff}.an-motivos button[aria-pressed="true"]{color:#fff;border-color:var(--c);background:color-mix(in srgb,var(--c) 22%,transparent)}
+.an-motivo-t{margin:4px 0 6px;font-size:14px;line-height:1.4;color:var(--col-suave)}.an-motivo-t .cor{margin-right:6px;vertical-align:0}.an-motivo-t b{color:#fff}
+.an-mbarra{display:block;height:8px;border-radius:4px;background:rgba(255,255,255,.08);margin:6px 0 4px;overflow:hidden}.an-mbarra i{display:block;height:100%;border-radius:4px}
+.an-rk-m .an-rk-t b{font:600 13px "IBM Plex Mono",monospace;color:#fff}
+body.an-por-motivo .placa.pino{display:none!important}
 
 </style>
 
@@ -394,17 +608,30 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
   <button type="button" class="btn abrir" id="abrirLista">Áreas</button>
 </section>
 
-<section class="painel lista" id="lista" aria-label="Lista de áreas">
-  <header><span>Áreas · <span id="contagem">0</span></span>
+<section class="painel lista" id="lista" aria-label="Dados da maquete">
+  <header class="col-topo">
+    <div class="col-marca">Usina Virtual</div>
+    <h2 class="col-titulo" id="colTitulo">Análises</h2>
+    <p class="col-sub"><span id="contagem">0</span> <span id="contagemRotulo">áreas gerais</span></p>
     <button type="button" class="recolher" data-recolhe="lista" aria-expanded="true" aria-label="Recolher lista"><svg viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+    <nav class="col-abas corpo" id="colAbas" role="tablist" aria-label="O que mostrar na coluna">
+      <button type="button" role="tab" data-secao="analises" aria-selected="true">Análises<b data-n="analises"></b></button>
+      <button type="button" role="tab" data-secao="visualizacoes" aria-selected="false">Visualizações<b data-n="visualizacoes"></b></button>
+      <button type="button" role="tab" data-secao="relatorios" aria-selected="false">Relatórios<b data-n="relatorios"></b></button>
+      <button type="button" role="tab" data-secao="lugares" aria-selected="false">Lugares<b data-n="lugares"></b></button>
+    </nav>
   </header>
-  <div class="abas-lista corpo" role="tablist" aria-label="O que listar">
-    <button type="button" role="tab" data-aba="gerais" aria-selected="true">Áreas gerais</button>
-    <button type="button" role="tab" data-aba="sub" aria-selected="false">Subáreas</button>
-    <button type="button" role="tab" data-aba="cam" aria-selected="false">Caminhões</button>
+  <div class="col-corpo corpo" id="colLista">
+    <div class="abas-lista" role="tablist" aria-label="Como listar as áreas">
+      <button type="button" role="tab" data-aba="gerais" aria-selected="true">Áreas gerais</button>
+      <button type="button" role="tab" data-aba="sub" aria-selected="false">Subáreas</button>
+      <button type="button" role="tab" data-aba="cam" aria-selected="false">Caminhões</button>
+    </div>
+    <input type="search" id="busca" placeholder="Buscar área ou placa" aria-label="Buscar área ou placa">
+    <div class="rolagem" id="rolagem"></div>
   </div>
-  <input type="search" id="busca" class="corpo" placeholder="Buscar área ou placa" aria-label="Buscar área ou placa">
-  <div class="rolagem corpo" id="rolagem"></div>
+  <div class="col-corpo corpo" id="colRelatorios" hidden></div>
+  <div class="col-corpo corpo" id="colAnalises" hidden></div>
 </section>
 
 <div class="zoom-botoes" role="group" aria-label="Zoom da maquete">
@@ -478,7 +705,7 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
 
 <aside class="painel ficha analise" id="anPainel" aria-label="Análise">
   <div class="an-puxa" id="anPuxa" title="Arraste para mudar a largura"></div>
-  <div class="an-topo"><button type="button" id="anLargura" title="Expandir" aria-pressed="false">⤢</button><button type="button" id="anRecolher" title="Recolher" aria-expanded="true">›</button></div>
+  <div class="an-topo"><button type="button" class="an-sair" id="anSair">Voltar</button><button type="button" id="anLargura" title="Expandir" aria-pressed="false">⤢</button><button type="button" id="anRecolher" title="Recolher" aria-expanded="true">›</button></div>
   <div class="an-corpo" id="analise" aria-live="polite"></div>
 </aside>
 
@@ -507,75 +734,325 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
 <script defer src="maquete-dados/estruturas.js?v=e74333c2"></script>
 <script defer src="maquete-dados/chao.js?v=2886bd94"></script>
 <script defer src="maquete-dados/analise.js?v=8bfe8397"></script>
-<script defer src="maquete-dados/plugins.js?v=fd53bf18"></script>
+<script defer src="maquete-dados/plugins.js?v=c2d30b81"></script>
 <div class="pa" id="pa">
   <div class="pa-pinos pa-apres" id="paPinos"></div>
-  <aside class="pa-col pa-apres" id="paCol" aria-label="Dados da apresentação"></aside>
-  <button class="pa-puxa pa-apres" id="paPuxa" aria-label="Mostrar ou ocultar os dados" title="Mostrar ou ocultar os dados"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2 4 6l4 4"/></svg></button>
+  <aside class="pa-col pa-apres" id="paCol" aria-label="Relatório"></aside>
+  <button class="pa-puxa pa-apres" id="paPuxa" aria-label="Mostrar ou ocultar o relatório" title="Mostrar ou ocultar o relatório"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2 4 6l4 4"/></svg></button>
+  <div class="pa-luz" id="paLuz" role="dialog" aria-modal="true" aria-label="Foto em tela cheia" hidden>
+    <button type="button" id="luzAnt" aria-label="Foto anterior"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <figure><img id="luzImg" alt=""><figcaption id="luzLeg"></figcaption></figure>
+    <button type="button" id="luzProx" aria-label="Próxima foto"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    <button type="button" class="pa-luz-x" id="luzX" aria-label="Fechar (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
 </div>
 <nav class="bd pa" id="bd" aria-label="Controles da maquete"></nav>
-<button class="puxa-lista" id="puxaLista" aria-label="Mostrar ou esconder a lista de áreas" title="Mostrar ou esconder a lista de áreas"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2 4 6l4 4"/></svg></button>
+<button class="puxa-lista" id="puxaLista" aria-label="Mostrar ou esconder a coluna de dados" title="Mostrar ou esconder a coluna de dados"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2 4 6l4 4"/></svg></button>
 <script>
 (() => {
-  /* Barra de controles à direita (no desenho da barra do SST) e modo Apresentação: coluna de dados à esquerda, maquete em tons
-     neutros e pontos no mapa. A barra só aperta os controles que já existem na maquete. */
-  /* Plugins: cada um liga e desliga sem mexer na maquete. Dois jeitos (ver plugins/LEIA-ME.md):
-     - de pontos: um arquivo plugins/nome.json; abre a coluna de dados e os pontos no mapa (um por vez);
+  /* Coluna da esquerda (02/11/2026): Áreas, Caminhões, Relatórios e Análises num lugar só, escura com degradê.
+     Barra de controles à direita (no desenho da barra do SST): só aperta os controles que já existem na maquete.
+     Relatórios = plugins (ver plugins/LEIA-ME.md):
+     - de pontos: plugins/nome.json. Se os pontos têm "cerca" (área do GAUSS), a maquete pinta a área inteira com a
+       classificação geral dela (a pior situação entre os pontos com lugar conhecido) e põe o nome do local no mapa;
+       sem "cerca", cada ponto vira uma bolinha;
      - com código: plugins/nome.js chama MAQUETE_PLUGINS.push({ id, titulo, ligar(palco), desligar(palco) }). */
-  const CORES = { critica: ["Crítica", "var(--critica)", "Críticas"], irregular: ["Irregular", "var(--irregular)", "Irregulares"], corrigida: ["Corrigida", "var(--corrigida)", "Corrigidas"] };
+  const CORES = { critica: ["Crítica", "#e0524f", "Críticas"], irregular: ["Irregular", "#e3a33a", "Irregulares"], corrigida: ["Corrigida", "#37a678", "Corrigidas"] };
   let SIT = CORES, plugin = null;
   const pontos = () => window.MAQUETE_DADOS?.plugins || [], codigo = () => window.MAQUETE_PLUGINS || [], ligados = new Set(); // os arquivos de dados chegam depois deste programa
-  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const $ = (id) => document.getElementById(id), B = document.body;
-  let T = [], filtro = "todas", tela = { nivel: "geral" }, pinos = [], rodando = null;
-  const foto = (t) => [t.foto, ...(t.fotos || [])].filter(Boolean).map((f, k) => `<img class="pa-foto" src="${esc(f)}" alt="Foto ${k + 1} de ${esc(t.cod)}" loading="lazy" onerror="this.remove()">`).join(""); // foto que não carrega some
+  const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const $ = (id) => document.getElementById(id), B = document.body, clicar = (sel) => document.querySelector(sel)?.click();
+  const guardar = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } };
+  const SETA = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"/></svg>';
+  const VOLTA = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M7.5 2.5 4 6l3.5 3.5"/></svg>';
+  let T = [], filtro = "todas", tela = { nivel: "geral" }, marcas = [], rodando = null, modoAreas = false;
+
+  /* ---------- dados do relatório ---------- */
+  const ordem = () => Object.keys(SIT), cor = (s) => SIT[s]?.[1] || "#8894a5";
+  const pior = (l) => l.reduce((m, t) => (ordem().indexOf(t.sit) < ordem().indexOf(m) ? t.sit : m), l[0]?.sit);
+  const palavra = (s, n) => (SIT[s]?.[n === 1 ? 0 : 2] || s).toLowerCase();
+  const curto = (s, n) => palavra(s, n).split(" ")[0]; // "necessitam", "adequada"
+  const contagem = (l, f = palavra) => ordem().map((s) => [s, l.filter((t) => t.sit === s).length]).filter(([, n]) => n).map(([s, n]) => `${n} ${f(s, n)}`).join(" · ");
+  const barra = (l) => `<span class="col-barra">${ordem().map((s) => [s, l.filter((t) => t.sit === s).length]).filter(([, n]) => n).map(([s, n]) => `<i style="width:${(100 * n) / l.length}%;background:${cor(s)}"></i>`).join("")}</span>`;
+  const fotosDe = (t) => [t.foto, ...(t.fotos || [])].filter(Boolean);
   function montarDados(p) { // lat/lng do arquivo viram pontos do mapa; cada plugin pode ter as próprias situações
     plugin = p; SIT = p.situacoes || CORES;
-    T = p.pontos.map((q) => { const [x, z] = usina.palco.paraXZ([q.lat, q.lng]); return { cod: q.cod, prob: q.titulo, area: q.area || "Sem área", sit: q.sit, eq: q.responsavel || "", data: q.data || "", foto: q.foto, fotos: q.fotos, obs: q.obs || "", onde: q.onde || "", x, z }; });
+    T = p.pontos.map((q) => { const [x, z] = usina.palco.paraXZ([q.lat, q.lng]); return { cod: q.cod, prob: q.titulo, area: q.area || "Sem área", sit: q.sit, eq: q.responsavel || "", data: q.data || "", foto: q.foto, fotos: q.fotos, obs: q.obs || "", onde: q.onde || "", cerca: q.cerca || "", localizado: !!q.cerca && q.certeza !== "a identificar", x, z }; });
+    modoAreas = T.some((t) => t.cerca);
   }
   const visiveis = () => T.filter((t) => filtro === "todas" || t.sit === filtro);
-  const areasDe = () => [...new Set(visiveis().map((t) => t.area))].map((a) => ({ a, l: visiveis().filter((t) => t.area === a) })).sort((x, y) => y.l.length - x.l.length);
-  const centro = (l) => [l.reduce((s, t) => s + t.x, 0) / l.length, l.reduce((s, t) => s + t.z, 0) / l.length];
-  const geral = () => usina.palco.voar(...centro(T), 3600);
+  const locais = () => [...new Set(visiveis().map((t) => t.area))].map((a) => ({ a, l: visiveis().filter((t) => t.area === a) }))
+    .sort((x, y) => ordem().indexOf(pior(x.l)) - ordem().indexOf(pior(y.l)) || y.l.length - x.l.length);
+  const centro = (l) => (l.length ? [l.reduce((s, t) => s + t.x, 0) / l.length, l.reduce((s, t) => s + t.z, 0) / l.length] : null);
+  const comLugar = (l) => (modoAreas ? l.filter((t) => t.localizado) : l);
+  const voarPara = (l, dist) => { const c = centro(comLugar(l)); if (c) usina.palco.voar(...c, dist); };
+  const geral = () => voarPara(T, 3600);
+
+  /* ---------- áreas pintadas e nomes no mapa (modo áreas) ou bolinhas (modo pontos) ---------- */
+  function pintarAreas() {
+    if (!modoAreas) return usina.palco.colorir(null);
+    const porCerca = new Map();
+    for (const t of visiveis()) if (t.localizado) (porCerca.get(t.cerca) || porCerca.set(t.cerca, []).get(t.cerca)).push(t);
+    usina.palco.colorir([...porCerca].map(([cerca, l]) => ({ cerca, cor: cor(pior(l)) })), 0.62);
+  }
+  function montarMarcas() {
+    marcas = [];
+    if (modoAreas) { // um nome por local em cada área; locais na mesma área ficam empilhados
+      const porCerca = new Map();
+      for (const { a, l } of locais()) for (const t of l) if (t.localizado) { const m = porCerca.get(t.cerca) || porCerca.set(t.cerca, new Map()).get(t.cerca); (m.get(a) || m.set(a, []).get(a)).push(t); }
+      for (const [cerca, m] of porCerca) {
+        const ar = usina.palco.area(cerca); if (!ar) continue;
+        for (const [a, l] of m) {
+          const el = document.createElement("button"); el.type = "button"; el.className = "pa-etq"; el.style.setProperty("--c", cor(pior(l)));
+          el.innerHTML = `<b>${esc(a)}</b><span>${esc(contagem(l, curto))}</span>`; el.title = `${a}: ${contagem(l)}`;
+          el.onclick = () => abrirLocal(a);
+          marcas.push({ el, x: ar.centro[0], y: ar.h + 6, z: ar.centro[1], a, cerca });
+        }
+      }
+    } else for (const t of T) {
+      const i = T.indexOf(t), el = document.createElement("button"); el.type = "button";
+      el.className = "pa-pino" + (tela.nivel === "ponto" && tela.i === i ? " foco" : ""); el.title = `${t.cod} · ${t.prob}`; el.setAttribute("aria-label", el.title); el.style.setProperty("--c", cor(t.sit));
+      el.onclick = () => { parar(); irPonto(i); };
+      marcas.push({ el, x: t.x, y: 6, z: t.z, k: 0, t });
+    }
+    $("paPinos").replaceChildren(...marcas.map((m) => m.el));
+    realcarMarcas();
+  }
+  function realcarMarcas() {
+    const atual = tela.nivel === "ponto" ? [T[tela.i]?.area] : tela.nivel === "area" ? (tela.cerca ? [...new Set(T.filter((t) => t.cerca === tela.cerca).map((t) => t.area))] : [tela.a]) : [];
+    for (const m of marcas) if (m.a) m.el.classList.toggle("on", atual.includes(m.a) && (!tela.cerca || m.cerca === tela.cerca));
+  }
+  function laco() { // posiciona as marcas a cada quadro; nomes que se encostam sobem, com uma linha até o lugar
+    if (B.classList.contains("em-apres")) {
+      const borda = fimDoPainel(), postos = [], fila = [];
+      for (const m of marcas) {
+        if (m.t && filtro !== "todas" && m.t.sit !== filtro) { m.el.style.display = "none"; continue; }
+        const q = usina.palco.naTela(m.x, m.y, m.z);
+        if (!q || q[0] < borda + 12) { m.el.style.display = "none"; continue; }
+        m.el.style.display = "";
+        if (m.t) { m.el.style.transform = `translate(${q[0]}px, ${q[1]}px)`; continue; }
+        if (!m.w) { m.w = m.el.offsetWidth; m.h = m.el.offsetHeight; }
+        fila.push({ m, x: Math.max(borda + 8, Math.round(q[0] - 24)), y: Math.round(q[1] - 8 - m.h) }); // nunca por baixo do painel
+      }
+      fila.sort((a, b) => b.y - a.y);
+      for (const v of fila) {
+        let y = v.y;
+        for (let n = 0; n < 12; n++) {
+          const bate = postos.find((c) => v.x < c.x + c.w + 6 && v.x + v.m.w + 6 > c.x && y < c.y + c.h + 6 && y + v.m.h + 6 > c.y);
+          if (!bate) break; y = bate.y - v.m.h - 8;
+        }
+        postos.push({ x: v.x, y, w: v.m.w, h: v.m.h }); v.m.el.style.zIndex = 100 - postos.length; // os de baixo por cima: a linha de quem subiu passa por trás
+        v.m.el.style.transform = `translate(${v.x}px, ${y}px)`;
+        v.m.el.style.setProperty("--l", `${v.y - y}px`);
+      }
+    }
+    requestAnimationFrame(laco);
+  }
+
+  /* ---------- coluna do relatório: resumo, local e ponto ---------- */
   function coluna() {
-    const c = $("paCol"), f = [["todas", "Todas", "#8894a5", T.length], ...Object.entries(SIT).map(([k, s]) => [k, s[2], s[1], T.filter((t) => t.sit === k).length])];
-    if (tela.nivel === "geral") c.innerHTML = `<h1>${esc(plugin.titulo)}</h1><p class="pa-sub">${visiveis().length} pontos em ${areasDe().length} áreas${plugin.subtitulo ? ` · ${esc(plugin.subtitulo)}` : ""}</p>
-      <div class="pa-f">${f.map(([k, n, cor, q]) => `<button data-f="${k}" class="${filtro === k ? "on" : ""}" aria-pressed="${filtro === k}" style="--c:${cor}"><i></i>${n} <b>${q}</b></button>`).join("")}</div>
-      ${areasDe().map(({ a, l }) => `<button class="pa-ar" data-a="${esc(a)}"><span>${esc(a)}</span><b>${l.length}</b></button>`).join("")}
-      <div class="pa-nav"><button class="pr" id="paTour">${rodando ? "Parar" : "Apresentar ponto a ponto"}</button></div>`;
-    if (tela.nivel === "area") { const l = visiveis().filter((t) => t.area === tela.a); c.innerHTML = `<button class="pa-voltar" id="paVolta">Voltar ao resumo</button><h2>${esc(tela.a)}</h2><p class="pa-sub">${l.length} pontos</p>
-      ${l.map((t) => `<button class="pa-ar" data-t="${T.indexOf(t)}"><span>${esc(t.cod)} · ${esc(t.prob)}<small>${SIT[t.sit][0]} · ${t.eq}</small></span></button>`).join("")}`; }
-    if (tela.nivel === "ponto") { const t = T[tela.i], s = SIT[t.sit], L = visiveis(), n = L.indexOf(t); c.innerHTML = `<button class="pa-voltar" id="paVolta">Voltar ao resumo</button><span class="pa-selo" style="--c:${s[1]}">${s[0]}</span><h2>${esc(t.prob)}</h2><p class="pa-sub" style="margin-bottom:10px">${esc(t.cod)}</p>
-      <dl><dt>Área</dt><dd>${esc(t.area)}</dd>${t.onde ? `<dt>No mapa</dt><dd>${esc(t.onde)}</dd>` : ""}${t.obs ? `<dt>Observação</dt><dd>${esc(t.obs)}</dd>` : ""}<dt>Responsável</dt><dd>${esc(t.eq)}</dd><dt>Levantamento</dt><dd>${esc(t.data)}</dd></dl><div style="margin-top:14px">${foto(t)}</div>
-      <div class="pa-nav"><button id="paAnt">Anterior</button><button class="pr" id="paProx">Próximo</button><button id="paAuto">${rodando ? "Parar" : "Passar sozinho"}</button><span>${n + 1} de ${L.length}</span></div>`; }
+    const c = $("paCol"), f = [["todas", "Todas", "#8894a5", T.length], ...ordem().map((k) => [k, SIT[k][2], SIT[k][1], T.filter((t) => t.sit === k).length])];
+    if (tela.nivel === "geral") {
+      c.innerHTML = `<button type="button" class="pa-voltar" id="paSair">${VOLTA}Relatórios</button><div class="pa-marca">Relatório</div><h1>${esc(plugin.titulo)}</h1>
+        <p class="pa-sub">${visiveis().length} pontos em ${locais().length} locais${plugin.subtitulo ? ` · ${esc(plugin.subtitulo)}` : ""}</p>
+        <div class="pa-f">${f.map(([k, n, cr, q]) => `<button type="button" data-f="${k}" class="${filtro === k ? "on" : ""}" aria-pressed="${filtro === k}" style="--c:${cr}"><i></i>${esc(n)}<b>${q}</b></button>`).join("")}</div>
+        <div class="pa-grupo">Locais</div>
+        ${locais().map(({ a, l }) => { const sem = modoAreas ? l.filter((t) => !t.localizado).length : 0;
+          return `<button type="button" class="pa-loc" data-a="${esc(a)}" style="--c:${cor(pior(l))}"><span class="pa-loc-t">${esc(a)}</span><span class="pa-loc-n">${l.length}</span><span class="pa-loc-s">${esc(contagem(l))}${sem ? ` · ${sem} com lugar a identificar` : ""}</span>${barra(l)}</button>`; }).join("")}
+        <div class="pa-nav"><button type="button" class="pr" id="paTour">${rodando ? "Parar" : "Apresentar ponto a ponto"}</button></div>`;
+    }
+    if (tela.nivel === "area") {
+      const l = tela.cerca ? visiveis().filter((t) => t.cerca === tela.cerca && t.localizado) : visiveis().filter((t) => t.area === tela.a);
+      const titulo = tela.cerca ? usina.palco.area(tela.cerca)?.nome || tela.cerca : tela.a;
+      const ondes = [...new Set(l.map((t) => t.onde).filter(Boolean))];
+      c.innerHTML = `<button type="button" class="pa-voltar" id="paVolta">${VOLTA}${esc(plugin.titulo)}</button><div class="pa-marca">${tela.cerca ? "Área da maquete" : "Local"}</div><h2>${esc(titulo)}</h2>
+        <p class="pa-sub">${esc(contagem(l))}${tela.cerca ? ` · ${esc([...new Set(l.map((t) => t.area))].join(", "))}` : ondes.length ? `<br>No mapa: ${esc(ondes.join("; "))}` : ""}</p>
+        ${l.map((t) => { const fs = fotosDe(t);
+          return `<button type="button" class="pa-it" data-t="${T.indexOf(t)}">${fs.length ? `<img class="pa-it-f" src="${esc(fs[0])}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'pa-it-f vazia'}))">` : '<span class="pa-it-f vazia"></span>'}
+            <span class="pa-it-t">${esc(t.prob)}</span><span class="pa-it-s" style="--c:${cor(t.sit)}"><i></i>${esc(SIT[t.sit]?.[0] || t.sit)} · ${esc(t.cod)}</span>${t.obs ? `<span class="pa-it-o">${esc(t.obs)}</span>` : ""}</button>`; }).join("")}`;
+    }
+    if (tela.nivel === "ponto") {
+      const t = T[tela.i], L = visiveis(), n = L.indexOf(t), fs = fotosDe(t);
+      c.innerHTML = `<button type="button" class="pa-voltar" id="paVoltaLocal">${VOLTA}${esc(t.area)}</button><span class="pa-selo" style="--c:${cor(t.sit)}">${esc(SIT[t.sit]?.[0] || t.sit)}</span><h2>${esc(t.prob)}</h2>
+        <p class="pa-sub">${esc(t.cod)} · ${esc(t.area)}</p>
+        ${fs.length ? `<button type="button" class="pa-heroi" data-luz="0" aria-label="Ver a foto em tela cheia"><img src="${esc(fs[0])}" alt="Foto de ${esc(t.prob)}" onerror="this.closest('.pa-heroi').remove();document.querySelector('.pa-minis')?.remove()"><span>${fs.length > 1 ? `1 / ${fs.length}` : "Ampliar"}</span></button>` : ""}
+        ${fs.length > 1 ? `<div class="pa-minis">${fs.map((u, k) => `<button type="button" data-luz="${k}" aria-label="Foto ${k + 1} de ${fs.length}"><img src="${esc(u)}" alt="" loading="lazy" onerror="this.parentElement.remove()"></button>`).join("")}</div>` : ""}
+        <dl>${t.onde ? `<dt>No mapa</dt><dd>${esc(t.onde)}</dd>` : ""}${t.obs ? `<dt>Observação</dt><dd>${esc(t.obs)}</dd>` : ""}${t.eq ? `<dt>Responsável</dt><dd>${esc(t.eq)}</dd>` : ""}${t.data ? `<dt>Levantamento</dt><dd>${esc(t.data)}</dd>` : ""}</dl>
+        <div class="pa-nav"><button type="button" id="paAnt">Anterior</button><button type="button" class="pr" id="paProx">Próximo</button><button type="button" id="paAuto">${rodando ? "Parar" : "Passar sozinho"}</button><span>${n + 1} de ${L.length}</span></div>`;
+    }
+    c.scrollTop = 0;
   }
-  function marcarPinos() {
-    pinos = T.map((t, i) => { const b = document.createElement("button"); b.className = "pa-pino" + (tela.nivel === "ponto" && tela.i === i ? " foco" : ""); b.title = `${t.cod} · ${t.prob}`; b.setAttribute("aria-label", b.title); b.style.setProperty("--c", SIT[t.sit][1]); b.onclick = () => { parar(); irPonto(i); }; return { el: b, t }; });
-    $("paPinos").replaceChildren(...pinos.map((p) => p.el));
+  const atualizar = () => { coluna(); montarMarcas(); pintarAreas(); };
+  function abrirLocal(a) { parar(); tela = { nivel: "area", a }; voarPara(visiveis().filter((t) => t.area === a), 760); coluna(); realcarMarcas(); }
+  function abrirCerca(cerca) { // clique numa área pintada do mapa
+    const l = visiveis().filter((t) => t.cerca === cerca && t.localizado); if (!l.length) return;
+    const nomes = [...new Set(l.map((t) => t.area))]; parar();
+    tela = nomes.length === 1 ? { nivel: "area", a: nomes[0] } : { nivel: "area", cerca };
+    voarPara(l, 760); coluna(); realcarMarcas();
   }
-  const atualizar = () => { coluna(); marcarPinos(); };
-  function irPonto(i) { tela = { nivel: "ponto", i }; usina.palco.voar(T[i].x, T[i].z, 170); atualizar(); }
+  function irPonto(i) { tela = { nivel: "ponto", i }; const t = T[i]; if (!modoAreas || t.localizado) usina.palco.voar(t.x, t.z, modoAreas ? 520 : 170); coluna(); if (modoAreas) realcarMarcas(); else montarMarcas(); }
   function passo(d) { const L = visiveis(), n = L.indexOf(T[tela.i]); irPonto(T.indexOf(L[(n + d + L.length) % L.length])); }
   function parar() { clearInterval(rodando); rodando = null; }
-  function auto() { if (rodando) { parar(); coluna(); return; } rodando = setInterval(() => passo(1), 5000); coluna(); }
-  function laco() { for (const p of pinos) { const q = usina.palco.naTela(p.t.x, 6, p.t.z), ok = q && (filtro === "todas" || p.t.sit === filtro); p.el.style.display = ok ? "" : "none"; if (ok) { p.el.style.left = q[0] + "px"; p.el.style.top = q[1] + "px"; } } requestAnimationFrame(laco); }
+  function auto() { if (rodando) { parar(); coluna(); return; } rodando = setInterval(() => passo(1), 6000); coluna(); }
   $("paCol").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
     if (b.dataset.f) { filtro = b.dataset.f; atualizar(); }
-    else if (b.dataset.a) { tela = { nivel: "area", a: b.dataset.a }; usina.palco.voar(...centro(visiveis().filter((t) => t.area === b.dataset.a)), 420); atualizar(); }
+    else if (b.dataset.a) abrirLocal(b.dataset.a);
     else if (b.dataset.t) { parar(); irPonto(+b.dataset.t); }
-    else if (b.id === "paVolta") { parar(); tela = { nivel: "geral" }; geral(); atualizar(); }
+    else if (b.dataset.luz) abrirLuz(T[tela.i], +b.dataset.luz);
+    else if (b.id === "paSair") sair();
+    else if (b.id === "paVolta") { parar(); tela = { nivel: "geral" }; geral(); coluna(); realcarMarcas(); }
+    else if (b.id === "paVoltaLocal") abrirLocal(T[tela.i].area);
     else if (b.id === "paTour") { irPonto(T.indexOf(visiveis()[0])); auto(); }
     else if (b.id === "paAnt") { parar(); passo(-1); } else if (b.id === "paProx") { parar(); passo(1); } else if (b.id === "paAuto") auto();
   });
   $("paPuxa").onclick = () => B.classList.toggle("sem-coluna");
-  /* lista de áreas retrátil (01/11/2026): começa escondida, o mapa inteiro livre; a escolha fica guardada neste navegador */
+
+  /* ---------- fotos em tela cheia ---------- */
+  let luz = null;
+  function abrirLuz(t, k) { const fs = fotosDe(t); if (!fs.length) return; luz = { t, fs, k: Math.max(0, Math.min(k, fs.length - 1)) }; mostrarLuz(); $("paLuz").hidden = false; $("luzX").focus(); }
+  function mostrarLuz() {
+    const { t, fs, k } = luz;
+    $("luzImg").src = fs[k]; $("luzImg").alt = `Foto ${k + 1} de ${t.prob}`;
+    $("luzLeg").innerHTML = `${esc(t.prob)}<small>${esc(t.cod)} · ${esc(t.area)} · ${esc(SIT[t.sit]?.[0] || t.sit)}${fs.length > 1 ? ` · foto ${k + 1} de ${fs.length}` : ""}</small>`;
+    for (const id of ["luzAnt", "luzProx"]) $(id).classList.toggle("sem", fs.length < 2);
+  }
+  const fecharLuz = () => { $("paLuz").hidden = true; luz = null; };
+  const andarLuz = (d) => { if (!luz) return; luz.k = (luz.k + d + luz.fs.length) % luz.fs.length; mostrarLuz(); };
+  $("luzX").onclick = fecharLuz; $("luzAnt").onclick = () => andarLuz(-1); $("luzProx").onclick = () => andarLuz(1);
+  $("paLuz").addEventListener("click", (e) => { if (e.target === $("paLuz") || e.target.tagName === "FIGURE") fecharLuz(); });
+  addEventListener("keydown", (e) => {
+    if (luz) { if (e.key === "Escape") fecharLuz(); else if (e.key === "ArrowRight") andarLuz(1); else if (e.key === "ArrowLeft") andarLuz(-1); else return; e.preventDefault(); e.stopPropagation(); return; }
+    if (tela.nivel === "ponto" && B.classList.contains("em-apres") && e.key === "ArrowRight") { parar(); passo(1); }
+    if (tela.nivel === "ponto" && B.classList.contains("em-apres") && e.key === "ArrowLeft") { parar(); passo(-1); }
+  }, true);
+
+  /* ---------- coluna da esquerda: Áreas, Caminhões, Relatórios e Análises ---------- */
+  /* Coluna da esquerda no modelo 3 do portfólio (03/11/2026, escolha do dono): trilho de ícones sempre à vista e um painel ao lado,
+     que abre e fecha pelo ícone e estica ou encolhe pela alça da borda direita (a largura fica guardada neste navegador). */
+  const SECOES = { analises: "Análises", visualizacoes: "Visualizações de dados", relatorios: "Relatórios", lugares: "Lugares" };
+  const ICONES_T = { analises: '<path d="M3.5 15.5V10M9 15.5V4M14.5 15.5v-7"/>', visualizacoes: '<path d="M1.5 9s3-5 7.5-5 7.5 5 7.5 5-3 5-7.5 5-7.5-5-7.5-5z"/><circle cx="9" cy="9" r="2.2"/>', relatorios: '<path d="M4.5 2h6.5l3 3v11h-9.5z"/><path d="M7 9h5M7 12h5"/>', lugares: '<path d="M9 16.5s5-4.5 5-8.6A5 5 0 0 0 4 7.9c0 4.1 5 8.6 5 8.6z"/><circle cx="9" cy="7.8" r="1.7"/>' };
+  const CURTO = { analises: "Análises", visualizacoes: "Visualizações", relatorios: "Relatórios", lugares: "Lugares" };
+  let secao = "analises";
+  const TRILHO = 72, painelAberto = () => !B.classList.contains("lista-fora") || $("ficha").classList.contains("aberta") || $("anPainel").classList.contains("aberta") || (B.classList.contains("em-apres") && !B.classList.contains("sem-coluna"));
+  const fimDoPainel = () => (innerWidth <= 760 ? 0 : TRILHO + (painelAberto() ? $("lista").offsetWidth || 360 : 0));
+  function trilho() {
+    let n = $("trilho");
+    if (!n) { n = Object.assign(document.createElement("nav"), { id: "trilho", className: "trilho" }); n.setAttribute("aria-label", "Categorias da coluna"); document.body.append(n); n.addEventListener("click", (e) => { const b = e.target.closest("[data-sec]"); if (b) alternarSecao(b.dataset.sec); }); }
+    const atual = B.classList.contains("em-apres") ? "relatorios" : $("anPainel").classList.contains("aberta") ? "analises" : secao;
+    n.innerHTML = Object.keys(SECOES).map((k) => `<button type="button" data-sec="${k}" aria-pressed="${painelAberto() && atual === k}" title="${SECOES[k]}"><svg viewBox="0 0 18 18" aria-hidden="true">${ICONES_T[k]}</svg><span>${CURTO[k]}</span></button>`).join("");
+  }
+  function abrirPainel(aberto) { B.classList.toggle("lista-fora", !aberto); guardar("usina-lista", aberto ? "aberta" : "fechada"); trilho(); }
+  function alternarSecao(s) { // o ícone abre a categoria; o mesmo ícone de novo fecha o painel
+    const ficha = $("ficha").classList.contains("aberta"), analise = $("anPainel").classList.contains("aberta"), apres = B.classList.contains("em-apres");
+    if (apres && s === "relatorios") { B.classList.toggle("sem-coluna"); return trilho(); }
+    if (painelAberto() && secao === s && !ficha && !analise && !apres) return abrirPainel(false);
+    if (apres) sair();
+    if (ficha) clicar("#fechar");
+    if (analise && s !== "analises") clicar('[data-visual="cidade"]');
+    if (analise && s === "analises") { clicar('[data-visual="cidade"]'); }
+    irSecao(s); abrirPainel(true);
+  }
+  function irSecao(s) {
+    secao = SECOES[s] ? s : { areas: "lugares", caminhoes: "lugares" }[s] || "analises"; guardar("usina-secao", secao); $("lista").dataset.secao = secao;
+    document.querySelectorAll("#colAbas [data-secao]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.secao === secao)));
+    $("colTitulo").textContent = SECOES[secao];
+    const lista = secao === "lugares";
+    $("colLista").hidden = !lista; $("colRelatorios").hidden = secao !== "relatorios"; $("colAnalises").hidden = !(secao === "analises" || secao === "visualizacoes");
+    $("contagem").parentElement.hidden = !lista;
+    subtitulo();
+    if (secao === "relatorios") montarRelatorios();
+    if (secao === "analises" || secao === "visualizacoes") montarAnalises();
+    trilho();
+  }
+  function subtitulo() {
+    let p = $("colSub2");
+    if (!p) { p = Object.assign(document.createElement("p"), { id: "colSub2", className: "col-sub" }); $("contagem").parentElement.after(p); }
+    p.hidden = secao === "lugares";
+    const r = usina.palco.resumo(), ativo = itensDa(secao).find(([k]) => (k === "replay" ? r.periodo === "replay" : r.visual === k));
+    if (secao === "relatorios") { const n = pontos().length + codigo().length; p.textContent = `${n} ${n === 1 ? "relatório" : "relatórios"} na maquete`; }
+    else if (secao !== "lugares") p.textContent = ativo ? `${ativo[1]} na maquete` : secao === "analises" ? "Escolha uma análise para ver na maquete" : "Escolha uma visualização para ver na maquete";
+  }
+  const itensDa = (s) => { const r = usina.palco.resumo(); return (s === "analises" ? [
+    r.analise && ["analise", "Análise de paradas", "Produzindo e parado por motivo, área por área, dia a dia"],
+    ["atendimento", "Atendimento 30 dias", "Horas paradas em cada área nos últimos 30 dias"],
+  ] : s === "visualizacoes" ? [
+    ["setores", "Setores", "Cada área com a cor do seu setor"],
+    r.replay && ["replay", "Replay de ontem", "Os caminhões refazendo o dia anterior pelas ruas"],
+    ["frota", "Frota ao vivo", `${r.caminhoes} ${r.caminhoes === 1 ? "caminhão" : "caminhões"} no mapa agora`],
+  ] : []).filter(Boolean); };
+  function contarAbas() {
+    const r = usina.palco.resumo(), n = { lugares: r.gerais, relatorios: pontos().length + codigo().length, analises: itensDa("analises").length, visualizacoes: itensDa("visualizacoes").length };
+    document.querySelectorAll("#colAbas b[data-n]").forEach((b) => { b.textContent = n[b.dataset.n] ?? ""; });
+    if (secao === "visualizacoes") montarAnalises();
+  }
+  function montarRelatorios() {
+    const c = $("colRelatorios"), P = pontos(), C = codigo(), em = B.classList.contains("em-apres");
+    if (!P.length && !C.length) { c.innerHTML = '<p class="col-vazio">Nenhum relatório ligado a esta maquete.</p>'; return; }
+    c.innerHTML = (P.length ? '<div class="col-grupo">Levantamentos</div>' + P.map((p) => {
+      const sit = p.situacoes || CORES, n = p.pontos.length, loc = new Set(p.pontos.map((q) => q.area)).size, data = p.pontos.find((q) => q.data)?.data;
+      const cont = Object.entries(sit).map(([k, s]) => [k, s, p.pontos.filter((q) => q.sit === k).length]).filter(([, , q]) => q);
+      return `<button type="button" class="col-item" data-rel="${esc(p.id)}" aria-pressed="${em && plugin?.id === p.id}"><span class="col-item-t">${esc(p.titulo)}</span>${SETA}
+        <span class="col-item-s">${n} pontos em ${loc} locais${data ? ` · ${esc(data)}` : ""}</span>
+        <span class="col-barra">${cont.map(([, s, q]) => `<i style="width:${(100 * q) / n}%;background:${s[1]}"></i>`).join("")}</span>
+        <span class="col-cont">${cont.map(([, s, q]) => `<span style="--c:${s[1]}"><i></i><b>${q}</b> ${esc((q === 1 ? s[0] : s[2]).toLowerCase())}</span>`).join("")}</span></button>`; }).join("") : "")
+      + (C.length ? '<div class="col-grupo">Visualizações próprias</div>' + C.map((p) => `<button type="button" class="col-item" data-cod="${esc(p.id)}" aria-pressed="${ligados.has(p.id)}"><span class="col-item-t">${esc(p.titulo)}</span><span class="col-item-s">${ligados.has(p.id) ? "Ligada" : "Desligada"}</span></button>`).join("") : "");
+  }
+  function montarAnalises() {
+    const r = usina.palco.resumo(), c = $("colAnalises");
+    const ativa = (k) => (k === "replay" ? r.periodo === "replay" : k === "frota" ? false : r.visual === k);
+    c.innerHTML = `<div class="col-grupo">${secao === "analises" ? "Produtividade da frota" : "No mapa"}</div>` + itensDa(secao).map(([k, t, s]) => {
+      let det = "";
+      if (ativa(k) && k === "atendimento") {
+        const e = usina.palco.escalaAtendimento(), l = usina.palco.atendimento(), max = l[0]?.horas || 1, fmt = (v) => Math.round(v).toLocaleString("pt-BR");
+        det = `<div class="col-det"><div class="col-escala">${e.cores.map((x) => `<i style="background:${x}"></i>`).join("")}</div><div class="col-escala-t"><span>até ${fmt(e.limites[0])} h</span><span>${fmt(e.limites[3])} h ou mais</span></div>
+          ${l.slice(0, 15).map((a, i) => `<button type="button" class="col-rank" data-ai="${a.i}" style="--c:${a.cor};--w:${Math.max(3, (100 * a.horas) / max)}%"><em>${i + 1}</em><span>${esc(a.nome)}</span><b>${fmt(a.horas)} h</b><small>${esc(a.setor)} · ${a.paradas.toLocaleString("pt-BR")} paradas</small><i></i></button>`).join("")}</div>`;
+      } else if (ativa(k) && k === "setores") {
+        det = `<div class="col-det">${usina.palco.setores().map((x) => `<button type="button" class="col-setor" data-setor-col="${x.s}" aria-pressed="${x.ativo}" style="--c:${x.cor}"><i></i><span>${esc(x.nome)}</span><em>${x.n}</em></button>`).join("")}</div>`;
+      } else if (ativa(k) && k === "replay") det = '<div class="col-det"><button type="button" class="col-botao" data-agora>Voltar ao agora</button></div>';
+      return `<button type="button" class="col-item" data-an="${k}" aria-pressed="${ativa(k)}"><span class="col-item-t">${t}</span>${SETA}<span class="col-item-s">${s}</span></button>${det}`;
+    }).join("");
+  }
+  $("colAbas").addEventListener("click", (e) => { const b = e.target.closest("[data-secao]"); if (b) irSecao(b.dataset.secao); });
+  $("rolagem").addEventListener("click", (e) => { if (e.target.closest("[data-i],[data-c],[data-s]")) { usina.palco.modo("analise"); barraDireita(); } }); // escolher na lista = analisar
+  $("colRelatorios").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.rel) { const p = pontos().find((x) => x.id === b.dataset.rel); if (B.classList.contains("em-apres") && plugin?.id === p.id) return; if (B.classList.contains("em-apres")) sair(); entrar(p, true); }
+    if (b.dataset.cod) { const p = codigo().find((x) => x.id === b.dataset.cod); if (ligados.delete(p.id)) p.desligar?.(usina.palco); else { ligados.add(p.id); p.ligar?.(usina.palco); } montarRelatorios(); }
+  });
+  $("colAnalises").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    const r = usina.palco.resumo();
+    if (b.dataset.an === "frota") { clicar('[data-periodo="agora"]'); irSecao("lugares"); clicar('#lista [data-aba="cam"]'); return; }
+    if (b.dataset.an === "replay") clicar(`[data-periodo="${r.periodo === "replay" ? "agora" : "replay"}"]`);
+    else if (b.dataset.an) { if (r.visual !== b.dataset.an) usina.palco.modo("analise"); clicar(`[data-visual="${r.visual === b.dataset.an ? "cidade" : b.dataset.an}"]`); }
+    else if (b.dataset.ai) usina.palco.abrirArea(+b.dataset.ai);
+    else if (b.dataset.setorCol) clicar(`#legenda [data-setor="${b.dataset.setorCol}"]`);
+    else if (b.dataset.agora !== undefined) clicar('[data-periodo="agora"]');
+    setTimeout(() => { montarAnalises(); subtitulo(); trilho(); }, 60);
+  });
+  // a visão pode mudar pela barra da direita, e a ficha e a Análise abrem e fecham sozinhas: coluna e trilho acompanham
+  document.addEventListener("click", (e) => { if (e.target.closest("[data-visual],[data-periodo],[data-setor]") && (secao === "analises" || secao === "visualizacoes")) setTimeout(() => { montarAnalises(); subtitulo(); }, 80); setTimeout(trilho, 90); });
+  new MutationObserver(() => trilho()).observe($("ficha"), { attributes: true, attributeFilter: ["class"] });
+  new MutationObserver(() => trilho()).observe($("anPainel"), { attributes: true, attributeFilter: ["class"] });
+  $("anSair")?.addEventListener("click", () => clicar('[data-visual="cidade"]'));
+
+  /* painel retrátil (fecha pelo ícone) e esticável (alça na borda direita; a largura fica guardada) */
   try { B.classList.toggle("lista-fora", localStorage.getItem("usina-lista") !== "aberta"); } catch { B.classList.add("lista-fora"); }
-  $("puxaLista").onclick = () => {
-    if ($("ficha").classList.contains("aberta") && B.classList.contains("lista-fora")) return $("fechar").click(); // a ficha ocupa a coluna: a alça fecha a ficha
-    const fora = B.classList.toggle("lista-fora"); try { localStorage.setItem("usina-lista", fora ? "fechada" : "aberta"); } catch {}
-  };
-  /* cor das barras laterais = a da barra de cima do sistema que abriu a maquete (mesmo site); sozinha, fica o tom claro do Portal */
+  $("puxaLista").onclick = () => { if ($("ficha").classList.contains("aberta") && B.classList.contains("lista-fora")) return $("fechar").click(); abrirPainel(B.classList.contains("lista-fora")); };
+  const largura = (w) => { const v = Math.round(Math.max(300, Math.min(w, Math.min(720, innerWidth - TRILHO - 360)))); B.style.setProperty("--col-larg", `${v}px`); return v; };
+  { const w0 = +guardar("usina-col-larg"); if (w0) largura(w0); }
+  const alca = Object.assign(document.createElement("div"), { id: "colAlca", className: "col-alca", title: "Arraste para esticar ou encolher; dois cliques voltam ao tamanho normal" });
+  alca.setAttribute("role", "separator"); alca.setAttribute("aria-label", "Largura do painel");
+  document.body.append(alca);
+  alca.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); alca.setPointerCapture(e.pointerId); B.classList.add("esticando");
+    const mover = (ev) => largura(ev.clientX - TRILHO);
+    const soltar = () => { alca.removeEventListener("pointermove", mover); B.classList.remove("esticando"); guardar("usina-col-larg", String(parseInt(getComputedStyle(B).getPropertyValue("--col-larg")) || 360)); dispatchEvent(new Event("resize")); };
+    alca.addEventListener("pointermove", mover); alca.addEventListener("pointerup", soltar, { once: true });
+  });
+  alca.addEventListener("dblclick", () => { B.style.removeProperty("--col-larg"); guardar("usina-col-larg", ""); dispatchEvent(new Event("resize")); });
+  /* cor da barra da direita = a da barra de cima do sistema que abriu a maquete (mesmo site); sozinha, o tom claro do Portal */
   function corDasBarras() {
     let css = null;
     try { if (parent !== window) css = getComputedStyle(parent.document.documentElement); } catch {}
@@ -587,11 +1064,10 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
   }
   corDasBarras();
   try { if (parent !== window) new MutationObserver(corDasBarras).observe(parent.document.documentElement, { attributes: true, attributeFilter: ["class", "data-tema"] }); } catch {}
-  addEventListener("keydown", (e) => { if (tela.nivel === "ponto" && e.key === "ArrowRight") { parar(); passo(1); } if (tela.nivel === "ponto" && e.key === "ArrowLeft") { parar(); passo(-1); } });
 
-  /* barra da direita: lê os controles reais da maquete; cada item aperta o controle verdadeiro */
-  const ICONE = { explorar: '<path d="M2 12.5 6 9h6l4 3.5v2H2z"/><circle cx="5.5" cy="14.5" r="1.5"/><circle cx="12.5" cy="14.5" r="1.5"/><path d="M6 9l1.5-4h3L12 9"/>', visao: '<path d="M1 9s3-5.5 8-5.5S17 9 17 9s-3 5.5-8 5.5S1 9 1 9z"/><circle cx="9" cy="9" r="2.3"/>', chao: '<path d="M2 12l7-8 7 8-7 3z"/>', tempo: '<circle cx="9" cy="9" r="7"/><path d="M9 5v4l3 2"/>', caminhoes: '<path d="M1 5h10v8H1zM11 8h4l2 3v2h-6z"/><circle cx="5" cy="14" r="1.6"/><circle cx="13" cy="14" r="1.6"/>', ir: '<path d="M9 1.5a5.5 5.5 0 0 1 5.5 5.5c0 4-5.5 9.5-5.5 9.5S3.500 11 3.500 7A5.500 5.500 0 0 1 9 1.500z"/><circle cx="9" cy="7" r="1.8"/>', textos: '<path d="M3 4h12M9 4v11M6 15h6"/>', camadas: '<path d="M9 2 1.500 6.500 9 11l7.500-4.500zM2 11l7 4 7-4"/>', qualidade: '<path d="M3 5h6M13 5h2M3 13h2M9 13h6"/><circle cx="11" cy="5" r="2"/><circle cx="7" cy="13" r="2"/>', apresentacao: '<path d="M2 3h14v9H2zM9 12v3M6 16h6"/>', tela: '<path d="M2 6.5V2h4.5M11.5 2H16v4.5M16 11.5V16h-4.5M6.5 16H2v-4.5"/>', sairTela: '<path d="M6.5 2v4.5H2M16 6.5h-4.5V2M11.5 16v-4.5H16M2 11.5h4.5V16"/>', fixar: '<path d="M9 11v6M5 11h8l-1.500-3V3h-5v5z"/>' };
-  const SETA = '<svg class="seta" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4"/></svg>';
+  /* ---------- barra da direita: lê os controles reais da maquete; cada item aperta o controle verdadeiro ---------- */
+  const ICONE = { explorar: '<path d="M2 12.5 6 9h6l4 3.5v2H2z"/><circle cx="5.5" cy="14.5" r="1.5"/><circle cx="12.5" cy="14.5" r="1.5"/><path d="M6 9l1.5-4h3L12 9"/>', visao: '<path d="M1 9s3-5.5 8-5.5S17 9 17 9s-3 5.5-8 5.5S1 9 1 9z"/><circle cx="9" cy="9" r="2.3"/>', chao: '<path d="M2 12l7-8 7 8-7 3z"/>', tempo: '<circle cx="9" cy="9" r="7"/><path d="M9 5v4l3 2"/>', caminhoes: '<path d="M1 5h10v8H1zM11 8h4l2 3v2h-6z"/><circle cx="5" cy="14" r="1.6"/><circle cx="13" cy="14" r="1.6"/>', ir: '<path d="M9 1.5a5.5 5.5 0 0 1 5.5 5.5c0 4-5.5 9.5-5.5 9.5S3.500 11 3.500 7A5.500 5.500 0 0 1 9 1.500z"/><circle cx="9" cy="7" r="1.8"/>', textos: '<path d="M3 4h12M9 4v11M6 15h6"/>', camadas: '<path d="M9 2 1.500 6.500 9 11l7.500-4.500zM2 11l7 4 7-4"/>', qualidade: '<path d="M3 5h6M13 5h2M3 13h2M9 13h6"/><circle cx="11" cy="5" r="2"/><circle cx="7" cy="13" r="2"/>', apresentacao: '<path d="M2 3h14v9H2zM9 12v3M6 16h6"/>', modo: '<path d="M4 2.5l10 5.5-4.4 1.4L8 14z"/>', sol: '<circle cx="9" cy="9" r="3.2"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4"/>', tela: '<path d="M2 6.5V2h4.5M11.5 2H16v4.5M16 11.5V16h-4.5M6.5 16H2v-4.5"/>', sairTela: '<path d="M6.5 2v4.5H2M16 6.5h-4.5V2M11.5 16v-4.5H16M2 11.5h4.5V16"/>', fixar: '<path d="M9 11v6M5 11h8l-1.500-3V3h-5v5z"/>' };
+  const SETA_BD = '<svg class="seta" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4"/></svg>';
   const lista = (sel, tipo) => () => [...document.querySelectorAll(sel)].filter((b) => !b.closest("[hidden]:not(#painelFiltros,.aba)")).map((b) => ({ t: b.querySelector("span")?.textContent || b.textContent.trim(), on: b.getAttribute("aria-pressed") === "true", sw: tipo === "sw", faz: () => { const [k, v] = Object.entries(b.dataset)[0]; document.querySelector(`[data-${k}="${v}"]`).click(); } }));
   const proprios = () => {
     const em = B.classList.contains("em-apres"), l = [
@@ -599,58 +1075,86 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
       ...codigo().map((p) => ({ t: p.titulo, on: ligados.has(p.id), sw: 1, faz: () => { if (ligados.delete(p.id)) p.desligar?.(usina.palco); else { ligados.add(p.id); p.ligar?.(usina.palco); } } })),
     ];
     if (em) l.push(
-      { t: "Cores neutras", on: B.classList.contains("neutra"), sw: 1, faz: () => B.classList.toggle("neutra") },
-      { t: "Coluna de dados", on: !B.classList.contains("sem-coluna"), sw: 1, faz: () => B.classList.toggle("sem-coluna") },
-      { t: "Pontos no mapa", on: $("paPinos").style.display !== "none", sw: 1, faz: () => { const s = $("paPinos").style; s.display = s.display === "none" ? "" : "none"; } },
+      ...(modoAreas ? [] : [{ t: "Cores neutras", on: B.classList.contains("neutra"), sw: 1, faz: () => B.classList.toggle("neutra") }]),
+      { t: "Coluna do relatório", on: !B.classList.contains("sem-coluna"), sw: 1, faz: () => B.classList.toggle("sem-coluna") },
+      { t: modoAreas ? "Nomes no mapa" : "Pontos no mapa", on: $("paPinos").style.display !== "none", sw: 1, faz: () => { const s = $("paPinos").style; s.display = s.display === "none" ? "" : "none"; } },
       { t: "Ver a usina inteira", faz: geral });
     return l;
   };
-  const GAVETAS = [
+  /* grupos da barra (03/11/2026, pedido do dono): por assunto, um aberto por vez, e todos se recolhem quando a barra fecha.
+     Análises e relatórios ficam na coluna da esquerda. */
+  const modoItem = (m, nome) => ({ t: nome, on: usina.palco.modo() === m, faz: () => { usina.palco.modo(m); if (m === "navegacao") clicar("#fechar"); } });
+  const mapa = () => {
+    const l = lista('[data-visual="cidade"],[data-visual="real"]')().map((it) => (it.t === "Foto" ? { ...it, t: "Foto de satélite" } : it));
+    const det = document.querySelector('[data-chao="detalhado"]');
+    if (det && !det.closest("[hidden]")) l.push({ t: "Chão detalhado", sw: 1, on: det.getAttribute("aria-pressed") === "true", faz: () => clicar(`[data-chao="${det.getAttribute("aria-pressed") === "true" ? "liso" : "detalhado"}"]`) });
+    return l;
+  };
+  const grupos = () => [
+    ["modo", "Modo do mapa", () => [modoItem("navegacao", "Navegação"), modoItem("analise", "Análise (tocar seleciona)")]],
     ["explorar", "Explorar", () => [{ t: "Modo drone", on: window.MODOS?.ativo === "drone", sw: 1, faz: () => MODOS.entrar("drone") }, { t: "Modo carro", on: window.MODOS?.ativo === "carro", sw: 1, faz: () => MODOS.entrar("carro") }]],
-    ["apresentacao", "Plugins", proprios], ["visao", "Visão", lista("[data-visual]")], ["chao", "Chão", lista("[data-chao]")], ["tempo", "Tempo", lista("[data-periodo]")],
-    ["caminhoes", "Caminhões", lista("[data-frota]")], ["ir", "Ir para", lista("#irPara [data-peca]")],
-    ["textos", "Textos na tela", () => lista('[data-camada="areas"],[data-camada="nomesEstruturas"],[data-camada="nomes"],[data-camada="nomesCaminhoes"]', "sw")()],
-    ["camadas", "Partes do mapa", () => lista("#camadas section:nth-of-type(2) [data-camada]", "sw")()], ["qualidade", "Qualidade", lista("[data-qualidade]")],
+    ["visao", "Mapa", mapa],
+    ["tempo", "Tempo", lista("[data-periodo]")],
+    ["sol", "Hora do dia", lista('[data-qualidade^="hora-"]')],
+    ["caminhoes", "Caminhões", lista("[data-frota]")],
+    ["textos", "Nomes na tela", () => lista('[data-camada="areas"],[data-camada="nomesEstruturas"],[data-camada="nomes"],[data-camada="nomesCaminhoes"]', "sw")()],
+    ["camadas", "Partes do mapa", () => lista("#camadas section:nth-of-type(2) [data-camada]", "sw")()],
+    ["ir", "Ir para", lista("#irPara [data-peca]")],
+    ["qualidade", "Desempenho", lista('[data-qualidade="alta"],[data-qualidade="leve"]')],
+    ...(B.classList.contains("em-apres") ? [["apresentacao", "Relatório aberto", proprios]] : []),
   ];
-  const abertas = new Set(["explorar", "apresentacao", "visao"]);
+  let aberta = null;
   let itens = [];
-  function barra() {
+  function barraDireita() {
     itens = [];
-    $("bd").innerHTML = `<div class="bd-tit"><span class="rot">Controles da maquete</span></div>` + GAVETAS.map(([k, n, f]) => { const l = f(); if (!l.length) return ""; const ab = abertas.has(k);
-      return `<button class="bd-g" data-g="${k}" aria-expanded="${ab}" title="${n}"><svg viewBox="0 0 18 18">${ICONE[k]}</svg><span class="rot">${n}</span>${SETA}</button><div class="bd-ramo ${ab ? "ab" : ""}">${l.map((it) => { itens.push(it); return `<button class="bd-i" data-it="${itens.length - 1}" ${it.on !== undefined ? `aria-pressed="${!!it.on}"` : ""}><span>${esc(it.t)}</span>${it.sw ? '<i class="bd-int"></i>' : ""}</button>`; }).join("")}</div>`; }).join("")
+    $("bd").innerHTML = `<div class="bd-tit"><span class="rot">Controles da maquete</span></div>` + grupos().map(([k, n, f]) => { const l = f(); if (!l.length) return ""; const ab = aberta === k;
+      return `<button class="bd-g" data-g="${k}" aria-expanded="${ab}" title="${n}"><svg viewBox="0 0 18 18">${ICONE[k]}</svg><span class="rot">${n}</span>${SETA_BD}</button><div class="bd-ramo ${ab ? "ab" : ""}">${l.map((it) => { itens.push(it); return `<button class="bd-i" data-it="${itens.length - 1}" ${it.on !== undefined ? `aria-pressed="${!!it.on}"` : ""}><span>${esc(it.t)}</span>${it.sw ? '<i class="bd-int"></i>' : ""}</button>`; }).join("")}</div>`; }).join("")
       + `<div class="bd-fim">${document.fullscreenEnabled ? `<button class="bd-g" id="bdTela" title="${document.fullscreenElement ? "Sair da tela cheia (Esc)" : "Tela cheia"}"><svg viewBox="0 0 18 18">${document.fullscreenElement ? ICONE.sairTela : ICONE.tela}</svg><span class="rot">${document.fullscreenElement ? "Sair da tela cheia" : "Tela cheia"}</span></button>` : ""}<button class="bd-g" id="bdFixa" aria-pressed="${B.classList.contains("bd-fixa")}" title="Fixar a barra aberta"><svg viewBox="0 0 18 18">${ICONE.fixar}</svg><span class="rot">${B.classList.contains("bd-fixa") ? "Desfixar barra" : "Fixar barra"}</span></button></div>`;
   }
   $("bd").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
-    if (b.dataset.g) { abertas.has(b.dataset.g) ? abertas.delete(b.dataset.g) : abertas.add(b.dataset.g); barra(); return; }
-    if (b.id === "bdFixa") { B.classList.toggle("bd-fixa"); barra(); return; }
+    if (b.dataset.g) { aberta = aberta === b.dataset.g ? null : b.dataset.g; barraDireita(); return; } // um grupo aberto por vez
+    if (b.id === "bdFixa") { B.classList.toggle("bd-fixa"); barraDireita(); return; }
     if (b.id === "bdTela") { (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {}); return; }
     const it = itens[+b.dataset.it]; if (!it) return;
     it.faz();
-    if (B.classList.contains("em-apres")) { // colorir faz sentido só no mapa neutro; a Análise usa o lugar da coluna
+    if (B.classList.contains("em-apres") && !modoAreas) { // colorir faz sentido só no mapa neutro; a Análise usa o lugar da coluna
       if (/^(Foto|Setores|Atendimento|Análise)/.test(it.t)) B.classList.remove("neutra"); else if (it.t === "Cidade") B.classList.add("neutra");
-      if (it.t === "Análise") B.classList.add("sem-coluna"); else if (/^(Cidade|Foto|Setores|Atendimento)/.test(it.t)) B.classList.remove("sem-coluna");
     }
-    setTimeout(barra, 120);
+    if (B.classList.contains("em-apres")) { if (it.t === "Análise") B.classList.add("sem-coluna"); else if (/^(Cidade|Foto|Setores|Atendimento)/.test(it.t)) B.classList.remove("sem-coluna"); }
+    setTimeout(barraDireita, 120);
   });
+
+  /* ---------- ligar e desligar um relatório ---------- */
   let antes = null, lacoLigado = false;
-  function entrar(p) {
+  function entrar(p, daColuna = false) {
     montarDados(p);
-    antes = { camadas: usina.palco.limpar(), frota: document.querySelector('[data-frota][aria-pressed="true"]')?.dataset.frota };
-    document.querySelector('[data-frota="nenhum"]').click();
-    B.classList.add("em-apres", "neutra"); B.classList.remove("sem-coluna");
+    antes = { camadas: usina.palco.limpar(), frota: document.querySelector('[data-frota][aria-pressed="true"]')?.dataset.frota, daColuna };
+    clicar('[data-frota="nenhum"]');
+    B.classList.add("em-apres"); B.classList.toggle("neutra", !modoAreas); B.classList.remove("sem-coluna");
+    usina.palco.clique = modoAreas ? abrirCerca : null; // no relatório, tocar numa área pintada abre o local dela
+    usina.palco.modo("analise");
     tela = { nivel: "geral" }; filtro = "todas"; atualizar();
     if (!lacoLigado) { lacoLigado = true; laco(); }
-    geral();
+    geral(); barraDireita(); trilho();
   }
   function sair() {
-    parar(); B.classList.remove("em-apres", "neutra", "sem-coluna"); pinos = []; $("paPinos").replaceChildren();
+    parar(); fecharLuz(); B.classList.remove("em-apres", "neutra", "sem-coluna"); marcas = []; $("paPinos").replaceChildren();
+    usina.palco.clique = null; usina.palco.colorir(null);
     usina.palco.restaurar(antes.camadas);
-    if (antes.frota) document.querySelector(`[data-frota="${antes.frota}"]`).click();
+    if (antes.frota) clicar(`[data-frota="${antes.frota}"]`);
+    if (antes.daColuna) { B.classList.remove("lista-fora"); irSecao("relatorios"); }
+    trilho();
+    barraDireita(); if (secao === "relatorios") montarRelatorios();
   }
-  document.addEventListener("fullscreenchange", () => barra());
+  document.addEventListener("fullscreenchange", () => barraDireita());
+  let timerBarra = null;
+  $("bd").addEventListener("mouseleave", () => { if (B.classList.contains("bd-fixa")) return; clearTimeout(timerBarra); timerBarra = setTimeout(() => { if (aberta) { aberta = null; barraDireita(); } }, 500); });
+  $("bd").addEventListener("mouseenter", () => clearTimeout(timerBarra));
   const iniciar = () => { if (!$("carga")?.classList.contains("saiu") || !window.usina?.palco) return setTimeout(iniciar, 200);
-    barra(); const p = pontos().find((x) => location.hash === `#plugin=${x.id}`); if (p) { entrar(p); setTimeout(barra, 120); } };
+    window.aoMontarLista = contarAbas;
+    irSecao(guardar("usina-secao") || "analises"); contarAbas(); barraDireita(); trilho();
+    const p = pontos().find((x) => location.hash === `#plugin=${x.id}`); if (p) { entrar(p); setTimeout(barraDireita, 120); } };
   iniciar();
 })();
 </script>
@@ -676,15 +1180,17 @@ if (!window.MAQUETE_DADOS?.cercas || !MAQUETE_DADOS.predios || !MAQUETE_DADOS.el
    Todo material ganha a mesma conta no fim do desenho: fora do contorno da área (desenhado num quadro pequeno, a máscara),
    a cor vira cinza escuro. Desligado, custa só um teste por ponto. Os materiais com receita própria (onBeforeCompile)
    continuam iguais: a conta do foco entra depois da receita deles. */
-const FOCO = { liga: { value: 0 }, mapa: { value: null }, caixa: { value: new THREE.Vector4(0, 0, 1, 1) } };
+const FOCO = { liga: { value: 0 }, tinta: { value: 0 }, mapa: { value: null }, caixa: { value: new THREE.Vector4(0, 0, 1, 1) } };
 {
   const injetar = (s) => {
     if (s.fragmentShader.includes("uFocoLiga") || !s.vertexShader.includes("#include <project_vertex>") || !s.fragmentShader.includes("#include <dithering_fragment>")) return;
-    Object.assign(s.uniforms, { uFocoLiga: FOCO.liga, uFocoMapa: FOCO.mapa, uFocoCaixa: FOCO.caixa });
+    Object.assign(s.uniforms, { uFocoLiga: FOCO.liga, uFocoTinta: FOCO.tinta, uFocoMapa: FOCO.mapa, uFocoCaixa: FOCO.caixa });
     s.vertexShader = "varying vec2 vFocoXZ;\n" + s.vertexShader.replace("#include <project_vertex>",
       "{ vec4 fw = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\n fw = instanceMatrix * fw;\n#endif\n vFocoXZ = (modelMatrix * fw).xz; }\n#include <project_vertex>");
-    s.fragmentShader = "uniform float uFocoLiga;\nuniform sampler2D uFocoMapa;\nuniform vec4 uFocoCaixa;\nvarying vec2 vFocoXZ;\n" + s.fragmentShader.replace("#include <dithering_fragment>",
-      "#include <dithering_fragment>\nif (uFocoLiga > 0.0) { float fm = textureLod(uFocoMapa, (vFocoXZ - uFocoCaixa.xy) * uFocoCaixa.zw, 0.0).r; float fl = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114)); gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(fl * 0.45 + 0.03), uFocoLiga * (1.0 - fm)); }");
+    s.fragmentShader = "uniform float uFocoLiga;\nuniform float uFocoTinta;\nuniform sampler2D uFocoMapa;\nuniform vec4 uFocoCaixa;\nvarying vec2 vFocoXZ;\n" + s.fragmentShader.replace("#include <dithering_fragment>",
+      "#include <dithering_fragment>\nif (uFocoLiga > 0.0) { vec4 fm = textureLod(uFocoMapa, (vFocoXZ - uFocoCaixa.xy) * uFocoCaixa.zw, 0.0); float fl = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114));"
+      + " gl_FragColor.rgb = mix(gl_FragColor.rgb, fm.rgb * (0.3 + 0.95 * fl), uFocoTinta * uFocoLiga * fm.a);" // dentro: a cor da classificação, com a luz e a sombra do lugar
+      + " gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(fl * 0.26 + 0.015), uFocoLiga * (1.0 - fm.a)); }");
   };
   const P = THREE.Material.prototype, padrao = function (s) { injetar(s); };
   Object.defineProperty(P, "onBeforeCompile", { configurable: true,
@@ -1020,7 +1526,8 @@ refazerFrotaDasAreas();
 
 const leve = /Mobi|Android|iPad|iPhone/i.test(navigator.userAgent) || innerWidth < 720; // computador vai em Alta: a tela só desenha quando algo muda
 const estado = { visual: "cidade", frota: "ativas", setoresAtivos: new Set(ORDEM), hover: null, selecionada: null, setor: null, aba: "gerais", abertos: new Set(), caminhao: null, qualidade: leve ? "leve" : "alta",
-  periodo: "agora", tempo: 0, tocando: false, velocidade: 10 };
+  periodo: "agora", tempo: 0, tocando: false, velocidade: 10,
+  modo: (() => { try { return localStorage.getItem("maquete.modo") === "analise" ? "analise" : "navegacao"; } catch { return "navegacao"; } })() }; // 03/11/2026: só o modo Análise seleciona partes do mapa
 
 /* qual é a placa de vídeo: perguntada num desenho de teste, antes de criar o de verdade (o tipo de suavização é escolhido na criação) */
 const PLACA = (() => {
@@ -1260,13 +1767,35 @@ function ajustarTexel(material) { // a nitidez lê o vizinho exato: precisa sabe
   const img = material.map?.image;
   if (img?.width && material.userData.texel) material.userData.texel.value.set(1 / img.width, 1 / img.height);
 }
+/* Foto do Google bem de perto (pedido do dono, 02/11/2026): na usina o Google tem foto real no zoom 20 (~0,14 m por ponto,
+   4x mais nítida que o Esri). Só entra com a câmera a menos de ~460 m, num quadro de 8x8 tiles (~290 m), para caber nos
+   100 mil tiles grátis por mês. A chave (de navegador, presa ao site) vem de dados/chave-google.txt no build; sem chave,
+   com cota esgotada ou qualquer erro, fica tudo como antes (Esri). */
+const CHAVE_GOOGLE = "";
+const google = { sessao: null, falhou: !CHAVE_GOOGLE, usado: false };
+async function sessaoGoogle() {
+  if (google.falhou || google.sessao) return google.sessao;
+  try {
+    const r = await fetch(`https://tile.googleapis.com/v1/createSession?key=${CHAVE_GOOGLE}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mapType: "satellite", language: "pt-BR", region: "BR" }) });
+    if (!r.ok) throw new Error(r.status);
+    google.sessao = (await r.json()).session;
+  } catch (e) { google.falhou = true; console.warn("Foto do Google indisponível, segue o Esri:", e.message); }
+  return google.sessao;
+}
+const TILE_GOOGLE = (z, x, y) => `https://tile.googleapis.com/v1/2dtiles/${z}/${x}/${y}?session=${google.sessao}&key=${CHAVE_GOOGLE}`;
 async function carregarDetalhe() {
   const p = PECAS[0], t = controles.target;
   if (!fotos || estado.visual !== "real" || detalhe.carregando || celular) return;
-  const z = 18, n = LADO_DETALHE, lado = n * 144; // ~144 m por tile no zoom 18, nesta latitude
-  if (camera.position.distanceTo(t) > lado * 1.6 || !dentro([t.x, t.z], p.anel)) return;
-  if (detalhe.centro && Math.hypot(t.x - detalhe.centro[0], t.z - detalhe.centro[1]) < lado / 4) return;
+  const dist = camera.position.distanceTo(t), pertoGoogle = !google.falhou && dist <= 8 * 36 * 1.6;
+  const fonte = pertoGoogle ? "google" : "esri";
+  const z = pertoGoogle ? 20 : 18, n = pertoGoogle ? 8 : LADO_DETALHE, lado = n * (pertoGoogle ? 36 : 144); // ~144 m por tile no zoom 18 (36 m no 20), nesta latitude
+  if (dist > lado * 1.6 || !dentro([t.x, t.z], p.anel)) return;
+  if (detalhe.fonte === fonte && detalhe.centro && Math.hypot(t.x - detalhe.centro[0], t.z - detalhe.centro[1]) < lado / 4) return;
   detalhe.carregando = true;
+  if (pertoGoogle && !(await sessaoGoogle())) { detalhe.carregando = false; agendarDetalhe(); return; }
+  const url = pertoGoogle ? TILE_GOOGLE : TILE;
   const [lat, lng] = paraLatLng([t.x, t.z]), x0 = Math.floor(tx(lng, z)) - n / 2, y0 = Math.floor(ty(lat, z)) - n / 2;
   const tela = document.createElement("canvas"); tela.width = tela.height = n * 256;
   const ctx = tela.getContext("2d"), fila = [];
@@ -1275,7 +1804,7 @@ async function carregarDetalhe() {
   await Promise.all(Array.from({ length: 8 }, async () => {
     while (fila.length) {
       const [i, j] = fila.shift();
-      const img = await new Promise((ok) => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => ok(im); im.onerror = () => ok(null); im.src = TILE(z, x0 + i, y0 + j); });
+      const img = await new Promise((ok) => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => ok(im); im.onerror = () => ok(null); im.src = url(z, x0 + i, y0 + j); });
       if (img) { certos++; ctx.drawImage(img, i * 256, j * 256); }
     }
   }));
@@ -1286,9 +1815,10 @@ async function carregarDetalhe() {
     renderer.initTexture(tex); // envia para a placa agora (câmera parada), não no meio de um movimento
     detalhe.tex?.dispose(); detalhe.tex = tex; detalhe.mapa.value = tex; detalhe.texel.value.set(1 / tela.width, 1 / tela.height);
     detalhe.ret.value.set(u0, vS, u1 - u0, vN - vS);
-    detalhe.centro = [t.x, t.z];
+    detalhe.centro = [t.x, t.z]; detalhe.fonte = fonte;
+    if (pertoGoogle && !google.usado) { google.usado = true; const r = document.getElementById("rodape"); if (r) r.textContent = r.textContent.replace("Foto: Esri", "Foto: Esri · de perto: Imagens © Google"); }
     pedirDesenho();
-  }
+  } else if (pertoGoogle) google.falhou = true; // cota do dia esgotada ou erro: volta ao Esri
   detalhe.carregando = false;
   agendarDetalhe(); // se a câmera andou enquanto baixava, confere de novo
 }
@@ -4659,10 +5189,10 @@ function disco(x, z, r, y) { // remenda a curva e o cruzamento (a faixa reta dei
   return pos;
 }
 /* as ruas são uma camada própria, em destaque: aparecem na Cidade e por cima da foto */
-const CAMADAS = { areas: true, nomesEstruturas: true, nomes: true, nomesCaminhoes: true, ruas: true, predios: true, industria: true, patios: true, ferrovia: true, contornos: true, detalhes: true };
+const CAMADAS = { areas: true, nomesEstruturas: true, nomes: true, nomesCaminhoes: true, ruas: true, predios: true, industria: true, patios: true, ferrovia: true, contornos: true, detalhes: true, arvores: false }; // árvores começam desligadas (pedido do dono, 03/11/2026)
 const GRUPOS_CAMADAS = [ // aba Camadas: o que aparece escrito na tela e o que aparece no mapa
   ["Textos na tela", "Nomes que aparecem por cima do mapa.", { areas: "Títulos das áreas", nomesEstruturas: "Nomes das estruturas", nomes: "Nomes das ruas", nomesCaminhoes: "Nome dos caminhões" }],
-  ["Mapa", "Partes desenhadas da usina.", { ruas: "Ruas", predios: "Prédios", industria: "Indústria (fornos, gasômetros...)", patios: "Pátios e correias", ferrovia: "Ferrovia", contornos: "Contorno das áreas", detalhes: "Detalhes do mapa (energia, portões, carros...)" }],
+  ["Mapa", "Partes desenhadas da usina.", { ruas: "Ruas", predios: "Prédios", industria: "Indústria (fornos, gasômetros...)", patios: "Pátios e correias", ferrovia: "Ferrovia", contornos: "Contorno das áreas", detalhes: "Detalhes do mapa (energia, portões, carros...)", arvores: "Árvores" }],
 ];
 const TEXTOS = Object.keys(GRUPOS_CAMADAS[0][2]);
 try { Object.assign(CAMADAS, JSON.parse(localStorage.getItem("usina-camadas") || "{}")); } catch {}
@@ -5915,7 +6445,7 @@ function aplicarVisual() {
   $("anPainel").classList.toggle("aberta", estado.visual === "analise"); ajustarVista();
   $("painelLegenda").hidden = estado.visual !== "setores"; // legenda só nos Setores, onde ela serve de filtro (pedido do dono, 20/10)
   if (estado.visual === "analise") { an.ativa = true; $("ficha").classList.remove("aberta"); montarAnalise(); }
-  else if (an.ativa) { an.ativa = false; grupoTorres.visible = false; an.aberta = null; estado.selecionada = null; marcarBorda(null); focar(null); } // saiu da Análise: tira o destaque do ranking
+  else if (an.ativa) { an.ativa = false; grupoTorres.visible = false; an.aberta = null; an.motivo = null; document.body.classList.remove("an-por-motivo"); estado.selecionada = null; marcarBorda(null); focar(null); } // saiu da Análise: tira o destaque do ranking
   montarLegenda(); posicionarCaminhoes(); pintarTudo();
 }
 
@@ -6229,6 +6759,7 @@ let ultimo = null, pendente = false;
 renderer.domElement.addEventListener("pointermove", (e) => {
   // arrastando ou com a câmera andando, não procura o que está sob o mouse: testar milhares de prédios a cada movimento travava o arraste
   if (e.pointerType !== "mouse" || e.buttons || interagindo || zoom.resto || viagem) return;
+  if (estado.modo !== "analise" && !window.usina?.palco?.clique) { if (estado.hover || predioRealcado) { const antes = estado.hover; estado.hover = null; repintar(antes); realcarPredio(null); } if (!estado.selecionada && !estado.caminhao) $("dica").style.display = "none"; renderer.domElement.style.cursor = "grab"; return; }
   ultimo = e;
   if (pendente) return;
   pendente = true;
@@ -6254,8 +6785,10 @@ renderer.domElement.addEventListener("pointerup", (e) => {
   // clique de verdade: botão esquerdo, quase sem mexer e rápido; segurar para girar e soltar não abre nem fecha nada
   const clique = apertou && Math.hypot(e.clientX - apertou[0], e.clientY - apertou[1]) <= 5 && performance.now() - apertou[2] < 350; apertou = null;
   if (!clique) return;
+  if (estado.modo !== "analise" && !window.usina?.palco?.clique) return; // modo navegação: o toque só move a câmera
   const sob = oQueEstaSob(e.clientX, e.clientY), caminhao = sob.caminhao, area = sob.area || (sob.predio && areaSob(sob.predio.c)) || (sob.estrutura && areaSob(sob.estrutura.xz)); // tocar no prédio ou estrutura abre a área onde está
-  if (caminhao) selecionarCaminhao(caminhao); else if (area) selecionar(area, false); else fechar();
+  if (window.usina?.palco?.clique) { if (area) usina.palco.clique(area.name); return; } // plugin ligado: ele decide o que abrir
+  if (caminhao) selecionarCaminhao(caminhao); else if (area) selecionar(area, false); // tocar fora não tira o destaque (pedido do dono, 03/11/2026)
 });
 
 function posicionarDica() {
@@ -6278,7 +6811,7 @@ const camadaPlacas = $("placas"), PLACAS = new Map(), AREAS_POR_TAMANHO = [...AR
 const vPlaca = new THREE.Vector3();
 function placa(chaveP, classe, aoClicar) {
   let el = PLACAS.get(chaveP);
-  if (!el) { el = document.createElement("div"); el.className = classe; el.addEventListener("click", aoClicar); camadaPlacas.appendChild(el); PLACAS.set(chaveP, el); }
+  if (!el) { el = document.createElement("div"); el.className = classe; el.addEventListener("click", (e) => { if (estado.modo === "analise" || classe.includes("caminhao")) aoClicar(e); }); camadaPlacas.appendChild(el); PLACAS.set(chaveP, el); }
   return el;
 }
 function naTela(x, y, z) {
@@ -6383,22 +6916,34 @@ function marcarBorda(anel, h) {
   bordaSelecao = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(anel.map(([x, z]) => new THREE.Vector3(x, h + 0.3, z))), new THREE.LineBasicMaterial({ color: 0xffffff }));
   grupoAreas.add(bordaSelecao);
 }
-/* modo foco: máscara da área aberta (branco dentro, preto fora) numa caixa um pouco maior que ela; entra e sai suave */
-const focoTela = document.createElement("canvas"); focoTela.width = focoTela.height = 512;
-FOCO.mapa.value = Object.assign(new THREE.CanvasTexture(focoTela), { flipY: false, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
-let focoAlvo = 0, focoAnim = null;
-function focar(aneis) {
-  if (aneis?.length) {
-    const pts = aneis.flat(), xs = pts.map((p) => p[0]), zs = pts.map((p) => p[1]);
+/* modo foco: máscara (canal alfa: dentro/fora; cor: tinta da área) numa caixa um pouco maior que as áreas; entra e sai suave.
+   Seleção de área: branco, sem tinta (o resto fica cinza). Plugin: cada área com a cor da classificação (FOCO_BASE), que volta
+   sozinha quando a seleção fecha. */
+let focoTela = document.createElement("canvas"); focoTela.width = focoTela.height = 512;
+const novaMascara = () => Object.assign(new THREE.CanvasTexture(focoTela), { flipY: false, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
+FOCO.mapa.value = novaMascara();
+let focoAlvo = 0, focoAnim = null, FOCO_BASE = null;
+function focar(itens, tinta = 0) {
+  if (!itens?.length && FOCO_BASE) ({ itens, tinta } = FOCO_BASE);
+  if (itens?.length) {
+    const lista = itens.map((it) => (Array.isArray(it) ? { anel: it, cor: "#ffffff" } : it)), pts = lista.flatMap((it) => it.anel);
+    const xs = pts.map((p) => p[0]), zs = pts.map((p) => p[1]);
     const m = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)) * 0.06 + 30;
-    const x0 = Math.min(...xs) - m, z0 = Math.min(...zs) - m, w = Math.max(...xs) + m - x0, h = Math.max(...zs) + m - z0;
-    const c = focoTela.getContext("2d"), S = focoTela.width;
-    c.fillStyle = "#000"; c.fillRect(0, 0, S, S); c.fillStyle = "#fff"; c.beginPath();
-    for (const an of aneis) an.forEach(([x, z], i) => { const px = ((x - x0) / w) * S, pz = ((z - z0) / h) * S; i ? c.lineTo(px, pz) : c.moveTo(px, pz); });
-    c.fill(); FOCO.mapa.value.needsUpdate = true;
-    FOCO.caixa.value.set(x0, z0, 1 / w, 1 / h); focoAlvo = 1;
+    const x0 = Math.min(...xs) - m, z0 = Math.min(...zs) - m, w = Math.max(...xs) + m - x0, h = Math.max(...zs) + m - z0, lado = Math.max(w, h);
+    const S = lado > 1800 ? 2048 : lado > 700 ? 1024 : 512; // ~1 a 1,5 m por ponto da máscara
+    if (focoTela.width !== S) { FOCO.mapa.value.dispose(); focoTela = document.createElement("canvas"); focoTela.width = focoTela.height = S; FOCO.mapa.value = novaMascara(); }
+    const c = focoTela.getContext("2d");
+    c.clearRect(0, 0, S, S); c.lineJoin = "round"; c.lineWidth = Math.max(2, S / 400); // a beira entra na máscara: o contorno da área não fica cinza
+    for (const { anel, cor, alfa = 1 } of lista) {
+      c.globalAlpha = alfa; c.fillStyle = c.strokeStyle = cor; c.beginPath();
+      anel.forEach(([x, z], i) => { const px = ((x - x0) / w) * S, pz = ((z - z0) / h) * S; i ? c.lineTo(px, pz) : c.moveTo(px, pz); });
+      c.closePath(); c.fill(); c.stroke();
+    }
+    c.globalAlpha = 1;
+    FOCO.mapa.value.needsUpdate = true;
+    FOCO.caixa.value.set(x0, z0, 1 / w, 1 / h); FOCO.tinta.value = tinta; focoAlvo = 1;
   } else focoAlvo = 0;
-  document.body.classList.toggle("em-foco", focoAlvo === 1);
+  document.body.classList.toggle("em-foco", focoAlvo === 1 && !FOCO_BASE);
   if (focoAnim) return;
   const passo = () => { // anima por conta própria (o Windows do dono tem as animações desligadas)
     const v = FOCO.liga.value, d = focoAlvo - v;
@@ -6406,6 +6951,19 @@ function focar(aneis) {
     focoAnim = FOCO.liga.value === focoAlvo ? null : requestAnimationFrame(passo);
   };
   passo();
+}
+/* plugin: pinta áreas inteiras (lista de { cerca, cor }) com contorno na cor; null tira tudo */
+let bordasPalco = [];
+function colorirAreas(lista, tinta = 0.62) {
+  for (const b of bordasPalco) { grupoAreas.remove(b); b.geometry.dispose(); b.material.dispose(); }
+  bordasPalco = [];
+  const itens = (lista || []).map(({ cerca, cor, alfa }) => { const a = AREAS.find((x) => x.name === cerca); return a && { anel: a.anel, cor, alfa, h: a.h }; }).filter(Boolean);
+  for (const it of itens.filter((x) => (x.alfa ?? 1) >= 0.45)) { // contorno só nas mais fortes
+    const l = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(it.anel.map(([x, z]) => new THREE.Vector3(x, it.h + 0.5, z))), new THREE.LineBasicMaterial({ color: it.cor }));
+    grupoAreas.add(l); bordasPalco.push(l);
+  }
+  FOCO_BASE = itens.length ? { itens, tinta } : null;
+  focar(null);
 }
 function abrirFicha(eyebrow, nome, linhas) {
   $("fichaSetor").textContent = eyebrow; $("fichaNome").textContent = nome;
@@ -6525,7 +7083,30 @@ function maiorPerda(r) {
   return { ...g, ap };
 }
 /** Modelo A (escolha do dono, 20/10/2026): por área, o %, a barra dos grupos e o que mais tirou tempo. */
+/* Gargalo por motivo: tocar num motivo pinta no mapa todas as áreas que têm aquele motivo (mais forte onde há mais horas)
+   e ordena a lista por ele. -1 = produzindo; 0..4 = grupos de apontamento. */
+const minDoMotivo = (r, m) => r.itens.find((it) => it.g === m)?.min || 0;
+const MOTIVOS = () => [{ g: -1, nome: "Produzindo", cor: PRODUZ.cor }, ...GRUPOS_APONT.map((x, gi) => ({ g: gi, nome: x.nome, cor: gi === 4 ? "#8a6fd1" : x.cor }))]
+  .filter((m) => RANK.some((r) => minDoMotivo(r, m.g) > 0));
+function pintarMotivo() {
+  const ativo = an.motivo != null && estado.visual === "analise";
+  document.body.classList.toggle("an-por-motivo", ativo);
+  if (!ativo) { if (FOCO_BASE) colorirAreas(null); return; }
+  const m = MOTIVOS().find((x) => x.g === an.motivo); if (!m) { an.motivo = null; colorirAreas(null); return; }
+  const l = RANK.filter((r) => r.area && minDoMotivo(r, m.g) > 0), max = Math.max(1, ...l.map((r) => minDoMotivo(r, m.g))), escuro = new THREE.Color("#39414e");
+  // as maiores primeiro, para as pequenas (dentro delas) ficarem por cima; cor mais forte onde há mais horas daquele motivo
+  colorirAreas(l.sort((x, y) => y.area.area - x.area.area).map((r) => ({ cerca: r.area.name, cor: m.cor, alfa: 0.12 + 0.88 * (minDoMotivo(r, m.g) / max) })), 0.9); // cor pura; a força (alfa) é proporcional às horas
+  grupoTorres.visible = false;
+}
+function listaPorMotivo() {
+  const m = MOTIVOS().find((x) => x.g === an.motivo), l = RANK.filter((r) => minDoMotivo(r, m.g) > 0).sort((x, y) => minDoMotivo(y, m.g) - minDoMotivo(x, m.g));
+  const tot = l.reduce((s, r) => s + minDoMotivo(r, m.g), 0), max = Math.max(1, ...l.map((r) => minDoMotivo(r, m.g)));
+  return `<p class="an-motivo-t"><i class="cor" style="background:${m.cor}"></i><b>${esc(m.nome)}</b> · ${hm(tot)} em ${l.length} ${l.length === 1 ? "área" : "áreas"}</p>`
+    + l.map((r) => { const v = minDoMotivo(r, m.g); return `<button type="button" class="an-rk an-rk-m" data-rank="${RANK.indexOf(r)}"><span class="an-rk-t"><span class="nm">${esc(rotulo(r))}</span><b>${hm(v)}</b></span>
+      <span class="an-mbarra"><i style="width:${Math.max(2, (100 * v) / max)}%;background:${m.cor}"></i></span><span class="an-rk-p">${Math.round((100 * v) / r.total)}% do tempo parado na área</span></button>`; }).join("");
+}
 function listaAnalise() {
+  if (an.motivo != null && MOTIVOS().some((x) => x.g === an.motivo)) return listaPorMotivo();
   return RANK.map((r, k) => {
     const mp = maiorPerda(r);
     return `<button type="button" class="an-rk" data-rank="${k}"><span class="an-rk-t"><span class="nm">${r.nome === "__fora__" ? "" : `<em>${k + 1}</em>`}${esc(rotulo(r))}</span>
@@ -6565,8 +7146,19 @@ function montarAnalise() {
   const regime = regs.length ? `<div class="an-filtro"><small>Turma / supervisor</small>${["", ...regs].map((r) =>
     `<button type="button" class="chip" data-anregime="${esc(r)}" aria-pressed="${an.regime === r}">${r ? esc(r) : "Todos"}</button>`).join("")}</div>`
     : `<p class="texto-leg">Filtro de turma / supervisor: falta exportar a consulta 07 (vaga de cada caminhão).</p>`;
-  painel.innerHTML = `<div class="eyebrow">Análise · ranking</div><h2>Onde produzimos mais e menos, e por quê</h2><div class="an-ctrl">${periodo}${forma}</div>${navDia}${regime}${noCalculo}
-    <div class="an-lista">${lista}</div><p class="texto-leg">Clique numa área para ir até ela e ver os apontamentos de cada grupo.</p>${progFora ? `<p class="texto-leg">Programado na Parte Diária em local sem cerca: ${hm(progFora)}</p>` : ""}`;
+  // enxuta, para ler de relance (03/11/2026, pedido do dono): uma frase com o número, período numa linha e os filtros guardados
+  const tot = RANK.reduce((s, r) => s + r.total, 0), prod = RANK.reduce((s, r) => s + r.p, 0), pctG = tot ? Math.round((100 * prod) / tot) : 0;
+  const quando = an.modo === "dia" ? (dias.length ? diaBR(dias[0]) : "") : an.modo === "7" ? "nos últimos 7 dias" : "nos últimos 30 dias";
+  const frase = tot ? `<p class="an-frase"><b style="color:#${corPct(pctG).getHexString()}">${pctG}%</b> do tempo parado foi produzindo<span>${hm(tot)} parados em ${RANK.length} áreas · ${quando}</span></p>` : "";
+  const resumoFiltros = [an.regime || "Todas as turmas", an.forma === "torres" ? "Torres" : "Pinos", `${GRUPOS_APONT.length - an.fora.size} de ${GRUPOS_APONT.length} grupos`].join(" · ");
+  painel.innerHTML = `<div class="eyebrow">Análise de paradas</div><h2>Produção por área</h2>${frase}
+    <div class="an-linha-ctrl">${periodo}${navDia}</div>
+    ${RANK.length ? `<div class="an-motivos"><small>Ver no mapa por motivo</small>${[{ g: null, nome: "Todos", cor: "#8894a5" }, ...MOTIVOS()].map((m) => `<button type="button" data-anmotivo="${m.g ?? ""}" aria-pressed="${an.motivo === m.g || (m.g === null && an.motivo == null)}" style="--c:${m.cor}"><i></i>${esc(m.nome)}</button>`).join("")}</div>` : ""}
+    <details class="an-mais" ${an.filtrosAbertos ? "open" : ""}><summary>Filtros<span>${esc(resumoFiltros)}</span></summary><div class="an-mais-corpo"><div class="an-filtro"><small>No mapa</small>${forma}</div>${regime}${noCalculo}</div></details>
+    <div class="an-lista">${lista}</div>${progFora ? `<p class="texto-leg">Programado na Parte Diária em local sem cerca: ${hm(progFora)}</p>` : ""}`;
+  painel.querySelector(".an-mais")?.addEventListener("toggle", (e) => { an.filtrosAbertos = e.target.open; });
+  painel.querySelectorAll("[data-anmotivo]").forEach((b) => b.addEventListener("click", () => { an.motivo = b.dataset.anmotivo === "" ? null : +b.dataset.anmotivo; montarAnalise(); }));
+  pintarMotivo();
   ligarAnalise();
 }
 
@@ -6584,7 +7176,7 @@ function detalheAnalise(r) {
       r.apont.filter((it) => it.g === g.g).map((it) => linhaMotivo(it, true)).join("")}`).join("")}
     ${mp ? `<div class="an-dica"><b>Maior perda:</b> ${mp.nome.toLowerCase()} (${hm(mp.min)}). ${DICA_G[mp.k]}</div>` : ""}
     ${r.prog ? `<div class="an-dica an-prog">Programado na Parte Diária: <b>${hm(r.prog)}</b> · esteve lá: <b>${hm(r.real)}</b></div>` : ""}
-    ${r.tablets ? `<div class="an-dica an-tablet">⚠ ${r.tablets} tablet${r.tablets > 1 ? "s" : ""} instáve${r.tablets > 1 ? "is" : "l"} nesta área no período: parte do "sem apontamento" pode ser falha do tablet, não da pessoa.</div>` : ""}`;
+    ${r.tablets ? `<div class="an-dica an-tablet">${r.tablets} tablet${r.tablets > 1 ? "s" : ""} instáve${r.tablets > 1 ? "is" : "l"} nesta área no período: parte do "sem apontamento" pode ser falha do tablet, não da pessoa.</div>` : ""}`;
 }
 
 function focarAnalise(a) {
@@ -6783,6 +7375,15 @@ addEventListener("message", (e) => {
   if (e.data?.tipo === "usina:frota" && Array.isArray(e.data.frota)) receberFrota(e.data.frota);
 });
 
+/** modo do mapa: "navegacao" (andar e olhar) ou "analise" (tocar numa área abre a ficha) */
+function definirModo(m) {
+  estado.modo = m === "analise" ? "analise" : "navegacao";
+  try { localStorage.setItem("maquete.modo", estado.modo); } catch {}
+  document.body.classList.toggle("modo-analise", estado.modo === "analise");
+  if (estado.modo === "navegacao") { const antes = estado.hover; estado.hover = null; repintar(antes); realcarPredio(null); }
+  return estado.modo;
+}
+document.body.classList.toggle("modo-analise", estado.modo === "analise");
 function fechar() {
   if (estado.visual === "analise") { an.aberta = null; estado.selecionada = null; marcarBorda(null); focar(null); pintarTudo(); montarAnalise(); return; }
   if (!estado.selecionada && !estado.caminhao && !estado.setor) return;
@@ -6796,7 +7397,7 @@ function fechar() {
 
 function montarLista() {
   const termo = chave($("busca").value), aba = estado.aba;
-  document.querySelectorAll("[data-aba]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.aba === aba)));
+  document.querySelectorAll("#lista [data-aba]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.aba === aba)));
   const areas = AREAS.filter((a) => !termo || chave(a.name).includes(termo) || chave(SETORES[a.setor].nome).includes(termo));
   let html = "", n = 0;
   /* listas suspensas (pedido do dono, 22/10/2026): cada categoria abre as suas subáreas; em Subáreas, em cascata
@@ -6835,6 +7436,7 @@ function montarLista() {
         estado.periodo === "replay" ? (c.rota?.andou ? `${fmt(c.rota.km, 1)} km` : "parado") : c.vaga ? c.placa : ""}</em></button>`).join("");
   }
   $("contagem").textContent = n;
+  $("contagemRotulo").textContent = aba === "gerais" ? (n === 1 ? "área geral" : "áreas gerais") : aba === "sub" ? (n === 1 ? "subárea" : "subáreas") : `${n === 1 ? "caminhão" : "caminhões"}${estado.periodo === "replay" ? " no replay de ontem" : " no mapa"}`;
   $("rolagem").innerHTML = html || '<div class="grupo">Nada encontrado</div>';
   $("rolagem").querySelectorAll("details.cascata > summary").forEach((sm) => sm.addEventListener("click", () => {
     const d = sm.parentElement, abrindo = !d.open; // o clique ainda não trocou o estado
@@ -6845,8 +7447,9 @@ function montarLista() {
   $("rolagem").querySelectorAll("[data-c]").forEach((b) => b.addEventListener("click", () => selecionarCaminhao(CAMINHOES[+b.dataset.c])));
   $("rolagem").querySelector("[data-trem]")?.addEventListener("click", () => { const p = trem.carros[0].position; voarPara([p.x, p.z], 700); });
   marcarNaLista();
+  window.aoMontarLista?.(); // coluna da esquerda (apresentacao.html): contagens das abas
 }
-document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => { estado.aba = b.dataset.aba; montarLista(); }));
+document.querySelectorAll("#lista [data-aba]").forEach((b) => b.addEventListener("click", () => { estado.aba = b.dataset.aba; montarLista(); }));
 function marcarNaLista() {
   $("rolagem").querySelectorAll("[data-s]").forEach((b) => b.setAttribute("aria-current", String(estado.setor === b.dataset.s)));
   $("rolagem").querySelectorAll("[data-i]").forEach((b) => b.setAttribute("aria-current", String(estado.selecionada?.i === +b.dataset.i)));
@@ -6931,7 +7534,7 @@ document.querySelectorAll("[data-recolhe]").forEach((b) => {
 });
 
 function abrirAba(aba) { // Mapa, Camadas ou Ajustes, dentro do botão Filtros
-  document.querySelectorAll("[data-aba]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.aba === aba)));
+  document.querySelectorAll("#painelFiltros [data-aba]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.aba === aba)));
   for (const x of ["mapa", "camadas", "ajustes"]) $(`aba-${x}`).hidden = x !== aba;
   lembrar("maquete.aba", aba);
 }
@@ -6940,13 +7543,13 @@ function abrirFiltros(aberto) {
   $("painelFiltros").hidden = !aberto;
   $("botaoFiltros").setAttribute("aria-expanded", String(aberto));
 }
-document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
+document.querySelectorAll("#painelFiltros [data-aba]").forEach((b) => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
 abrirAba(["mapa", "camadas", "ajustes"].includes(lembrar("maquete.aba")) ? lembrar("maquete.aba") : "mapa");
 $("botaoFiltros").addEventListener("click", () => abrirFiltros($("painelFiltros").hidden));
 for (const id of ["fecharFiltros", "prontoFiltros"]) $(id).addEventListener("click", () => abrirFiltros(false));
 addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("painelFiltros").hidden) abrirFiltros(false); });
 $("padrao").addEventListener("click", () => { // volta todas as camadas e textos ao que vem de fábrica
-  for (const c of Object.keys(CAMADAS)) CAMADAS[c] = true;
+  for (const c of Object.keys(CAMADAS)) CAMADAS[c] = c !== "arvores"; // de fábrica: tudo ligado, menos as árvores
   salvarCamadas(); aplicarVisual();
 });
 
@@ -7007,6 +7610,7 @@ const PERTO = (() => {
   const grupoPlantas = new THREE.Group(), grupoPostes = new THREE.Group(), grupoRelevo = new THREE.Group();
   grupoCidade.add(grupoPlantas); grupoReal.add(grupoPostes, grupoRelevo);
   const celulas = new Map(), ativas = new Map(), guardadas = new Map(), fila = [];
+  let arvoresMontadas = camadaLigada("arvores");
   const malhasToque = []; let timerAvaliar = null, trabalhando = false, densidade = 1, tarefaMaisLonga = 0; const TAREFAS_MS = {};
 
   /* ---- céu e névoa: com a câmera baixa a maquete vira paisagem; no alto continua sobre a mesa escura ---- */
@@ -7366,7 +7970,8 @@ const PERTO = (() => {
         postes.push({ x: px, z: pz, s: 1, giro: Math.atan2(dx * lado, dz * lado) + Math.PI / 2 });
       }
     }
-    [instancias(geoArvore, matPlanta, arvores, grupoPlantas), instancias(geoArbusto, matPlanta, arbustos, grupoPlantas), instancias(geoPoste, matPoste, postes, grupoPostes)].forEach((m) => m && malhas.push(m));
+    const comArvores = camadaLigada("arvores"); // desligadas: nem são montadas (mais leve)
+    [comArvores && instancias(geoArvore, matPlanta, arvores, grupoPlantas), comArvores && instancias(geoArbusto, matPlanta, arbustos, grupoPlantas), instancias(geoPoste, matPoste, postes, grupoPostes)].forEach((m) => m && malhas.push(m));
     const sa = { p: [], n: [], c: [] };
     for (const r of REGISTRO_PREDIOS) if (r.c[0] >= x0 && r.c[0] < x0 + LADO && r.c[1] >= z0 && r.c[1] < z0 + LADO) relevoDoPredio(r, sa);
     if (sa.p.length) {
@@ -7434,7 +8039,8 @@ const PERTO = (() => {
       if (camera.position.distanceToSquared(ultimaCamera) > 16 || controles.target.distanceToSquared(ultimoAlvo) > 16) { ultimaCamera.copy(camera.position); ultimoAlvo.copy(controles.target); agendar(); }
     },
     aplicar() {
-      grupoPlantas.visible = grupoPostes.visible = grupoRelevo.visible = camadaLigada("detalhes");
+      grupoPostes.visible = grupoRelevo.visible = camadaLigada("detalhes"); grupoPlantas.visible = camadaLigada("arvores");
+      if (camadaLigada("arvores") !== arvoresMontadas) { arvoresMontadas = camadaLigada("arvores"); for (const k of [...celulas.keys()]) soltarCelula(k); } // ligou ou desligou: as quadras são refeitas
       for (const [r, o] of ativas) if (o.corpo) o.corpo.visible = !!MALHAS_ESTRUTURAS[r.camada]?.visible;
       verFinos();
       agendar();
@@ -7855,6 +8461,17 @@ window.usina = { // usado nos testes automáticos
     naTela, paraXZ, voar: (x, z, t, ms = 1600) => voarPara([x, z], t, ms),
     limpar() { const antes = { ...CAMADAS }; TEXTOS.forEach((k) => { CAMADAS[k] = false; }); CAMADAS.contornos = false; aplicarVisual(); pedirDesenho(); return antes; },
     restaurar(c) { Object.assign(CAMADAS, c); aplicarVisual(); pedirDesenho(); },
+    area: (nome) => { const a = AREAS.find((x) => x.name === nome); return a && { i: a.i, nome: a.nome, centro: a.centro, tam: Math.sqrt(a.area), h: a.h * ESCALA_ALTURA() }; },
+    colorir: (lista, tinta) => colorirAreas(lista, tinta), // [{ cerca, cor }] ou null
+    clique: null, // plugin: função(nome da cerca) para o clique numa área do mapa
+    modo: (m) => (m ? definirModo(m) : estado.modo), // "navegacao" ou "analise"
+    mascara: () => focoTela.toDataURL(), // teste
+    foco: () => ({ liga: FOCO.liga.value, tinta: FOCO.tinta.value, base: FOCO_BASE?.itens.length || 0, caixa: FOCO.caixa.value.toArray().map((v) => +v.toFixed(5)), lado: focoTela.width }), // teste
+    abrirArea: (i) => selecionar(AREAS[i]),
+    resumo: () => ({ gerais: new Set(AREAS.map((a) => a.setor)).size, sub: AREAS.length, caminhoes: caminhoesVisiveis.length, visual: estado.visual, periodo: estado.periodo, replay: !!DIA_REPLAY, analise: !!ANALISE?.dias?.length }),
+    atendimento: () => AREAS.filter((a) => a.atend?.horas).map((a) => ({ i: a.i, nome: a.nome, setor: SETORES[a.setor].nome, horas: a.atend.horas, paradas: a.atend.paradas, cor: corAtendimento(a.atend.horas) })).sort((x, y) => y.horas - x.horas),
+    escalaAtendimento: () => ({ cores: ESCALA.slice(1), limites: LIMITES_ATEND }),
+    setores: () => ORDEM.map((s) => ({ s, nome: SETORES[s].nome, cor: SETORES[s].cor, ativo: estado.setoresAtivos.has(s), n: AREAS.filter((a) => a.setor === s).length })),
   },
   detalhe: PERTO.situacao,
   selecionar: (nome) => selecionar(AREAS.find((a) => a.name.includes(nome))),
