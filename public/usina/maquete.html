@@ -586,6 +586,13 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
 .an-mbarra{display:block;height:8px;border-radius:4px;background:rgba(255,255,255,.08);margin:6px 0 4px;overflow:hidden}.an-mbarra i{display:block;height:100%;border-radius:4px}
 .an-rk-m .an-rk-t b{font:600 13px "IBM Plex Mono",monospace;color:#fff}
 body.an-por-motivo .placa.pino{display:none!important}
+/* balão do "por motivo": cartão claro, linha fina até o chão da área e o losango no lugar (desenho do dono, 03/11/2026) */
+.placa.balao{flex-direction:column;align-items:flex-start;gap:2px;padding:6px 10px 7px 12px;border-radius:10px;background:#fff;color:#111827;border:1px solid #c9d0db;border-left:4px solid var(--c);box-shadow:0 8px 20px rgba(0,0,0,.35);overflow:visible}
+.placa.balao b{font:600 13px/1.2 Sora,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.placa.balao span{font:500 11.5px "IBM Plex Sans",sans-serif;color:#5b6473}.placa.balao em{font-style:normal;font-weight:700;color:#111827}
+.placa.balao::before{content:"";position:absolute;left:50%;top:100%;width:1.5px;height:var(--haste,40px);background:rgba(17,24,39,.85);transform:translateX(-50%)}
+.placa.balao::after{content:"";position:absolute;left:50%;top:calc(100% + var(--haste,40px));width:16px;height:16px;margin:-8px 0 0 -8px;background:var(--c);opacity:.9;border:1.5px solid #fff;border-radius:3px;transform:scaleY(.55) rotate(45deg)}
+.placa.balao:hover{background:#f3f6fa}.placa.balao.sel{outline:2px solid var(--c);outline-offset:1px}
 
 </style>
 
@@ -775,6 +782,23 @@ body.an-por-motivo .placa.pino{display:none!important}
   const contagem = (l, f = palavra) => ordem().map((s) => [s, l.filter((t) => t.sit === s).length]).filter(([, n]) => n).map(([s, n]) => `${n} ${f(s, n)}`).join(" · ");
   const barra = (l) => `<span class="col-barra">${ordem().map((s) => [s, l.filter((t) => t.sit === s).length]).filter(([, n]) => n).map(([s, n]) => `<i style="width:${(100 * n) / l.length}%;background:${cor(s)}"></i>`).join("")}</span>`;
   const fotosDe = (t) => [t.foto, ...(t.fotos || [])].filter(Boolean);
+  /* Fotos: no computador, o arquivo local (plugins/fotos-...); no site, o armazenamento privado (R2) pelo portal, que
+     confere o login (/api/usina/foto/<relatório>/<código>.jpg). Uma foto que não chega some sem quebrar nada. */
+  const ONLINE = location.protocol !== "file:";
+  const enderecoFoto = (f) => (ONLINE ? `/api/usina/foto/${plugin.id}/${String(f).split("/").pop().replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9-]/g, "")}.jpg` : f);
+  const fonte = (f) => (ONLINE ? `data-foto="${esc(enderecoFoto(f))}"` : `src="${esc(f)}"`);
+  async function tokenSGE() {
+    try { const S = window.top.SGE; if (S?.cliente) { const { data } = await S.cliente().auth.getSession(); if (data?.session?.access_token) return data.session.access_token; } } catch {}
+    try { for (const k of Object.keys(localStorage)) if (/^sb-.+-auth-token$/.test(k)) { const v = JSON.parse(localStorage.getItem(k)); const tk = v?.access_token || v?.currentSession?.access_token; if (tk) return tk; } } catch {}
+    return null;
+  }
+  const FOTOS_PRONTAS = new Map();
+  function fotoProtegida(u) {
+    let p = FOTOS_PRONTAS.get(u);
+    if (!p) { p = (async () => { const tk = await tokenSGE(), r = await fetch(u, { headers: tk ? { authorization: `Bearer ${tk}` } : {} }); if (!r.ok) throw new Error(String(r.status)); return URL.createObjectURL(await r.blob()); })(); FOTOS_PRONTAS.set(u, p); p.catch(() => FOTOS_PRONTAS.delete(u)); }
+    return p;
+  }
+  function carregarFotos(raiz) { if (ONLINE) raiz.querySelectorAll("img[data-foto]").forEach((img) => fotoProtegida(img.dataset.foto).then((u) => { img.src = u; }).catch(() => img.dispatchEvent(new Event("error")))); }
   function montarDados(p) { // lat/lng do arquivo viram pontos do mapa; cada plugin pode ter as próprias situações
     plugin = p; SIT = p.situacoes || CORES;
     T = p.pontos.map((q) => { const [x, z] = usina.palco.paraXZ([q.lat, q.lng]); return { cod: q.cod, prob: q.titulo, area: q.area || "Sem área", sit: q.sit, eq: q.responsavel || "", data: q.data || "", foto: q.foto, fotos: q.fotos, obs: q.obs || "", onde: q.onde || "", cerca: q.cerca || "", localizado: !!q.cerca && q.certeza !== "a identificar", x, z }; });
@@ -868,19 +892,19 @@ body.an-por-motivo .placa.pino{display:none!important}
       c.innerHTML = `<button type="button" class="pa-voltar" id="paVolta">${VOLTA}${esc(plugin.titulo)}</button><div class="pa-marca">${tela.cerca ? "Área da maquete" : "Local"}</div><h2>${esc(titulo)}</h2>
         <p class="pa-sub">${esc(contagem(l))}${tela.cerca ? ` · ${esc([...new Set(l.map((t) => t.area))].join(", "))}` : ondes.length ? `<br>No mapa: ${esc(ondes.join("; "))}` : ""}</p>
         ${l.map((t) => { const fs = fotosDe(t);
-          return `<button type="button" class="pa-it" data-t="${T.indexOf(t)}">${fs.length ? `<img class="pa-it-f" src="${esc(fs[0])}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'pa-it-f vazia'}))">` : '<span class="pa-it-f vazia"></span>'}
+          return `<button type="button" class="pa-it" data-t="${T.indexOf(t)}">${fs.length ? `<img class="pa-it-f" ${fonte(fs[0])} alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'pa-it-f vazia'}))">` : '<span class="pa-it-f vazia"></span>'}
             <span class="pa-it-t">${esc(t.prob)}</span><span class="pa-it-s" style="--c:${cor(t.sit)}"><i></i>${esc(SIT[t.sit]?.[0] || t.sit)} · ${esc(t.cod)}</span>${t.obs ? `<span class="pa-it-o">${esc(t.obs)}</span>` : ""}</button>`; }).join("")}`;
     }
     if (tela.nivel === "ponto") {
       const t = T[tela.i], L = visiveis(), n = L.indexOf(t), fs = fotosDe(t);
       c.innerHTML = `<button type="button" class="pa-voltar" id="paVoltaLocal">${VOLTA}${esc(t.area)}</button><span class="pa-selo" style="--c:${cor(t.sit)}">${esc(SIT[t.sit]?.[0] || t.sit)}</span><h2>${esc(t.prob)}</h2>
         <p class="pa-sub">${esc(t.cod)} · ${esc(t.area)}</p>
-        ${fs.length ? `<button type="button" class="pa-heroi" data-luz="0" aria-label="Ver a foto em tela cheia"><img src="${esc(fs[0])}" alt="Foto de ${esc(t.prob)}" onerror="this.closest('.pa-heroi').remove();document.querySelector('.pa-minis')?.remove()"><span>${fs.length > 1 ? `1 / ${fs.length}` : "Ampliar"}</span></button>` : ""}
-        ${fs.length > 1 ? `<div class="pa-minis">${fs.map((u, k) => `<button type="button" data-luz="${k}" aria-label="Foto ${k + 1} de ${fs.length}"><img src="${esc(u)}" alt="" loading="lazy" onerror="this.parentElement.remove()"></button>`).join("")}</div>` : ""}
+        ${fs.length ? `<button type="button" class="pa-heroi" data-luz="0" aria-label="Ver a foto em tela cheia"><img ${fonte(fs[0])} alt="Foto de ${esc(t.prob)}" onerror="this.closest('.pa-heroi').remove();document.querySelector('.pa-minis')?.remove()"><span>${fs.length > 1 ? `1 / ${fs.length}` : "Ampliar"}</span></button>` : ""}
+        ${fs.length > 1 ? `<div class="pa-minis">${fs.map((u, k) => `<button type="button" data-luz="${k}" aria-label="Foto ${k + 1} de ${fs.length}"><img ${fonte(u)} alt="" loading="lazy" onerror="this.parentElement.remove()"></button>`).join("")}</div>` : ""}
         <dl>${t.onde ? `<dt>No mapa</dt><dd>${esc(t.onde)}</dd>` : ""}${t.obs ? `<dt>Observação</dt><dd>${esc(t.obs)}</dd>` : ""}${t.eq ? `<dt>Responsável</dt><dd>${esc(t.eq)}</dd>` : ""}${t.data ? `<dt>Levantamento</dt><dd>${esc(t.data)}</dd>` : ""}</dl>
         <div class="pa-nav"><button type="button" id="paAnt">Anterior</button><button type="button" class="pr" id="paProx">Próximo</button><button type="button" id="paAuto">${rodando ? "Parar" : "Passar sozinho"}</button><span>${n + 1} de ${L.length}</span></div>`;
     }
-    c.scrollTop = 0;
+    c.scrollTop = 0; carregarFotos(c);
   }
   const atualizar = () => { coluna(); montarMarcas(); pintarAreas(); };
   function abrirLocal(a) { parar(); tela = { nivel: "area", a }; voarPara(visiveis().filter((t) => t.area === a), 760); coluna(); realcarMarcas(); }
@@ -913,7 +937,8 @@ body.an-por-motivo .placa.pino{display:none!important}
   function abrirLuz(t, k) { const fs = fotosDe(t); if (!fs.length) return; luz = { t, fs, k: Math.max(0, Math.min(k, fs.length - 1)) }; mostrarLuz(); $("paLuz").hidden = false; $("luzX").focus(); }
   function mostrarLuz() {
     const { t, fs, k } = luz;
-    $("luzImg").src = fs[k]; $("luzImg").alt = `Foto ${k + 1} de ${t.prob}`;
+    if (ONLINE) { $("luzImg").removeAttribute("src"); fotoProtegida(enderecoFoto(fs[k])).then((u) => { if (luz && luz.fs[luz.k] === fs[k]) $("luzImg").src = u; }).catch(() => {}); } else $("luzImg").src = fs[k];
+    $("luzImg").alt = `Foto ${k + 1} de ${t.prob}`;
     $("luzLeg").innerHTML = `${esc(t.prob)}<small>${esc(t.cod)} · ${esc(t.area)} · ${esc(SIT[t.sit]?.[0] || t.sit)}${fs.length > 1 ? ` · foto ${k + 1} de ${fs.length}` : ""}</small>`;
     for (const id of ["luzAnt", "luzProx"]) $(id).classList.toggle("sem", fs.length < 2);
   }
@@ -6846,7 +6871,20 @@ function atualizarPlacas() {
   let n = 0;
   // Análise: um pino por área com o nome (na cor do % produzindo) e a barra do porquê; as que têm mais horas ganham o lugar primeiro
   const maxT = maxTorre();
-  if (estado.visual === "analise") for (const r of RANK.filter((x) => x.area).sort((x, y) => y.total - x.total)) {
+  // por motivo (03/11/2026, pedido do dono): balão com uma linha até o chão da área, com as horas daquele motivo; os maiores primeiro
+  const mot = estado.visual === "analise" && an.motivo != null ? MOTIVOS().find((m) => m.g === an.motivo) : null;
+  const bordaPainel = innerWidth > 760 ? Math.max(0, ...["lista", "ficha", "anPainel", "paCol"].map((id) => { const e = $(id); if (!e) return 0; const q = e.getBoundingClientRect(); return getComputedStyle(e).visibility !== "hidden" && q.right > 0 && q.width > 0 && (id !== "ficha" || e.classList.contains("aberta")) && (id !== "anPainel" || e.classList.contains("aberta")) ? q.right : 0; })) : 0;
+  if (mot) for (const r of RANK.filter((x) => x.area && minDoMotivo(x, mot.g) > 0).sort((x, y) => minDoMotivo(y, mot.g) - minDoMotivo(x, mot.g)).slice(0, 15)) { // os 15 maiores
+    const a = r.area, sel = estado.selecionada === a, chaoP = naTela(a.centro[0], 1, a.centro[1]), topo = naTela(a.centro[0], 120, a.centro[1]);
+    if (!chaoP || !topo) continue;
+    const v = minDoMotivo(r, mot.g), w = Math.min(240, Math.max(160, 30 + a.nome.length * 7.6)), h = 44, x = topo[0] - w / 2, y = topo[1] - h;
+    if (x < bordaPainel + 4 || !cabe(x, y, w, h, sel)) continue; // nunca por baixo do painel
+    const el = placa(`m:${a.i}`, "placa balao", () => selecionarNaAnalise(a));
+    el.classList.toggle("sel", sel); el.style.width = `${w}px`; el.style.setProperty("--haste", `${Math.max(8, chaoP[1] - topo[1])}px`);
+    escrever(el, `<b>${esc(a.nome)}</b><span><em>${hm(v)}</em> · ${Math.round((100 * v) / r.total)}% do parado</span>`, mot.cor, x, y);
+    usadas.add(el);
+  }
+  if (estado.visual === "analise" && !mot) for (const r of RANK.filter((x) => x.area).sort((x, y) => y.total - x.total)) {
     const a = r.area, sel = estado.selecionada === a, p = naTela(a.centro[0], an.forma === "torres" ? alturaTorre(r, maxT) + 8 : 30, a.centro[1]); // nas torres o pino fica no topo
     if (!p) continue;
     const w = Math.min(190, Math.max(72, 28 + a.nome.length * 8.4)), h = 34;
@@ -7088,15 +7126,12 @@ function maiorPerda(r) {
 const minDoMotivo = (r, m) => r.itens.find((it) => it.g === m)?.min || 0;
 const MOTIVOS = () => [{ g: -1, nome: "Produzindo", cor: PRODUZ.cor }, ...GRUPOS_APONT.map((x, gi) => ({ g: gi, nome: x.nome, cor: gi === 4 ? "#8a6fd1" : x.cor }))]
   .filter((m) => RANK.some((r) => minDoMotivo(r, m.g) > 0));
-function pintarMotivo() {
+function pintarMotivo() { // por motivo: os dados vão em balões no mapa (atualizarPlacas), sem pintar as áreas
   const ativo = an.motivo != null && estado.visual === "analise";
   document.body.classList.toggle("an-por-motivo", ativo);
-  if (!ativo) { if (FOCO_BASE) colorirAreas(null); return; }
-  const m = MOTIVOS().find((x) => x.g === an.motivo); if (!m) { an.motivo = null; colorirAreas(null); return; }
-  const l = RANK.filter((r) => r.area && minDoMotivo(r, m.g) > 0), max = Math.max(1, ...l.map((r) => minDoMotivo(r, m.g))), escuro = new THREE.Color("#39414e");
-  // as maiores primeiro, para as pequenas (dentro delas) ficarem por cima; cor mais forte onde há mais horas daquele motivo
-  colorirAreas(l.sort((x, y) => y.area.area - x.area.area).map((r) => ({ cerca: r.area.name, cor: m.cor, alfa: 0.12 + 0.88 * (minDoMotivo(r, m.g) / max) })), 0.9); // cor pura; a força (alfa) é proporcional às horas
-  grupoTorres.visible = false;
+  if (FOCO_BASE) colorirAreas(null);
+  if (ativo) grupoTorres.visible = false;
+  atualizarPlacas(); pedirDesenho();
 }
 function listaPorMotivo() {
   const m = MOTIVOS().find((x) => x.g === an.motivo), l = RANK.filter((r) => minDoMotivo(r, m.g) > 0).sort((x, y) => minDoMotivo(y, m.g) - minDoMotivo(x, m.g));
@@ -7157,7 +7192,14 @@ function montarAnalise() {
     <details class="an-mais" ${an.filtrosAbertos ? "open" : ""}><summary>Filtros<span>${esc(resumoFiltros)}</span></summary><div class="an-mais-corpo"><div class="an-filtro"><small>No mapa</small>${forma}</div>${regime}${noCalculo}</div></details>
     <div class="an-lista">${lista}</div>${progFora ? `<p class="texto-leg">Programado na Parte Diária em local sem cerca: ${hm(progFora)}</p>` : ""}`;
   painel.querySelector(".an-mais")?.addEventListener("toggle", (e) => { an.filtrosAbertos = e.target.open; });
-  painel.querySelectorAll("[data-anmotivo]").forEach((b) => b.addEventListener("click", () => { an.motivo = b.dataset.anmotivo === "" ? null : +b.dataset.anmotivo; montarAnalise(); }));
+  painel.querySelectorAll("[data-anmotivo]").forEach((b) => b.addEventListener("click", () => {
+    an.motivo = b.dataset.anmotivo === "" ? null : +b.dataset.anmotivo; montarAnalise();
+    if (an.motivo == null) return;
+    const top = RANK.filter((r) => r.area && minDoMotivo(r, an.motivo) > 0).sort((x, y) => minDoMotivo(y, an.motivo) - minDoMotivo(x, an.motivo)).slice(0, 6).map((r) => r.area.centro);
+    if (!top.length) return; // a câmera enquadra as 6 áreas com mais horas daquele motivo
+    const xs = top.map((c) => c[0]), zs = top.map((c) => c[1]);
+    voarPara([(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2], THREE.MathUtils.clamp(Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)) * 1.5, 900, 5200), 1100);
+  }));
   pintarMotivo();
   ligarAnalise();
 }

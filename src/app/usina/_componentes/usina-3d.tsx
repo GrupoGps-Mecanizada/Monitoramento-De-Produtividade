@@ -34,5 +34,5 @@ export function Usina3D() {
 
   useEffect(enviar, [enviar]);
 
-  return <iframe ref={quadro} src={`${BASE}/usina/maquete.html`} title="Maquete 3D da usina com a frota ao vivo" allow="fullscreen" allowFullScreen className="w-full min-h-[70dvh] flex-1 border-0" />;
+  return <iframe ref={quadro} src={`${BASE}/usina/maquete.html`} title="Maquete 3D da usina com a frota ao vivo" allow="fullscreen" className="w-full min-h-[70dvh] flex-1 border-0" />;
 }
