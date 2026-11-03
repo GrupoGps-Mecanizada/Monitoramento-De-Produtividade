@@ -5,6 +5,8 @@ import { useRetrato } from "@/lib/dados/use-retrato";
 import { frotaParaMaquete } from "@/lib/dominio/usina-3d";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+/** muda a cada envio da maquete: o navegador não fica com a versão velha guardada (o site guarda arquivos por 10 min) */
+const VERSAO_MAQUETE = "2026-11-03-3";
 
 /**
  * Usina 3D: a maquete do projeto Usina Virtual (public/usina/maquete.html) dentro do sistema.
@@ -34,5 +36,5 @@ export function Usina3D() {
 
   useEffect(enviar, [enviar]);
 
-  return <iframe ref={quadro} src={`${BASE}/usina/maquete.html`} title="Maquete 3D da usina com a frota ao vivo" allow="fullscreen" className="w-full min-h-[70dvh] flex-1 border-0" />;
+  return <iframe ref={quadro} src={`${BASE}/usina/maquete.html?v=${VERSAO_MAQUETE}`} title="Maquete 3D da usina com a frota ao vivo" allow="fullscreen" className="w-full min-h-[70dvh] flex-1 border-0" />;
 }

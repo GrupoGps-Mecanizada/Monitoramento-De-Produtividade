@@ -6481,7 +6481,7 @@ function aplicarVisual() {
   PERTO.aplicar();
   $("anPainel").classList.toggle("aberta", estado.visual === "analise"); ajustarVista();
   $("painelLegenda").hidden = estado.visual !== "setores"; // legenda só nos Setores, onde ela serve de filtro (pedido do dono, 20/10)
-  if (estado.visual === "analise") { an.ativa = true; $("ficha").classList.remove("aberta"); montarAnalise(); }
+  if (estado.visual === "analise") { an.ativa = true; $("ficha").classList.remove("aberta"); if (innerWidth > 760) $("anPainel").classList.remove("recolhida", "cheia"); montarAnalise(); }
   else if (an.ativa) { an.ativa = false; grupoTorres.visible = false; an.aberta = null; an.motivo = null; document.body.classList.remove("an-por-motivo"); estado.selecionada = null; marcarBorda(null); focar(null); } // saiu da Análise: tira o destaque do ranking
   montarLegenda(); posicionarCaminhoes(); pintarTudo();
 }
@@ -7171,6 +7171,9 @@ function resumoAnalise() {
 }
 
 function montarAnalise() {
+  try { montarAnaliseDeVerdade(); } catch (e) { console.error("Análise:", e); $("analise").innerHTML = `<p class="texto-leg">Não consegui montar a Análise (${esc(e.message)}). Recarregue a página; se continuar, mande esta mensagem.</p>`; }
+}
+function montarAnaliseDeVerdade() {
   RANK = somarAnalise();
   const painel = $("analise");
   montarTorres();
