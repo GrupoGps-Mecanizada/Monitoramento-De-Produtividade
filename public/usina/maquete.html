@@ -745,7 +745,7 @@ body.an-por-motivo .placa.pino{display:none!important}
 <script defer src="maquete-dados/estruturas.js?v=e74333c2"></script>
 <script defer src="maquete-dados/chao.js?v=2886bd94"></script>
 <script defer src="maquete-dados/analise.js?v=8bfe8397"></script>
-<script defer src="maquete-dados/plugins.js?v=c2d30b81"></script>
+<script defer src="maquete-dados/plugins.js?v=577e968f"></script>
 <div class="pa" id="pa">
   <div class="pa-pinos pa-apres" id="paPinos"></div>
   <aside class="pa-col pa-apres" id="paCol" aria-label="Relatório"></aside>
@@ -813,7 +813,7 @@ body.an-por-motivo .placa.pino{display:none!important}
   }
   function montarDados(p) { // lat/lng do arquivo viram pontos do mapa; cada plugin pode ter as próprias situações
     plugin = p; SIT = p.situacoes || CORES;
-    T = p.pontos.map((q) => { const [x, z] = usina.palco.paraXZ([q.lat, q.lng]); return { cod: q.cod, prob: q.titulo, area: q.area || "Sem área", sit: q.sit, eq: q.responsavel || "", data: q.data || "", foto: q.foto, fotos: q.fotos, obs: q.obs || "", onde: q.onde || "", cerca: q.cerca || "", localizado: !!q.cerca && q.certeza !== "a identificar", x, z }; });
+    T = p.pontos.map((q) => { const [x, z] = usina.palco.paraXZ([q.lat, q.lng]); return { cod: q.cod, prob: q.titulo, area: q.area || "Sem área", sit: q.sit, eq: q.responsavel || "", data: q.data || "", foto: q.foto, fotos: q.fotos, obs: q.obs || "", material: q.material || "", onde: q.onde || "", cerca: q.cerca || "", localizado: !!q.cerca && q.certeza !== "a identificar", x, z }; });
     modoAreas = T.some((t) => t.cerca);
   }
   const visiveis = () => T.filter((t) => filtro === "todas" || t.sit === filtro);
@@ -905,7 +905,7 @@ body.an-por-motivo .placa.pino{display:none!important}
         <p class="pa-sub">${esc(contagem(l))}${tela.cerca ? ` · ${esc([...new Set(l.map((t) => t.area))].join(", "))}` : ondes.length ? `<br>No mapa: ${esc(ondes.join("; "))}` : ""}</p>
         ${l.map((t) => { const fs = fotosDe(t);
           return `<button type="button" class="pa-it" data-t="${T.indexOf(t)}">${fs.length ? `<img class="pa-it-f" ${fonte(fs[0])} alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'pa-it-f vazia'}))">` : '<span class="pa-it-f vazia"></span>'}
-            <span class="pa-it-t">${esc(t.prob)}</span><span class="pa-it-s" style="--c:${cor(t.sit)}"><i></i>${esc(SIT[t.sit]?.[0] || t.sit)} · ${esc(t.cod)}</span>${t.obs ? `<span class="pa-it-o">${esc(t.obs)}</span>` : ""}</button>`; }).join("")}`;
+            <span class="pa-it-t">${esc(t.prob)}</span><span class="pa-it-s" style="--c:${cor(t.sit)}"><i></i>${esc(SIT[t.sit]?.[0] || t.sit)} · ${esc(t.cod)}</span>${t.material ? `<span class="pa-it-o">Material: ${esc(t.material)}</span>` : ""}${t.obs ? `<span class="pa-it-o">${esc(t.obs)}</span>` : ""}</button>`; }).join("")}`;
     }
     if (tela.nivel === "ponto") {
       const t = T[tela.i], L = visiveis(), n = L.indexOf(t), fs = fotosDe(t);
@@ -913,7 +913,7 @@ body.an-por-motivo .placa.pino{display:none!important}
         <p class="pa-sub">${esc(t.cod)} · ${esc(t.area)}</p>
         ${fs.length ? `<button type="button" class="pa-heroi" data-luz="0" aria-label="Ver a foto em tela cheia"><img ${fonte(fs[0])} alt="Foto de ${esc(t.prob)}" onerror="this.closest('.pa-heroi').remove();document.querySelector('.pa-minis')?.remove()"><span>${fs.length > 1 ? `1 / ${fs.length}` : "Ampliar"}</span></button>` : ""}
         ${fs.length > 1 ? `<div class="pa-minis">${fs.map((u, k) => `<button type="button" data-luz="${k}" aria-label="Foto ${k + 1} de ${fs.length}"><img ${fonte(u)} alt="" loading="lazy" onerror="this.parentElement.remove()"></button>`).join("")}</div>` : ""}
-        <dl>${t.onde ? `<dt>No mapa</dt><dd>${esc(t.onde)}</dd>` : ""}${t.obs ? `<dt>Observação</dt><dd>${esc(t.obs)}</dd>` : ""}${t.eq ? `<dt>Responsável</dt><dd>${esc(t.eq)}</dd>` : ""}${t.data ? `<dt>Levantamento</dt><dd>${esc(t.data)}</dd>` : ""}</dl>
+        <dl>${t.onde ? `<dt>No mapa</dt><dd>${esc(t.onde)}</dd>` : ""}${t.material ? `<dt>Material</dt><dd>${esc(t.material)}</dd>` : ""}${t.obs ? `<dt>Observação</dt><dd>${esc(t.obs)}</dd>` : ""}${t.eq ? `<dt>Responsável</dt><dd>${esc(t.eq)}</dd>` : ""}${t.data ? `<dt>Levantamento</dt><dd>${esc(t.data)}</dd>` : ""}</dl>
         <div class="pa-nav"><button type="button" id="paAnt">Anterior</button><button type="button" class="pr" id="paProx">Próximo</button><button type="button" id="paAuto">${rodando ? "Parar" : "Passar sozinho"}</button><span>${n + 1} de ${L.length}</span></div>`;
     }
     c.scrollTop = 0; carregarFotos(c);
