@@ -594,6 +594,8 @@ body.an-por-motivo .placa.pino{display:none!important}
 .placa.balao::after{content:"";position:absolute;left:50%;top:calc(100% + var(--haste,40px));width:16px;height:16px;margin:-8px 0 0 -8px;background:var(--c);opacity:.9;border:1.5px solid #fff;border-radius:3px;transform:scaleY(.55) rotate(45deg)}
 .placa.balao:hover{background:#f3f6fa}.placa.balao.sel{outline:2px solid var(--c);outline-offset:1px}
 
+.pa-foto-aviso{margin:6px 0 14px;padding:14px 16px;border:1px dashed rgba(255,255,255,.25);border-radius:10px;font-size:14px;color:#c9d3df}
+
 </style>
 
 <canvas id="cena" tabindex="0" aria-label="Maquete 3D da usina, do aterro e do Poço Redondo, com os caminhões"></canvas>
@@ -795,10 +797,18 @@ body.an-por-motivo .placa.pino{display:none!important}
   const FOTOS_PRONTAS = new Map();
   function fotoProtegida(u) {
     let p = FOTOS_PRONTAS.get(u);
-    if (!p) { p = (async () => { const tk = await tokenSGE(), r = await fetch(u, { headers: tk ? { authorization: `Bearer ${tk}` } : {} }); if (!r.ok) throw new Error(String(r.status)); return URL.createObjectURL(await r.blob()); })(); FOTOS_PRONTAS.set(u, p); p.catch(() => FOTOS_PRONTAS.delete(u)); }
+    if (!p) { p = (async () => { const tk = await tokenSGE(); if (!tk) throw new Error("401"); let r; try { r = await fetch(u, { headers: { authorization: `Bearer ${tk}` } }); } catch { throw new Error("0"); } if (!r.ok) throw new Error(String(r.status)); return URL.createObjectURL(await r.blob()); })(); FOTOS_PRONTAS.set(u, p); p.catch(() => FOTOS_PRONTAS.delete(u)); }
     return p;
   }
-  function carregarFotos(raiz) { if (ONLINE) raiz.querySelectorAll("img[data-foto]").forEach((img) => fotoProtegida(img.dataset.foto).then((u) => { img.src = u; }).catch(() => img.dispatchEvent(new Event("error")))); }
+  const AVISO_FOTO = { 401: "Entre no SGE pelo Portal para ver as fotos", 404: "Foto ainda não enviada", 0: "Sem conexão com o armazenamento das fotos" };
+  function carregarFotos(raiz) { // no site: se a foto grande não vier, aparece o motivo no lugar dela
+    if (!ONLINE) return;
+    raiz.querySelectorAll("img[data-foto]").forEach((img) => fotoProtegida(img.dataset.foto).then((u) => { img.src = u; }).catch((e) => {
+      const st = +e.message || 0, heroi = img.closest(".pa-heroi");
+      if (heroi) { heroi.replaceWith(Object.assign(document.createElement("p"), { className: "pa-foto-aviso", textContent: AVISO_FOTO[st] || `Foto indisponível (erro ${st})` })); raiz.querySelector(".pa-minis")?.remove(); }
+      else if (img.isConnected) img.dispatchEvent(new Event("error"));
+    }));
+  }
   function montarDados(p) { // lat/lng do arquivo viram pontos do mapa; cada plugin pode ter as próprias situações
     plugin = p; SIT = p.situacoes || CORES;
     T = p.pontos.map((q) => { const [x, z] = usina.palco.paraXZ([q.lat, q.lng]); return { cod: q.cod, prob: q.titulo, area: q.area || "Sem área", sit: q.sit, eq: q.responsavel || "", data: q.data || "", foto: q.foto, fotos: q.fotos, obs: q.obs || "", onde: q.onde || "", cerca: q.cerca || "", localizado: !!q.cerca && q.certeza !== "a identificar", x, z }; });
