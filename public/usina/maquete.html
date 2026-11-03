@@ -507,7 +507,7 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
 <script defer src="maquete-dados/estruturas.js?v=e74333c2"></script>
 <script defer src="maquete-dados/chao.js?v=2886bd94"></script>
 <script defer src="maquete-dados/analise.js?v=8bfe8397"></script>
-<script defer src="maquete-dados/plugins.js?v=6b5a7e2b"></script>
+<script defer src="maquete-dados/plugins.js?v=fd53bf18"></script>
 <div class="pa" id="pa">
   <div class="pa-pinos pa-apres" id="paPinos"></div>
   <aside class="pa-col pa-apres" id="paCol" aria-label="Dados da apresentação"></aside>
@@ -528,10 +528,10 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const $ = (id) => document.getElementById(id), B = document.body;
   let T = [], filtro = "todas", tela = { nivel: "geral" }, pinos = [], rodando = null;
-  const foto = (t) => (t.foto ? `<img class="pa-foto" src="${esc(t.foto)}" alt="Foto de ${esc(t.cod)}">` : "");
+  const foto = (t) => [t.foto, ...(t.fotos || [])].filter(Boolean).map((f, k) => `<img class="pa-foto" src="${esc(f)}" alt="Foto ${k + 1} de ${esc(t.cod)}" loading="lazy" onerror="this.remove()">`).join(""); // foto que não carrega some
   function montarDados(p) { // lat/lng do arquivo viram pontos do mapa; cada plugin pode ter as próprias situações
     plugin = p; SIT = p.situacoes || CORES;
-    T = p.pontos.map((q) => { const [x, z] = usina.palco.paraXZ([q.lat, q.lng]); return { cod: q.cod, prob: q.titulo, area: q.area || "Sem área", sit: q.sit, eq: q.responsavel || "", data: q.data || "", foto: q.foto, x, z }; });
+    T = p.pontos.map((q) => { const [x, z] = usina.palco.paraXZ([q.lat, q.lng]); return { cod: q.cod, prob: q.titulo, area: q.area || "Sem área", sit: q.sit, eq: q.responsavel || "", data: q.data || "", foto: q.foto, fotos: q.fotos, obs: q.obs || "", onde: q.onde || "", x, z }; });
   }
   const visiveis = () => T.filter((t) => filtro === "todas" || t.sit === filtro);
   const areasDe = () => [...new Set(visiveis().map((t) => t.area))].map((a) => ({ a, l: visiveis().filter((t) => t.area === a) })).sort((x, y) => y.l.length - x.l.length);
@@ -545,8 +545,8 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
       <div class="pa-nav"><button class="pr" id="paTour">${rodando ? "Parar" : "Apresentar ponto a ponto"}</button></div>`;
     if (tela.nivel === "area") { const l = visiveis().filter((t) => t.area === tela.a); c.innerHTML = `<button class="pa-voltar" id="paVolta">Voltar ao resumo</button><h2>${esc(tela.a)}</h2><p class="pa-sub">${l.length} pontos</p>
       ${l.map((t) => `<button class="pa-ar" data-t="${T.indexOf(t)}"><span>${esc(t.cod)} · ${esc(t.prob)}<small>${SIT[t.sit][0]} · ${t.eq}</small></span></button>`).join("")}`; }
-    if (tela.nivel === "ponto") { const t = T[tela.i], s = SIT[t.sit], L = visiveis(), n = L.indexOf(t); c.innerHTML = `<button class="pa-voltar" id="paVolta">Voltar ao resumo</button><span class="pa-selo" style="--c:${s[1]}">${s[0]}</span><h2>${esc(t.prob)}</h2><p class="pa-sub" style="margin-bottom:10px">${esc(t.cod)}</p>${foto(t)}
-      <dl><dt>Área</dt><dd>${esc(t.area)}</dd><dt>Responsável</dt><dd>${t.eq}</dd><dt>Levantamento</dt><dd>${t.data}</dd></dl>
+    if (tela.nivel === "ponto") { const t = T[tela.i], s = SIT[t.sit], L = visiveis(), n = L.indexOf(t); c.innerHTML = `<button class="pa-voltar" id="paVolta">Voltar ao resumo</button><span class="pa-selo" style="--c:${s[1]}">${s[0]}</span><h2>${esc(t.prob)}</h2><p class="pa-sub" style="margin-bottom:10px">${esc(t.cod)}</p>
+      <dl><dt>Área</dt><dd>${esc(t.area)}</dd>${t.onde ? `<dt>No mapa</dt><dd>${esc(t.onde)}</dd>` : ""}${t.obs ? `<dt>Observação</dt><dd>${esc(t.obs)}</dd>` : ""}<dt>Responsável</dt><dd>${esc(t.eq)}</dd><dt>Levantamento</dt><dd>${esc(t.data)}</dd></dl><div style="margin-top:14px">${foto(t)}</div>
       <div class="pa-nav"><button id="paAnt">Anterior</button><button class="pr" id="paProx">Próximo</button><button id="paAuto">${rodando ? "Parar" : "Passar sozinho"}</button><span>${n + 1} de ${L.length}</span></div>`; }
   }
   function marcarPinos() {
