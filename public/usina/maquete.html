@@ -596,6 +596,8 @@ body.an-por-motivo .placa.pino{display:none!important}
 
 .pa-foto-aviso{margin:6px 0 14px;padding:14px 16px;border:1px dashed rgba(255,255,255,.25);border-radius:10px;font-size:14px;color:#c9d3df}
 
+@media (min-width:761px){#anPainel.recolhida{width:var(--col-larg)!important;bottom:0;padding:18px 24px 20px}#anPainel.recolhida .an-corpo{display:block!important}} /* Análise nunca fica vazia no computador */
+
 </style>
 
 <canvas id="cena" tabindex="0" aria-label="Maquete 3D da usina, do aterro e do Poço Redondo, com os caminhões"></canvas>
@@ -7273,7 +7275,8 @@ function ajustarVista() {
     ajustarVista();
   };
   const alternar = (classe) => { p.classList.toggle(classe); guardar(`usina-an-${classe}`, p.classList.contains(classe) ? "1" : "0"); marcar(); };
-  ["cheia", "recolhida"].forEach((c) => p.classList.toggle(c, guardar(`usina-an-${c}`) === "1"));
+  // 03/11/2026: no computador o painel fica na coluna (o trilho abre e fecha); o "recolhido" antigo guardado deixava a Análise vazia
+  if (innerWidth > 760) { ["cheia", "recolhida"].forEach((c) => guardar(`usina-an-${c}`, "0")); } else ["cheia", "recolhida"].forEach((c) => p.classList.toggle(c, guardar(`usina-an-${c}`) === "1"));
   larg.addEventListener("click", () => alternar("cheia"));
   rec.addEventListener("click", () => alternar("recolhida"));
   puxa.addEventListener("pointerdown", (e) => {
