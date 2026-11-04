@@ -125,6 +125,8 @@ h1{margin:4px 0 2px;font-family:var(--display);font-weight:600;font-size:clamp(2
 .escala-txt{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:5px}
 .texto-leg{font-size:12px;color:var(--muted);margin:0 0 4px}
 .dica small{display:block;font-size:11px;color:rgba(255,255,255,.72);margin-top:1px}
+.dica small.dg,.dica small.da{display:flex;align-items:center;gap:6px;min-width:220px}.dica small.dg{color:#fff;margin-top:5px}.dica small.da{padding-left:14px}
+.dica small.dg b,.dica small.da b{margin-left:auto;font-weight:600}.dica small.dg i{width:8px;height:8px;border-radius:2px;flex:none}
 .dica{position:fixed;pointer-events:none;background:rgba(19,32,47,.92);color:#fff;font-size:12px;padding:5px 9px;border-radius:7px;transform:translate(-50%,calc(-100% - 12px));white-space:nowrap;display:none;z-index:5}
 .carga{position:fixed;inset:0;z-index:8;display:grid;place-items:center;background:radial-gradient(120% 95% at 50% 38%,rgba(44,55,70,.94),rgba(13,17,23,.97));color:#fff;transition:opacity .9s var(--ease)}
 .carga.saiu{opacity:0;pointer-events:none}
@@ -6733,7 +6735,7 @@ function desenhar(agora) {
   resolucaoDoQuadro(interagindo || zoom.resto !== 0 || !!viagem || performance.now() - mexeuEm < 400);
   desenharCena();
   atualizarPlacas();
-  if (estado.selecionada || estado.caminhao) posicionarDica();
+  if ((estado.selecionada && estado.visual !== "analise") || estado.caminhao) posicionarDica(); // na Análise a dica segue o mouse mesmo com área aberta
 }
 function voar(alvo, pos, ms) {
   viagem = { alvo0: controles.target.clone(), alvo1: alvo, pos0: camera.position.clone(), pos1: pos, ms: reduzirMovimento ? 0 : ms, inicio: performance.now() };
@@ -6808,7 +6810,10 @@ function textoDaDica({ area, caminhao, predio, estrutura, chao, ponto }) { // id
     const a = area || (predio && areaSob(predio.c)), r = a && RANK.find((x) => x.area === a);
     if (r) {
       const m = an.motivo != null ? MOTIVOS().find((x) => x.g === an.motivo) : null, v = m ? minDoMotivo(r, m.g) : r.total;
-      return `<b>${esc(a.nome)}</b><small>${hm(v)} · ${m ? `${Math.round((100 * v) / r.total)}% do parado` : `${r.pct}% produzindo`}</small>`;
+      // os grupos e, em cada um, os 3 apontamentos com mais horas (pedido do dono, 04/11/2026)
+      const grupos = r.itens.map((g) => `<small class="dg"><i style="background:${corSolida(g)}"></i>${esc(g.nome)}<b>${hm(g.min)}</b></small>`
+        + (g.g < 0 ? "" : r.apont.filter((it) => it.g === g.g).sort((x, y) => y.min - x.min).slice(0, 3).map((it) => `<small class="da">${esc(it.nome)}<b>${hm(it.min)}</b></small>`).join(""))).join("");
+      return `<b>${esc(a.nome)}</b><small>${hm(v)} · ${m ? `${Math.round((100 * v) / r.total)}% do parado` : `${r.pct}% produzindo`}</small>${grupos}`;
     }
   }
   if (caminhao) return `<b>${esc(caminhao.nome)}</b><small>${ROTULO_SITUACAO[caminhao.situacao]}</small>`;
@@ -6837,11 +6842,12 @@ renderer.domElement.addEventListener("pointermove", (e) => {
     const novo = caminhao || sob.predio || sob.estrutura ? null : area || null;
     if (novo !== estado.hover) { const antes = estado.hover; estado.hover = novo; repintar(antes, novo); }
     realcarPredio(sob.predio || null);
-    const dica = $("dica"), texto = !estado.selecionada && !estado.caminhao ? textoDaDica(sob) : null;
+    const livre = estado.visual === "analise" || (!estado.selecionada && !estado.caminhao); // Análise: continua mostrando os apontamentos com a área aberta (04/11/2026)
+    const dica = $("dica"), texto = livre ? textoDaDica(sob) : null;
     if (texto) {
       if (dica.dataset.t !== texto) { dica.innerHTML = texto; dica.dataset.t = texto; }
       dica.style.left = `${ultimo.clientX}px`; dica.style.top = `${ultimo.clientY}px`; dica.style.display = "block";
-    } else if (!estado.selecionada && !estado.caminhao) dica.style.display = "none";
+    } else if (livre) dica.style.display = "none";
     renderer.domElement.style.cursor = area || caminhao ? "pointer" : "grab";
   });
 });

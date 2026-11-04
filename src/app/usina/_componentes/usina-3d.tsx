@@ -6,7 +6,7 @@ import { frotaParaMaquete } from "@/lib/dominio/usina-3d";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 /** muda a cada envio da maquete: o navegador não fica com a versão velha guardada (o site guarda arquivos por 10 min) */
-const VERSAO_MAQUETE = "2026-11-04-1";
+const VERSAO_MAQUETE = "2026-11-04-2";
 
 /**
  * Usina 3D: a maquete do projeto Usina Virtual (public/usina/maquete.html) dentro do sistema.
