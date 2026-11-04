@@ -292,7 +292,7 @@ body:has(#ficha.aberta) #lista,body:has(#anPainel.aberta) #lista{visibility:hidd
 body:not(.em-apres) .pa-apres{display:none!important}
 body.em-apres.neutra #cena{filter:saturate(.28) brightness(.98) contrast(.96)}
 /* modo foco: com uma área aberta, os nomes das outras áreas apagam junto com a maquete */
-body.em-foco .placa:not(.foco-sel):not(.caminhao){opacity:.35}
+body.em-foco .placa:not(.foco-sel):not(.caminhao):not(.balao){opacity:.35} /* bandeiras da Análise nunca escurecem (04/11/2026) */
 
 /* cabeçalho da coluna: marca, título grande, contagem e abas de texto */
 #lista header.col-topo{display:block;position:relative;padding:0;border:0;font:inherit;text-transform:none;letter-spacing:0;color:inherit;flex:none}
@@ -559,9 +559,9 @@ body.modo-drone #cena{cursor:grab}body.modo-drone #cena:active{cursor:grabbing}
 #anPainel .an-corpo,#ficha,#rolagem,#colRelatorios,#colAnalises,.pa-col{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent}
 #anPainel .an-corpo::-webkit-scrollbar{width:8px}#anPainel .an-corpo::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:4px}
 #anPainel .eyebrow{font:500 11px "IBM Plex Mono",monospace;letter-spacing:.16em;color:var(--col-realce)}
-#anPainel .an-corpo>h2{font:600 30px/1.08 Sora,sans-serif;letter-spacing:-.02em;margin:8px 0 10px}
-.an-frase{margin:0 0 18px;font-size:16px;line-height:1.4;color:#fff}.an-frase b{font:600 34px/1 Sora,sans-serif;margin-right:6px;vertical-align:-3px}
-.an-frase span{display:block;margin-top:6px;font-size:13px;color:var(--col-suave)}
+#anPainel .an-corpo>h2{font:600 16px/1.2 Sora,sans-serif;letter-spacing:-.01em;margin:4px 0 8px}
+.an-frase{margin:0 0 12px;font-size:13px;line-height:1.4;color:#fff}.an-frase b{font:600 24px/1 Sora,sans-serif;margin-right:6px;vertical-align:-2px}
+.an-frase span{display:block;margin-top:4px;font-size:12px;color:var(--col-suave)}
 .an-linha-ctrl{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px}
 .an-linha-ctrl .an-dia{margin:0;gap:6px;font-size:13px;color:#fff}.an-linha-ctrl .an-dia em{display:none}
 .an-linha-ctrl .an-dia .btn{padding:3px 9px}
@@ -592,11 +592,31 @@ body.an-por-motivo .placa.pino{display:none!important}
 .placa.balao span{font:500 11.5px "IBM Plex Sans",sans-serif;color:#5b6473}.placa.balao em{font-style:normal;font-weight:700;color:#111827}
 .placa.balao::before{content:"";position:absolute;left:var(--haste-x,50%);top:100%;width:1.5px;height:var(--haste,40px);background:rgba(17,24,39,.85);transform:translateX(-50%)}
 .placa.balao::after{content:"";position:absolute;left:var(--haste-x,50%);top:calc(100% + var(--haste,40px));width:16px;height:16px;margin:-8px 0 0 -8px;background:var(--c);opacity:.9;border:1.5px solid #fff;border-radius:3px;transform:scaleY(.55) rotate(45deg)}
-.placa.balao:hover{background:#f3f6fa}.placa.balao.sel{outline:2px solid var(--c);outline-offset:1px}
+.placa.balao:hover{background:#f8fafc}.placa.balao.sel{background:#fff;outline:2px solid #2563eb;outline-offset:1px}
+.placa.balao.com-barra .an-barra{width:100%;height:5px;border-radius:3px;margin-top:3px;background:#e5e7eb}
 
 .pa-foto-aviso{margin:6px 0 14px;padding:14px 16px;border:1px dashed rgba(255,255,255,.25);border-radius:10px;font-size:14px;color:#c9d3df}
 
 @media (min-width:761px){#anPainel.recolhida{width:var(--col-larg)!important;bottom:0;padding:18px 24px 20px}#anPainel.recolhida .an-corpo{display:block!important}} /* Análise nunca fica vazia no computador */
+
+/* Análise no modelo 8 do portfólio (04/11/2026, escolha do dono): cartão pequeno no canto; filtros em linhas que abrem */
+.an-dds{margin:0 0 10px;border-bottom:1px solid var(--col-linha)}
+.an-dd{border-top:1px solid var(--col-linha)}
+.an-dd>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 2px;font:500 13px "IBM Plex Sans",sans-serif;color:var(--col-suave)}
+.an-dd>summary::-webkit-details-marker{display:none}
+.an-dd>summary:hover{color:#fff}
+.an-dd>summary span{color:#fff;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.an-dd>summary span::after{content:"";display:inline-block;width:5px;height:5px;margin:0 3px 3px 9px;border-right:1.5px solid var(--col-suave);border-bottom:1.5px solid var(--col-suave);transform:rotate(45deg)}
+.an-dd[open]>summary span::after{transform:rotate(-135deg);margin-bottom:-1px}
+.an-dd-corpo{padding:2px 0 10px}.an-dd-corpo .an-motivos,.an-dd-corpo .an-filtro{margin:0}
+.an-ver-areas{all:unset;box-sizing:border-box;cursor:pointer;display:block;width:100%;text-align:center;margin:4px 0 2px;padding:8px;border-radius:8px;background:var(--col-campo);font:500 13px "IBM Plex Sans",sans-serif;color:#fff}
+.an-ver-areas:hover{background:rgba(255,255,255,.12)}
+@media (min-width:761px){
+  #anPainel.cartao{bottom:auto!important;width:300px!important;max-height:calc(100vh - 16px)!important;display:flex;flex-direction:column;overflow:hidden;border-radius:0 0 14px 0;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:14px}
+}
+.placa.an-ponto{width:12px;height:12px;padding:0;border-radius:50%;background:var(--c);border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.5);cursor:pointer}
+.placa.an-ponto:hover{transform-origin:center;outline:2px solid #fff}
+.an-ocultas{margin:0 0 8px;font-size:12px;color:var(--col-suave)}.an-ocultas:empty{display:none}
 
 </style>
 
@@ -5592,7 +5612,8 @@ const NOME_SOLO = Object.fromEntries(SOLO.map((s) => [s.id, s.nome]));
 const LEGENDA_SOLO = SOLO_VETOR ? [["concreto"], ...SOLO_VETOR.classes.map((k) => [k])].map(([k]) => [COR_SOLO[k], NOME_SOLO[k]]) : [];
 const CHAO = { modo: "detalhado", malha: null, topos: null };
 try { CHAO.modo = localStorage.getItem("usina-chao") || "detalhado"; } catch {}
-const chaoDetalhado = () => !!SOLO_VETOR && (estado.visual === "cidade" || estado.visual === "analise") && CHAO.modo === "detalhado"; // a Análise usa o mesmo chão da Cidade (pedido do dono, 03/11/2026)
+// a Análise voltou ao chão branco liso, sem o verde (pedido do dono, 04/11/2026); o detalhado fica só na Cidade
+const chaoDetalhado = () => !!SOLO_VETOR && estado.visual === "cidade" && CHAO.modo === "detalhado";
 const grupoChao = new THREE.Group();
 grupoChao.visible = false; cena.add(grupoChao);
 
@@ -6361,7 +6382,8 @@ function atualizarInstancias() {
 }
 
 function posicionarCaminhoes() {
-  caminhoesVisiveis = estado.frota === "nenhum" ? [] : CAMINHOES.filter((c) =>
+  // na Análise de paradas os caminhões somem (04/11/2026, pedido do dono)
+  caminhoesVisiveis = estado.frota === "nenhum" || estado.visual === "analise" ? [] : CAMINHOES.filter((c) =>
     (estado.frota === "todos" || c.ativa) && (estado.periodo === "replay" ? c.rota : c.peca));
   CAMINHOES.forEach((c) => { if (!caminhoesVisiveis.includes(c)) c.anim = null; });
   atualizarInstancias(); desenharRastros();
@@ -6756,8 +6778,10 @@ function oQueEstaSob(x, y) {
   ponteiro.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
   raio.setFromCamera(ponteiro, camera);
   const predios = [...PAREDES_PREDIOS, telhadoCidade, ...TELHADOS_FOTO].filter(visivel), estruturas = [...Object.values(MALHAS_ESTRUTURAS), ...(typeof PECAS_MOVEIS === "undefined" ? [] : PECAS_MOVEIS), ...PERTO.malhas].filter(visivel);
-  const h = raio.intersectObjects([...Object.values(CORPOS), blocos, ...predios, ...estruturas, ...PECAS.map((p) => p.chao)], false)[0];
+  const torres = grupoTorres.visible ? grupoTorres.children : []; // Torres da Análise: tocar ou passar o mouse mostra a área dela
+  const h = raio.intersectObjects([...Object.values(CORPOS), blocos, ...predios, ...estruturas, ...PECAS.map((p) => p.chao), ...torres], false)[0];
   if (!h) return {};
+  if (h.object.userData.areaTorre) return { area: h.object.userData.areaTorre, ponto: [h.point.x, h.point.z] };
   const tipo = Object.keys(CORPOS).find((t) => CORPOS[t] === h.object);
   if (tipo) return { caminhao: caminhoesPorCorpo[tipo][h.instanceId] };
   const ponto = [h.point.x, h.point.z];
@@ -6780,6 +6804,13 @@ function realcarPredio(r) {
 }
 const metros = (n) => Math.round(n).toLocaleString("pt-BR");
 function textoDaDica({ area, caminhao, predio, estrutura, chao, ponto }) { // identificação de cada elemento sob o mouse
+  if (estado.visual === "analise") { // Análise: o nome da área com as horas (nas Torres é o único lugar onde os dados aparecem no mapa)
+    const a = area || (predio && areaSob(predio.c)), r = a && RANK.find((x) => x.area === a);
+    if (r) {
+      const m = an.motivo != null ? MOTIVOS().find((x) => x.g === an.motivo) : null, v = m ? minDoMotivo(r, m.g) : r.total;
+      return `<b>${esc(a.nome)}</b><small>${hm(v)} · ${m ? `${Math.round((100 * v) / r.total)}% do parado` : `${r.pct}% produzindo`}</small>`;
+    }
+  }
   if (caminhao) return `<b>${esc(caminhao.nome)}</b><small>${ROTULO_SITUACAO[caminhao.situacao]}</small>`;
   if (estrutura) return textoDaEstrutura(estrutura);
   const foto = estado.visual === "real" || ehCidade();
@@ -6885,31 +6916,46 @@ function atualizarPlacas() {
   const maxT = maxTorre();
   // por motivo (03/11/2026, pedido do dono): balão com uma linha até o chão da área, com as horas daquele motivo; os maiores primeiro
   const mot = estado.visual === "analise" && an.motivo != null ? MOTIVOS().find((m) => m.g === an.motivo) : null;
-  const bordaPainel = innerWidth > 760 ? Math.max(0, ...["lista", "ficha", "anPainel", "paCol"].map((id) => { const e = $(id); if (!e) return 0; const q = e.getBoundingClientRect(); return getComputedStyle(e).visibility !== "hidden" && q.right > 0 && q.width > 0 && (id !== "ficha" || e.classList.contains("aberta")) && (id !== "anPainel" || e.classList.contains("aberta")) ? q.right : 0; })) : 0;
-  if (mot) { // balão a uma distância fixa na tela (não some com o zoom); os que se encostam sobem, a linha estica até o chão
-    const postos = [];
-    for (const r of RANK.filter((x) => x.area && minDoMotivo(x, mot.g) > 0).sort((x, y) => minDoMotivo(y, mot.g) - minDoMotivo(x, mot.g)).slice(0, 15)) {
+  const bordaPainel = innerWidth > 760 ? Math.max(0, ...["lista", "ficha", "anPainel", "paCol"].map((id) => { const e = $(id); if (!e) return 0; const q = e.getBoundingClientRect(); return getComputedStyle(e).visibility !== "hidden" && q.right > 0 && q.width > 0 && (id !== "ficha" || e.classList.contains("aberta")) && (id !== "anPainel" || (e.classList.contains("aberta") && !e.classList.contains("cartao"))) ? q.right : 0; })) : 0;
+  // bandeiras (modelo 4 do portfólio, 04/11/2026): todas as áreas com todos os status (ou as horas do motivo escolhido), cada uma
+  // sobre o seu lugar a uma distância fixa na tela; as que se encostam sobem um degrau e a haste estica até o losango no chão
+  const pn = $("anPainel"), card = pn?.classList.contains("aberta") && pn.classList.contains("cartao") && innerWidth > 760 ? pn.getBoundingClientRect() : null;
+  if (estado.visual === "analise") {
+    // Torres (padrão) ou Bandeiras, nunca as duas juntas (04/11/2026, regra do dono). Bandeiras como as árvores: só aparece a que cabe
+    // no seu lugar (no máximo um degrau acima); as outras viram um ponto no chão e ganham a bandeira ao aproximar o mapa
+    const esq = Math.max(bordaPainel, document.querySelector(".trilho")?.getBoundingClientRect().right || 0), dir = innerWidth - 56; // trilho de ícones e barra da direita
+    const torres = an.forma === "torres", valor = (r) => (mot ? minDoMotivo(r, mot.g) : r.total), postos = [], pontos = [];
+    const bateEm = (x, y, w, h) => (card && x < card.right + 6 && y < card.bottom + 6) || postos.some((c) => x < c.x + c.w + 6 && x + w + 6 > c.x && y < c.y + c.h + 6 && y + h + 6 > c.y);
+    const ordem = RANK.filter((x) => x.area && valor(x) > 0).sort((x, y) => (y.area === estado.selecionada) - (x.area === estado.selecionada) || valor(y) - valor(x));
+    // regra do dono (04/11/2026): nunca misturar. Torres = só torres (dados ao passar o mouse); Bandeiras = só bandeiras
+    if (!torres) for (const r of ordem) {
       const a = r.area, sel = estado.selecionada === a, chaoP = naTela(a.centro[0], 1, a.centro[1]);
-      if (!chaoP || chaoP[0] < bordaPainel + 20 || chaoP[0] > innerWidth || chaoP[1] < 0 || chaoP[1] > innerHeight + 40) continue;
-      const v = minDoMotivo(r, mot.g), w = Math.min(240, Math.max(160, 30 + a.nome.length * 7.6)), h = 44, x = Math.max(bordaPainel + 6, chaoP[0] - w / 2);
-      let y = chaoP[1] - 64 - h;
-      for (let k = 0; k < 14; k++) { const bate = postos.find((c) => x < c.x + c.w + 6 && x + w + 6 > c.x && y < c.y + c.h + 6 && y + h + 6 > c.y); if (!bate) break; y = bate.y - h - 8; }
+      if (!chaoP || chaoP[0] < esq + 20 || chaoP[0] > dir - 10 || chaoP[1] < 0 || chaoP[1] > innerHeight + 40) continue;
+      if (card && chaoP[0] < card.right + 20 && chaoP[1] < card.bottom + 20) continue; // lugar por baixo do cartão da Análise
+      const v = valor(r), w = Math.min(240, Math.max(170, 30 + a.nome.length * 7.6)), h = mot ? 44 : 54, cor = mot ? mot.cor : `#${corPct(r.pct).getHexString()}`;
+      const x = Math.min(dir - w - 6, Math.max(esq + 6, chaoP[0] - w / 2)), base = chaoP[1] - 64 - h;
+      const y = [base, base - h - 10].find((yy) => !bateEm(x, yy, w, h)) ?? (sel ? base : null);
+      if (y == null) { pontos.push({ a, chaoP, cor }); continue; }
       postos.push({ x, y, w, h });
       const el = placa(`m:${a.i}`, "placa balao", () => selecionarNaAnalise(a));
-      el.classList.toggle("sel", sel); el.style.width = `${w}px`; el.style.zIndex = String(100 - postos.length); el.style.setProperty("--haste", `${Math.max(8, chaoP[1] - (y + h))}px`); // quem subiu fica por trás: a linha não cruza o texto dos outros el.style.setProperty("--haste-x", `${chaoP[0] - x}px`);
-      escrever(el, `<b>${esc(a.nome)}</b><span><em>${hm(v)}</em> · ${Math.round((100 * v) / r.total)}% do parado</span>`, mot.cor, x, y);
+      el.classList.toggle("sel", sel); el.classList.toggle("com-barra", !mot); el.style.width = `${w}px`;
+      el.style.zIndex = String(sel ? 400 : 100 + Math.round(Math.max(0, y) / 4)); // a de baixo fica na frente: a haste de quem está acima não cruza o texto
+      el.style.setProperty("--haste", `${Math.max(8, chaoP[1] - (y + h))}px`);
+      el.style.setProperty("--haste-x", `${chaoP[0] - x}px`);
+      escrever(el, mot ? `<b>${esc(a.nome)}</b><span><em>${hm(v)}</em> · ${Math.round((100 * v) / r.total)}% do parado</span>`
+        : `<b>${esc(a.nome)}</b><span><em>${hm(v)}</em> · ${r.pct}% produzindo</span>${barraMotivos(r.itens, r.total)}`, cor, x, y);
       usadas.add(el);
     }
-  }
-  if (estado.visual === "analise" && !mot) for (const r of RANK.filter((x) => x.area).sort((x, y) => y.total - x.total)) {
-    const a = r.area, sel = estado.selecionada === a, p = naTela(a.centro[0], an.forma === "torres" ? alturaTorre(r, maxT) + 8 : 30, a.centro[1]); // nas torres o pino fica no topo
-    if (!p) continue;
-    const w = Math.min(190, Math.max(72, 28 + a.nome.length * 8.4)), h = 34;
-    if (!cabe(p[0] - w / 2, p[1] - h - 6, w, h, sel)) continue;
-    const el = placa(`p:${a.i}`, "placa pino", () => selecionarNaAnalise(a));
-    el.classList.toggle("sel", sel); el.style.width = `${w}px`;
-    escrever(el, `<b title="${r.pct}% produzindo">${esc(a.nome)}</b>${barraMotivos(r.itens, r.total)}`, `#${corPct(r.pct).getHexString()}`, p[0] - w / 2, p[1] - h - 6);
-    usadas.add(el);
+    let soPonto = 0;
+    for (const { a, chaoP, cor } of pontos) { // ponto no chão: toque abre a área; ao aproximar, vira bandeira
+      if (bateEm(chaoP[0] - 7, chaoP[1] - 7, 14, 14)) { soPonto++; continue; }
+      postos.push({ x: chaoP[0] - 7, y: chaoP[1] - 7, w: 14, h: 14 }); soPonto++;
+      const el = placa(`q:${a.i}`, "placa an-ponto", () => selecionarNaAnalise(a));
+      el.title = a.nome; escrever(el, "", cor, chaoP[0] - 6, chaoP[1] - 6); el.style.zIndex = "90";
+      usadas.add(el);
+    }
+    const aviso = $("anOcultas");
+    if (aviso) { const t = torres ? "Passe o mouse numa torre para ver a área e as horas" : soPonto ? `Mais ${soPonto} ${soPonto === 1 ? "área" : "áreas"} no mapa: aproxime para ver as bandeiras` : ""; if (aviso.textContent !== t) aviso.textContent = t; }
   }
   if ((ehCidade() || estado.visual === "real") && camadaLigada("nomesEstruturas")) for (const r of ESTRUTURAS_COM_PLACA) { // altos-fornos, gasômetros...
     if (!MALHAS_ESTRUTURAS[r.camada]?.visible || camera.position.distanceTo(vPlaca.set(r.xz[0], r.h, r.xz[1])) > 3500) continue;
@@ -7032,39 +7078,40 @@ function abrirFicha(eyebrow, nome, linhas) {
 
 // uma visão só, em 5 grupos (pedido do dono, 20/10/2026). Não existe apontamento "trabalhando": o produzindo vem do motor
 // (bomba / parado ligado, conforme o tipo); o resto do tempo vai para o grupo do apontamento do tablet.
-const PRODUZ = { k: "__p", nome: "Produzindo", cor: "#3f9d6b" };
+const PRODUZ = { k: "__p", nome: "Produtivo", cor: "#3f9d6b" }; // vem do motor (bomba ou parado ligado)
 const SEM_APONT = "Sem apontamento";
 const LISTRA = "repeating-linear-gradient(45deg,#8a6fd1 0 3px,#c3b4ec 3px 6px)";
 const PALETA = ["#e0a23a", "#4f7cc9", "#d4564a", "#9aa3ad", "#2aa3a3", "#c76bb0", "#8c6d3f", "#5c6bc0", "#b5c23a", "#e07a5f", "#3d8b8b", "#a0522d", "#6d9e3f", "#d98cb3", "#7f8c9a"];
 const corNome = (s) => PALETA[[...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % PALETA.length];
-// grupos dos apontamentos (tabela aprovada pelo dono em 20/10/2026); cada apontamento é um tom da cor do grupo
+// 3 tópicos para a gestão (decisão do dono de 30/10/2026, aplicada na maquete em 04/11/2026): Produtivo (vem do motor),
+// Improdutivo que agrega valor e Improdutivo que não agrega valor. Todo apontamento cai num dos dois grupos; o parado sem
+// apontamento e qualquer apontamento novo fora da tabela contam como "não agrega valor". Cada apontamento é um tom da cor do grupo.
 const GRUPOS_APONT = [
-  { k: "n", nome: "Improdutivo necessário", cor: "#4f7cc9", nomes: ["Refeição Motorista", "Inicio de turno", "DDS/Check-List - LM", "Abordagem de Segurança",
-    "Abastecimento (Água) - LM", "Abastecimento (Combustível)", "Descarregando equipamento", "Preparação - LM", "Pequenas manutenções", "Condições Climáticas (chuva, etc)",
-    "Pausas Diversas (água, banheiro)"] },
-  { k: "a", nome: "Improdutivo por conta da área", cor: "#e0a23a", nomes: ["Aguardando Área", "Aguardando semáforo/cancela", "Aguardando Auto Vácuo descarregar", "Aguardando carreta bascular", "Bloqueio - LM"] },
-  { k: "e", nome: "Improdutivo por conta da equipe", cor: "#d4564a", nomes: ["Troca de Equipamento", "Documentação"] },
-  { k: "o", nome: "Sem grupo", cor: "#7f8c9a", nomes: [] },
-  { k: "s", nome: "Parado sem apontamento", cor: "#8a6fd1", nomes: [] },
+  { k: "v", nome: "Improdutivo que agrega valor", cor: "#4f7cc9", nomes: ["Descarregando equipamento", "Abastecimento (Água) - LM", "Abastecimento (Combustível)",
+    "Preparação - LM", "Refeição Motorista", "Lanche motorista", "Inicio de turno", "DDS/Check-List - LM", "Abordagem de Segurança", "Pausas Diversas (água, banheiro)"] },
+  { k: "x", nome: "Improdutivo que não agrega valor", cor: "#d4564a", nomes: ["Aguardando Área", "Bloqueio - LM", "Aguardando Auto Vácuo descarregar",
+    "Aguardando semáforo/cancela", "Aguardando carreta bascular", "Condições Climáticas (chuva, etc)", "Documentação", "Pequenas manutenções",
+    "Troca de Equipamento", "Falta de Acessório"] },
 ];
+const G_NAO = 1; // grupo "não agrega valor": recebe o parado sem apontamento e o que não está na tabela
 const normA = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
 const GRUPO_DO = new Map(GRUPOS_APONT.flatMap((g, gi) => g.nomes.map((n, i) => [normA(n), { gi, i }])));
 const tom = (base, i, n) => `#${new THREE.Color(base).lerp(new THREE.Color("#ffffff"), (0.55 * i) / Math.max(1, n)).getHexString()}`;
 /** Cor do grupo gi (o "parado sem apontamento" é a listra roxa). */
-const corG = (gi) => (gi === 4 ? LISTRA : GRUPOS_APONT[gi].cor);
+const corG = (gi) => GRUPOS_APONT[gi].cor;
 /** Grupo de um apontamento: índice em GRUPOS_APONT (fora da tabela = "Sem grupo"). */
-const grupoDe = (k) => (k === SEM_APONT ? 4 : GRUPO_DO.get(normA(k))?.gi ?? 3);
+const grupoDe = (k) => (k === SEM_APONT ? G_NAO : GRUPO_DO.get(normA(k))?.gi ?? G_NAO);
 /** Apontamento com nome, cor (tom da cor do grupo) e grupo. */
 function item(k) {
-  if (k === SEM_APONT) return { k, nome: k, cor: LISTRA, g: 4 };
+  if (k === SEM_APONT) return { k, nome: k, cor: LISTRA, g: G_NAO };
   const x = GRUPO_DO.get(normA(k));
-  return x ? { k, nome: k, cor: tom(GRUPOS_APONT[x.gi].cor, x.i, GRUPOS_APONT[x.gi].nomes.length), g: x.gi } : { k, nome: k, cor: corNome(k), g: 3 };
+  return x ? { k, nome: k, cor: tom(GRUPOS_APONT[x.gi].cor, x.i, GRUPOS_APONT[x.gi].nomes.length), g: x.gi } : { k, nome: k, cor: corNome(k), g: G_NAO };
 }
 const corSolida = (it) => (it.cor === LISTRA ? "#8a6fd1" : it.cor);
 const AREA_DA_CHAVE = new Map(AREAS.map((a) => [chave(a.name), a]));
 // abre no último dia de trabalho fechado (o de hoje só fecha às 06:40 de amanhã)
 const DIA_ABERTO = new Date(Date.now() - (6 * 60 + 40) * 6e4 - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
-const an = { modo: "dia", i: ANALISE ? Math.max(0, ANALISE.dias.length - (ANALISE.dias.at(-1) >= DIA_ABERTO ? 2 : 1)) : 0, aberta: null, ativa: false, forma: "pinos", fora: new Set(), regime: "" }; // fora: grupos tirados da conta (índice); regime: "" = todos
+const an = { modo: "dia", i: ANALISE ? Math.max(0, ANALISE.dias.length - (ANALISE.dias.at(-1) >= DIA_ABERTO ? 2 : 1)) : 0, aberta: null, ativa: false, forma: "torres", fora: new Set(), regime: "" }; // fora: grupos tirados da conta (índice); regime: "" = todos
 const corPct = (p) => {
   const t = THREE.MathUtils.clamp((p - 30) / 55, 0, 1);
   return t < 0.5 ? new THREE.Color("#d4564a").lerp(new THREE.Color("#e0a23a"), t * 2) : new THREE.Color("#e0a23a").lerp(new THREE.Color("#3f9d6b"), (t - 0.5) * 2);
@@ -7107,8 +7154,10 @@ const grupoTorres = new THREE.Group(); grupoTorres.visible = false; cena.add(gru
 const geoTorre = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
 const MATS_TORRE = new Map(); // um material por cor
 const matTorre = (cor) => MATS_TORRE.get(cor) || MATS_TORRE.set(cor, new THREE.MeshStandardMaterial({ color: cor, roughness: 0.6 })).get(cor);
-const alturaTorre = (r, max) => 90 + 520 * Math.sqrt(r.total / max);
-const maxTorre = () => Math.max(1, ...RANK.map((r) => r.total));
+// com um motivo escolhido, a torre mede só as horas daquele motivo e cresce em linha reta: a mais alta salta aos olhos (04/11/2026)
+const valorTorre = (r) => (an.motivo != null ? minDoMotivo(r, an.motivo) : r.total);
+const alturaTorre = (r, max) => (an.motivo != null ? 30 + 570 * (valorTorre(r) / max) : 90 + 520 * Math.sqrt(r.total / max));
+const maxTorre = () => Math.max(1, ...RANK.map(valorTorre));
 function montarTorres() {
   grupoTorres.clear();
   grupoTorres.visible = estado.visual === "analise" && an.forma === "torres";
@@ -7117,10 +7166,16 @@ function montarTorres() {
     for (const r of RANK) {
       if (!r.area) continue;
       const H = alturaTorre(r, max), lado = estado.selecionada === r.area ? 80 : 60;
+      if (an.motivo != null) { // por motivo: uma coluna inteira na cor do motivo
+        const m = MOTIVOS().find((x) => x.g === an.motivo);
+        if (!m || !valorTorre(r)) continue;
+        const t = new THREE.Mesh(geoTorre, matTorre(m.cor)); t.scale.set(lado, H, lado); t.position.set(r.area.centro[0], 0, r.area.centro[1]); t.userData.areaTorre = r.area; grupoTorres.add(t);
+        continue;
+      }
       let y = 0;
       r.itens.forEach((it) => {
         const h = (H * it.min) / r.total, m = new THREE.Mesh(geoTorre, matTorre(corSolida(it)));
-        m.scale.set(lado, h, lado); m.position.set(r.area.centro[0], y, r.area.centro[1]);
+        m.scale.set(lado, h, lado); m.position.set(r.area.centro[0], y, r.area.centro[1]); m.userData.areaTorre = r.area;
         grupoTorres.add(m); y += h;
       });
     }
@@ -7134,20 +7189,20 @@ const barraMotivos = (itens, total) => `<div class="an-barra">${itens.map((it) =
 function maiorPerda(r) {
   const g = r.itens.filter((it) => it.g >= 0).sort((x, y) => y.min - x.min)[0];
   if (!g) return null;
-  const ap = g.g === 4 ? null : r.apont.filter((it) => it.g === g.g).sort((x, y) => y.min - x.min)[0];
+  const ap = r.apont.filter((it) => it.g === g.g).sort((x, y) => y.min - x.min)[0];
   return { ...g, ap };
 }
 /** Modelo A (escolha do dono, 20/10/2026): por área, o %, a barra dos grupos e o que mais tirou tempo. */
 /* Gargalo por motivo: tocar num motivo pinta no mapa todas as áreas que têm aquele motivo (mais forte onde há mais horas)
-   e ordena a lista por ele. -1 = produzindo; 0..4 = grupos de apontamento. */
+   e ordena a lista por ele. -1 = produzindo; 0..1 = grupos de apontamento. */
 const minDoMotivo = (r, m) => r.itens.find((it) => it.g === m)?.min || 0;
-const MOTIVOS = () => [{ g: -1, nome: "Produzindo", cor: PRODUZ.cor }, ...GRUPOS_APONT.map((x, gi) => ({ g: gi, nome: x.nome, cor: gi === 4 ? "#8a6fd1" : x.cor }))]
+const MOTIVOS = () => [{ g: -1, nome: PRODUZ.nome, cor: PRODUZ.cor }, ...GRUPOS_APONT.map((x, gi) => ({ g: gi, nome: x.nome, cor: x.cor }))]
   .filter((m) => RANK.some((r) => minDoMotivo(r, m.g) > 0));
 function pintarMotivo() { // por motivo: os dados vão em balões no mapa (atualizarPlacas), sem pintar as áreas
   const ativo = an.motivo != null && estado.visual === "analise";
   document.body.classList.toggle("an-por-motivo", ativo);
   if (FOCO_BASE) colorirAreas(null);
-  if (ativo) grupoTorres.visible = false;
+  montarTorres(); // nas Torres, a altura passa a ser as horas do motivo
   atualizarPlacas(); pedirDesenho();
 }
 function listaPorMotivo() {
@@ -7182,36 +7237,45 @@ function montarAnaliseDeVerdade() {
   RANK = somarAnalise();
   const painel = $("analise");
   montarTorres();
-  $("anPainel").classList.toggle("larga", !an.aberta); // a lista precisa de largura; o detalhe volta ao normal
+  // modelo 8 do portfólio (04/11/2026, escolha do dono): cartão pequeno no canto; a lista de áreas só abre em "Ver as áreas"
+  const cartao = !an.aberta && !an.verAreas;
+  $("anPainel").classList.toggle("larga", !an.aberta && !cartao); // a lista precisa de largura; o detalhe volta ao normal
+  $("anPainel").classList.toggle("cartao", cartao);
   ajustarVista();
   if (an.aberta) { painel.innerHTML = detalheAnalise(an.aberta); ligarAnalise(); return; }
   const dias = diasDoPeriodo(), progFora = dias.reduce((s, d) => s + (ANALISE?.prog_fora?.[d] || 0), 0);
-  const periodo = `<div class="seg" role="group" aria-label="Período">${[["dia", "Dia"], ["7", "7 dias"], ["30", "30 dias"]].map(([m, t]) =>
+  const periodo = `<div class="seg" role="group" aria-label="Período">${[["dia", "Dia"], ["7", "7 d"], ["30", "30 d"]].map(([m, t]) =>
     `<button type="button" data-anmodo="${m}" aria-pressed="${an.modo === m}">${t}</button>`).join("")}</div>`;
   const navDia = an.modo === "dia" && dias.length ? `<div class="an-dia"><button type="button" class="btn" data-andia="-1" ${an.i ? "" : "disabled"} aria-label="Dia anterior">‹</button>
     <span>${diaBR(dias[0])} <em>06:40 → 06:40</em></span><button type="button" class="btn" data-andia="1" ${an.i < ANALISE.dias.length - 1 ? "" : "disabled"} aria-label="Dia seguinte">›</button></div>` : "";
   const lista = RANK.length ? resumoAnalise() + listaAnalise() : `<p class="texto-leg">Sem dados neste ${an.modo === "dia" ? "dia" : "período"}.</p>`;
-  const forma = `<div class="seg" role="group" aria-label="Forma no mapa">${[["pinos", "Pinos"], ["torres", "Torres"]].map(([f, t]) =>
+  const forma = `<div class="seg" role="group" aria-label="Forma no mapa">${[["bandeiras", "Bandeiras"], ["torres", "Torres"]].map(([f, t]) =>
     `<button type="button" data-anforma="${f}" aria-pressed="${an.forma === f}">${t}</button>`).join("")}</div>`;
   // no cálculo: um botão por grupo; tirar o grupo tira as horas dele da conta do %
-  const noCalculo = `<details class="an-calc" ${an.calcAberto ? "open" : ""}><summary>No cálculo · ${GRUPOS_APONT.length - an.fora.size} de ${GRUPOS_APONT.length} grupos</summary>
-    <div class="an-filtro">${GRUPOS_APONT.map((g, gi) => `<button type="button" class="chip" data-anfora="${gi}" aria-pressed="${!an.fora.has(gi)}"><i class="cor" style="background:${corG(gi)}"></i>${g.nome}</button>`).join("")}</div></details>`;
+  const noCalculo = `<div class="an-filtro">${GRUPOS_APONT.map((g, gi) => `<button type="button" class="chip" data-anfora="${gi}" aria-pressed="${!an.fora.has(gi)}"><i class="cor" style="background:${corG(gi)}"></i>${g.nome}</button>`).join("")}</div>`;
   const ordemTurma = (x) => (x.startsWith("ADM") ? 0 : x.startsWith("4x4") ? 1 : x === "16 horas" ? 2 : 3);
   const regs = Object.keys(ANALISE?.por_regime || {}).sort((x, y) => ordemTurma(x) - ordemTurma(y) || x.localeCompare(y, "pt-BR"));
-  const regime = regs.length ? `<div class="an-filtro"><small>Turma / supervisor</small>${["", ...regs].map((r) =>
+  const regime = regs.length ? `<div class="an-filtro">${["", ...regs].map((r) =>
     `<button type="button" class="chip" data-anregime="${esc(r)}" aria-pressed="${an.regime === r}">${r ? esc(r) : "Todos"}</button>`).join("")}</div>`
     : `<p class="texto-leg">Filtro de turma / supervisor: falta exportar a consulta 07 (vaga de cada caminhão).</p>`;
   // enxuta, para ler de relance (03/11/2026, pedido do dono): uma frase com o número, período numa linha e os filtros guardados
   const tot = RANK.reduce((s, r) => s + r.total, 0), prod = RANK.reduce((s, r) => s + r.p, 0), pctG = tot ? Math.round((100 * prod) / tot) : 0;
   const quando = an.modo === "dia" ? (dias.length ? diaBR(dias[0]) : "") : an.modo === "7" ? "nos últimos 7 dias" : "nos últimos 30 dias";
   const frase = tot ? `<p class="an-frase"><b style="color:#${corPct(pctG).getHexString()}">${pctG}%</b> do tempo parado foi produzindo<span>${hm(tot)} parados em ${RANK.length} áreas · ${quando}</span></p>` : "";
-  const resumoFiltros = [an.regime || "Todas as turmas", an.forma === "torres" ? "Torres" : "Pinos", `${GRUPOS_APONT.length - an.fora.size} de ${GRUPOS_APONT.length} grupos`].join(" · ");
+  const dd = (id, rot, valor, corpo) => `<details class="an-dd" data-dd="${id}" ${an.dd === id ? "open" : ""}><summary>${rot}<span>${esc(valor)}</span></summary><div class="an-dd-corpo">${corpo}</div></details>`;
+  const motAtual = an.motivo == null ? "Todos" : MOTIVOS().find((m) => m.g === an.motivo)?.nome || "Todos";
+  const motivos = `<div class="an-motivos">${[{ g: null, nome: "Todos", cor: "#8894a5" }, ...MOTIVOS()].map((m) => `<button type="button" data-anmotivo="${m.g ?? ""}" aria-pressed="${an.motivo === m.g || (m.g === null && an.motivo == null)}" style="--c:${m.cor}"><i></i>${esc(m.nome)}</button>`).join("")}</div>`;
   painel.innerHTML = `<div class="eyebrow">Análise de paradas</div><h2>Produção por área</h2>${frase}
+    <div class="an-dds">${RANK.length ? dd("motivo", "Motivo", motAtual, motivos) : ""}${dd("turma", "Turma", an.regime || "Todas", regime)}
+    ${dd("forma", "Ver como", an.forma === "torres" ? "Torres" : "Bandeiras", forma)}${dd("conta", "Na conta", `${GRUPOS_APONT.length - an.fora.size} de ${GRUPOS_APONT.length} grupos`, noCalculo)}</div>
     <div class="an-linha-ctrl">${periodo}${navDia}</div>
-    ${RANK.length ? `<div class="an-motivos"><small>Ver no mapa por motivo</small>${[{ g: null, nome: "Todos", cor: "#8894a5" }, ...MOTIVOS()].map((m) => `<button type="button" data-anmotivo="${m.g ?? ""}" aria-pressed="${an.motivo === m.g || (m.g === null && an.motivo == null)}" style="--c:${m.cor}"><i></i>${esc(m.nome)}</button>`).join("")}</div>` : ""}
-    <details class="an-mais" ${an.filtrosAbertos ? "open" : ""}><summary>Filtros<span>${esc(resumoFiltros)}</span></summary><div class="an-mais-corpo"><div class="an-filtro"><small>No mapa</small>${forma}</div>${regime}${noCalculo}</div></details>
-    <div class="an-lista">${lista}</div>${progFora ? `<p class="texto-leg">Programado na Parte Diária em local sem cerca: ${hm(progFora)}</p>` : ""}`;
-  painel.querySelector(".an-mais")?.addEventListener("toggle", (e) => { an.filtrosAbertos = e.target.open; });
+    <p class="an-ocultas" id="anOcultas"></p>
+    ${RANK.length ? `<button type="button" class="an-ver-areas" data-anareas aria-expanded="${!!an.verAreas}">${an.verAreas ? "Esconder as áreas" : `Ver as ${RANK.length} áreas`}</button>` : ""}
+    ${an.verAreas || !RANK.length ? `<div class="an-lista">${lista}</div>${progFora ? `<p class="texto-leg">Programado na Parte Diária em local sem cerca: ${hm(progFora)}</p>` : ""}` : ""}`;
+  painel.querySelectorAll(".an-dd").forEach((d) => d.addEventListener("toggle", () => { // um aberto por vez
+    if (d.open) { an.dd = d.dataset.dd; painel.querySelectorAll(".an-dd").forEach((o) => { if (o !== d) o.open = false; }); } else if (an.dd === d.dataset.dd) an.dd = null;
+  }));
+  painel.querySelector("[data-anareas]")?.addEventListener("click", () => { an.verAreas = !an.verAreas; montarAnalise(); });
   painel.querySelectorAll("[data-anmotivo]").forEach((b) => b.addEventListener("click", () => {
     an.motivo = b.dataset.anmotivo === "" ? null : +b.dataset.anmotivo; montarAnalise();
     if (an.motivo == null) return;
@@ -7225,18 +7289,18 @@ function montarAnaliseDeVerdade() {
 }
 
 const linhaMotivo = (it, sub) => `<div class="an-motivo${sub ? " an-sub" : ""}"><i class="cor" style="background:${it.cor}"></i><span>${esc(it.nome)}</span><b>${hm(it.min)}</b></div>`;
-const DICA_G = { n: "É normal, mas dá para escalonar os horários.", a: "Os caminhões esperaram a área liberar: levar o tempo ao responsável da área.",
-  e: "Tempo parado por motivo da nossa equipe: conversar com o supervisor da vaga.", o: "Apontamento ainda sem grupo.",
-  s: "Caminhão parado, sem bomba e sem apontamento no tablet: conferir com o operador e o supervisor." };
+const DICA_G = { v: "Tempo de apoio e de pessoas (refeição, abastecimento, DDS): é normal, mas dá para escalonar os horários.",
+  x: "Tempo que não agrega valor: é aqui que está o ganho. Levar ao responsável (área ou supervisor da vaga)." };
+const DICA_SEM_APONT = "Caminhão parado, sem bomba e sem apontamento no tablet: conferir com o operador e o supervisor.";
 function detalheAnalise(r) {
   const mp = maiorPerda(r);
   return `<button type="button" class="btn an-voltar" id="anVoltar">← Ranking</button><div class="eyebrow">Área</div><h2>${rotulo(r)}</h2>
     <p class="an-big"><b style="color:#${corPct(r.pct).getHexString()}">${r.pct}%</b> do tempo parado produzindo</p>
     <p class="texto-leg">${hm(r.total)} parados na área · ${hm(r.p)} produzindo (pelo motor)</p>${barraMotivos(r.itens, r.total)}
     <div class="grupo" style="padding:14px 0 4px">Para onde foi o tempo</div>
-    ${r.itens.map((g) => `<div class="an-motivo an-motivo-g"><i class="cor" style="background:${g.cor}"></i><span>${esc(g.nome)}</span><b>${hm(g.min)}</b></div>${g.g < 0 || g.g === 4 ? "" :
+    ${r.itens.map((g) => `<div class="an-motivo an-motivo-g"><i class="cor" style="background:${g.cor}"></i><span>${esc(g.nome)}</span><b>${hm(g.min)}</b></div>${g.g < 0 ? "" :
       r.apont.filter((it) => it.g === g.g).map((it) => linhaMotivo(it, true)).join("")}`).join("")}
-    ${mp ? `<div class="an-dica"><b>Maior perda:</b> ${mp.nome.toLowerCase()} (${hm(mp.min)}). ${DICA_G[mp.k]}</div>` : ""}
+    ${mp ? `<div class="an-dica"><b>Maior perda:</b> ${mp.nome.toLowerCase()} (${hm(mp.min)}). ${mp.ap?.k === SEM_APONT ? DICA_SEM_APONT : DICA_G[mp.k] || ""}</div>` : ""}
     ${r.prog ? `<div class="an-dica an-prog">Programado na Parte Diária: <b>${hm(r.prog)}</b> · esteve lá: <b>${hm(r.real)}</b></div>` : ""}
     ${r.tablets ? `<div class="an-dica an-tablet">${r.tablets} tablet${r.tablets > 1 ? "s" : ""} instáve${r.tablets > 1 ? "is" : "l"} nesta área no período: parte do "sem apontamento" pode ser falha do tablet, não da pessoa.</div>` : ""}`;
 }
@@ -7265,7 +7329,7 @@ function ligarAnalise() {
 
 /** O painel da Análise fica ao lado do mapa: o centro da imagem vai para o meio do espaço livre à esquerda. */
 function ajustarVista() {
-  const p = $("anPainel"), w = innerWidth > 720 && p.classList.contains("aberta") && !p.classList.contains("recolhida") ? p.offsetWidth : 0;
+  const p = $("anPainel"), w = innerWidth > 720 && p.classList.contains("aberta") && !p.classList.contains("recolhida") && !p.classList.contains("cartao") ? p.offsetWidth : 0;
   if (w) camera.setViewOffset(innerWidth, innerHeight, -w / 2, 0, innerWidth, innerHeight); else camera.clearViewOffset(); // painel na coluna da esquerda
   pedirDesenho();
 }
