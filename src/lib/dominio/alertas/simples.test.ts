@@ -62,7 +62,7 @@ describe("resumo só depois de um tempo", () => {
 describe("frases", () => {
   it("só importa mandar ou não no WhatsApp (sem supervisor nem coordenador na frase)", () => {
     expect(frase({ regra: "desligado", ativa: true, nivel: "whatsapp", apos: 60, coordenadorApos: 120 }, "07:00")).toEqual({
-      oque: "Ocioso (motor desligado) por mais de 1 h",
+      oque: "Motor desligado por mais de 1 h",
       destino: ["envia no WhatsApp"],
     });
   });

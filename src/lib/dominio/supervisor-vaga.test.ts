@@ -12,9 +12,9 @@ describe("supervisor pela vaga", () => {
     expect(supervisorDaVaga("HIPER VÁCUO - GPS - 03", "2026-10-13", 10 * H)).toBe("Genésio");
   });
 
-  it("16 h e sem vaga: sem supervisor", () => {
-    expect(supervisorDaVaga("ALTA PRESSÃO - GPS - 07 - 16 HS", "2026-10-13", 10 * H)).toBeNull();
-    expect(supervisorDaVaga("AUTO VÁCUO - GPS - 07 - 16 HS", "2026-10-13", 10 * H)).toBeNull();
+  it("16 h: o supervisor do 4x4 de serviço (dia até 18:40, depois o da noite); sem vaga: ninguém", () => {
+    expect(supervisorDaVaga("ALTA PRESSÃO - GPS - 07 - 16 HS", "2026-10-13", 10 * H)).toBe("Ozias"); // A de dia
+    expect(supervisorDaVaga("AUTO VÁCUO - GPS - 07 - 16 HS", "2026-10-13", 20 * H)).toBe("Israel"); // C de noite
     expect(supervisorDaVaga("[S/ VAGA]", "2026-10-13", 10 * H)).toBeNull();
   });
 

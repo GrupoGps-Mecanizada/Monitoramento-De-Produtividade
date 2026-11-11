@@ -58,6 +58,8 @@ export const REGRAS_PADRAO: Record<RegraExcecao, ConfigRegra> = {
   velocidade: regra("velocidade", 30),
   servitec: regra("servitec", 0, [], {}),
   oficina_fora: regra("oficina_fora", 0, [], {}),
+  // vaga sem caminhão: não tem caminhão nem tablet; a nota fixa a deixa no painel até o robô decidir (sem-caminhao.ts)
+  sem_caminhao: regra("sem_caminhao", 40, [], {}),
 };
 
 /** Linhas do banco por cima dos padrões; regra desconhecida no banco é ignorada. */

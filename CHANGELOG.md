@@ -1,5 +1,10 @@
 # CHANGELOG · Monitoramento de Localização
 
+## Alertas: desligado em 30 min, vaga sem caminhão e 16 h com supervisor · 11/11/2026
+- Motor desligado vira alerta com **30 min** na jornada (era 1 h), para agir enquanto o caminhão está ocioso. O WhatsApp do grupo continua em 1 h até o robô novo (enquete Ciente/Resolvido/Justificado) ser aprovado: até lá os de 30 a 60 min ficam no painel. Rótulo agora só "Motor desligado" (pedido do dono).
+- Regra nova **Vaga sem caminhão** (`alertas/sem-caminhao.ts`): vaga oficial sem caminhão apropriado no GAUSS por 30 min ou mais dentro da jornada do regime (24 h todo dia; ADM seg a sex 07:00–16:48; 16 h seg a sex 06:40–22:40; ADM e 16 h sem feriado, lista em `regras-frota.ts`). Um alerta por vaga e lacuna, com o supervisor da vaga. Fica na tela (destino "tela") enquanto o robô novo está em teste.
+- AP 07 e AV 07 (16 h) passam a marcar o supervisor do 4x4 de serviço: o do dia até 18:40, depois o da noite (pedido do dono).
+
 ## DSY6474 produz parado ligado · 30/10/2026
 - A DSY6474 (AP 02) é Alta Pressão sem motor secundário, igual à DSY6472: parado ligado conta como produção e não gera mais alerta "Ligado sem produzir" (P-293). Vale também para os números de produtividade dessa placa.
 

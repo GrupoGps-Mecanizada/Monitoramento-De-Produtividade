@@ -14,7 +14,7 @@ import {
 import { DIA } from "./trilhas";
 import { vagaOficial } from "./vagas-oficiais";
 
-export const REGRAS = ["saida_tarde", "chegada_cedo", "patio", "servitec", "oficina_fora", "bica_vacuo", "restaurante", "ocioso", "desligado", "velocidade"] as const;
+export const REGRAS = ["saida_tarde", "chegada_cedo", "patio", "servitec", "oficina_fora", "bica_vacuo", "restaurante", "ocioso", "desligado", "velocidade", "sem_caminhao"] as const;
 export type RegraExcecao = (typeof REGRAS)[number];
 export const ROTULO_REGRA: Record<RegraExcecao, string> = {
   saida_tarde: "Saída tarde do Pátio",
@@ -25,13 +25,14 @@ export const ROTULO_REGRA: Record<RegraExcecao, string> = {
   bica_vacuo: "Vácuo na bica",
   restaurante: "Restaurante acima de 1 h",
   ocioso: "Ligado sem produzir",
-  desligado: "Ocioso (motor desligado) 1 h",
+  desligado: "Motor desligado",
   velocidade: "Velocidade acima de 30 km/h",
+  sem_caminhao: "Vaga sem caminhão",
 };
 /** alerta = fugiu da regra; atenção = só para saber (oficinas). */
 export type Gravidade = "alerta" | "atencao";
 const GRAVIDADE: Record<RegraExcecao, Gravidade> = {
-  saida_tarde: "alerta", chegada_cedo: "alerta", patio: "alerta", servitec: "atencao", oficina_fora: "atencao", bica_vacuo: "alerta", restaurante: "alerta", ocioso: "alerta", desligado: "alerta", velocidade: "alerta",
+  saida_tarde: "alerta", chegada_cedo: "alerta", patio: "alerta", servitec: "atencao", oficina_fora: "atencao", bica_vacuo: "alerta", restaurante: "alerta", ocioso: "alerta", desligado: "alerta", velocidade: "alerta", sem_caminhao: "alerta",
 };
 
 export interface Excecao {

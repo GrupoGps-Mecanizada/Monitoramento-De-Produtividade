@@ -5,6 +5,7 @@ import type { Evento, Veiculo } from "../src/lib/tipos";
 import { configCompleta, politicaCompleta, type ConfigRegra, type Politica } from "../src/lib/dominio/alertas/config";
 import type { HistoricoAlerta } from "../src/lib/dominio/alertas/contexto";
 import { montarAlertas, type LinhaAlerta, type Silencio } from "../src/lib/dominio/alertas/montar";
+import { alertasSemCaminhao } from "../src/lib/dominio/alertas/sem-caminhao";
 import { diaMenos } from "../src/lib/dominio/analise";
 import type { LinhaMotorFrota } from "../src/lib/dominio/dia-frota";
 import { excecoesDoDia } from "../src/lib/dominio/excecoes";
@@ -41,7 +42,12 @@ export async function detectarAlertas(deps: DepsAlertas, veiculos: Veiculo[], ag
   const agoraSeg = Math.floor((agora.getTime() - Date.parse(`${dia}T00:00:00-03:00`)) / 1000);
   const excecoes = excecoesDoDia({ dia, agoraSeg, veiculos, ...entrada });
   const politica = politicaCompleta(cfg.politica);
-  const linhas = montarAlertas({ dia, agoraSeg, agoraIso: agora.toISOString(), excecoes, veiculos, ...entrada, historico, silencios, regras: configCompleta(cfg.regras), politica });
+  const regras = configCompleta(cfg.regras);
+  const linhas = [
+    ...montarAlertas({ dia, agoraSeg, agoraIso: agora.toISOString(), excecoes, veiculos, ...entrada, historico, silencios, regras, politica }),
+    // vaga sem caminhão na jornada (dono, 11/11/2026): por vaga, não por caminhão
+    ...alertasSemCaminhao({ dia, agoraSeg, agoraIso: agora.toISOString(), motor: entrada.motor, historico, regra: regras.sem_caminhao }),
+  ];
   if (linhas.length) await deps.gravar(linhas);
   await deps.fecharDiasAnteriores(dia);
   // marca só no fim: se algo falhou, o próximo ciclo tenta de novo

@@ -2,7 +2,7 @@
 // "quando chamar o coordenador". Os pesos e faixas continuam no banco; aqui é só a tradução de ida e volta e o texto
 // das frases. O "Ajuste fino" da tela mexe nos pesos direto.
 import { ROTULO_REGRA, type RegraExcecao } from "../excecoes";
-import { DESLIGADO_MIN, OCIOSO_MIN, RESTAURANTE_MIN, VELOCIDADE_MAX_USINA } from "../regras-frota";
+import { DESLIGADO_MIN, OCIOSO_MIN, RESTAURANTE_MIN, SEM_CAMINHAO_MIN, VELOCIDADE_MAX_USINA } from "../regras-frota";
 import { REGRAS_PADRAO, type ConfigRegra, type Politica } from "./config";
 
 export type Nivel = "tela" | "resumo" | "whatsapp";
@@ -29,12 +29,13 @@ export const O_QUE_VIGIA: Record<RegraExcecao, string> = {
   ocioso: "Parado com o motor ligado, sem produzir",
   desligado: "Ocioso: motor desligado fora do Pátio no expediente",
   velocidade: `Velocidade acima de ${VELOCIDADE_MAX_USINA} km/h dentro da usina`,
+  sem_caminhao: "Vaga sem caminhão apropriado no GAUSS dentro da jornada do regime",
 };
 
 /** A partir de quantos minutos o sistema já percebe a regra (antes disso ela nem aparece). */
 export const BASE_MIN: Record<RegraExcecao, number> = {
   saida_tarde: 0, chegada_cedo: 0, patio: 0, servitec: 0, oficina_fora: 0, bica_vacuo: 0, velocidade: 0,
-  restaurante: RESTAURANTE_MIN, ocioso: OCIOSO_MIN, desligado: DESLIGADO_MIN,
+  restaurante: RESTAURANTE_MIN, ocioso: OCIOSO_MIN, desligado: DESLIGADO_MIN, sem_caminhao: SEM_CAMINHAO_MIN,
 };
 
 /** Lê pesos e faixas no formato simples (o menor tempo que chega a cada corte). */

@@ -19,8 +19,26 @@ export const EXPEDIENTES: Record<Regime, { dias: number[]; turnos: { saida: stri
 export const TOLERANCIA_MIN = 5;
 /** Parado ligado sem produzir por este tempo seguido vira alerta de "Ligado sem produzir" (ocioso é motor desligado, regra do dono de 20/10/2026). */
 export const OCIOSO_MIN = 30;
-/** Motor desligado por este tempo seguido no expediente vira alerta. */
-export const DESLIGADO_MIN = 60;
+/** Motor desligado por este tempo seguido no expediente vira alerta (era 1 h; 30 min pedido do dono em 11/11/2026: agir enquanto está ocioso). */
+export const DESLIGADO_MIN = 30;
+/** Vaga sem caminhão apropriado no GAUSS por este tempo, dentro da jornada, vira alerta (dono, 11/11/2026). */
+export const SEM_CAMINHAO_MIN = 30;
+
+/**
+ * Jornada de cada regime (nota "Regimes, turnos e supervisores" do segundo cérebro, 14/10/2026), em minutos do dia.
+ * Diferente de EXPEDIENTES (horários de saída e chegada ao Pátio): aqui é quando a vaga precisa ter caminhão.
+ *   4x4 (24 h): todo dia, o dia inteiro · ADM: seg a sex 07:00–16:48, sem feriado · 16 h: seg a sex 06:40–22:40, sem feriado
+ */
+export const JORNADAS: Record<Regime, { dias: number[]; ini: number; fim: number; feriado: boolean }> = {
+  "24h": { dias: [0, 1, 2, 3, 4, 5, 6], ini: 0, fim: 24 * 60, feriado: true },
+  adm: { dias: [1, 2, 3, 4, 5], ini: 7 * 60, fim: 16 * 60 + 48, feriado: false },
+  "16h": { dias: [1, 2, 3, 4, 5], ini: 6 * 60 + 40, fim: 22 * 60 + 40, feriado: false },
+};
+/** Feriados nacionais de 2026 e 2027 (ADM e 16 h não trabalham). Municipais de Ipatinga: [definir com o dono]. */
+export const FERIADOS = new Set([
+  "2026-01-01", "2026-04-03", "2026-04-21", "2026-05-01", "2026-06-04", "2026-09-07", "2026-10-12", "2026-11-02", "2026-11-15", "2026-11-20", "2026-12-25",
+  "2027-01-01", "2027-03-26", "2027-04-21", "2027-05-01", "2027-05-27", "2027-09-07", "2027-10-12", "2027-11-02", "2027-11-15", "2027-11-20", "2027-12-25",
+]);
 /** Tempo no restaurante acima disto vira alerta. */
 export const RESTAURANTE_MIN = 60;
 /** Velocidade máxima dentro da usina (km/h). Acima disso, excesso (regra 10). */

@@ -1,6 +1,6 @@
 // Supervisor pela VAGA do GAUSS, nunca pela placa: os caminhões rodam entre as vagas (regra do dono, 15/10/2026).
 // Tabela oficial no segundo cérebro: "Regimes, turnos e supervisores" (14/10/2026).
-//   24 h (AP/AV 01 e 08): o supervisor da letra do 4x4 no horário · 16 h (AP/AV 07): sem supervisor
+//   24 h (AP/AV 01 e 08) e 16 h (AP/AV 07): o supervisor da letra do 4x4 de serviço no horário (16 h: dono, 11/11/2026)
 //   Junior Pereira: AP 02–06, 09, 10 · Donizete: AV 02–06, Hipervácuo 01 e 02 · Genésio: aspiradores, Brooks, Hipervácuo 03 e 04
 import type { TipoEquip } from "../tipos";
 import { letraDaEscala, SUPERVISOR_DA_LETRA } from "./filtros-crono";
@@ -38,7 +38,8 @@ export function supervisorDaVaga(vaga: string, dia: string, seg: number): string
   if (!v || !v.tipo) return null;
   const { tipo, num } = v;
   if (/24\s*HS/i.test(vaga) || ((tipo === "ap" || tipo === "av") && (num === 1 || num === 8))) return supervisorDoTurno(dia, seg);
-  if (/16\s*HS/i.test(vaga) || num === 7) return null;
+  // 16 h: o supervisor do 4x4 de serviço (o do dia até 18:40, depois o da noite até o fim do turno de 16 h) (dono, 11/11/2026)
+  if (/16\s*HS/i.test(vaga) || num === 7) return supervisorDoTurno(dia, seg);
   if (tipo === "ap" && [2, 3, 4, 5, 6, 9, 10].includes(num)) return "Junior Pereira";
   if (tipo === "av" && num >= 2 && num <= 6) return "Donizete";
   if (tipo === "hv") return num <= 2 ? "Donizete" : num <= 4 ? "Genésio" : null;

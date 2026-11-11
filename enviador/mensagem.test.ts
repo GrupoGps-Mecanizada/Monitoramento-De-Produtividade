@@ -55,7 +55,7 @@ describe("texto da mensagem (modelo A: agrupado por tipo)", () => {
         "🚛 *ALERTAS DA FROTA*",
         "_Segunda, 19/10 · 12:35_",
         "",
-        "> 🔴 *Ocioso (motor desligado)* · 2",
+        "> 🔴 *Motor desligado* · 2",
         "*EGC2985* · AP 08",
         "Desligado há 1h02 em Calcinação",
         "desde 02:02 · Sup. Fabio",
