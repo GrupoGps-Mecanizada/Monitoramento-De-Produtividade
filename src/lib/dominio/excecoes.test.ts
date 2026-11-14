@@ -330,8 +330,8 @@ describe("regras de horário e lugar pela vaga do momento (P-082)", () => {
       excecoesDoDia({ dia: D, agoraSeg: hs(h) + 60, veiculos: [{ ...carro(AP03), status: "Desligado", status_desde: iso("07:50"), posicao_em: iso(h) } as Veiculo], eventos: evs, motor, tablet: [] })
         .filter((x) => x.regra === "desligado")
         .map((x) => [x.ini, x.fim, x.vaga]);
-    // 07:50-08:30 sem vaga (fora das 22) não soma: às 08:55 são só 25 min na AP 03 (limite de 30 min desde 11/11/2026)
-    expect(desl("08:55")).toEqual([]);
-    expect(desl("09:10")).toEqual([[hs("08:30"), hs("09:10"), AP03]]);
+    // 07:50-08:30 sem vaga (fora das 22) não soma: às 09:10 são só 40 min na AP 03 (limite de 45 min desde 14/11/2026)
+    expect(desl("09:10")).toEqual([]);
+    expect(desl("09:25")).toEqual([[hs("08:30"), hs("09:25"), AP03]]);
   });
 });

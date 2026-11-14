@@ -19,8 +19,8 @@ export const EXPEDIENTES: Record<Regime, { dias: number[]; turnos: { saida: stri
 export const TOLERANCIA_MIN = 5;
 /** Parado ligado sem produzir por este tempo seguido vira alerta de "Ligado sem produzir" (ocioso é motor desligado, regra do dono de 20/10/2026). */
 export const OCIOSO_MIN = 30;
-/** Motor desligado por este tempo seguido no expediente vira alerta (era 1 h; 30 min pedido do dono em 11/11/2026: agir enquanto está ocioso). */
-export const DESLIGADO_MIN = 30;
+/** Motor desligado por este tempo seguido no expediente vira alerta (era 1 h; 30 min em 11/11/2026; 45 min pedido do dono em 14/11/2026). */
+export const DESLIGADO_MIN = 45;
 /** Vaga sem caminhão apropriado no GAUSS por este tempo, dentro da jornada, vira alerta (dono, 11/11/2026). */
 export const SEM_CAMINHAO_MIN = 30;
 
