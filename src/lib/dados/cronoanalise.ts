@@ -2,9 +2,11 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
-import { fimDoTurno, padraoVagaGauss, type LinhaCrono, type TurnoCrono } from "../dominio/cronoanalise";
+import { fimDoTurno, motorPelaPlaca, padraoVagaGauss, vagaTemMotor, type LinhaCrono, type TurnoCrono } from "../dominio/cronoanalise";
 import { formasDaPlaca, type LinhaMotorGauss, type LinhaTablet } from "../dominio/gauss-dia";
 import { db, ok } from "../supabase/cliente";
+import type { Evento } from "../tipos";
+import { validarEvento } from "./esquemas";
 
 const COLUNAS = "data, turno, horario, area, nome, papel, placa, vaga, equip, hi, hf, cod, descricao, cls, obs, supervisor, kit";
 
@@ -26,11 +28,32 @@ export async function lerFolhas(c: SupabaseClient = db()): Promise<LinhaCrono[]>
   return linhas;
 }
 
+/** De onde veio o motor: a vaga do GAUSS, a placa (S/ VAGA no GAUSS: eventos do mapa ao vivo) ou nenhum. */
+export type OrigemMotor = "vaga" | "placa" | null;
+
+/** Eventos do mapa ao vivo do caminhão (e do motor 2º dele) nos dias do turno; até 3000. */
+async function lerEventosDaPlaca(t: TurnoCrono, ate: string, c: SupabaseClient): Promise<Evento[]> {
+  const formas = formasDaPlaca(t.placa).join(",");
+  const linhas = (await ok(
+    c
+      .from("loc_eventos")
+      .select("dados")
+      .gte("dia", t.inicio.slice(0, 10))
+      .lte("dia", ate.slice(0, 10))
+      .in("tipo", ["abertura", "status", "sinal_perdido", "sinal_retomado"])
+      .or(`dados->>placa.in.(${formas}),dados->>principal.in.(${formas})`)
+      .order("t")
+      .limit(3000),
+  )) as { dados: unknown }[];
+  return linhas.map((l) => validarEvento(l.dados));
+}
+
 /**
  * Motor do GAUSS (pela vaga da folha: a timeline é gravada por vaga) e tablet (pela placa) na janela do turno.
- * Só o Supabase, nunca o GAUSS. Vaga sem número: o motor vem vazio e a tela avisa.
+ * Só o Supabase, nunca o GAUSS. Vaga sem o caminhão (S/ VAGA no GAUSS, ex.: EAM3256 em 13/10) ou folha sem vaga:
+ * o motor vem pela placa, dos eventos do mapa ao vivo, e a tela avisa.
  */
-export async function lerTelemetriaDoTurno(t: TurnoCrono, c: SupabaseClient = db()): Promise<{ motor: LinhaMotorGauss[]; tablet: LinhaTablet[] }> {
+export async function lerTelemetriaDoTurno(t: TurnoCrono, c: SupabaseClient = db()): Promise<{ motor: LinhaMotorGauss[]; tablet: LinhaTablet[]; origem: OrigemMotor }> {
   const de = t.inicio;
   const ate = fimDoTurno(t);
   const vaga = padraoVagaGauss(t.vaga, t.equip);
@@ -58,7 +81,10 @@ export async function lerTelemetriaDoTurno(t: TurnoCrono, c: SupabaseClient = db
         .limit(500),
     ) as Promise<LinhaTablet[]>,
   ]);
-  return { motor: motor ?? [], tablet: tablet ?? [] };
+  if (motor?.length && vagaTemMotor(motor)) return { motor, tablet: tablet ?? [], origem: "vaga" };
+  const pelaPlaca = motorPelaPlaca(await lerEventosDaPlaca(t, ate, c), t.placa, ate);
+  if (vagaTemMotor(pelaPlaca)) return { motor: pelaPlaca, tablet: tablet ?? [], origem: "placa" };
+  return { motor: motor ?? [], tablet: tablet ?? [], origem: null };
 }
 
 export function useFolhas() {
@@ -76,18 +102,18 @@ export function useFolhas() {
   return estado;
 }
 
-export type EstadoTelemetria = { chave: string | null; motor: LinhaMotorGauss[]; tablet: LinhaTablet[]; erro: string | null };
+export type EstadoTelemetria = { chave: string | null; motor: LinhaMotorGauss[]; tablet: LinhaTablet[]; origem: OrigemMotor; erro: string | null };
 
 /** Lê a telemetria quando muda o turno. Falha não derruba a tela. */
 export function useTelemetriaDoTurno(t: TurnoCrono | null) {
-  const [estado, setEstado] = useState<EstadoTelemetria>({ chave: null, motor: [], tablet: [], erro: null });
+  const [estado, setEstado] = useState<EstadoTelemetria>({ chave: null, motor: [], tablet: [], origem: null, erro: null });
   const chave = t?.chave ?? null;
   useEffect(() => {
     if (!t || !chave) return;
     let vivo = true;
     lerTelemetriaDoTurno(t).then(
       (r) => vivo && setEstado({ chave, ...r, erro: null }),
-      (e: unknown) => vivo && setEstado({ chave, motor: [], tablet: [], erro: e instanceof Error ? e.message : String(e) }),
+      (e: unknown) => vivo && setEstado({ chave, motor: [], tablet: [], origem: null, erro: e instanceof Error ? e.message : String(e) }),
     );
     return () => {
       vivo = false;
@@ -96,5 +122,5 @@ export function useTelemetriaDoTurno(t: TurnoCrono | null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chave]);
   const doTurno = estado.chave === chave;
-  return { motor: doTurno ? estado.motor : [], tablet: doTurno ? estado.tablet : [], carregando: !!chave && !doTurno, erro: doTurno ? estado.erro : null };
+  return { motor: doTurno ? estado.motor : [], tablet: doTurno ? estado.tablet : [], origem: doTurno ? estado.origem : null, carregando: !!chave && !doTurno, erro: doTurno ? estado.erro : null };
 }

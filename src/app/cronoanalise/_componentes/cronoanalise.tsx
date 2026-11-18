@@ -88,7 +88,13 @@ function Turno({ turno, conf, tele }: { turno: TurnoCrono; conf: Conferencia | n
   return (
     <>
       {tele.erro && <Aviso tipo="erro">Não foi possível ler o motor e o tablet: {tele.erro}</Aviso>}
-      {!padraoVagaGauss(turno.vaga, turno.equip) && <Aviso tipo="alerta">A folha não tem a vaga com número (ex.: AP-01): sem ela, o motor do GAUSS não aparece.</Aviso>}
+      {tele.origem === "placa" && (
+        <Aviso tipo="alerta">
+          {padraoVagaGauss(turno.vaga, turno.equip) ? "Neste turno o GAUSS não ligou o caminhão à vaga (S/ VAGA)" : "A folha não tem a vaga com número (ex.: AP-01)"}: o motor vem pela
+          placa {turno.placa}, do mapa ao vivo. É menos preciso (leituras de alguns em alguns minutos).
+        </Aviso>
+      )}
+      {!tele.carregando && !tele.erro && !tele.origem && <Aviso tipo="alerta">Sem motor do GAUSS neste turno: nem a vaga nem a placa {turno.placa} têm dados.</Aviso>}
 
       <RaioX key={turno.chave} turno={turno} conf={conf} carregando={tele.carregando} />
       <Colaboradores turno={turno} />

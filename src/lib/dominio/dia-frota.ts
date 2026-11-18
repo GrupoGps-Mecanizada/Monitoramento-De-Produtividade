@@ -10,6 +10,8 @@ import { baseDosEventos, dividirProdutivo, naBase, statusProdutivo } from "./pro
 /** Linha de timeline_motor_vaga com o veículo (placa_ou_codigo = id do veículo no GAUSS). */
 export interface LinhaMotorFrota extends LinhaMotorGauss {
   placa_ou_codigo: string;
+  /** vaga da timeline em que o trecho veio (o GAUSS busca por vaga); ausente em leitura que não pede */
+  vaga_nome?: string | null;
 }
 export interface LinhaFrota {
   id: string;

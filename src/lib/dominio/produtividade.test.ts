@@ -13,6 +13,10 @@ describe("produtividade por tipo (regra do dono)", () => {
     expect(statusProdutivo("ap", "DSY6472")).toBe("stopped");
     expect(statusProdutivo("ap", "DSY-6472")).toBe("stopped");
   });
+  it("o DSY6474 (alta pressão sem motor secundário) produz parado ligado, com ou sem hífen", () => {
+    expect(statusProdutivo("ap", "DSY6474")).toBe("stopped");
+    expect(statusProdutivo("ap", "DSY-6474")).toBe("stopped");
+  });
   it("hiper vácuo, Brook e aspiradores não têm regra", () => {
     expect(statusProdutivo("hv", "EAM-3257")).toBeNull();
     expect(statusProdutivo("pg", "EPN2463")).toBeNull();

@@ -13,3 +13,6 @@ coletor/__amostras__/
 
 # rascunhos e registros de trabalho do assistente (esboços, ledger)
 .superpowers/
+
+# enviador: último relatório de turno mandado (só no PC)
+enviador/.relatorio-turno.json

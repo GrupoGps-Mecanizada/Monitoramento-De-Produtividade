@@ -2,24 +2,28 @@
 
 import { useSyncExternalStore } from "react";
 
-/** Tema claro/escuro: escolha guardada neste navegador; sem escolha, segue o sistema operacional. */
+/**
+ * Tema claro/escuro: um tema só para o Portal SGE e os sistemas (chave `sge_tema`, a mesma da Barra Universal).
+ * Sem escolha: sempre claro. Trocado em outra página do mesmo endereço (o portal ou outro sistema), segue junto.
+ */
 export type Tema = "claro" | "escuro";
+const CHAVE = "sge_tema";
 
 const ouvintes = new Set<() => void>();
 const assinar = (f: () => void) => {
   ouvintes.add(f);
-  const mq = window.matchMedia("(prefers-color-scheme: dark)");
-  mq.addEventListener("change", f);
+  const deFora = (ev: StorageEvent) => {
+    if (ev.key !== CHAVE) return;
+    document.documentElement.dataset.tema = ev.newValue === "escuro" ? "escuro" : "claro";
+    f();
+  };
+  window.addEventListener("storage", deFora);
   return () => {
     ouvintes.delete(f);
-    mq.removeEventListener("change", f);
+    window.removeEventListener("storage", deFora);
   };
 };
-const atual = (): Tema => {
-  const d = document.documentElement.dataset.tema;
-  if (d === "claro" || d === "escuro") return d;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "claro";
-};
+const atual = (): Tema => (document.documentElement.dataset.tema === "escuro" ? "escuro" : "claro");
 
 export function useTema(): [Tema, () => void] {
   const tema = useSyncExternalStore(assinar, atual, () => "claro" as Tema);
@@ -27,7 +31,7 @@ export function useTema(): [Tema, () => void] {
     const novo: Tema = atual() === "escuro" ? "claro" : "escuro";
     document.documentElement.dataset.tema = novo;
     try {
-      localStorage.setItem("mon-tema", novo);
+      localStorage.setItem(CHAVE, novo);
     } catch {
       // sem armazenamento: vale só nesta visita
     }

@@ -7,7 +7,7 @@ process.env.TZ = "America/Sao_Paulo";
 export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   test: {
-    include: ["src/**/*.test.ts", "coletor/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "coletor/**/*.test.ts", "enviador/**/*.test.ts"],
     environment: "node",
     pool: "threads",
   },

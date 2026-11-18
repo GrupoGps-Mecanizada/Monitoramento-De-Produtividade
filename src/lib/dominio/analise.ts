@@ -3,6 +3,7 @@
 import type { LatLng, TipoEquip, Veiculo } from "../tipos";
 import { areaPoligono, dentroDoPoligono, distanciaM } from "./geo";
 import { ehBase, statusProdutivo } from "./produtividade";
+import { supervisorDaParada } from "./supervisor-vaga";
 
 /** Uma linha de analise_paradas. */
 export interface ParadaAnalise {
@@ -203,11 +204,15 @@ export function montarLocais(
   equip: Map<string, EquipAnalise>,
   usina: LatLng[] | null = null,
   excluidas: LatLng[][] = [],
+  vagaDoDia: Map<string, string> = new Map(),
 ): { locais: Map<string, Local>; paradas: ParadaNoLocal[] } {
   const centroDe = new Map(areas.filter((a) => a.polygon.length >= 3).map((a) => [a.name, centro(a.polygon)] as const));
   const comEquip: ParadaNoLocal[] = paradas.flatMap((p) => {
     const e = equip.get(p.veiculo_id);
-    return e && !ehPatioDaBase(p.area) && !ehExcluidaDaAnalise(p.area) && !(p.area == null && excluidas.some((pl) => dentroDoPoligono(p.lat, p.lng, pl))) ? [{ ...p, equip: e, local: p.area ?? "" }] : [];
+    if (!e || ehPatioDaBase(p.area) || ehExcluidaDaAnalise(p.area) || (p.area == null && excluidas.some((pl) => dentroDoPoligono(p.lat, p.lng, pl)))) return [];
+    // o supervisor é da vaga em que o caminhão estava naquele dia, não da placa
+    const supervisor = supervisorDaParada(e.tipo, vagaDoDia.get(`${p.dia}|${p.veiculo_id}`), p.dia, p.ini, e.supervisor);
+    return [{ ...p, equip: supervisor === e.supervisor ? e : { ...e, supervisor }, local: p.area ?? "" }];
   });
 
   // fora das cercas: grade de ~110 m, cada parada comparada só com os grupos das 9 casas vizinhas

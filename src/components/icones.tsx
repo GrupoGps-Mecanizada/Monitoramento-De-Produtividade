@@ -1,6 +1,6 @@
 import { cx } from "./ui";
 
-export type IconeNome = "mapa" | "timeline" | "alertas" | "busca" | "tema" | "fechar" | "voltar" | "play" | "pausa" | "anterior" | "proximo" | "opcoes" | "baixar" | "alvo" | "frota" | "equipamentos" | "analise" | "crono";
+export type IconeNome = "mapa" | "timeline" | "alertas" | "busca" | "tema" | "fechar" | "voltar" | "play" | "pausa" | "anterior" | "proximo" | "opcoes" | "baixar" | "alvo" | "frota" | "equipamentos" | "analise" | "crono" | "usina";
 
 export const CAMINHOS: Record<IconeNome, string> = {
   mapa: "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14",
@@ -21,6 +21,7 @@ export const CAMINHOS: Record<IconeNome, string> = {
   equipamentos: "M3 5h18v14H3zM3 10h18M3 15h18M9 5v14",
   analise: "M4 20V11M10 20V5M16 20v-6M2 20h20",
   crono: "M12 22a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 10v4l2.5 1.5M10 2h4M12 2v4",
+  usina: "M3 21V11l5 3v-3l5 3V8l5 3V3h3v18zM3 21h18M7 17h2M12 17h2",
 };
 
 export function Icone({ nome, className }: { nome: IconeNome; className?: string }) {

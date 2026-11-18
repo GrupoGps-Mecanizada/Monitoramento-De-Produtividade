@@ -1,15 +1,128 @@
 # CHANGELOG · Controle de Frota (antigo "Monitoramento")
 
-## Tela limpa, estilo planilha · 17/11/2026 (ramo analise-visual, NÃO publicado)
+## Tela limpa, estilo planilha · 17/11/2026 (publicado 18/11/2026)
 - Dentro do portal, **Localização, Análise e Equipamentos** encostam nas bordas: sem caixas nem faixas cinzas, blocos separados por linhas finas, título de cada bloco em faixa cinza (classes `k-pilha`, `k-grade`, `k-cartao`, `k-tit` em globals.css; Portfólio 26 E).
 - **Botão (?)** (`components/ajuda.tsx`, igual ao do SST e do kit): subtítulos dos gráficos, descrições dos números e a instrução da planilha ("Só para ver e pesquisar...") só aparecem com a ajuda ligada (Portfólio 27 D).
 - tsc, eslint e Vitest (371) ok; build com BASE_PATH ok; conferido dentro do portal novo.
 
-## Dentro do portal novo + um nome só · 17/11/2026 (ramo analise-visual, NÃO publicado)
+## Dentro do portal novo + um nome só · 17/11/2026 (publicado 18/11/2026)
 - **Um nome só** (pedido do dono): "Controle de Frota" no topo, no título da aba e nas exportações (`lib/marca.ts`), igual ao Portal. O endereço `/Monitoramento-De-Produtividade/` continua o mesmo (não quebra links).
 - **Portal novo** (casca Obsidian, `SGEPortal.versao >= 2`): sem a barra de cima nem a de baixo do celular; as 3 partes (Ao vivo, Análises, Cadastros) e as 7 telas vão para o menu em árvore do portal, dentro da categoria Equipamentos (`components/no-portal.tsx`, `secoesParaPortal` em `lib/portal.ts`). Aberto direto no endereço do portal: vai para dentro dele na mesma tela. github.io e localhost ficam como estão.
 - Typecheck, eslint e Vitest (371, 2 novos) passando; build com BASE_PATH ok; conferido dentro do portal novo com os dados reais (só leitura).
 - **Padrão visual SGE** (dono, 17/11): cores (fundo cinza quente, cartões brancos, azul #2f5fb3) e letra IBM Plex Sans em `globals.css`/`layout.tsx`; status e séries de gráfico iguais. Tema segue o do portal (`sge_tema`). Opção escolhida escura nos botões segmentados (`Segmentado`); títulos dos cartões em negrito normal (sem MAIÚSCULA); cabeçalho da planilha de Equipamentos cinza claro com letra escura. Fotos antes/depois: sge-core/entregas/2026-11-17 Portal novo - navegar/fotos-controle-de-frota.
+
+## Alertas: desligado em 30 min, vaga sem caminhão e 16 h com supervisor · 11/11/2026
+- Motor desligado vira alerta com **30 min** na jornada (era 1 h), para agir enquanto o caminhão está ocioso. O WhatsApp do grupo continua em 1 h até o robô novo (enquete Ciente/Resolvido/Justificado) ser aprovado: até lá os de 30 a 60 min ficam no painel. Rótulo agora só "Motor desligado" (pedido do dono).
+- Regra nova **Vaga sem caminhão** (`alertas/sem-caminhao.ts`): vaga oficial sem caminhão apropriado no GAUSS por 30 min ou mais dentro da jornada do regime (24 h todo dia; ADM seg a sex 07:00–16:48; 16 h seg a sex 06:40–22:40; ADM e 16 h sem feriado, lista em `regras-frota.ts`). Um alerta por vaga e lacuna, com o supervisor da vaga. Fica na tela (destino "tela") enquanto o robô novo está em teste.
+- AP 07 e AV 07 (16 h) passam a marcar o supervisor do 4x4 de serviço: o do dia até 18:40, depois o da noite (pedido do dono).
+
+## DSY6474 produz parado ligado · 30/10/2026
+- A DSY6474 (AP 02) é Alta Pressão sem motor secundário, igual à DSY6472: parado ligado conta como produção e não gera mais alerta "Ligado sem produzir" (P-293). Vale também para os números de produtividade dessa placa.
+
+## Barra de cima mais fina · 28/10/2026
+- Barra de cima de 62 para 48 px no computador, igual à barra universal do sge-core 1.9.2. Logo, botões e avatar menores para caber. Pedido do Warlison.
+
+## Menu só com ícones · 26/10/2026
+- Menu da barra de cima só com os ícones; o nome (e a setinha) abre ao lado ao passar o mouse, focar ou abrir, como a barra lateral do Portal SGE (`menu-categorias.tsx`, `globals.css`). Pedido do dono (P-166).
+
+## Tema único com o portal · 25/10/2026
+- Tema claro/escuro igual ao do Portal SGE e dos outros sistemas (chave `sge_tema`, `lib/tema.ts` e o script do `app/layout.tsx`): trocar o tema em qualquer barra troca o Monitoramento junto; **sem escolha, sempre claro**. No portal, a barra fica clara (ardósia) no tema claro e azul-marinho no escuro, com o logo na caixa branca. Pedido do dono (P-142).
+
+## Barra clara no portal · 25/10/2026
+- Dentro do Portal SGE a barra de cima fica clara, em azul ardósia, igual à do portal (classe `no-portal` em `lib/portal.ts`, cores em `globals.css`), e o logo é só o desenho do SGE, sem a caixa branca. Fora do portal nada muda. Pedido do dono (P-139).
+
+## Equipamentos sem o cartão de cima · 22/10/2026
+- Sai o cartão do topo da tela Equipamentos (título "Matriz de equipamentos", aviso e filtros por status), pedido do dono. Os botões "+ Novo equipamento" e "Supervisores e regimes" passam para a faixa da planilha (no celular, em cima da lista) e a planilha fica mais alta.
+
+## Vagas ADM sem desconto · 20/10/2026 (P-103)
+- As 22 vagas sem HS no nome (AP 02-06, 09, 10 · AV 02-06 · HV 01-04) são ADM confirmado (nota Regimes, turnos e supervisores): sai o desconto de 10 pontos do "regime presumido", que deixava todo desligado de 1 h nessas vagas com nota 55 (o WhatsApp pede 60). Presumido fica só para vaga fora das 22.
+- Gestão de alertas: o "por que não foi para o WhatsApp" mostra o motivo real (apontamento no tablet, sem sinal, regime não cadastrado ou a nota abaixo do corte), não mais "ainda não passou do tempo configurado".
+
+## Título do WhatsApp · 20/10/2026 (P-089)
+- A mensagem dos alertas passa a começar com "🚛 *ALERTAS DA FROTA*" (sai a palavra AUTOMATICO, pedido do dono).
+
+## GAUSS buscado na hora do alerta · 20/10/2026 (P-087)
+- Vaga com o caminhão desligado (com sinal) há 45 a 90 min é buscada no GAUSS todo ciclo de 10 min, em vez de esperar até 1 h (`PERTO_DO_ALERTA_MS`, em `coletor/motor-vaga.ts`). É a faixa em que o alerta de 1 h desligado é decidido: ele sai pelo GAUSS, que vê a bomba e a parada apontada, também nos caminhões com motor secundário. Poucas buscas a mais (só enquanto o caminhão está nessa faixa).
+- O despertador do coletor continua o pg_cron do Supabase (as rodadas começam 10–30 s depois da hora; o Cloudflare Cron não traria ganho).
+
+## Ao vivo só completa desligado de verdade · 20/10/2026 (P-083)
+- O ao vivo do motor principal não vê a **bomba** (motor secundário) nem a **parada apontada** no tablet, e dizia "Desligado" com o caminhão trabalhando (EAM-3253 em 17/10: 3h17 de bomba; EGC2985 em 19/10 viraria alerta falso no WhatsApp). Agora o completar com o ao vivo só vale quando: o último trecho do GAUSS é desligado e o ao vivo não mudou depois dele; o caminhão não tem motor secundário (o GAUSS mostrou "Motor Secundário Ligado" nos últimos 30 dias), a não ser que o motor 2º do ao vivo (com sinal) diga que a bomba está desligada desde antes da busca; e fora do apontamento do tablet que começou depois da busca. Nos outros casos vale só o GAUSS (pode atrasar, não erra).
+- Alertas do mesmo caminhão e regra que se sobrepõem no horário (o GAUSS dividiu o trecho depois) ficam num alerta só: o histórico passa a ler o `fim`.
+- Conferido com 19/10 e 20/10 reais: sem repetido nem linha sobreposta; sai o alerta falso do EGC2985 (bomba) de 19/10 e os de parada apontada; o EGC2983 de hoje (desligado de verdade) continua, uns 15 min depois.
+
+## Todas as regras pela vaga do momento · 20/10/2026 (P-082)
+- Saída tarde, chegada cedo, ida ao Pátio, Servitec, oficina de fora, bica e restaurante também passam a valer pela **vaga em que o caminhão estava na hora** (antes: a vaga de agora). A vaga vem da timeline do GAUSS onde ela tem trecho e, no resto (fora das 22 vagas não há timeline), da vaga gravada em cada evento.
+- Cada regra olha a vaga na hora que importa para ela: a saída tarde, a vaga **que o caminhão foi atender** (a da saída; trocado de vaga no Pátio, atrasou o serviço da vaga nova); a chegada cedo e a ida ao Pátio, a vaga na chegada.
+- "[S/ VAGA]" de até 30 min entre duas leituras da mesma vaga (troca de turno no GAUSS) não conta como troca de vaga.
+- Conferido com o dia 19/10 inteiro (todas as regras ligadas) e a madrugada de 20/10: sem repetido; muda só o que devia (Pátio de caminhão ainda sem vaga sai; saída tarde do DSY6475 vai para a AP 07, a vaga que ele foi atender; restaurante do DYB7C10 na AV 08 entra).
+
+## Alertas de motor na hora e na vaga certa · 20/10/2026 (P-076)
+- **Motor desligado sai ~10 min depois de completar 1 h**, e não mais 1 h depois: o coletor só busca de novo a timeline de uma vaga desligada a cada 1 h (para poupar o GAUSS), então o ao vivo (a cada ~5 min) completa o desligado depois do último trecho do GAUSS, até a última posição. Onde o GAUSS já tem dado vale o GAUSS (`completarAoVivo`, em `excecoes.ts`). Sem sinal, sem "desde" ou dia fechado: não completa.
+- **Cada trecho do motor é julgado pela vaga em que o caminhão estava** (a timeline vem por vaga; agora o detector lê `vaga_nome`): o caminhão trocado de vaga não leva o expediente, o supervisor nem a vaga nova para o que fez antes. Caso de 20/10: EGC2983 desligado a noite toda na AP 07 (16 horas) virou alerta da AP 01 (24 horas) quando foi trocado às 07:23.
+- **O mesmo desligado não vira alerta novo** quando o início muda (o ao vivo vê 02:30, o GAUSS depois diz 02:27): fica na chave do alerta já gravado (mesmo caminhão, regra e dia). E o lote nunca leva duas linhas com a mesma chave.
+- WhatsApp: o que **já acabou** sai como "Ficou desligado 1h42 · das 02:27 às 04:09", não mais "Desligado há".
+- Conferido com a madrugada de 20/10 da frota toda (antigo × novo): DSY6475 03:31 em vez de 04:31, EAM3251 (3 h desligado na AV 08, nunca avisado) às 03:51, EGC2985 05:01 em vez de 05:37, sem o alerta falso do EGC2983, sem repetido.
+
+## Usina 3D · 19/10/2026
+- Nova tela **Usina 3D** (`/usina`, no grupo Ao vivo): a maquete do projeto Usina Virtual (diorama da usina, do Aterro e do Poço Redondo, com 666 prédios, ferrovia, chaminés e árvores) com a **frota ao vivo**.
+- A maquete fica em `public/usina/maquete.html` e não tem chave nem dados de frota embutidos: a tela lê o retrato pelo Realtime (como a Localização) e manda para ela por mensagem, só para a própria página e do mesmo endereço (`src/lib/dominio/usina-3d.ts`, com testes).
+- Quando a posição muda, o caminhão anda até o novo ponto **pelas ruas** (rotas montadas na própria maquete com as ruas do OpenStreetMap), em vez de saltar.
+- Para atualizar a maquete: no projeto Usina Virtual, `python build.py` e copiar `saida/monitoramento/maquete.html` para `public/usina/`.
+
+## Parte Diária × mapa: locais aprendidos e conferência · 19/10/2026
+- O banco aprende sozinho onde fica cada local da Parte Diária: guarda onde o caminhão de cada programação ficou parado (`parte_amostra`, porque o GPS só fica 3 dias), agrupa os pontos (PostGIS, sem base, baia, restaurante e destino) e junta com as áreas do GAUSS de mesmo nome (`mapa_area`, inclusive os ~70 portões). Resultado em `parte_local`, com ponto, raio e certeza.
+- Cada programação é conferida (`parte_conferencia`): cumprida, parcial, local diferente, não foi, motor desligado, sem caminhão, em rota, sem GPS.
+- Roda no próprio banco a cada hora (pg_cron `parte-diaria-mapa`, função `parte_atualizar`). Sem chamada nova ao GAUSS, sem nomes nem telefones, sem acesso público. SQL: `supabase/2026-10-19_parte-diaria-mapa.sql`.
+
+## Parte Diária no coletor · 18/10/2026
+- O coletor passa a buscar a **Parte Diária** (Logística Inbound > Imp. Detalhes Solicitação do GAUSS): para cada vaga, o horário programado, local/origem, endereço, onde se apresentar, atividade, material, destino, gerência e as perguntas de segurança (altura, andaime, confinado, gás).
+- Mesmo caminho da tela, só leitura e travado (`conferirChamada`). Horários fixos, de 3 em 3 horas (~10 buscas/dia): hoje às 06, 09, 12, 15, 18 e 21 h; amanhã às 17, 20 e 23 h (a parte sai ~16:30 pelo controlador do transporte); ontem fechado às 00:30. Na primeira vez, os últimos 10 dias, um dia por execução. Falhou: espera 30 min.
+- Cada busca compara com a anterior e diz o que mudou: programação **nova**, **cancelada**, **trocada de equipamento** (mesma solicitação e horário, outra vaga) ou **alterada** (fim, local ou endereço).
+- **Sem nomes e sem telefones** (solicitante, beneficiário, responsável e o texto livre ficam de fora). Tabela `parte_diaria` sem leitura pública por enquanto (SQL `supabase/2026-10-18_parte-diaria.sql`).
+
+## Dia da frota só por vaga, no desenho da Gestão de alertas · 17/10/2026
+- Saiu a visão **Por equipamento**: o Dia da frota é só **por vaga** (as 22 vagas, espelho da timeline do GAUSS).
+- Desenho da Gestão de alertas: página toda branca, **abas em cascata** (Todas · Alta Pressão · Auto Vácuo · Hiper Vácuo → as vagas do tipo, AP-01, AP-02...), o dia numa pílula, números em linha ("22 vagas · 9 ligadas agora · 7 desligadas · 6 sem caminhão · todas iguais ao GAUSS").
+- Escolhendo a vaga (pela aba ou clicando no nome), aparece a **tabela dos trechos** (início, fim, duração, status, caminhão) sem grade; o caminhão abre a Timeline dele.
+
+## Gestão de alertas · 16/10/2026
+- Tela nova **Gestão de alertas** (menu Ao vivo): Fila com nota e "Por que essa nota?", ações (Visto, Resolver, Silenciar, Era/Não era problema), Histórico de 90 dias, Filtro inteligente com simulador dos últimos 7 dias e sugestões, Destinatários e Saúde.
+- Visual minimalista escolhido pelo dono: abas de texto, visões com contagem, números numa linha, "+ Filtro" em pílulas, tabela sem grade, detalhe ao lado e página toda branca.
+- Ver não pede login; agir, salvar o filtro e ver telefones pede e-mail e senha (Supabase Auth, cadastro aberto desligado). Permissões por coluna em `supabase/alertas.sql`.
+
+## Alertas guardados com nota · 16/10/2026
+- Etapa 1 do P-026: cada exceção do dia vira um alerta único na tabela `alertas` (SQL `supabase/alertas.sql`), com nota 0–100, os motivos e o destino (WhatsApp, resumo ou só tela). Regras puras em `src/lib/dominio/alertas/`; detector no coletor a cada 10 min (`coletor/alertas.ts`). Ainda sem tela de gestão e sem WhatsApp.
+
+## Só as vagas que a Mecanizada opera · 16/10/2026
+- A lista do GAUSS tem 58 vagas da GPS; o coletor buscava todas (pesava no GAUSS e no tempo da execução) e o Dia da frota mostrava vagas que a Mecanizada não opera (AP 11 a 14, AV 09 a 11, Pipa, Mini Carregadeira, Moto Bomba...).
+- Agora valem só as **22 vagas do dono** (tela do GAUSS dele, 16/10/2026; as demais da GPS estão desativadas): Alta Pressão 01 (24 h), 02–06, 07 (16 h), 08 (24 h), 09 e 10; Auto Vácuo 01 (24 h), 02–06, 07 (16 h), 08 (24 h); Hiper Vácuo 01–04. Aspiradores e Brooks não entram. Um lugar só: `src/lib/dominio/vagas-oficiais.ts` (coletor, reprocessamento e tela).
+
+## Coletor: timeline de motor não trava mais na virada do dia · 16/10/2026
+- Desde 00:05 de 16/10 toda execução passava de 8 min e era cancelada: na virada do dia cada vaga busca ontem e hoje (19 vagas × 2 no GAUSS) e o progresso só era gravado no fim, então cada execução recomeçava do zero.
+- Agora a timeline tem 3 min por execução (`ORCAMENTO_MOTOR_MS`): passou disso, grava o que fez e a próxima execução (5 min depois) continua com as vagas que faltam, sem esperar o ciclo de 10 min.
+- Teste novo: `coletor/motor-orcamento.test.ts` (virada do dia com GAUSS lento).
+
+## Coletor: menos log no Supabase · 16/10/2026
+- O log do Supabase (1 GB/mês no plano grátis) chegou a 0,99 GB antes de fechar o mês. O coletor roda a cada 5 min e cada requisição vira uma linha de log.
+- As chaves do `loc_kv` que o ciclo lê (sessão, estado, cadastro, cercas, controles) vêm **numa requisição só** no início (`kvCarregar`), em vez de uma por chave (~13). Carga, retrato e sessão são gravados juntos no fim (3 → 1).
+- A conferência das 3 tabelas do tempo real fica anotada no `loc_kv` (`tempo_real_pronto`): não testa as tabelas a cada execução.
+- Nada muda na tela nem no que é coletado. SQL de reserva para pausar/religar o coletor: `supabase/2026-10-16_pausar-coletor.sql` e `supabase/2026-10-16_religar-coletor.sql`.
+## Timeline por vaga fiel ao GAUSS + reprocessamento · 15/10/2026 (não publicado; ramo `timeline-por-vaga`)
+- **Correção dos dados (causa do "apropriado no GAUSS e não no sistema"):** cada trecho da timeline de motor passa a guardar o **caminhão daquele trecho** (`vehicle_data` do GAUSS). Antes ia o caminhão que estava na vaga na hora da busca, e o dia inteiro da vaga caía num caminhão só (ex.: 15/10, AP-01 teve PUB2F80 e EAM-3253). Vale para tudo que lê `timeline_motor_vaga`: Dia da frota, Timeline, Cronoanálise, Medição, Análise (paradas) e a view `vaga_do_dia`.
+- **Todas as vagas da GPS** da lista do GAUSS são buscadas (antes, só as que a planilha dizia ter caminhão). A regra da vaga quieta usa o caminhão que o GAUSS diz estar na vaga.
+- **Troca do dia inteiro** a cada busca (função `substituir_timeline_vaga`, numa transação): trecho que o GAUSS corrigiu depois não sobra. Apontamento do tablet apagado no GAUSS sai do banco também.
+- **Reprocessamento** de 01/10 a 14/10, aos poucos (12 vagas por ciclo): timeline → tablet → paradas da Análise (estas só no Supabase, sem consultar o GAUSS). Liga e reinicia pela linha `reprocesso` do `loc_kv`.
+- **Dia da frota "Por vaga (igual ao GAUSS)"** (padrão): uma linha por vaga na ordem do GAUSS, mesmas cores e rótulos ("15/10 08:15 ~ 15/10 10:20"), régua 00–23, caminhões da vaga no dia, troca de caminhão marcada, clique no trecho abre a Timeline do caminhão. A visão antiga continua em "Por equipamento".
+- **Conferência com o GAUSS:** `timeline_conferencia` guarda o que o GAUSS mandou em cada vaga-dia; a tela marca "✓ igual ao GAUSS" ou avisa a diferença. Também avisa caminhão apropriado em duas vagas ao mesmo tempo no próprio GAUSS (15/10: DSY6475 em AP-09 e AP-10).
+- SQL: `supabase/2026-10-15_timeline-por-vaga.sql` (rodar antes de publicar).
+
+## Análise: supervisor pela vaga · 15/10/2026 (não publicado; ramo `crono-telemetria-placa`)
+- O supervisor passa a ser o **da vaga em que o caminhão estava naquele dia**, não o da placa (os caminhões rodam entre as vagas). Regra do segundo cérebro: Junior Pereira (AP 02–06, 09, 10), Donizete (AV 02–06, Hipervácuo 01 e 02), Genésio (aspiradores, Brooks, Hipervácuo 03 e 04); vagas 24 h (AP/AV 01 e 08) pelo supervisor da letra do 4x4 no horário da parada; AP/AV 07 (16 h) sem supervisor.
+- A vaga de cada dia vem da view nova `vaga_do_dia` (SQL `supabase/2026-10-15_vaga-do-dia.sql`). Sem a view, vale o supervisor da matriz.
+
+## Cronoanálise: motor pela placa quando o GAUSS não tem a vaga · 15/10/2026 (não publicado; ramo `crono-telemetria-placa`)
+- Quando a vaga do GAUSS não tem o caminhão no turno (S/ VAGA, ex.: EAM3256 em 13/10) ou a folha não tem vaga com número, o motor vem **pela placa**: montado com os eventos do mapa ao vivo (`loc_eventos`: abertura do dia, troca de status, sinal perdido/retomado, motor 2º do caminhão). Nenhuma consulta nova ao GAUSS.
+- A tela avisa quando o motor veio pela placa (menos preciso: leituras de minutos) e quando nem a vaga nem a placa têm dados.
 
 ## Sistema mais limpo · 14/10/2026 (não publicado)
 - **Mapa com diferenciação** (pesquisa de 14/10/2026: Esri, ColorBrewer, Penn State): botão **Da cerca | Quanto parou | O que parou**. "Quanto parou" usa 5 tons sólidos da cor da aba (claro = pouco, escuro = muito); "O que parou" pinta cada área pela categoria que mais pesou (status em 6 grupos + cinza, família, ou apontamento da família), forte quando passa da metade, fraco quando venceu por pouco e cinza quando é misto; passar o mouse mostra a divisão. Nos dois modos o satélite fica cinza e escuro.

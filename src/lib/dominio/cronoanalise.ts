@@ -1,7 +1,7 @@
 // Cronoanálise × telemetria (desenho em docs/superpowers/specs/2026-10-14-cronoanalise-design.md).
 // Junta as folhas da cronoanálise (crono_registros) com a timeline de motor do GAUSS e os apontamentos do tablet
 // numa régua só: segundos desde o início do turno. Só regras puras (sem banco, sem tela).
-import type { TipoEquip, Tom } from "../tipos";
+import type { Evento, TipoEquip, Tom } from "../tipos";
 import { pad } from "./formato";
 import { montarStatusGauss, montarTablet, type ApontamentoTablet, type BlocoGauss, type LinhaMotorGauss, type LinhaTablet } from "./gauss-dia";
 import { statusProdutivo } from "./produtividade";
@@ -222,6 +222,71 @@ export function padraoVagaGauss(vaga: string | null, equip: string | null = null
   const nome = tipo ? NOME_GAUSS[tipo] : undefined;
   if (!nome || !num) return null;
   return `${nome}% - GPS - ${pad(Number(num))}%`;
+}
+
+/** A timeline da vaga tem o motor deste turno? Só "sem dados" (ou nada) = o GAUSS não ligou o caminhão à vaga (S/ VAGA). */
+export const vagaTemMotor = (linhas: Pick<LinhaMotorGauss, "status">[]) => linhas.some((l) => l.status !== "no_data");
+
+/** Texto de status do mapa ao vivo ("Ligado", "Parado ligado", "Desligado"...) → código da timeline do GAUSS. */
+export function codigoDoStatus(texto: string): string {
+  const t = texto.toLowerCase();
+  if (/manut/.test(t)) return "maintenance";
+  if (/desligad/.test(t)) return "off";
+  if (/parad/.test(t) && /ligad/.test(t)) return "stopped";
+  if (/ligad/.test(t)) return "on";
+  return "no_data";
+}
+
+/** Carimbo UTC do evento → "AAAA-MM-DDTHH:MM:SS" no horário local (o da régua do turno). */
+function local(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+/**
+ * Motor pela placa quando a vaga do GAUSS não tem o caminhão (S/ VAGA): monta a timeline com os eventos do mapa ao
+ * vivo (abertura do dia, troca de status, sinal perdido/retomado) do caminhão e do motor 2º dele, até `ate` (local).
+ * Prioridade: manutenção > sem sinal > motor 2º ligado > status do caminhão. Menos preciso que a vaga (leituras de minutos).
+ */
+export function motorPelaPlaca(eventos: Evento[], placa: string, ate: string, agora: Date = new Date()): LinhaMotorGauss[] {
+  const alvo = limpaPlaca(placa);
+  const ligado = (texto: string) => !["off", "no_data"].includes(codigoDoStatus(texto));
+  const ordenados = [...eventos].sort((a, b) => a.t.localeCompare(b.t));
+  let principal = "no_data";
+  let motor2 = false;
+  let semSinal = false;
+  let desde = null as string | null;
+  let atual = "no_data";
+  const linhas: LinhaMotorGauss[] = [];
+  const fechar = (quando: string) => {
+    const cod = principal === "maintenance" ? "maintenance" : semSinal ? "no_data" : motor2 && principal !== "off" ? "secondary_motor_on" : principal;
+    if (cod === atual && desde) return;
+    if (desde && quando > desde) linhas.push({ inicio: desde, fim: quando, status: atual, status_label: null });
+    desde = quando;
+    atual = cod;
+  };
+  for (const e of ordenados) {
+    const doMotor2 = !!e.motor2 && !!e.principal && limpaPlaca(e.principal) === alvo;
+    if (!doMotor2 && (e.motor2 || limpaPlaca(e.placa) !== alvo)) continue;
+    const quando = local(e.t);
+    if (quando >= ate) break;
+    if (e.tipo === "abertura") {
+      if (doMotor2) motor2 = ligado(e.status);
+      else {
+        principal = codigoDoStatus(e.status);
+        semSinal = e.sem_sinal;
+      }
+    } else if (e.tipo === "status") {
+      if (doMotor2) motor2 = ligado(e.para);
+      else principal = codigoDoStatus(e.para);
+    } else if (e.tipo === "sinal_perdido" && !doMotor2) semSinal = true;
+    else if (e.tipo === "sinal_retomado" && !doMotor2) semSinal = false;
+    else continue;
+    fechar(quando);
+  }
+  const fim = local(agora.toISOString()) < ate ? local(agora.toISOString()) : ate;
+  if (desde && fim > desde) linhas.push({ inicio: desde, fim, status: atual, status_label: null });
+  return linhas;
 }
 
 // ---------- conferência ----------

@@ -50,11 +50,14 @@ let prontas: boolean | null = null;
  */
 async function tabelasProntas(): Promise<boolean> {
   if (prontas != null) return prontas;
+  // conferidas uma vez, fica anotado no loc_kv: não testa as 3 tabelas a cada 5 min
+  if ((await kvGet<boolean>("tempo_real_pronto")) === true) return (prontas = true);
   try {
     await ok(db().from("analise_paradas").select("fonte").limit(1));
     await ok(db().from("analise_excessos").select("id").limit(1));
     await ok(db().from("loc_posicoes").select("veiculo_id").limit(1));
     prontas = true;
+    await kvSet("tempo_real_pronto", true);
   } catch {
     console.warn("⚠ tempo real desligado: rode supabase/tempo-real.sql no Supabase");
     prontas = false;
@@ -112,6 +115,35 @@ export async function paradasAoVivo(frota: Veiculo[], cercas: Cerca[], agora: Da
   await ok(db().from("analise_paradas").delete().eq("dia", dia).eq("fonte", "ao_vivo"));
   await emLotes(linhas, (lote) => db().from("analise_paradas").insert(lote));
   await kvSet("paradas_ao_vivo", { em: agora.toISOString() });
+  return linhas.length;
+}
+
+/**
+ * Refaz as paradas já gravadas de um dia com o motor e o tablet corrigidos (reprocessamento de 15/10/2026). Onde e
+ * quando parou vem da rota do próprio caminhão e não muda; só o status do motor e os apontamentos de cada parada são
+ * recalculados. Nenhuma consulta ao GAUSS.
+ */
+export async function refazerParadasDoDia(frota: Veiculo[], cercas: Cerca[], dia: string): Promise<number> {
+  if (!(await tabelasProntas())) return 0;
+  type Gravada = { veiculo_id: string; placa: string; ini: number; fim: number; lat: number; lng: number; area: string | null; fonte: string };
+  const gravadas = await paginado<Gravada>((de, a) =>
+    db().from("analise_paradas").select("veiculo_id, placa, ini, fim, lat, lng, area, fonte").eq("dia", dia).order("veiculo_id").order("ini").range(de, a),
+  );
+  if (!gravadas.length) return 0;
+  const ctx = await lerContexto(dia);
+  const areas = cercas.filter((c) => c.tipo === "area");
+  const placaDe = new Map(frota.map((v) => [v.id, v.placa]));
+  const porVeiculo = new Map<string, Gravada[]>();
+  for (const g of gravadas) porVeiculo.set(g.veiculo_id, [...(porVeiculo.get(g.veiculo_id) ?? []), g]);
+  // tudo montado antes de apagar: um erro aqui não deixa o dia vazio
+  const linhas = [...porVeiculo].flatMap(([id, gs]) => {
+    const placa = placaDe.get(id) ?? gs[0].placa;
+    const novas = enriquecerParadas(gs, { id, placa }, { dia, areas, motor: ctx.motorDe(id), tablet: ctx.tabletDe(placa), fimDia: DIA });
+    // a área e a fonte ficam as de antes (a cerca pode ter mudado desde aquele dia)
+    return novas.map((p, i) => ({ ...p, placa: gs[i].placa, area: gs[i].area, fonte: gs[i].fonte }));
+  });
+  await ok(db().from("analise_paradas").delete().eq("dia", dia));
+  await emLotes(linhas, (lote) => db().from("analise_paradas").insert(lote));
   return linhas.length;
 }
 

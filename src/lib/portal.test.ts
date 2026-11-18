@@ -3,10 +3,10 @@ import { CATEGORIAS, telasDa } from "./menu";
 import { destinoForaDoPortal, ePortalAntigo, recarregarPortalAntigo, secoesParaPortal } from "./portal";
 
 describe("portal novo: telas do Controle de Frota no menu em árvore", () => {
-  it("as 3 partes (Ao vivo, Análises, Cadastros) com as 7 telas e o endereço completo, com barra no fim", () => {
+  it("as 3 partes (Ao vivo, Análises, Cadastros) com as 9 telas (Usina 3D e Gestão de alertas entraram) e o endereço completo, com barra no fim", () => {
     const s = secoesParaPortal(CATEGORIAS.map((c) => ({ rotulo: c.rotulo, telas: telasDa(c) })), "/Monitoramento-De-Produtividade");
     expect(s.map((x) => x.rotulo)).toEqual(["Ao vivo", "Análises", "Cadastros"]);
-    expect(s.flatMap((x) => x.itens ?? []).length).toBe(7);
+    expect(s.flatMap((x) => x.itens ?? []).length).toBe(9);
     expect(s[0].itens?.[0]).toEqual({ rotulo: "Localização", href: "/Monitoramento-De-Produtividade/" });
     expect(s[1].itens?.find((i) => i.rotulo === "Timeline")?.href).toBe("/Monitoramento-De-Produtividade/timeline/");
   });

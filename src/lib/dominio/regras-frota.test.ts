@@ -10,7 +10,12 @@ describe("regime de cada equipamento", () => {
   it("matriz em branco: pelo nome da vaga do GAUSS; sem pista, ADM presumido", () => {
     expect(regimeDoEquip(null, "ALTA PRESSÃO - GPS - 08 - 24 HS")).toEqual({ regime: "24h", presumido: false });
     expect(regimeDoEquip("", "AUTO VÁCUO - GPS - 07 - 16 HS")).toEqual({ regime: "16h", presumido: false });
-    expect(regimeDoEquip(null, "ALTA PRESSÃO - GPS - 03")).toEqual({ regime: "adm", presumido: true });
+    expect(regimeDoEquip(null, "ALTA PRESSÃO - GPS - 11")).toEqual({ regime: "adm", presumido: true });
+  });
+  it("as 22 vagas sem HS no nome são ADM confirmado (nota Regimes, turnos e supervisores, 20/10/2026)", () => {
+    expect(regimeDoEquip(null, "ALTA PRESSÃO - GPS - 03")).toEqual({ regime: "adm", presumido: false });
+    expect(regimeDoEquip(null, "AUTO VÁCUO - GPS - 05")).toEqual({ regime: "adm", presumido: false });
+    expect(regimeDoEquip(null, "HIPER VÁCUO - GPS - 04")).toEqual({ regime: "adm", presumido: false });
   });
 });
 

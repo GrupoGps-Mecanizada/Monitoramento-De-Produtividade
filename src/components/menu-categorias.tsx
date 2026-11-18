@@ -32,7 +32,7 @@ function useAberto() {
 }
 
 const seta = (aberta: boolean) => (
-  <svg aria-hidden viewBox="0 0 12 12" className={cx("h-3 w-3 opacity-70 transition-transform", aberta && "rotate-180")}>
+  <svg aria-hidden viewBox="0 0 12 12" className={cx("seta-expande h-3 w-3 opacity-70 transition-transform", aberta && "rotate-180")}>
     <path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
@@ -44,7 +44,7 @@ export function MenuCategorias() {
   const atual = MENU.find((m) => telaAtiva(caminho, m.href));
   const estilo = (ligado: boolean) =>
     cx(
-      "flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 text-[13.5px] font-medium transition-colors hover:no-underline",
+      "flex h-9 shrink-0 items-center whitespace-nowrap rounded-lg px-2.5 text-[13.5px] font-medium transition-colors hover:no-underline",
       ligado ? "bg-nav-ativo text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" : "text-nav-suave hover:bg-nav-hover hover:text-white",
     );
   return (
@@ -56,15 +56,17 @@ export function MenuCategorias() {
           return (
             <Link key={c.id} href={telas[0].href} aria-current={ligada ? "page" : undefined} aria-label={c.rotulo} className={estilo(ligada)}>
               <Icone nome={c.icone} className={cx("h-[17px] w-[17px]", ligada ? "text-[#8fb1f5]" : "opacity-80")} />
-              {c.rotulo}
+              <span className="rotulo-expande">{c.rotulo}</span>
             </Link>
           );
         return (
           <div key={c.id} className="relative">
-            <button type="button" aria-expanded={aberto === c.id} onClick={() => setAberto((a) => (a === c.id ? null : c.id))} className={estilo(ligada)}>
+            <button type="button" aria-expanded={aberto === c.id} aria-label={c.rotulo} onClick={() => setAberto((a) => (a === c.id ? null : c.id))} className={estilo(ligada)}>
               <Icone nome={c.icone} className={cx("h-[17px] w-[17px]", ligada ? "text-[#8fb1f5]" : "opacity-80")} />
-              {c.rotulo}
-              {ligada && atual && <span className="font-normal text-nav-suave">· {atual.rotulo}</span>}
+              <span className="rotulo-expande">
+                {c.rotulo}
+                {ligada && atual && <span className="font-normal text-nav-suave"> · {atual.rotulo}</span>}
+              </span>
               {seta(aberto === c.id)}
             </button>
             {aberto === c.id && (
