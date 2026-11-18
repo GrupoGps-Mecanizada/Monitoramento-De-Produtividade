@@ -49,7 +49,7 @@ export function BarraTopo(p: Props) {
   const rotulo = aberto?.qual === "tipo" && p.filtro.tipo ? TIPOS_EQUIP[p.filtro.tipo].rotulo : aberto?.qual === "areas" ? "Áreas" : "Alertas";
 
   return (
-    <nav aria-label="Filtros do mapa" className="flex shrink-0 flex-wrap items-center gap-1.5 rounded-xl border border-borda bg-superficie px-2.5 py-2 shadow-md">
+    <nav aria-label="Filtros do mapa" className="k-cartao flex shrink-0 flex-wrap items-center gap-1.5 rounded-xl border border-borda bg-superficie px-2.5 py-2 shadow-md">
       {ORDEM_TIPOS.map((t) => {
         const vs = p.veiculos.filter((v) => v.equip?.tipo === t);
         if (!vs.length) return null;

@@ -1,24 +1,26 @@
 @import "tailwindcss";
 
 /*
- * Identidade visual "Campo" — a mesma do SST - Mecanizada (barra superior escura, azul #1d4fa3, camadas com sombra).
+ * Padrão visual SGE (aprovado pelo dono em 16-17/11/2026): fundo cinza quente, cartões brancos, IBM Plex Sans, um azul (#2f5fb3).
+ * Mesmas cores do sge-core (PLATAFORMA/sge-core/v1/sge-core.css). Status e séries de gráfico continuam como estavam.
+ * Antes: identidade visual "Campo" — a mesma do SST - Mecanizada (barra superior escura, azul #1d4fa3, camadas com sombra).
  * Tema: segue o sistema operacional; o botão de tema grava a escolha em <html data-tema>.
  * Os tokens abaixo são cópia do SST: mudança de cor deve ser feita nos dois sistemas.
  */
 :root {
   color-scheme: light;
-  --fundo: #eef1f5;
+  --fundo: #e9e9e6;
   --superficie: #ffffff;
-  --superficie-2: #f5f7fa;
-  --borda: #e1e5eb;
-  --borda-2: #c5ccd6;
-  --texto: #151922;
-  --texto-suave: #5b6473;
-  --primaria: #1d4fa3;
+  --superficie-2: #f3f3f1;
+  --borda: #dcdbd6;
+  --borda-2: #c2c1bb;
+  --texto: #1f1e1b;
+  --texto-suave: #62615c;
+  --primaria: #2f5fb3;
   --primaria-texto: #ffffff;
-  --primaria-suave: #e4ecf8;
-  --link: #1d4fa3;
-  --anel: rgba(29, 79, 163, 0.3);
+  --primaria-suave: #e8eef9;
+  --link: #2f5fb3;
+  --anel: rgba(47, 95, 179, 0.3);
   --perigo: #b42318;
   --listra: rgba(20, 20, 20, 0.05);
 
@@ -31,8 +33,8 @@
   --nav-borda: #262b34;
 
   /* elevação (camadas) */
-  --sombra-1: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.05);
-  --sombra-2: 0 4px 12px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.05);
+  --sombra-1: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --sombra-2: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(0, 0, 0, 0.05);
   --sombra-3: 0 12px 32px -8px rgba(16, 24, 40, 0.18), 0 4px 8px -4px rgba(16, 24, 40, 0.06);
   --sombra-4: 0 24px 64px -12px rgba(16, 24, 40, 0.3);
 
@@ -69,24 +71,24 @@
   --seq-5: #256abf;
   --seq-6: #184f95;
   --seq-7: #0d366b;
-  --grade-grafico: #e6e9ee;
+  --grade-grafico: #ecebe7;
 }
 
 /* tema escuro: escolhido no botão, ou do sistema quando não houver escolha */
 :root[data-tema="escuro"] {
   color-scheme: dark;
-  --fundo: #0d0f13;
-  --superficie: #161920;
-  --superficie-2: #1d2129;
-  --borda: #2a2f39;
-  --borda-2: #3c4350;
-  --texto: #eceef2;
-  --texto-suave: #a0a7b4;
-  --primaria: #5b8ef0;
-  --primaria-texto: #0b1220;
-  --primaria-suave: #16233c;
-  --link: #8fb1f5;
-  --anel: rgba(91, 142, 240, 0.35);
+  --fundo: #0b0b0a;
+  --superficie: #1c1c1a;
+  --superficie-2: #252523;
+  --borda: #353430;
+  --borda-2: #4d4c47;
+  --texto: #eeeeec;
+  --texto-suave: #b5b3ad;
+  --primaria: #6f9be8;
+  --primaria-texto: #0f1115;
+  --primaria-suave: #1c2638;
+  --link: #8fb2ee;
+  --anel: rgba(111, 155, 232, 0.35);
   --perigo: #f28b82;
   --listra: rgba(255, 255, 255, 0.05);
   --nav: #0a0c10;
@@ -120,23 +122,23 @@
   --serie-3: #199e70;
   --serie-4: #c98500;
   --serie-5: #d55181;
-  --grade-grafico: #262b34;
+  --grade-grafico: #2a2a27;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-tema="claro"]) {
     color-scheme: dark;
-    --fundo: #0d0f13;
-    --superficie: #161920;
-    --superficie-2: #1d2129;
-    --borda: #2a2f39;
-    --borda-2: #3c4350;
-    --texto: #eceef2;
-    --texto-suave: #a0a7b4;
-    --primaria: #5b8ef0;
-    --primaria-texto: #0b1220;
-    --primaria-suave: #16233c;
-    --link: #8fb1f5;
-    --anel: rgba(91, 142, 240, 0.35);
+    --fundo: #0b0b0a;
+    --superficie: #1c1c1a;
+    --superficie-2: #252523;
+    --borda: #353430;
+    --borda-2: #4d4c47;
+    --texto: #eeeeec;
+    --texto-suave: #b5b3ad;
+    --primaria: #6f9be8;
+    --primaria-texto: #0f1115;
+    --primaria-suave: #1c2638;
+    --link: #8fb2ee;
+    --anel: rgba(111, 155, 232, 0.35);
     --perigo: #f28b82;
     --listra: rgba(255, 255, 255, 0.05);
     --nav: #0a0c10;
@@ -170,7 +172,7 @@
     --serie-3: #199e70;
     --serie-4: #c98500;
     --serie-5: #d55181;
-    --grade-grafico: #262b34;
+    --grade-grafico: #2a2a27;
   }
 }
 
@@ -362,7 +364,7 @@ textarea:focus {
 
 /* telas de mapa ocupam o espaço entre a barra superior e (no celular) a barra inferior */
 .altura-tela { height: calc(100dvh - 56px - 64px); }
-@media (min-width: 768px) { .altura-tela { height: calc(100dvh - 62px); } }
+@media (min-width: 768px) { .altura-tela { height: calc(100dvh - 48px); } }
 
 .leaflet-container { font-family: var(--font-sans); background: #1b1f27; }
 .leaflet-tooltip.rotulo-cerca { font: 600 11px var(--font-sans); }
@@ -437,3 +439,26 @@ textarea:focus {
   align-items: center;
   gap: 6px;
 }
+
+/* Dentro do portal novo (html.sge-embutido): tela cheia de verdade (Portfólio 24, opção C, 17/11/2026).
+   Sem faixa cinza: o fundo fica branco (escuro no tema escuro) e os cartões viram blocos separados por linhas finas.
+   A planilha encosta nas bordas, sem caixa. */
+html.sge-embutido body { background: var(--superficie); }
+html.sge-embutido .shadow-sm { box-shadow: none; }
+html.sge-embutido .tela-cheia { padding: 0; gap: 0; }
+html.sge-embutido .tela-cheia .caixa-plana { border-width: 0; border-radius: 0; }
+
+
+/* Tela limpa + estilo planilha dentro do portal (Portfólios 26 E e 27 D, 17/11/2026; mesmas peças do kit do SGE e do SST).
+   k-pilha: blocos um embaixo do outro, separados por uma linha fina. k-grade: blocos lado a lado (o fundo da grade é a linha).
+   k-cartao: perde a caixa (borda, canto e sombra). k-tit: título em faixa cinza. k-explica: só aparece com o botão (?). */
+.k-explica { display: none; }
+.k-ajuda-on .k-explica { display: inline; color: var(--primaria); }
+.k-ajuda-on .k-explica.bloco { display: block; }
+html.sge-embutido .k-pilha { gap: 0 !important; padding: 0 !important; }
+html.sge-embutido .k-pilha > * { border-bottom: 1px solid var(--borda); background-color: var(--superficie); }
+html.sge-embutido .k-grade { gap: 1px !important; background: var(--borda); }
+html.sge-embutido .k-grade > * { background-color: var(--superficie); }
+html.sge-embutido .k-cartao { border-width: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+html.sge-embutido .k-faixa { padding: 6px 8px; }
+html.sge-embutido .k-tit { margin: -0.75rem -0.75rem 0.5rem; padding: 0.5rem 0.75rem; background: var(--superficie-2); border-bottom: 1px solid var(--borda); }

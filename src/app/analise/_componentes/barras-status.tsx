@@ -1,5 +1,6 @@
 "use client";
 
+import { Explica } from "@/components/ajuda";
 import { cx } from "@/components/ui";
 import { ORDEM_STATUS, rotuloStatus, type PlacaStatus } from "@/lib/dominio/assuntos";
 import { fmtHoras } from "@/lib/dominio/formato";
@@ -11,9 +12,9 @@ export function BarrasStatus({ linhas, destaque, selecionada, escolher, vazio }:
   // legenda: os status que aparecem nas barras, na ordem fixa
   const presentes = [...new Map(linhas.flatMap((l) => l.partes).map((p) => [p.cod, p] as const)).values()].sort((a, b) => ORDEM_STATUS.indexOf(a.cod) - ORDEM_STATUS.indexOf(b.cod));
   return (
-    <section aria-label="Placas" className="rounded-xl border border-borda bg-superficie p-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-suave">
-        Placas <span className="font-normal normal-case tracking-normal">· tempo de cada status do motor</span>
+    <section aria-label="Placas" className="k-cartao rounded-xl border border-borda bg-superficie p-3">
+      <h2 className="k-tit text-sm font-semibold text-texto">
+        Placas <Explica className="font-normal">· tempo de cada status do motor</Explica>
       </h2>
       {linhas.length === 0 ? (
         <p className="mt-2 text-xs text-suave">{vazio}</p>

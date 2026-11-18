@@ -42,7 +42,7 @@ export function BarraFiltros({
   limpar: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="k-faixa flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         {topo}
         <Selecao aria-label="Tipo" value={filtros.tipo ?? ""} onChange={(e) => mudarFiltros({ tipo: (e.target.value || null) as TipoEquip | null })} className="w-auto min-w-[160px]">
@@ -65,7 +65,7 @@ export function BarraFiltros({
             <option key={s}>{s}</option>
           ))}
         </Selecao>
-        {fim && <div className="ml-auto">{fim}</div>}
+        {fim && <div className="ml-auto flex items-center gap-2">{fim}</div>}
       </div>
       {etiquetas.length > 0 && (
         <div role="group" aria-label="Filtrando" className="flex flex-wrap items-center gap-1.5 text-xs">

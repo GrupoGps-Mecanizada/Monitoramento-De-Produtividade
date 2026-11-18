@@ -1,4 +1,15 @@
-# CHANGELOG · Monitoramento de Localização
+# CHANGELOG · Controle de Frota (antigo "Monitoramento")
+
+## Tela limpa, estilo planilha · 17/11/2026 (ramo analise-visual, NÃO publicado)
+- Dentro do portal, **Localização, Análise e Equipamentos** encostam nas bordas: sem caixas nem faixas cinzas, blocos separados por linhas finas, título de cada bloco em faixa cinza (classes `k-pilha`, `k-grade`, `k-cartao`, `k-tit` em globals.css; Portfólio 26 E).
+- **Botão (?)** (`components/ajuda.tsx`, igual ao do SST e do kit): subtítulos dos gráficos, descrições dos números e a instrução da planilha ("Só para ver e pesquisar...") só aparecem com a ajuda ligada (Portfólio 27 D).
+- tsc, eslint e Vitest (371) ok; build com BASE_PATH ok; conferido dentro do portal novo.
+
+## Dentro do portal novo + um nome só · 17/11/2026 (ramo analise-visual, NÃO publicado)
+- **Um nome só** (pedido do dono): "Controle de Frota" no topo, no título da aba e nas exportações (`lib/marca.ts`), igual ao Portal. O endereço `/Monitoramento-De-Produtividade/` continua o mesmo (não quebra links).
+- **Portal novo** (casca Obsidian, `SGEPortal.versao >= 2`): sem a barra de cima nem a de baixo do celular; as 3 partes (Ao vivo, Análises, Cadastros) e as 7 telas vão para o menu em árvore do portal, dentro da categoria Equipamentos (`components/no-portal.tsx`, `secoesParaPortal` em `lib/portal.ts`). Aberto direto no endereço do portal: vai para dentro dele na mesma tela. github.io e localhost ficam como estão.
+- Typecheck, eslint e Vitest (371, 2 novos) passando; build com BASE_PATH ok; conferido dentro do portal novo com os dados reais (só leitura).
+- **Padrão visual SGE** (dono, 17/11): cores (fundo cinza quente, cartões brancos, azul #2f5fb3) e letra IBM Plex Sans em `globals.css`/`layout.tsx`; status e séries de gráfico iguais. Tema segue o do portal (`sge_tema`). Opção escolhida escura nos botões segmentados (`Segmentado`); títulos dos cartões em negrito normal (sem MAIÚSCULA); cabeçalho da planilha de Equipamentos cinza claro com letra escura. Fotos antes/depois: sge-core/entregas/2026-11-17 Portal novo - navegar/fotos-controle-de-frota.
 
 ## Sistema mais limpo · 14/10/2026 (não publicado)
 - **Mapa com diferenciação** (pesquisa de 14/10/2026: Esri, ColorBrewer, Penn State): botão **Da cerca | Quanto parou | O que parou**. "Quanto parou" usa 5 tons sólidos da cor da aba (claro = pouco, escuro = muito); "O que parou" pinta cada área pela categoria que mais pesou (status em 6 grupos + cinza, família, ou apontamento da família), forte quando passa da metade, fraco quando venceu por pouco e cinza quando é misto; passar o mouse mostra a divisão. Nos dois modos o satélite fica cinza e escuro.

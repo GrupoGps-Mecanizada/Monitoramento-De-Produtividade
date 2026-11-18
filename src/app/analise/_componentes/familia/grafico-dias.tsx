@@ -6,9 +6,9 @@ import { diaBR, fmtHoras } from "@/lib/dominio/formato";
 export function GraficoDias({ dias, vazio, cor }: { dias: { dia: string; min: number }[]; vazio: string; cor?: string }) {
   const max = Math.max(0, ...dias.map((d) => d.min));
   return (
-    <section aria-label="Tendência por dia" className="rounded-xl border border-borda bg-superficie p-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-suave">
-        Tendência por dia <span className="font-normal normal-case tracking-normal">· horas paradas em cada dia</span>
+    <section aria-label="Tendência por dia" className="k-cartao rounded-xl border border-borda bg-superficie p-3">
+      <h2 className="text-sm font-semibold text-texto">
+        Tendência por dia <span className="font-normal text-suave">· horas paradas em cada dia</span>
       </h2>
       {max <= 0 ? (
         <p className="mt-2 text-xs text-suave">{vazio}</p>

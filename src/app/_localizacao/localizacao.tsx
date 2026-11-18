@@ -187,7 +187,7 @@ export function Localizacao() {
   return (
     <div className="altura-tela flex flex-col">
       <FaixaLeitura />
-      <div className="relative flex min-h-0 flex-1 flex-col md:gap-3 md:p-3">
+      <div className="k-pilha relative flex min-h-0 flex-1 flex-col md:gap-3 md:p-3">
         {!celular && (
           <BarraTopo
             veiculos={veiculos}
@@ -205,7 +205,7 @@ export function Localizacao() {
           />
         )}
         <div
-          className="relative min-h-0 min-w-0 flex-1 overflow-hidden md:rounded-xl md:border md:border-borda md:shadow-md"
+          className="k-cartao relative min-h-0 min-w-0 flex-1 overflow-hidden md:rounded-xl md:border md:border-borda md:shadow-md"
           onPointerDown={() => {
             // tocar no mapa = foco no mapa: recolhe a gaveta
             if (celular && folha !== "fechada") setFolha("fechada");

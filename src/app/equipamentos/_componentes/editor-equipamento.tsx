@@ -82,7 +82,7 @@ export function EditorEquipamento({
       <Selo tom={STATUS_EQUIP[equip.status].tom}>{STATUS_EQUIP[equip.status].rotulo}</Selo>
     </span>
   ) : (
-    "Entra na matriz e, se não estiver desmobilizado, no Monitoramento"
+    "Entra na matriz e, se não estiver desmobilizado, no Controle de Frota"
   );
 
   const rotulo = "mb-1 block text-[13px] font-medium";
@@ -113,7 +113,7 @@ export function EditorEquipamento({
           <span className={rotulo}>Status</span>
           <Segmentado<StatusEquip> rotulo="Status" valor={d.status} mudar={(s) => campo("status", s)} opcoes={ORDEM_STATUS.map((s) => ({ id: s, rotulo: STATUS_EQUIP[s].rotulo }))} />
           {d.status === "DESMOBILIZADO" && <p className="mt-1.5 text-xs text-suave">Desmobilizado sai do mapa, da Timeline, do Dia da frota e dos alertas.</p>}
-          {d.status === "EM_MANUTENCAO" && <p className="mt-1.5 text-xs text-suave">Continua no Monitoramento, marcado como &quot;em manutenção&quot;.</p>}
+          {d.status === "EM_MANUTENCAO" && <p className="mt-1.5 text-xs text-suave">Continua no Controle de Frota, marcado como &quot;em manutenção&quot;.</p>}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <label>

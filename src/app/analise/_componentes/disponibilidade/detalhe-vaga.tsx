@@ -34,7 +34,7 @@ export function DetalheVaga({ vaga, boletim, detalhe }: { vaga: VagaBoletim | nu
   const maxMotivo = Math.max(0, ...motivos.map((m) => m.horas));
 
   return (
-    <section aria-label={`Detalhe: ${vaga.vaga}`} className="flex flex-col gap-2 rounded-xl border border-borda bg-superficie p-3 lg:min-h-0 lg:overflow-y-auto">
+    <section aria-label={`Detalhe: ${vaga.vaga}`} className="k-cartao flex flex-col gap-2 rounded-xl border border-borda bg-superficie p-3 lg:min-h-0 lg:overflow-y-auto">
       <h2 className="text-sm font-semibold">
         {vaga.vaga} <span className="font-normal text-suave">· DF {fmtDf(vaga.df)} · {fmtH(vaga.horas_indisp)} indisponível de {fmtH(vaga.horas_regime)}</span>
       </h2>

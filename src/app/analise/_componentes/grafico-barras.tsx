@@ -1,5 +1,6 @@
 "use client";
 
+import { Explica } from "@/components/ajuda";
 import { cx } from "@/components/ui";
 
 /** Uma barra: `dica` é o nome falado e o texto ao passar o mouse; `marca` é a bolinha com a cor do serviço no mapa. */
@@ -19,9 +20,9 @@ export interface ItemBarra {
 export function GraficoBarras({ titulo, sub, itens, selecionada, escolher, vazio, cor }: { titulo: string; sub: string; itens: ItemBarra[]; selecionada: string | null; escolher: (chave: string) => void; vazio: string; cor?: string }) {
   const max = Math.max(0, ...itens.map((i) => i.valor));
   return (
-    <section aria-label={titulo} className="rounded-xl border border-borda bg-superficie p-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-suave">
-        {titulo} <span className="font-normal normal-case tracking-normal">· {sub}</span>
+    <section aria-label={titulo} className="k-cartao rounded-xl border border-borda bg-superficie p-3">
+      <h2 className="k-tit text-sm font-semibold text-texto">
+        {titulo} <Explica className="font-normal">· {sub}</Explica>
       </h2>
       {itens.length === 0 ? (
         <p className="mt-2 text-xs text-suave">{vazio}</p>

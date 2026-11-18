@@ -6,9 +6,9 @@ import { fmtDf, fmtH, motivoPrincipal, type VagaBoletim } from "@/lib/dominio/me
 /** Vagas da pior DF para a melhor; clicar abre o detalhe (clicar de novo fecha). */
 export function ListaVagas({ vagas, selecionada, escolher, carregando }: { vagas: VagaBoletim[]; selecionada: number | null; escolher: (id: number) => void; carregando: boolean }) {
   return (
-    <section aria-label="Vagas" className="flex min-h-0 flex-col rounded-xl border border-borda bg-superficie p-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-suave">
-        Vagas <span className="font-normal normal-case tracking-normal">· da pior DF para a melhor</span>
+    <section aria-label="Vagas" className="k-cartao flex min-h-0 flex-col rounded-xl border border-borda bg-superficie p-3">
+      <h2 className="text-sm font-semibold text-texto">
+        Vagas <span className="font-normal text-suave">· da pior DF para a melhor</span>
       </h2>
       {carregando ? (
         <p className="mt-2 text-xs text-suave">Carregando as vagas…</p>

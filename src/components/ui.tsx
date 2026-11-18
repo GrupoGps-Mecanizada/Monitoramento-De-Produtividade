@@ -89,7 +89,8 @@ export function Segmentado<T extends string>({ opcoes, valor, mudar, rotulo }: {
           onClick={() => mudar(o.id)}
           className={cx(
             "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium transition",
-            o.id === valor ? "bg-superficie text-texto shadow-sm" : "text-suave hover:text-texto",
+            // padrão SGE: a opção escolhida fica escura (como Todas / 01 / 06 do Mapa das Varredeiras)
+            o.id === valor ? "bg-texto font-semibold text-superficie shadow-sm" : "text-suave hover:text-texto",
           )}
         >
           {o.rotulo}
@@ -126,7 +127,7 @@ export function Campos({ itens }: { itens: [string, ReactNode][] }) {
 export function SecaoTitulo({ children, acao }: { children: ReactNode; acao?: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-2 px-4 pb-2 pt-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-suave">{children}</p>
+      <p className="text-sm font-semibold text-texto">{children}</p>
       {acao}
     </div>
   );

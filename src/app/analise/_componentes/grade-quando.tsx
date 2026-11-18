@@ -1,5 +1,6 @@
 "use client";
 
+import { Explica } from "@/components/ajuda";
 import { cx } from "@/components/ui";
 import { DIAS_CURTOS } from "@/lib/dominio/analise";
 import { faixaDe, faixasDe } from "@/lib/dominio/assuntos";
@@ -20,9 +21,9 @@ export function GradeQuando({ grade, hora, dia, escolher, vazio, cor = COR_PARAD
   const fortes = new Set([...valores].filter((v) => v > 0).sort((a, b) => b - a).slice(0, COM_NUMERO));
   const temDado = valores.some((v) => v > 0);
   return (
-    <section aria-label="Quando para" className="rounded-xl border border-borda bg-superficie p-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-suave">
-        Quando para <span className="font-normal normal-case tracking-normal">· dia da semana × hora de início</span>
+    <section aria-label="Quando para" className="k-cartao rounded-xl border border-borda bg-superficie p-3">
+      <h2 className="k-tit text-sm font-semibold text-texto">
+        Quando para <Explica className="font-normal">· dia da semana × hora de início</Explica>
       </h2>
       {!temDado ? (
         <p className="mt-2 text-xs text-suave">{vazio}</p>

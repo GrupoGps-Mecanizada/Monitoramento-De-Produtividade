@@ -1,5 +1,6 @@
 "use client";
 
+import { BotaoAjuda } from "@/components/ajuda";
 import type * as Leaflet from "leaflet";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMapa } from "@/components/mapa/use-mapa";
@@ -210,13 +211,16 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
   const vazio = carregando ? "Carregando o histórico…" : "Nada neste filtro.";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2 lg:overflow-hidden">
+    <div className="k-pilha flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2 lg:overflow-hidden">
       <BarraFiltros
         topo={topo}
         fim={
-          <Botao variante="secundaria" aria-pressed={!comGraficos} onClick={() => setGraficos(comGraficos ? "ocultar" : "mostrar")}>
-            {comGraficos ? "Ocultar gráficos" : "Mostrar gráficos"}
-          </Botao>
+          <>
+            <Botao variante="secundaria" aria-pressed={!comGraficos} onClick={() => setGraficos(comGraficos ? "ocultar" : "mostrar")}>
+              {comGraficos ? "Ocultar gráficos" : "Mostrar gráficos"}
+            </Botao>
+            <BotaoAjuda />
+          </>
         }
         filtros={filtros}
         mudarFiltros={(p) => setFiltros((f) => ({ ...f, ...p }))}
@@ -225,8 +229,8 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
         tirar={(d) => setSel((s) => ({ ...s, [d]: null }))}
         limpar={() => setSel(SELECAO_VAZIA)}
       />
-      <div className={cx("grid min-h-0 flex-1 gap-2 lg:grid-rows-[minmax(0,1fr)]", comGraficos && "lg:grid-cols-[minmax(0,3fr)_minmax(340px,2fr)]")}>
-        <div className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-borda lg:h-full">
+      <div className={cx("k-grade grid min-h-0 flex-1 gap-2 lg:grid-rows-[minmax(0,1fr)]", comGraficos && "lg:grid-cols-[minmax(0,3fr)_minmax(340px,2fr)]")}>
+        <div className="k-cartao relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-borda lg:h-full">
           <div ref={ref} className="absolute inset-0" />
           <div className="absolute left-2 top-2 z-[500] w-[340px] max-w-[calc(100%-16px)]">
             <Segmentado<ModoMapa>
@@ -244,7 +248,7 @@ export function Analise({ periodo, topo }: { periodo: Periodo; topo: ReactNode }
           )}
         </div>
         {comGraficos && (
-          <div className="flex flex-col gap-2 lg:min-h-0 lg:overflow-y-auto">
+          <div className="k-pilha flex flex-col gap-2 lg:min-h-0 lg:overflow-y-auto">
             <AbasAssunto valor={assunto} mudar={trocarAssunto} />
             {velho && (
               <p role="status" className="px-1 text-xs font-medium text-suave">

@@ -1,5 +1,6 @@
 "use client";
 
+import { BotaoAjuda } from "@/components/ajuda";
 import "@univerjs/preset-sheets-core/lib/index.css";
 import "@univerjs/preset-sheets-filter/lib/index.css";
 import "@univerjs/preset-sheets-find-replace/lib/index.css";
@@ -49,10 +50,11 @@ const FINA = 1; // borda fina (como a "Todas as bordas" do Excel)
 const borda = (rgb: string) => ({ t: { s: FINA, cl: { rgb } }, b: { s: FINA, cl: { rgb } }, l: { s: FINA, cl: { rgb } }, r: { s: FINA, cl: { rgb } } });
 /** bordas de todas as células (vêm por padrão, e vão junto no Ctrl+C para o Excel) */
 const BORDA = borda("#BFBFBF");
+// cabeçalho no padrão SGE (17/11/2026): cinza claro com letra escura, como as tabelas dos pilotos
 const CABECALHO = {
-  bd: borda("#8EA9DB"),
-  bg: { rgb: "#1F3864" },
-  cl: { rgb: "#FFFFFF" },
+  bd: borda("#DCDBD6"),
+  bg: { rgb: "#F3F3F1" },
+  cl: { rgb: "#1F1E1B" },
   bl: 1,
   ht: ESQUERDA,
   vt: CENTRO,
@@ -170,7 +172,7 @@ export function PlanilhaExcel<T>({
 }) {
   const caixa = useRef<HTMLDivElement>(null);
   // sem login no Monitoramento: o arquivo não diz quem exportou
-  const quem = "Monitoramento";
+  const quem = "Controle de Frota";
   // retrato da planilha como está na tela (linhas filtradas, colunas visíveis, estilos)
   const retratar = useRef<(() => RetratoPlanilha | null) | null>(null);
   const [gerando, setGerando] = useState(false);
@@ -591,7 +593,7 @@ export function PlanilhaExcel<T>({
   return (
     <div
       className={cx(
-        "overflow-hidden rounded-xl border border-borda bg-superficie shadow-sm",
+        "caixa-plana overflow-hidden rounded-xl border border-borda bg-superficie shadow-sm",
         preencher && "flex min-h-0 flex-1 flex-col",
       )}
     >
@@ -600,7 +602,7 @@ export function PlanilhaExcel<T>({
           <span className="font-semibold text-texto">
             {linhas.length} linhas
           </span>
-          <span>
+          <span className="k-explica">
             <b className="text-texto">Só para ver e pesquisar</b> (Ctrl+F) ·
             nada aqui altera os dados · {dica} · cores são temporárias
           </span>
@@ -608,7 +610,10 @@ export function PlanilhaExcel<T>({
             {estado === "abrindo" ? (
               <span className="font-medium">Abrindo planilha…</span>
             ) : (
-              acoes
+              <>
+                {acoes}
+                <BotaoAjuda />
+              </>
             )}
           </span>
         </div>
